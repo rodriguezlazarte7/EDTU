@@ -1,0 +1,22 @@
+# Sistema
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# Editores
+.vscode/
+.idea/
+
+# Configuración local de Claude Code
+.claude/
+
+# Logs / temporales
+*.log
+tmp/
+temp/
+
+# Dependencias (por si más adelante usas Node)
+node_modules/
+
+# NOTA: config.js SÍ se sube. La "anon key" de Supabase es pública por diseño
+# (segura para el navegador). La seguridad real se hace con RLS, no ocultando esa key.

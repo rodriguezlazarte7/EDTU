@@ -1,0 +1,1182 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+<meta name="theme-color" content="#000000" />
+<meta name="mobile-web-app-capable" content="yes" />
+<meta name="apple-mobile-web-app-capable" content="yes" />
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+<title>EDTU // Centro de Mando</title>
+<style>
+  :root{
+    --bg:#000000;
+    --bg2:#000000;
+    --panel:rgba(14,16,24,0.78);
+    --cyan:#ffffff;
+    --magenta:#2f9bff;
+    --violet:#8a5bff;
+    --green:#27ff9e;
+    --amber:#ffc24b;
+    --red:#ff3b5b;
+    --txt:#d7e6ff;
+    --muted:#6f81a8;
+    --grid:rgba(255,255,255,0.06);
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  html,body{height:100%}
+  body{
+    font-family:"Segoe UI",-apple-system,system-ui,sans-serif;
+    background:#000000;
+    color:var(--txt);
+    min-height:100vh;
+    overflow-x:hidden;
+  }
+  /* grid + scanline ambiance */
+  body::before{
+    content:"";position:fixed;inset:0;pointer-events:none;z-index:0;
+    background-image:linear-gradient(var(--grid) 1px,transparent 1px),
+                     linear-gradient(90deg,var(--grid) 1px,transparent 1px);
+    background-size:42px 42px;
+    mask-image:radial-gradient(ellipse at 50% 40%,#000 40%,transparent 95%);
+  }
+  body::after{
+    content:"";position:fixed;inset:0;pointer-events:none;z-index:1;
+    background:repeating-linear-gradient(0deg,rgba(0,0,0,0.18) 0px,rgba(0,0,0,0.18) 1px,transparent 2px,transparent 3px);
+    opacity:.35;
+  }
+  .mono{font-family:"Consolas","SFMono-Regular",ui-monospace,monospace}
+  h1,h2,h3{font-weight:800;letter-spacing:.06em}
+  .glow{text-shadow:0 0 8px currentColor,0 0 22px currentColor}
+
+  /* ---------- LOGIN ---------- */
+  #lock{
+    position:fixed;inset:0;z-index:50;display:flex;align-items:center;justify-content:center;
+    background:#000000;
+  }
+  .lockcard{
+    position:relative;width:min(420px,92vw);padding:38px 34px;border-radius:18px;
+    background:var(--panel);backdrop-filter:blur(14px);
+    border:1px solid rgba(255,255,255,0.30);
+    box-shadow:0 0 40px rgba(255,255,255,0.12),inset 0 0 30px rgba(138,91,255,0.07);
+    text-align:center;animation:pop .5s ease;
+  }
+  @keyframes pop{from{transform:scale(.95);opacity:0}to{transform:scale(1);opacity:1}}
+  .logo{font-size:13px;letter-spacing:.5em;color:var(--cyan)}
+  .lockcard h1{font-size:30px;margin:6px 0 2px;color:var(--magenta)}
+  .lockcard p{color:var(--muted);font-size:12px;letter-spacing:.18em;margin-bottom:26px}
+  .pin{
+    width:100%;text-align:center;font-size:26px;letter-spacing:.5em;padding:14px;
+    background:rgba(0,0,0,0.35);border:1px solid rgba(255,255,255,0.35);border-radius:12px;
+    color:var(--cyan);outline:none;
+  }
+  .pin:focus{border-color:var(--magenta);box-shadow:0 0 18px rgba(47,155,255,0.40)}
+  .lockmsg{min-height:18px;font-size:12px;letter-spacing:.1em;margin-top:14px}
+  .shake{animation:shake .35s}
+  @keyframes shake{0%,100%{transform:translateX(0)}25%{transform:translateX(-8px)}75%{transform:translateX(8px)}}
+
+  /* ---------- APP SHELL ---------- */
+  #app{display:none;position:relative;z-index:2;max-width:1180px;margin:0 auto;padding:26px 20px 80px}
+  header.top{
+    display:flex;align-items:center;justify-content:space-between;gap:16px;flex-wrap:wrap;
+    padding:16px 22px;border-radius:16px;margin-bottom:22px;
+    background:var(--panel);border:1px solid rgba(138,91,255,0.30);
+    box-shadow:0 0 30px rgba(138,91,255,0.10);
+  }
+  .brand{display:flex;align-items:center;gap:14px}
+  .badge{
+    width:46px;height:46px;border-radius:12px;display:grid;place-items:center;font-weight:900;font-size:20px;
+    background:linear-gradient(135deg,var(--cyan),var(--magenta));color:#05060e;
+    box-shadow:0 0 22px rgba(255,255,255,0.5);
+  }
+  .brand h1{font-size:20px;color:var(--cyan)}
+  .brand small{display:block;color:var(--muted);font-size:11px;letter-spacing:.25em}
+  .top-right{display:flex;align-items:center;gap:10px}
+  .who{font-size:12px;color:var(--muted);text-align:right}
+  .who b{color:var(--green);letter-spacing:.1em}
+  .userbox{
+    display:flex;align-items:center;gap:10px;cursor:pointer;padding:6px 10px;border-radius:12px;
+    border:1px solid rgba(255,255,255,0.18);background:rgba(255,255,255,0.03);transition:.15s;
+  }
+  .userbox:hover{border-color:rgba(255,255,255,0.45);background:rgba(255,255,255,0.07)}
+  .uavatar{
+    width:40px;height:40px;border-radius:10px;flex-shrink:0;display:grid;place-items:center;
+    font-weight:900;font-size:18px;background:linear-gradient(135deg,var(--magenta),var(--violet));color:#000;
+    background-size:cover;background-position:center;overflow:hidden;box-shadow:0 0 14px rgba(47,155,255,0.4);
+  }
+  .uinfo{display:flex;flex-direction:column;line-height:1.25;text-align:left}
+  .uinfo b{font-size:13px;color:var(--txt);letter-spacing:.04em;max-width:160px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .uinfo span{font-size:10px;color:var(--muted);letter-spacing:.12em}
+  .uedit{color:var(--magenta);font-size:14px;opacity:.7}
+  .userbox:hover .uedit{opacity:1}
+
+  /* avatar foto en filas de agente y formularios */
+  .photo-edit{display:flex;align-items:center;gap:14px}
+  .photo-prev{
+    width:72px;height:72px;border-radius:14px;flex-shrink:0;display:grid;place-items:center;font-weight:900;font-size:26px;
+    background:linear-gradient(135deg,var(--magenta),var(--violet));color:#000;background-size:cover;background-position:center;
+    overflow:hidden;box-shadow:0 0 16px rgba(47,155,255,0.35);
+  }
+  .readonly-note{
+    display:flex;align-items:center;gap:8px;font-size:12px;color:var(--amber);letter-spacing:.06em;
+    background:rgba(255,194,75,0.08);border:1px solid rgba(255,194,75,0.3);border-radius:10px;padding:9px 13px;margin-bottom:14px;
+  }
+
+  .stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:14px;margin-bottom:22px}
+  .stat{
+    padding:16px 18px;border-radius:14px;background:var(--panel);
+    border:1px solid rgba(255,255,255,0.18);position:relative;overflow:hidden;
+  }
+  .stat .n{font-size:30px;font-weight:900}
+  .stat .l{font-size:11px;letter-spacing:.2em;color:var(--muted);margin-top:2px}
+  .stat::after{content:"";position:absolute;right:-20px;top:-20px;width:70px;height:70px;border-radius:50%;background:currentColor;opacity:.12;filter:blur(8px)}
+
+  .toolbar{display:flex;gap:12px;flex-wrap:wrap;align-items:center;margin-bottom:18px}
+  .search{flex:1;min-width:200px}
+  input,select,textarea{
+    font-family:inherit;font-size:14px;color:var(--txt);
+    background:rgba(0,0,0,0.30);border:1px solid rgba(255,255,255,0.22);border-radius:10px;
+    padding:11px 13px;outline:none;width:100%;
+  }
+  input:focus,select:focus,textarea:focus{border-color:var(--magenta);box-shadow:0 0 14px rgba(47,155,255,0.30)}
+  select option{background:#0a0d1f}
+  label{font-size:11px;letter-spacing:.16em;color:var(--muted);display:block;margin:0 0 6px 2px}
+
+  .btn{
+    cursor:pointer;border:none;border-radius:10px;font-family:inherit;font-weight:700;letter-spacing:.06em;
+    padding:11px 18px;font-size:13px;transition:.15s;white-space:nowrap;
+  }
+  .btn-primary{background:linear-gradient(135deg,var(--cyan),var(--violet));color:#05060e;box-shadow:0 0 18px rgba(255,255,255,0.35)}
+  .btn-primary:hover{filter:brightness(1.12);transform:translateY(-1px)}
+  .btn-ghost{background:transparent;color:var(--cyan);border:1px solid rgba(255,255,255,0.4)}
+  .btn-ghost:hover{background:rgba(255,255,255,0.10)}
+  .btn-danger{background:transparent;color:var(--red);border:1px solid rgba(255,59,91,0.5)}
+  .btn-danger:hover{background:rgba(255,59,91,0.12)}
+  .btn-sm{padding:7px 12px;font-size:12px}
+
+  /* ---------- MISSION CARDS ---------- */
+  .grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(310px,1fr));gap:16px}
+  .card{
+    position:relative;border-radius:16px;padding:18px;background:var(--panel);
+    border:1px solid rgba(138,91,255,0.22);overflow:hidden;transition:.18s;
+  }
+  .card:hover{transform:translateY(-3px);border-color:rgba(255,255,255,0.45);box-shadow:0 10px 30px rgba(0,0,0,0.4),0 0 22px rgba(255,255,255,0.12)}
+  .card .strip{position:absolute;left:0;top:0;bottom:0;width:4px}
+  .card h3{font-size:16px;color:var(--cyan);letter-spacing:.08em;padding-right:70px}
+  .card .obj{color:var(--muted);font-size:13px;margin:8px 0 14px;line-height:1.5;min-height:38px}
+  .row{display:flex;gap:8px;align-items:center;font-size:12.5px;margin:6px 0;color:var(--txt)}
+  .row .k{color:var(--muted);min-width:84px;letter-spacing:.08em;font-size:11px}
+  .tags{display:flex;flex-wrap:wrap;gap:6px;margin-top:4px}
+  .tag{font-size:11px;padding:3px 9px;border-radius:20px;background:rgba(255,255,255,0.10);border:1px solid rgba(255,255,255,0.3);color:var(--cyan)}
+  .pill{position:absolute;top:16px;right:16px;font-size:10px;font-weight:800;letter-spacing:.12em;padding:4px 10px;border-radius:20px;text-transform:uppercase}
+  .card-actions{display:flex;gap:8px;margin-top:16px;border-top:1px solid rgba(255,255,255,0.06);padding-top:14px}
+  .prio-dot{width:10px;height:10px;border-radius:50%;box-shadow:0 0 10px currentColor}
+
+  .empty{text-align:center;padding:70px 20px;color:var(--muted)}
+  .empty .big{font-size:54px;opacity:.5}
+
+  /* ---------- MODAL ---------- */
+  .modal-bg{
+    display:none;position:fixed;inset:0;z-index:60;align-items:flex-start;justify-content:center;
+    background:rgba(2,4,12,0.78);backdrop-filter:blur(6px);overflow-y:auto;padding:40px 16px;
+  }
+  .modal-bg.open{display:flex}
+  .modal{
+    width:min(560px,96vw);border-radius:18px;background:linear-gradient(180deg,#0b1126,#070a18);
+    border:1px solid rgba(255,255,255,0.35);box-shadow:0 0 60px rgba(255,255,255,0.18);
+    padding:26px;animation:pop .25s ease;
+  }
+  .modal h2{font-size:18px;color:var(--magenta);margin-bottom:18px;letter-spacing:.1em}
+  .form-grid{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+  .form-grid .full{grid-column:1/-1}
+  .modal-actions{display:flex;justify-content:flex-end;gap:10px;margin-top:22px}
+  textarea{resize:vertical;min-height:64px}
+
+  /* ---------- AGENTES ---------- */
+  .modal.wide{width:min(720px,96vw)}
+  .panel-head{display:flex;justify-content:space-between;align-items:center;gap:12px;margin-bottom:18px;flex-wrap:wrap}
+  .agent-row{
+    display:flex;align-items:center;gap:14px;padding:13px 15px;border-radius:12px;
+    background:rgba(0,0,0,0.28);border:1px solid rgba(255,255,255,0.14);margin-bottom:10px;transition:.15s;
+  }
+  .agent-row:hover{border-color:rgba(255,255,255,0.4)}
+  .agent-row.blocked{opacity:.55;border-color:rgba(255,59,91,0.45);background:rgba(255,59,91,0.06)}
+  .agent-av{
+    width:46px;height:46px;border-radius:11px;display:grid;place-items:center;font-weight:900;font-size:18px;
+    background:linear-gradient(135deg,var(--cyan),var(--violet));color:#05060e;flex-shrink:0;
+    box-shadow:0 0 16px rgba(255,255,255,0.35);
+  }
+  .agent-row.blocked .agent-av{background:linear-gradient(135deg,#4a4f63,#2a2e3d);color:#9aa3bb;box-shadow:none}
+  .agent-info{flex:1;min-width:0}
+  .agent-info .nm{font-weight:700;color:var(--cyan);letter-spacing:.04em;display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+  .agent-info .meta{font-size:12px;color:var(--muted);margin-top:4px;overflow:hidden;text-overflow:ellipsis}
+  .agent-actions{display:flex;gap:6px;flex-wrap:wrap;justify-content:flex-end}
+  .sbadge{font-size:9.5px;font-weight:800;letter-spacing:.1em;padding:3px 9px;border-radius:20px;text-transform:uppercase}
+  .codename{font-size:11px;color:var(--violet);letter-spacing:.08em}
+  .agents-empty{text-align:center;padding:44px 16px;color:var(--muted)}
+
+  /* ---------- CHAT ---------- */
+  .chat-wrap{display:flex;flex-direction:column;height:min(62vh,560px)}
+  .chat-log{
+    flex:1;overflow-y:auto;display:flex;flex-direction:column;gap:12px;padding:6px 4px 10px;
+  }
+  .chat-empty{margin:auto;text-align:center;color:var(--muted)}
+  .msg{display:flex;gap:10px;max-width:82%;align-items:flex-end}
+  .msg.mine{align-self:flex-end;flex-direction:row-reverse}
+  .msg-av{
+    width:34px;height:34px;border-radius:9px;flex-shrink:0;display:grid;place-items:center;font-weight:800;font-size:14px;
+    background:linear-gradient(135deg,var(--magenta),var(--violet));color:#000;background-size:cover;background-position:center;overflow:hidden;
+  }
+  .msg-body{display:flex;flex-direction:column;gap:3px;min-width:0}
+  .msg-meta{font-size:10px;color:var(--muted);letter-spacing:.06em;padding:0 4px}
+  .msg.mine .msg-meta{text-align:right}
+  .bubble{
+    padding:9px 13px;border-radius:14px;font-size:14px;line-height:1.45;word-break:break-word;white-space:pre-wrap;
+    background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.16);color:var(--txt);
+  }
+  .msg.mine .bubble{background:linear-gradient(135deg,rgba(47,155,255,0.22),rgba(138,91,255,0.22));border-color:rgba(47,155,255,0.5)}
+  .role-tag{font-weight:800;color:var(--magenta)}
+  .role-tag.admin{color:var(--green)}
+  .chat-input-row{display:flex;gap:8px;margin-top:12px;align-items:flex-end}
+  .chat-input-row textarea{min-height:46px;max-height:120px;resize:none}
+
+  .toast{
+    position:fixed;bottom:24px;left:50%;transform:translateX(-50%) translateY(20px);
+    background:linear-gradient(135deg,var(--cyan),var(--violet));color:#05060e;font-weight:700;
+    padding:12px 22px;border-radius:12px;z-index:80;opacity:0;transition:.3s;pointer-events:none;
+    box-shadow:0 0 30px rgba(255,255,255,0.4);letter-spacing:.05em;
+  }
+  .toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
+  footer{text-align:center;color:var(--muted);font-size:11px;letter-spacing:.2em;margin-top:40px}
+
+  /* ---------- BASE TÁCTIL (móvil/tablet) ---------- */
+  html{-webkit-text-size-adjust:100%}
+  body{-webkit-tap-highlight-color:transparent}
+  .btn{touch-action:manipulation}
+
+  /* ---------- TABLET (≤860px) ---------- */
+  @media (max-width:860px){
+    #app{padding:18px 14px 70px}
+    header.top{padding:14px 16px}
+    .grid{grid-template-columns:repeat(auto-fill,minmax(248px,1fr))}
+  }
+
+  /* ---------- MÓVIL (≤620px) ---------- */
+  @media (max-width:620px){
+    body::after{opacity:.2}
+    #app{
+      padding:max(14px,env(safe-area-inset-top)) max(11px,env(safe-area-inset-right))
+             64px max(11px,env(safe-area-inset-left));
+    }
+    header.top{flex-direction:column;align-items:stretch;gap:12px;padding:13px 14px}
+    .brand h1{font-size:18px}
+    .brand small{font-size:10px;letter-spacing:.12em}
+    .top-right{flex-wrap:wrap;gap:8px}
+    .userbox{flex:1 1 100%;justify-content:flex-start}
+    .top-right .btn{flex:1 1 30%;text-align:center}
+    .stats{grid-template-columns:1fr 1fr;gap:10px}
+    .stat{padding:13px 14px}
+    .stat .n{font-size:24px}
+    .toolbar{flex-direction:column;align-items:stretch}
+    .toolbar .search{min-width:0;width:100%}
+    .toolbar select,.toolbar>.btn{width:100%}
+    .grid{grid-template-columns:1fr}
+    .form-grid{grid-template-columns:1fr}
+    .card h3{padding-right:84px}
+    .modal{padding:20px 16px;border-radius:14px}
+    .modal-bg{padding:16px 10px}
+    .modal-actions{flex-direction:column-reverse}
+    .modal-actions .btn{width:100%}
+    .panel-head{flex-direction:column;align-items:stretch}
+    .panel-head .btn{width:100%}
+    .agent-row{flex-wrap:wrap}
+    .agent-actions{width:100%;justify-content:space-between;margin-top:4px}
+    .agent-actions .btn{flex:1}
+    /* inputs a 16px: evita el zoom automático al enfocar en iOS */
+    input,select,textarea{font-size:16px}
+    .lockcard{padding:30px 22px}
+    .toast{left:12px;right:12px;width:auto;bottom:max(18px,env(safe-area-inset-bottom));transform:translateY(20px)}
+    .toast.show{transform:translateY(0)}
+  }
+</style>
+</head>
+<body>
+
+<!-- ============ PANTALLA DE ACCESO ============ -->
+<div id="lock">
+  <div class="lockcard" id="lockcard">
+    <div class="logo mono">⬡ CLASSIFIED SYSTEM ⬡</div>
+    <h1 class="glow">EDTU</h1>
+    <p class="mono" style="margin:0 0 8px;color:var(--cyan);font-size:10px;letter-spacing:.28em">ESPÍAS DE TECNOLOGÍA UNIVERSAL</p>
+    <p class="mono" id="lockSub">CENTRO DE MANDO DE OPERACIONES</p>
+    <input class="pin mono" id="pinInput" type="password" inputmode="numeric" maxlength="12" placeholder="••••" autocomplete="off" />
+    <div class="lockmsg mono" id="lockMsg"></div>
+    <button class="btn btn-primary" id="lockBtn" style="width:100%;margin-top:18px">ACCEDER</button>
+    <div class="mono" id="lockReset" style="margin-top:16px;font-size:11px;color:var(--muted);cursor:pointer;display:none">¿Olvidaste el PIN? Reiniciar sistema</div>
+  </div>
+</div>
+
+<!-- ============ APLICACIÓN ============ -->
+<div id="app">
+  <header class="top">
+    <div class="brand">
+      <div class="badge">E</div>
+      <div>
+        <h1 class="glow">EDTU</h1>
+        <small class="mono">ESPÍAS DE TECNOLOGÍA UNIVERSAL // v1.0</small>
+      </div>
+    </div>
+    <div class="top-right">
+      <div class="userbox" id="userBox" title="Editar perfil">
+        <div class="uavatar" id="uAvatar">S</div>
+        <div class="uinfo">
+          <b id="uName">SUPERADMIN</b>
+          <span id="uRole" class="mono">SUPERADMIN · <span id="clock">--:--:--</span></span>
+        </div>
+        <span class="uedit">✎</span>
+      </div>
+      <button class="btn btn-ghost btn-sm" id="agentsBtn">👥 Agentes</button>
+      <button class="btn btn-ghost btn-sm" id="chatBtn">💬 Chat</button>
+      <button class="btn btn-ghost btn-sm" id="exportBtn">⤓ Exportar</button>
+      <button class="btn btn-ghost btn-sm" id="lockNow">⏻ Bloquear</button>
+    </div>
+  </header>
+
+  <div class="stats" id="stats"></div>
+
+  <div class="toolbar">
+    <div class="search"><input id="search" placeholder="🔎 Buscar misión, agente o ubicación..." /></div>
+    <select id="filterStatus" style="width:auto"><option value="">Todos los estados</option></select>
+    <select id="filterPrio" style="width:auto"><option value="">Toda prioridad</option></select>
+    <button class="btn btn-primary" id="newBtn">＋ NUEVA MISIÓN</button>
+  </div>
+
+  <div class="grid" id="grid"></div>
+
+  <footer class="mono">EDTU · DATOS CIFRADOS LOCALMENTE · NO COMPARTIR · TOP SECRET</footer>
+</div>
+
+<!-- ============ MODAL MISIÓN ============ -->
+<div class="modal-bg" id="modalBg">
+  <div class="modal">
+    <h2 id="modalTitle">NUEVA MISIÓN</h2>
+    <input type="hidden" id="mId" />
+    <div class="form-grid">
+      <div class="full">
+        <label>NOMBRE CLAVE</label>
+        <input id="mName" placeholder="Operación Halcón Nocturno" />
+      </div>
+      <div class="full">
+        <label>OBJETIVO</label>
+        <textarea id="mObjective" placeholder="Describe el objetivo de la misión..."></textarea>
+      </div>
+      <div class="full">
+        <label>AGENTES ASIGNADOS (separa con comas)</label>
+        <input id="mAgents" placeholder="Agente 47, Viuda, Halcón" />
+      </div>
+      <div>
+        <label>FECHA</label>
+        <input id="mDate" type="date" />
+      </div>
+      <div>
+        <label>HORA</label>
+        <input id="mTime" type="time" />
+      </div>
+      <div class="full">
+        <label>UBICACIÓN</label>
+        <input id="mLocation" placeholder="Estambul, Sector 7" />
+      </div>
+      <div>
+        <label>PRIORIDAD</label>
+        <select id="mPrio"></select>
+      </div>
+      <div>
+        <label>ESTADO</label>
+        <select id="mStatus"></select>
+      </div>
+    </div>
+    <div class="modal-actions">
+      <button class="btn btn-ghost" id="cancelBtn">Cancelar</button>
+      <button class="btn btn-primary" id="saveBtn">💾 GUARDAR</button>
+    </div>
+  </div>
+</div>
+
+<!-- ============ PANEL DE AGENTES ============ -->
+<div class="modal-bg" id="agentsBg">
+  <div class="modal wide">
+    <div class="panel-head">
+      <h2 style="margin:0">👥 AGENTES REGISTRADOS <span class="mono" id="agentsCount" style="color:var(--muted);font-size:13px"></span></h2>
+      <button class="btn btn-primary btn-sm" id="newAgentBtn">＋ NUEVO AGENTE</button>
+    </div>
+    <div id="agentsList"></div>
+    <div class="modal-actions">
+      <button class="btn btn-ghost" id="closeAgentsBtn">Cerrar</button>
+    </div>
+  </div>
+</div>
+
+<!-- ============ FORMULARIO DE AGENTE ============ -->
+<div class="modal-bg" id="agentFormBg" style="z-index:70">
+  <div class="modal">
+    <h2 id="agentFormTitle">NUEVO AGENTE</h2>
+    <input type="hidden" id="aId" />
+    <div class="photo-edit" style="margin-bottom:16px">
+      <div class="photo-prev" id="aPhotoPrev">?</div>
+      <div style="display:flex;flex-direction:column;gap:8px">
+        <button type="button" class="btn btn-ghost btn-sm" id="aPhotoBtn">📷 Subir foto</button>
+        <button type="button" class="btn btn-danger btn-sm" id="aPhotoClear">Quitar foto</button>
+        <input type="file" id="aPhotoFile" accept="image/*" style="display:none" />
+      </div>
+    </div>
+    <div class="form-grid">
+      <div>
+        <label>NOMBRE / ALIAS</label>
+        <input id="aName" placeholder="Halcón" />
+      </div>
+      <div>
+        <label>NOMBRE CLAVE</label>
+        <input id="aCodename" placeholder="Águila Roja" />
+      </div>
+      <div class="full">
+        <label>ESPECIALIDAD</label>
+        <input id="aSpecialty" placeholder="Infiltración, ciberseguridad, sigilo..." />
+      </div>
+      <div>
+        <label>NIVEL DE ACCESO</label>
+        <select id="aClearance"></select>
+      </div>
+      <div>
+        <label>ESTADO</label>
+        <select id="aStatus"></select>
+      </div>
+      <div class="full">
+        <label>PIN DE ACCESO (para que el agente inicie sesión)</label>
+        <input id="aPin" inputmode="numeric" maxlength="12" placeholder="Ej: 1234 — déjalo vacío si no tiene acceso" autocomplete="off" />
+      </div>
+      <div class="full">
+        <label>NOTAS</label>
+        <textarea id="aNotes" placeholder="Notas confidenciales del agente..."></textarea>
+      </div>
+    </div>
+    <div class="modal-actions">
+      <button class="btn btn-ghost" id="cancelAgentBtn">Cancelar</button>
+      <button class="btn btn-primary" id="saveAgentBtn">💾 GUARDAR</button>
+    </div>
+  </div>
+</div>
+
+<!-- ============ EDITAR PERFIL ============ -->
+<div class="modal-bg" id="profileBg" style="z-index:75">
+  <div class="modal" style="width:min(440px,96vw)">
+    <h2>EDITAR PERFIL</h2>
+    <div class="photo-edit" style="margin-bottom:18px">
+      <div class="photo-prev" id="pPhotoPrev">?</div>
+      <div style="display:flex;flex-direction:column;gap:8px">
+        <button type="button" class="btn btn-ghost btn-sm" id="pPhotoBtn">📷 Subir foto</button>
+        <button type="button" class="btn btn-danger btn-sm" id="pPhotoClear">Quitar foto</button>
+        <input type="file" id="pPhotoFile" accept="image/*" style="display:none" />
+      </div>
+    </div>
+    <label>NOMBRE DE PERFIL</label>
+    <input id="pName" placeholder="Tu nombre" />
+    <div class="modal-actions">
+      <button class="btn btn-ghost" id="cancelProfileBtn">Cancelar</button>
+      <button class="btn btn-primary" id="saveProfileBtn">💾 GUARDAR</button>
+    </div>
+  </div>
+</div>
+
+<!-- ============ CHAT ============ -->
+<div class="modal-bg" id="chatBg">
+  <div class="modal wide">
+    <div class="panel-head">
+      <h2 style="margin:0">💬 CANAL DE COMUNICACIONES</h2>
+      <div style="display:flex;gap:8px">
+        <button class="btn btn-danger btn-sm" id="clearChatBtn">🗑 Vaciar</button>
+        <button class="btn btn-ghost btn-sm" id="closeChatBtn">Cerrar</button>
+      </div>
+    </div>
+    <div class="chat-wrap">
+      <div class="chat-log" id="chatLog"></div>
+      <div class="chat-input-row">
+        <textarea id="chatText" placeholder="Escribe un mensaje cifrado..." maxlength="2000"></textarea>
+        <button class="btn btn-primary" id="sendChatBtn">➤</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+/* ============================================================
+   EDTU — Espías De Tecnología Universal
+   Centro de Mando de Misiones
+   Todo se guarda localmente en el navegador (localStorage).
+   ============================================================ */
+const LS_PIN = "spectre_pin";
+const LS_DATA = "spectre_missions";
+const LS_AGENTS = "edtu_agents";
+const LS_PROFILE = "edtu_profile";   // perfil del superadmin {name, photo}
+const LS_CHAT = "edtu_chat";         // mensajes del canal de comunicaciones
+
+const PRIORITIES = [
+  {key:"baja",      label:"Baja",      color:"#27ff9e"},
+  {key:"media",     label:"Media",     color:"#ffc24b"},
+  {key:"alta",      label:"Alta",      color:"#ff8a3d"},
+  {key:"critica",   label:"Crítica",   color:"#ff3b5b"},
+];
+const STATUSES = [
+  {key:"planeada",   label:"Planeada",   color:"#8a5bff"},
+  {key:"en_curso",   label:"En curso",   color:"#ffffff"},
+  {key:"completada", label:"Completada", color:"#27ff9e"},
+  {key:"abortada",   label:"Abortada",   color:"#ff3b5b"},
+];
+const prioOf = k => PRIORITIES.find(p=>p.key===k) || PRIORITIES[0];
+const statusOf = k => STATUSES.find(s=>s.key===k) || STATUSES[0];
+
+const AGENT_STATUS = [
+  {key:"activo",    label:"Activo",    color:"#27ff9e"},
+  {key:"en_mision", label:"En misión", color:"#ffffff"},
+  {key:"inactivo",  label:"Inactivo",  color:"#6f81a8"},
+];
+const CLEARANCE = ["Bajo","Medio","Alto","Máximo"];
+const agStatusOf = k => AGENT_STATUS.find(s=>s.key===k) || AGENT_STATUS[0];
+
+/* ---------- almacenamiento ---------- */
+function loadMissions(){
+  try{ return JSON.parse(localStorage.getItem(LS_DATA)) || []; }catch(e){ return []; }
+}
+function saveMissions(m){ persist(LS_DATA, m); }
+let missions = loadMissions();
+
+function loadAgents(){
+  try{ return JSON.parse(localStorage.getItem(LS_AGENTS)) || []; }catch(e){ return []; }
+}
+function saveAgents(a){ persist(LS_AGENTS, a); }
+let agents = loadAgents();
+
+/* ---------- usuario actual y permisos ---------- */
+// currentUser: {type:'admin'} ó {type:'agent', id}
+let currentUser = null;
+function getCurrentAgent(){ return currentUser && currentUser.type==="agent" ? agents.find(a=>a.id===currentUser.id) : null; }
+// Pueden editar agentes: el superadmin y los agentes de nivel "Máximo".
+function canEdit(){
+  if(!currentUser) return false;
+  if(currentUser.type==="admin") return true;
+  const ag = getCurrentAgent();
+  return !!ag && ag.clearance==="Máximo";
+}
+function loadProfile(){ try{ return JSON.parse(localStorage.getItem(LS_PROFILE)) || {}; }catch(e){ return {}; } }
+function saveProfile(p){ persist(LS_PROFILE, p); }
+
+/* ---------- escalar imagen a base64 (evita llenar el almacenamiento) ---------- */
+function readImageScaled(file, max, cb){
+  const reader = new FileReader();
+  reader.onload = e=>{
+    const img = new Image();
+    img.onload = ()=>{
+      let w=img.width, h=img.height;
+      if(w>h && w>max){ h=Math.round(h*max/w); w=max; }
+      else if(h>=w && h>max){ w=Math.round(w*max/h); h=max; }
+      const c=document.createElement("canvas"); c.width=w; c.height=h;
+      c.getContext("2d").drawImage(img,0,0,w,h);
+      cb(c.toDataURL("image/jpeg",0.85));
+    };
+    img.onerror = ()=>toast("⚠ No se pudo leer la imagen");
+    img.src = e.target.result;
+  };
+  reader.readAsDataURL(file);
+}
+// pinta un avatar (div) con foto o con la inicial
+function paintAvatar(el, photo, initial){
+  if(photo){ el.style.backgroundImage=`url(${photo})`; el.textContent=""; }
+  else { el.style.backgroundImage=""; el.textContent=initial||"?"; }  // "" → vuelve al degradado del CSS
+}
+
+// Guardado robusto: avisa si el navegador no permite persistir (típico al abrir como file://).
+function persist(key, value){
+  try{
+    localStorage.setItem(key, JSON.stringify(value));
+    // verificación de lectura inmediata
+    const check = localStorage.getItem(key);
+    if(check === null) throw new Error("escritura no confirmada");
+    return true;
+  }catch(e){
+    console.error("Fallo al guardar", key, e);
+    toast("⚠ Error al guardar ["+key+"]: "+(e && e.name ? e.name : e)+" — "+(e && e.message ? e.message : ""));
+    return false;
+  }
+}
+
+/* ---------- utilidades ---------- */
+const $ = id => document.getElementById(id);
+const esc = s => (s||"").replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+function uid(){ return "m_"+Date.now().toString(36)+Math.floor(Math.random()*1e6).toString(36); }
+function toast(msg){
+  const t=$("toast"); t.textContent=msg; t.classList.add("show");
+  clearTimeout(t._t); t._t=setTimeout(()=>t.classList.remove("show"),2200);
+}
+
+/* ============ ACCESO / PIN ============ */
+function initLock(){
+  const hasPin = !!localStorage.getItem(LS_PIN);
+  $("lockSub").textContent = hasPin ? "CENTRO DE MANDO DE OPERACIONES" : "PRIMER ACCESO · DEFINE TU PIN DE SUPERADMIN";
+  $("lockBtn").textContent = hasPin ? "ACCEDER" : "CREAR PIN";
+  $("pinInput").placeholder = hasPin ? "••••" : "Nuevo PIN (mín. 4)";
+  $("lockReset").style.display = hasPin ? "block" : "none";
+  $("pinInput").focus();
+}
+function lockError(msg){
+  $("lockMsg").style.color="var(--red)"; $("lockMsg").textContent=msg;
+  $("lockcard").classList.add("shake");
+  setTimeout(()=>$("lockcard").classList.remove("shake"),350);
+}
+function attemptLogin(){
+  const val = $("pinInput").value.trim();
+  const stored = localStorage.getItem(LS_PIN);
+  if(!stored){
+    if(val.length<4){ return lockError("El PIN debe tener al menos 4 caracteres"); }
+    localStorage.setItem(LS_PIN, val);
+    toast("PIN de superadmin creado");
+    unlock({type:"admin"});
+    return;
+  }
+  // 1) superadmin
+  if(val===stored){ unlock({type:"admin"}); return; }
+  // 2) PIN de algún agente
+  const ag = agents.find(a=> a.pin && a.pin===val);
+  if(ag){
+    if(ag.blocked){ lockError("AGENTE BLOQUEADO · acceso revocado"); $("pinInput").value=""; return; }
+    unlock({type:"agent", id:ag.id});
+    return;
+  }
+  lockError("ACCESO DENEGADO · PIN incorrecto"); $("pinInput").value="";
+}
+function unlock(user){
+  currentUser = user || {type:"admin"};
+  $("lock").style.display="none";
+  $("app").style.display="block";
+  $("pinInput").value=""; $("lockMsg").textContent="";
+  const who = currentUser.type==="agent" ? (getCurrentAgent()||{}).name : "superadmin";
+  toast("Bienvenido, "+(who||"agente"));
+  renderUserBox();
+  render();
+}
+function lockNow(){
+  currentUser = null;
+  $("app").style.display="none";
+  $("lock").style.display="flex";
+  initLock();
+}
+// Caja de usuario (cabecera): avatar, nombre y rol del usuario actual
+function renderUserBox(){
+  let name, role, photo, initial;
+  if(currentUser && currentUser.type==="agent"){
+    const ag = getCurrentAgent() || {};
+    name = ag.name || "Agente";
+    role = "AGENTE · NIVEL "+((ag.clearance||"Bajo").toUpperCase());
+    photo = ag.photo; initial = (name||"A").charAt(0).toUpperCase();
+  }else{
+    const p = loadProfile();
+    name = p.name || "SUPERADMIN";
+    role = "SUPERADMIN";
+    photo = p.photo; initial = (name||"S").charAt(0).toUpperCase();
+  }
+  $("uName").textContent = name;
+  $("uRole").innerHTML = `${role} · <span id="clock">${$("clock")?$("clock").textContent:"--:--:--"}</span>`;
+  paintAvatar($("uAvatar"), photo, initial);
+}
+$("lockBtn").onclick = attemptLogin;
+$("pinInput").addEventListener("keydown", e=>{ if(e.key==="Enter") attemptLogin(); });
+$("lockReset").onclick = ()=>{
+  if(confirm("⚠ Esto borrará el PIN. Las misiones se conservan. ¿Continuar?")){
+    localStorage.removeItem(LS_PIN); initLock(); toast("PIN reiniciado");
+  }
+};
+$("lockNow").onclick = lockNow;
+
+/* ============ PERFIL ============ */
+let pPhotoData = null; // foto temporal mientras se edita el perfil
+function openProfile(){
+  if(currentUser && currentUser.type==="agent"){
+    const ag = getCurrentAgent() || {};
+    $("pName").value = ag.name || "";
+    pPhotoData = ag.photo || null;
+  }else{
+    const p = loadProfile();
+    $("pName").value = p.name || "SUPERADMIN";
+    pPhotoData = p.photo || null;
+  }
+  paintAvatar($("pPhotoPrev"), pPhotoData, ($("pName").value||"?").charAt(0).toUpperCase());
+  $("profileBg").classList.add("open");
+  $("pName").focus();
+}
+function closeProfile(){ $("profileBg").classList.remove("open"); }
+function saveProfile_(){
+  const name = $("pName").value.trim();
+  if(!name){ toast("⚠ El nombre no puede estar vacío"); return; }
+  if(currentUser && currentUser.type==="agent"){
+    const i = agents.findIndex(a=>a.id===currentUser.id);
+    if(i>-1){ agents[i].name = name; agents[i].photo = pPhotoData || ""; saveAgents(agents); }
+  }else{
+    saveProfile({name, photo: pPhotoData || ""});
+  }
+  closeProfile();
+  renderUserBox();
+  toast("Perfil actualizado");
+}
+$("userBox").onclick      = openProfile;
+$("cancelProfileBtn").onclick = closeProfile;
+$("saveProfileBtn").onclick   = saveProfile_;
+$("profileBg").addEventListener("click", e=>{ if(e.target===$("profileBg")) closeProfile(); });
+$("pPhotoBtn").onclick   = ()=>$("pPhotoFile").click();
+$("pPhotoFile").onchange = e=>{
+  const f = e.target.files[0]; if(!f) return;
+  readImageScaled(f, 256, data=>{ pPhotoData = data; paintAvatar($("pPhotoPrev"), data, "?"); });
+};
+$("pPhotoClear").onclick = ()=>{ pPhotoData=null; paintAvatar($("pPhotoPrev"), null, ($("pName").value||"?").charAt(0).toUpperCase()); };
+
+/* ============ POBLAR SELECTORES ============ */
+function fillSelects(){
+  const fp=$("filterPrio"), fs=$("filterStatus"), mp=$("mPrio"), ms=$("mStatus");
+  PRIORITIES.forEach(p=>{
+    fp.insertAdjacentHTML("beforeend",`<option value="${p.key}">Prioridad: ${p.label}</option>`);
+    mp.insertAdjacentHTML("beforeend",`<option value="${p.key}">${p.label}</option>`);
+  });
+  STATUSES.forEach(s=>{
+    fs.insertAdjacentHTML("beforeend",`<option value="${s.key}">${s.label}</option>`);
+    ms.insertAdjacentHTML("beforeend",`<option value="${s.key}">${s.label}</option>`);
+  });
+  const ac=$("aClearance"), as=$("aStatus");
+  CLEARANCE.forEach(c=> ac.insertAdjacentHTML("beforeend",`<option value="${c}">${c}</option>`));
+  AGENT_STATUS.forEach(s=> as.insertAdjacentHTML("beforeend",`<option value="${s.key}">${s.label}</option>`));
+}
+
+/* ============ MODAL ============ */
+function openModal(mission){
+  $("modalTitle").textContent = mission ? "EDITAR MISIÓN" : "NUEVA MISIÓN";
+  $("mId").value       = mission ? mission.id : "";
+  $("mName").value     = mission ? mission.name : "";
+  $("mObjective").value= mission ? mission.objective : "";
+  $("mAgents").value   = mission ? (mission.agents||[]).join(", ") : "";
+  $("mDate").value     = mission ? mission.date : "";
+  $("mTime").value     = mission ? mission.time : "";
+  $("mLocation").value = mission ? mission.location : "";
+  $("mPrio").value     = mission ? mission.prio : "media";
+  $("mStatus").value   = mission ? mission.status : "planeada";
+  $("modalBg").classList.add("open");
+  $("mName").focus();
+}
+function closeModal(){ $("modalBg").classList.remove("open"); }
+
+function saveMission(){
+  const name = $("mName").value.trim();
+  if(!name){ toast("⚠ El nombre clave es obligatorio"); $("mName").focus(); return; }
+  const id = $("mId").value;
+  const data = {
+    id: id || uid(),
+    name,
+    objective: $("mObjective").value.trim(),
+    agents: $("mAgents").value.split(",").map(a=>a.trim()).filter(Boolean),
+    date: $("mDate").value,
+    time: $("mTime").value,
+    location: $("mLocation").value.trim(),
+    prio: $("mPrio").value,
+    status: $("mStatus").value,
+  };
+  if(id){
+    const i = missions.findIndex(m=>m.id===id);
+    if(i>-1) missions[i]=data;
+    toast("Misión actualizada");
+  }else{
+    missions.unshift(data);
+    toast("Misión registrada");
+  }
+  saveMissions(missions);
+  closeModal();
+  render();
+}
+function deleteMission(id){
+  const m = missions.find(x=>x.id===id);
+  if(!confirm(`¿Eliminar la misión "${m?m.name:''}"? Esta acción no se puede deshacer.`)) return;
+  missions = missions.filter(x=>x.id!==id);
+  saveMissions(missions);
+  toast("Misión eliminada");
+  render();
+}
+
+$("newBtn").onclick   = ()=>openModal(null);
+$("saveBtn").onclick  = saveMission;
+$("cancelBtn").onclick= closeModal;
+$("modalBg").addEventListener("click", e=>{ if(e.target===$("modalBg")) closeModal(); });
+document.addEventListener("keydown", e=>{ if(e.key==="Escape") closeModal(); });
+
+/* ============ EXPORTAR ============ */
+$("exportBtn").onclick = ()=>{
+  const blob = new Blob([JSON.stringify(missions,null,2)],{type:"application/json"});
+  const a = document.createElement("a");
+  a.href = URL.createObjectURL(blob);
+  a.download = "edtu_misiones.json";
+  a.click();
+  URL.revokeObjectURL(a.href);
+  toast("Datos exportados");
+};
+
+/* ============ RENDER ============ */
+function fmtDate(d,t){
+  if(!d) return "Sin fecha";
+  const [y,mo,da] = d.split("-");
+  let out = `${da}/${mo}/${y}`;
+  if(t) out += ` · ${t}`;
+  return out;
+}
+function renderStats(){
+  const total = missions.length;
+  const enCurso = missions.filter(m=>m.status==="en_curso").length;
+  const criticas = missions.filter(m=>m.prio==="critica").length;
+  const completas = missions.filter(m=>m.status==="completada").length;
+  const items = [
+    {n:total,         l:"MISIONES TOTALES", c:"var(--cyan)"},
+    {n:enCurso,       l:"EN CURSO",         c:"var(--violet)"},
+    {n:criticas,      l:"CRÍTICAS",         c:"var(--red)"},
+    {n:completas,     l:"COMPLETADAS",      c:"var(--green)"},
+    {n:agents.length, l:"AGENTES",          c:"var(--magenta)"},
+  ];
+  $("stats").innerHTML = items.map(s=>`
+    <div class="stat" style="color:${s.c}">
+      <div class="n glow">${s.n}</div>
+      <div class="l">${s.l}</div>
+    </div>`).join("");
+}
+function render(){
+  renderStats();
+  const q = $("search").value.toLowerCase();
+  const fp = $("filterPrio").value;
+  const fs = $("filterStatus").value;
+  let list = missions.filter(m=>{
+    if(fp && m.prio!==fp) return false;
+    if(fs && m.status!==fs) return false;
+    if(q){
+      const hay = (m.name+" "+m.objective+" "+m.location+" "+(m.agents||[]).join(" ")).toLowerCase();
+      if(!hay.includes(q)) return false;
+    }
+    return true;
+  });
+
+  if(list.length===0){
+    $("grid").innerHTML = `<div class="empty" style="grid-column:1/-1">
+      <div class="big">🛰️</div>
+      <p style="margin-top:10px;letter-spacing:.15em">${missions.length===0?"NO HAY MISIONES REGISTRADAS":"SIN RESULTADOS PARA EL FILTRO"}</p>
+      ${missions.length===0?'<p style="margin-top:8px;font-size:12px">Pulsa <b style="color:var(--cyan)">＋ NUEVA MISIÓN</b> para empezar.</p>':''}
+    </div>`;
+    return;
+  }
+
+  $("grid").innerHTML = list.map(m=>{
+    const p = prioOf(m.prio), s = statusOf(m.status);
+    const agents = (m.agents||[]).map(a=>`<span class="tag">${esc(a)}</span>`).join("") || '<span style="color:var(--muted);font-size:12px">— sin asignar —</span>';
+    return `<div class="card">
+      <div class="strip" style="background:${p.color};box-shadow:0 0 14px ${p.color}"></div>
+      <span class="pill" style="background:${s.color}22;color:${s.color};border:1px solid ${s.color}66">${s.label}</span>
+      <h3>${esc(m.name)}</h3>
+      <div class="obj">${esc(m.objective)||'<i style="color:var(--muted)">Sin descripción de objetivo</i>'}</div>
+      <div class="row"><span class="k">CUÁNDO</span><span class="mono">${fmtDate(m.date,m.time)}</span></div>
+      <div class="row"><span class="k">UBICACIÓN</span><span>${esc(m.location)||'—'}</span></div>
+      <div class="row"><span class="k">PRIORIDAD</span><span class="prio-dot" style="color:${p.color}"></span><span style="color:${p.color}">${p.label}</span></div>
+      <div class="row" style="align-items:flex-start"><span class="k" style="margin-top:4px">AGENTES</span><span class="tags">${agents}</span></div>
+      <div class="card-actions">
+        <button class="btn btn-ghost btn-sm" data-edit="${m.id}">✎ Editar</button>
+        <button class="btn btn-danger btn-sm" data-del="${m.id}">🗑 Eliminar</button>
+      </div>
+    </div>`;
+  }).join("");
+
+  $("grid").querySelectorAll("[data-edit]").forEach(b=>b.onclick=()=>openModal(missions.find(m=>m.id===b.dataset.edit)));
+  $("grid").querySelectorAll("[data-del]").forEach(b=>b.onclick=()=>deleteMission(b.dataset.del));
+}
+$("search").addEventListener("input", render);
+$("filterPrio").addEventListener("change", render);
+$("filterStatus").addEventListener("change", render);
+
+/* ============ AGENTES ============ */
+function openAgentsPanel(){ renderAgents(); $("agentsBg").classList.add("open"); }
+function closeAgentsPanel(){ $("agentsBg").classList.remove("open"); }
+
+function renderAgents(){
+  const editable = canEdit();
+  $("newAgentBtn").style.display = editable ? "" : "none";
+  $("agentsCount").textContent = agents.length ? `// ${agents.length}` : "";
+  const list = $("agentsList");
+  const note = editable ? "" :
+    `<div class="readonly-note">👁 Modo solo lectura — tu nivel de acceso no permite editar agentes.</div>`;
+  if(agents.length===0){
+    list.innerHTML = note + `<div class="agents-empty">
+      <div style="font-size:46px;opacity:.5">⬡</div>
+      <p style="margin-top:8px;letter-spacing:.12em">NO HAY AGENTES REGISTRADOS</p>
+      ${editable?'<p style="margin-top:6px;font-size:12px">Pulsa <b style="color:var(--cyan)">＋ NUEVO AGENTE</b> para registrar el primero.</p>':''}
+    </div>`;
+    return;
+  }
+  // ordenar: no bloqueados primero, luego por nombre
+  const sorted = [...agents].sort((a,b)=> (a.blocked-b.blocked) || a.name.localeCompare(b.name));
+  list.innerHTML = note + sorted.map(a=>{
+    const st = agStatusOf(a.status);
+    const initial = (a.name||"?").trim().charAt(0).toUpperCase();
+    const avStyle = (!a.blocked && a.photo) ? ` style="background-image:url(${a.photo})"` : "";
+    const avContent = a.blocked ? '🔒' : (a.photo ? '' : esc(initial));
+    const metaBits = [
+      a.codename ? `<span class="codename">⌖ ${esc(a.codename)}</span>` : "",
+      a.specialty ? esc(a.specialty) : "",
+      a.clearance ? `Acceso: ${esc(a.clearance)}` : "",
+      a.pin ? `🔑 con acceso` : "",
+    ].filter(Boolean).join(" · ");
+    const actions = editable ? `
+      <div class="agent-actions">
+        <button class="btn btn-ghost btn-sm" data-aedit="${a.id}">✎ Editar</button>
+        <button class="btn btn-ghost btn-sm" data-ablock="${a.id}" style="color:${a.blocked?'var(--green)':'var(--amber)'};border-color:${a.blocked?'var(--green)':'var(--amber)'}">${a.blocked?'🔓 Desbloquear':'🔒 Bloquear'}</button>
+        <button class="btn btn-danger btn-sm" data-adel="${a.id}">🗑</button>
+      </div>` : "";
+    return `<div class="agent-row ${a.blocked?'blocked':''}">
+      <div class="agent-av"${avStyle}>${avContent}</div>
+      <div class="agent-info">
+        <div class="nm">${esc(a.name)}
+          ${a.blocked
+            ? '<span class="sbadge" style="background:#ff3b5b22;color:#ff3b5b;border:1px solid #ff3b5b66">Bloqueado</span>'
+            : `<span class="sbadge" style="background:${st.color}22;color:${st.color};border:1px solid ${st.color}66">${st.label}</span>`}
+        </div>
+        <div class="meta">${metaBits || '<i>Sin datos adicionales</i>'}</div>
+      </div>
+      ${actions}
+    </div>`;
+  }).join("");
+
+  list.querySelectorAll("[data-aedit]").forEach(b=>b.onclick=()=>openAgentForm(agents.find(a=>a.id===b.dataset.aedit)));
+  list.querySelectorAll("[data-ablock]").forEach(b=>b.onclick=()=>toggleBlock(b.dataset.ablock));
+  list.querySelectorAll("[data-adel]").forEach(b=>b.onclick=()=>deleteAgent(b.dataset.adel));
+}
+
+let aPhotoData = null; // foto temporal del agente en edición
+function openAgentForm(agent){
+  if(!canEdit()){ toast("👁 Solo lectura: no puedes editar agentes"); return; }
+  $("agentFormTitle").textContent = agent ? "EDITAR AGENTE" : "NUEVO AGENTE";
+  $("aId").value        = agent ? agent.id : "";
+  $("aName").value      = agent ? agent.name : "";
+  $("aCodename").value  = agent ? (agent.codename||"") : "";
+  $("aSpecialty").value = agent ? (agent.specialty||"") : "";
+  $("aClearance").value = agent ? (agent.clearance||"Bajo") : "Bajo";
+  $("aStatus").value    = agent ? (agent.status||"activo") : "activo";
+  $("aPin").value       = agent ? (agent.pin||"") : "";
+  $("aNotes").value     = agent ? (agent.notes||"") : "";
+  aPhotoData = agent ? (agent.photo || null) : null;
+  paintAvatar($("aPhotoPrev"), aPhotoData, ($("aName").value||"?").charAt(0).toUpperCase());
+  $("agentFormBg").classList.add("open");
+  $("aName").focus();
+}
+function closeAgentForm(){ $("agentFormBg").classList.remove("open"); }
+
+function saveAgent(){
+  if(!canEdit()){ toast("👁 Solo lectura: no puedes editar agentes"); return; }
+  const name = $("aName").value.trim();
+  if(!name){ toast("⚠ El nombre/alias es obligatorio"); $("aName").focus(); return; }
+  const pin = $("aPin").value.trim();
+  if(pin){
+    if(pin.length<4){ toast("⚠ El PIN del agente debe tener al menos 4 dígitos"); $("aPin").focus(); return; }
+    const id0 = $("aId").value;
+    if(pin===localStorage.getItem(LS_PIN)){ toast("⚠ Ese PIN ya es el del superadmin"); $("aPin").focus(); return; }
+    const clash = agents.find(a=> a.pin===pin && a.id!==id0);
+    if(clash){ toast(`⚠ Ese PIN ya lo usa el agente "${clash.name}"`); $("aPin").focus(); return; }
+  }
+  const id = $("aId").value;
+  const existing = id ? agents.find(a=>a.id===id) : null;
+  const data = {
+    id: id || uid(),
+    name,
+    codename: $("aCodename").value.trim(),
+    specialty: $("aSpecialty").value.trim(),
+    clearance: $("aClearance").value,
+    status: $("aStatus").value,
+    pin: pin,
+    photo: aPhotoData || "",
+    notes: $("aNotes").value.trim(),
+    blocked: existing ? !!existing.blocked : false,
+  };
+  if(id){
+    const i = agents.findIndex(a=>a.id===id);
+    if(i>-1) agents[i]=data;
+    toast("Agente actualizado");
+  }else{
+    agents.unshift(data);
+    toast("Agente registrado");
+  }
+  saveAgents(agents);
+  closeAgentForm();
+  renderAgents();
+  renderStats();
+  renderUserBox();
+}
+function toggleBlock(id){
+  if(!canEdit()) return;
+  const a = agents.find(x=>x.id===id);
+  if(!a) return;
+  a.blocked = !a.blocked;
+  saveAgents(agents);
+  toast(a.blocked ? `Agente "${a.name}" bloqueado` : `Agente "${a.name}" desbloqueado`);
+  renderAgents();
+}
+function deleteAgent(id){
+  if(!canEdit()) return;
+  const a = agents.find(x=>x.id===id);
+  if(!confirm(`¿Eliminar al agente "${a?a.name:''}"? Esta acción no se puede deshacer.`)) return;
+  agents = agents.filter(x=>x.id!==id);
+  saveAgents(agents);
+  toast("Agente eliminado");
+  renderAgents();
+  renderStats();
+}
+
+$("agentsBtn").onclick     = openAgentsPanel;
+$("closeAgentsBtn").onclick= closeAgentsPanel;
+$("newAgentBtn").onclick   = ()=>openAgentForm(null);
+$("saveAgentBtn").onclick  = saveAgent;
+$("cancelAgentBtn").onclick= closeAgentForm;
+$("aPhotoBtn").onclick   = ()=>$("aPhotoFile").click();
+$("aPhotoFile").onchange = e=>{
+  const f = e.target.files[0]; if(!f) return;
+  readImageScaled(f, 256, data=>{ aPhotoData = data; paintAvatar($("aPhotoPrev"), data, "?"); });
+};
+$("aPhotoClear").onclick = ()=>{ aPhotoData=null; paintAvatar($("aPhotoPrev"), null, ($("aName").value||"?").charAt(0).toUpperCase()); };
+$("agentsBg").addEventListener("click", e=>{ if(e.target===$("agentsBg")) closeAgentsPanel(); });
+$("agentFormBg").addEventListener("click", e=>{ if(e.target===$("agentFormBg")) closeAgentForm(); });
+document.addEventListener("keydown", e=>{
+  if(e.key==="Escape"){
+    if($("profileBg").classList.contains("open")) closeProfile();
+    else if($("agentFormBg").classList.contains("open")) closeAgentForm();
+    else if($("agentsBg").classList.contains("open")) closeAgentsPanel();
+    else if($("chatBg").classList.contains("open")) closeChat();
+  }
+});
+
+/* ============ CHAT / COMUNICACIONES ============ */
+function loadChat(){ try{ return JSON.parse(localStorage.getItem(LS_CHAT)) || []; }catch(e){ return []; } }
+function saveChat(c){ persist(LS_CHAT, c); }
+
+function currentKey(){ return currentUser && currentUser.type==="agent" ? "agent:"+currentUser.id : "admin"; }
+function currentDisplayName(){
+  if(currentUser && currentUser.type==="agent"){ return (getCurrentAgent()||{}).name || "Agente"; }
+  return (loadProfile().name) || "SUPERADMIN";
+}
+function avatarForKey(key){
+  if(key==="admin") return loadProfile().photo || null;
+  if(key && key.indexOf("agent:")===0){
+    const ag = agents.find(a=>a.id===key.slice(6));
+    return ag ? (ag.photo||null) : null;
+  }
+  return null;
+}
+function fmtTime(ts){
+  const d = new Date(ts), p = n=>String(n).padStart(2,"0");
+  const today = new Date();
+  const sameDay = d.toDateString()===today.toDateString();
+  const hm = `${p(d.getHours())}:${p(d.getMinutes())}`;
+  return sameDay ? hm : `${p(d.getDate())}/${p(d.getMonth()+1)} ${hm}`;
+}
+
+function openChat(){
+  $("clearChatBtn").style.display = (currentUser && currentUser.type==="admin") ? "" : "none";
+  $("chatBg").classList.add("open");
+  renderChat();
+  setTimeout(()=>$("chatText").focus(), 50);
+}
+function closeChat(){ $("chatBg").classList.remove("open"); }
+
+function renderChat(){
+  const msgs = loadChat();
+  const log = $("chatLog");
+  if(msgs.length===0){
+    log.innerHTML = `<div class="chat-empty"><div style="font-size:40px;opacity:.5">📡</div>
+      <p style="margin-top:6px;letter-spacing:.1em">CANAL VACÍO</p>
+      <p style="font-size:12px;margin-top:4px">Sé el primero en transmitir un mensaje.</p></div>`;
+    return;
+  }
+  const mine = currentKey();
+  log.innerHTML = msgs.map(m=>{
+    const isMine = m.key===mine;
+    const photo = avatarForKey(m.key);
+    const initial = (m.name||"?").charAt(0).toUpperCase();
+    const avStyle = photo ? ` style="background-image:url(${photo})"` : "";
+    const avTxt = photo ? "" : esc(initial);
+    const roleTag = m.role==="admin"
+      ? `<span class="role-tag admin">★ ${esc(m.name)}</span>`
+      : `<span class="role-tag">${esc(m.name)}</span>`;
+    return `<div class="msg ${isMine?'mine':''}">
+      <div class="msg-av"${avStyle}>${avTxt}</div>
+      <div class="msg-body">
+        <div class="msg-meta">${roleTag} · ${fmtTime(m.ts)}</div>
+        <div class="bubble">${esc(m.text)}</div>
+      </div>
+    </div>`;
+  }).join("");
+  log.scrollTop = log.scrollHeight;
+}
+
+function sendChat(){
+  const text = $("chatText").value.trim();
+  if(!text) return;
+  const msgs = loadChat();
+  msgs.push({
+    id: uid(),
+    key: currentKey(),
+    name: currentDisplayName(),
+    role: (currentUser && currentUser.type==="admin") ? "admin" : "agent",
+    text,
+    ts: Date.now(),
+  });
+  // límite para no llenar el almacenamiento: conserva los últimos 500
+  if(msgs.length>500) msgs.splice(0, msgs.length-500);
+  saveChat(msgs);
+  $("chatText").value = "";
+  renderChat();
+  $("chatText").focus();
+}
+function clearChat(){
+  if(!(currentUser && currentUser.type==="admin")){ toast("Solo el superadmin puede vaciar el canal"); return; }
+  if(!confirm("¿Vaciar todo el canal de comunicaciones? No se puede deshacer.")) return;
+  saveChat([]);
+  renderChat();
+  toast("Canal vaciado");
+}
+
+$("chatBtn").onclick      = openChat;
+$("closeChatBtn").onclick = closeChat;
+$("sendChatBtn").onclick  = sendChat;
+$("clearChatBtn").onclick = clearChat;
+$("chatText").addEventListener("keydown", e=>{
+  if(e.key==="Enter" && !e.shiftKey){ e.preventDefault(); sendChat(); }
+});
+$("chatBg").addEventListener("click", e=>{ if(e.target===$("chatBg")) closeChat(); });
+// actualización en vivo entre pestañas del mismo navegador
+window.addEventListener("storage", e=>{
+  if(e.key===LS_CHAT && $("chatBg").classList.contains("open")) renderChat();
+});
+
+/* ============ RELOJ ============ */
+function tick(){
+  const d = new Date();
+  const p = n => String(n).padStart(2,"0");
+  $("clock").textContent = `${p(d.getHours())}:${p(d.getMinutes())}:${p(d.getSeconds())}`;
+}
+setInterval(tick,1000); tick();
+
+/* ============ ARRANQUE ============ */
+fillSelects();
+initLock();
+
+// Aviso si se abre como archivo local (file://): el guardado puede no persistir en Chrome.
+if(location.protocol === "file:"){
+  setTimeout(()=>toast("⚠ Ábrela vía http://localhost para que se guarden los datos"), 600);
+}
+</script>
+</body>
+</html>
