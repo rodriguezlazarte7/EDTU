@@ -281,9 +281,9 @@
   }
   #accessOverlay.show{display:flex}
   #accessOverlay .ao-text{
-    font-family:"Consolas",ui-monospace,monospace;color:#ff2b3d;font-size:clamp(20px,5vw,34px);
+    font-family:"Consolas",ui-monospace,monospace;color:#22ff66;font-size:clamp(20px,5vw,34px);
     font-weight:800;letter-spacing:.28em;white-space:pre;
-    text-shadow:0 0 10px #ff2b3d,0 0 26px rgba(255,43,61,0.7);
+    text-shadow:0 0 10px #22ff66,0 0 26px rgba(34,255,102,0.7);
     animation:aoflicker 0.12s steps(2,start) infinite;
   }
   @keyframes aoflicker{50%{opacity:.82}}
@@ -776,16 +776,16 @@ function attemptLogin(){
     localStorage.setItem(LS_PIN, val);
     Cloud.saveConfig({ admin_pin: val });
     toast("PIN de superadmin creado");
-    unlock({type:"admin"});
+    accessGranted({type:"admin"});
     return;
   }
   // 1) superadmin
-  if(val===stored){ unlock({type:"admin"}); return; }
+  if(val===stored){ accessGranted({type:"admin"}); return; }
   // 2) PIN de algún agente
   const ag = agents.find(a=> a.pin && a.pin===val);
   if(ag){
     if(ag.blocked){ lockError("AGENTE BLOQUEADO · acceso revocado"); $("pinInput").value=""; return; }
-    unlock({type:"agent", id:ag.id});
+    accessGranted({type:"agent", id:ag.id});
     return;
   }
   lockError("ACCESO DENEGADO · PIN incorrecto"); $("pinInput").value="";
