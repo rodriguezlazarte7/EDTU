@@ -281,11 +281,12 @@
   }
   #accessOverlay.show{display:flex}
   #accessOverlay .ao-text{
-    font-family:"Consolas",ui-monospace,monospace;color:#22ff66;font-size:clamp(20px,5vw,34px);
-    font-weight:800;letter-spacing:.22em;text-shadow:0 0 12px #22ff66,0 0 30px rgba(34,255,102,0.6);
-    animation:aoblink 0.5s steps(2,start) infinite;
+    font-family:"Consolas",ui-monospace,monospace;color:#ff2b3d;font-size:clamp(20px,5vw,34px);
+    font-weight:800;letter-spacing:.28em;white-space:pre;
+    text-shadow:0 0 10px #ff2b3d,0 0 26px rgba(255,43,61,0.7);
+    animation:aoflicker 0.12s steps(2,start) infinite;
   }
-  @keyframes aoblink{50%{opacity:.55}}
+  @keyframes aoflicker{50%{opacity:.82}}
 
   /* ---------- BASE TÁCTIL (móvil/tablet) ---------- */
   html{-webkit-text-size-adjust:100%}
@@ -571,7 +572,7 @@
 </div>
 
 <!-- Overlay de acceso concedido -->
-<div id="accessOverlay"><div class="ao-text">✓ ACCESO COMPLETADO</div></div>
+<div id="accessOverlay"><div class="ao-text">PROCESSING</div></div>
 
 <div class="toast" id="toast"></div>
 
@@ -731,6 +732,7 @@ const Cloud = {
   async deleteAgent(id){ if(this.enabled) this._run(this.sb.from("agents").delete().eq("id",id)); },
   async insertChat(msg){ if(this.enabled) this._run(this.sb.from("chat_messages").upsert(stripTs(msg))); },
   async clearChat(){ if(this.enabled) this._run(this.sb.from("chat_messages").delete().neq("id","")); },
+  async purgeChatBefore(cutoff){ if(this.enabled) this._run(this.sb.from("chat_messages").delete().lt("ts", cutoff)); },
   async saveConfig(patch){ if(this.enabled) this._run(this.sb.from("app_config").upsert(Object.assign({id:1, updated_at:new Date().toISOString()}, patch))); },
   async _run(q){ try{ const {error}=await q; if(error){ console.error("Supabase:", error); toast("⚠ Sync: "+error.message); } }catch(e){ console.error(e); } },
   subscribe(onChange){
@@ -1236,8 +1238,21 @@ function fmtTime(ts){
   return sameDay ? hm : `${p(d.getDate())}/${p(d.getMonth()+1)} ${hm}`;
 }
 
+// Borra mensajes (y sus audios) con más de 1 día, local y en la nube.
+const CHAT_TTL = 24*60*60*1000; // 24 horas
+function purgeOldChat(){
+  const cutoff = Date.now() - CHAT_TTL;
+  const msgs = loadChat();
+  const kept = msgs.filter(m => (m.ts||0) >= cutoff);
+  if(kept.length !== msgs.length){
+    saveChat(kept);
+    Cloud.purgeChatBefore(cutoff);
+  }
+  return kept;
+}
 function openChat(){
   $("clearChatBtn").style.display = (currentUser && currentUser.type==="admin") ? "" : "none";
+  purgeOldChat();
   $("chatBg").classList.add("open");
   renderChat();
   setTimeout(()=>$("chatText").focus(), 50);
@@ -1396,11 +1411,28 @@ async function matchUserByVoice(transcript){
   }
   return null;
 }
-// pantalla negra "ACCESO COMPLETADO" 1 seg y luego carga la app
+// pantalla negra "PROCESSING" con efecto de decodificación (~1 seg) y luego carga la app
+function decodeEffect(el, finalText, duration){
+  const glyphs = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789#%&@*<>/\\!?$";
+  const start = Date.now();
+  const timer = setInterval(()=>{
+    const p = Math.min(1, (Date.now()-start)/duration);
+    const reveal = Math.floor(p*finalText.length);
+    let out="";
+    for(let i=0;i<finalText.length;i++){
+      out += (i<reveal) ? finalText[i]
+           : (finalText[i]===" " ? " " : glyphs[Math.floor(Math.random()*glyphs.length)]);
+    }
+    el.textContent = out;
+    if(p>=1){ clearInterval(timer); el.textContent = finalText; }
+  }, 45);
+}
 function accessGranted(user){
   const ov=$("accessOverlay");
+  const txt=ov.querySelector(".ao-text");
   ov.classList.add("show");
-  setTimeout(()=>{ ov.classList.remove("show"); unlock(user); }, 1000);
+  decodeEffect(txt, "PROCESSING", 900);
+  setTimeout(()=>{ ov.classList.remove("show"); txt.textContent="PROCESSING"; unlock(user); }, 1050);
 }
 function normalizePhrase(s){
   return (s||"").toLowerCase()
@@ -1491,6 +1523,7 @@ function onCloudChange(){
     try{
       await Cloud.pull();
       missions = loadMissions(); agents = loadAgents();
+      purgeOldChat();
       if($("app").style.display !== "none"){ render(); renderUserBox(); }
       if($("agentsBg").classList.contains("open")) renderAgents();
       if($("chatBg").classList.contains("open")) renderChat();
@@ -1506,8 +1539,10 @@ function onCloudChange(){
       missions = loadMissions(); agents = loadAgents();
     }catch(e){ console.error(e); toast("⚠ No se pudo sincronizar; usando datos locales"); }
   }
+  purgeOldChat();
   initLock();
   Cloud.subscribe(onCloudChange);
+  setInterval(purgeOldChat, 60*60*1000); // revisa cada hora
 })();
 
 // Aviso si se abre como archivo local (file://): el guardado local puede no persistir en Chrome.
