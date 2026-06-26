@@ -47,9 +47,12 @@ create table if not exists public.chat_messages (
   name  text,
   role  text,
   text  text,
+  audio text,
   ts    bigint,
   created_at timestamptz default now()
 );
+-- por si la tabla ya existía sin la columna de audio:
+alter table public.chat_messages add column if not exists audio text;
 
 -- 2) RLS (Row Level Security) --------------------------------
 alter table public.app_config     enable row level security;
