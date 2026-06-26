@@ -1315,7 +1315,7 @@ function openChat(){
   renderChat();
   setTimeout(()=>$("chatText").focus(), 50);
 }
-function closeChat(){ if(mediaRec && mediaRec.state==="recording"){ recDiscard=true; stopRecording(); } $("chatBg").classList.remove("open"); }
+function closeChat(){ if(recording){ recDiscard=true; stopRecording(); } $("chatBg").classList.remove("open"); }
 
 function renderChat(){
   const msgs = loadChat();
@@ -1386,54 +1386,81 @@ $("chatBtn").onclick      = openChat;
 $("closeChatBtn").onclick = closeChat;
 $("sendChatBtn").onclick  = sendChat;
 $("clearChatBtn").onclick = clearChat;
-/* ---- Grabación de audio con el micrófono ---- */
-let mediaRec = null, recChunks = [], recStream = null, recTimer = null, recSecs = 0, recDiscard = false;
-const REC_MAX = 60; // segundos máximo
+/* ---- Grabación de audio en WAV (compatible con iPhone/Android/PC) ---- */
+let recCtx=null, recSrc=null, recProc=null, recBuffers=[], recLen=0, recSR=0;
+let recStream=null, recTimer=null, recSecs=0, recDiscard=false, recording=false;
+const REC_MAX=60, REC_TARGET_SR=16000; // 16 kHz mono mantiene el tamaño bajo
 function recLabel(){ const m=Math.floor(recSecs/60), s=String(recSecs%60).padStart(2,"0"); $("chatAudioMsg").textContent="🔴 Grabando… "+m+":"+s+" (toca para detener)"; }
-function stopRecording(){ if(mediaRec && mediaRec.state==="recording") mediaRec.stop(); }
-function cleanupRec(){
+function recCleanup(){
   if(recTimer){ clearInterval(recTimer); recTimer=null; }
+  try{ if(recProc){ recProc.disconnect(); recProc.onaudioprocess=null; } }catch(e){}
+  try{ if(recSrc) recSrc.disconnect(); }catch(e){}
+  try{ if(recCtx) recCtx.close(); }catch(e){}
   if(recStream){ recStream.getTracks().forEach(t=>t.stop()); recStream=null; }
-  $("audioBtn").classList.remove("recording");
-  $("audioBtn").textContent="🎙️";
+  recProc=null; recSrc=null; recCtx=null;
+  $("audioBtn").classList.remove("recording"); $("audioBtn").textContent="🎙️";
+}
+function downsample(buf, fromSR, toSR){
+  if(toSR>=fromSR) return buf;
+  const ratio=fromSR/toSR, newLen=Math.round(buf.length/ratio), out=new Float32Array(newLen);
+  for(let i=0;i<newLen;i++){
+    const start=Math.round(i*ratio), end=Math.min(buf.length, Math.round((i+1)*ratio));
+    let sum=0,c=0; for(let j=start;j<end;j++){ sum+=buf[j]; c++; }
+    out[i]= c? sum/c : 0;
+  }
+  return out;
+}
+function encodeWAV(samples, sr){
+  const buf=new ArrayBuffer(44+samples.length*2), v=new DataView(buf);
+  const w=(o,s)=>{ for(let i=0;i<s.length;i++) v.setUint8(o+i, s.charCodeAt(i)); };
+  w(0,"RIFF"); v.setUint32(4,36+samples.length*2,true); w(8,"WAVE"); w(12,"fmt ");
+  v.setUint32(16,16,true); v.setUint16(20,1,true); v.setUint16(22,1,true);
+  v.setUint32(24,sr,true); v.setUint32(28,sr*2,true); v.setUint16(32,2,true); v.setUint16(34,16,true);
+  w(36,"data"); v.setUint32(40,samples.length*2,true);
+  let o=44; for(let i=0;i<samples.length;i++){ let s=Math.max(-1,Math.min(1,samples[i])); v.setInt16(o, s<0?s*0x8000:s*0x7FFF, true); o+=2; }
+  return buf;
+}
+function stopRecording(){
+  if(!recording) return;
+  recording=false; recCleanup();
+  if(recDiscard){ recDiscard=false; clearPendingAudio(); return; }
+  if(recLen===0){ clearPendingAudio(); return; }
+  const merged=new Float32Array(recLen); let off=0;
+  for(const b of recBuffers){ merged.set(b,off); off+=b.length; }
+  const wav=encodeWAV(downsample(merged, recSR, REC_TARGET_SR), REC_TARGET_SR);
+  if(wav.byteLength>1.5*1024*1024){ toast("⚠ Grabación demasiado larga (máx ~1.5 MB)"); clearPendingAudio(); return; }
+  const reader=new FileReader();
+  reader.onload=ev=>{ pendingAudio={data:ev.target.result}; $("chatAudioMsg").textContent="🎵 grabación lista para enviar"; $("chatAudioPending").classList.add("show"); };
+  reader.onerror=()=>toast("⚠ No se pudo procesar la grabación");
+  reader.readAsDataURL(new Blob([wav], {type:"audio/wav"}));
 }
 async function toggleRecord(){
-  if(mediaRec && mediaRec.state==="recording"){ stopRecording(); return; }
-  if(!window.MediaRecorder || !navigator.mediaDevices){ toast("⚠ Tu navegador no permite grabar audio"); return; }
+  if(recording){ stopRecording(); return; }
+  if(!navigator.mediaDevices){ toast("⚠ Tu navegador no permite grabar audio"); return; }
   try{ recStream = await navigator.mediaDevices.getUserMedia({ audio:true }); }
   catch(e){ toast("⚠ No se pudo acceder al micrófono (permiso denegado)"); return; }
-  recChunks = [];
-  try{ mediaRec = new MediaRecorder(recStream); }
-  catch(e){ mediaRec = new MediaRecorder(recStream, {}); }
-  mediaRec.ondataavailable = e=>{ if(e.data && e.data.size>0) recChunks.push(e.data); };
-  mediaRec.onstop = ()=>{
-    const blob = new Blob(recChunks, { type: (mediaRec && mediaRec.mimeType) || "audio/webm" });
-    cleanupRec();
-    if(recDiscard){ recDiscard=false; clearPendingAudio(); return; }
-    if(blob.size===0){ clearPendingAudio(); return; }
-    if(blob.size > 1.5*1024*1024){ toast("⚠ Grabación demasiado larga (máx ~1.5 MB)"); clearPendingAudio(); return; }
-    const reader = new FileReader();
-    reader.onload = ev=>{
-      pendingAudio = { data: ev.target.result };
-      $("chatAudioMsg").textContent = "🎵 grabación lista para enviar";
-      $("chatAudioPending").classList.add("show");
-    };
-    reader.onerror = ()=>toast("⚠ No se pudo procesar la grabación");
-    reader.readAsDataURL(blob);
+  const AC = window.AudioContext || window.webkitAudioContext;
+  if(!AC){ toast("⚠ Tu navegador no soporta grabación de audio"); recStream.getTracks().forEach(t=>t.stop()); return; }
+  recCtx = new AC();
+  if(recCtx.state==="suspended"){ try{ await recCtx.resume(); }catch(e){} }
+  recSR = recCtx.sampleRate;
+  recSrc = recCtx.createMediaStreamSource(recStream);
+  recProc = recCtx.createScriptProcessor(4096, 1, 1);
+  recBuffers=[]; recLen=0; recDiscard=false; recording=true;
+  recProc.onaudioprocess = e=>{
+    if(!recording) return;
+    const ch=e.inputBuffer.getChannelData(0);
+    recBuffers.push(new Float32Array(ch)); recLen+=ch.length;
   };
+  recSrc.connect(recProc); recProc.connect(recCtx.destination); // el proc no emite audio (sin eco)
   pendingAudio=null;
-  mediaRec.start();
   recSecs=0; recLabel();
   $("chatAudioPending").classList.add("show");
-  $("audioBtn").classList.add("recording");
-  $("audioBtn").textContent="⏹️";
-  recTimer = setInterval(()=>{ recSecs++; recLabel(); if(recSecs>=REC_MAX) stopRecording(); }, 1000);
+  $("audioBtn").classList.add("recording"); $("audioBtn").textContent="⏹️";
+  recTimer=setInterval(()=>{ recSecs++; recLabel(); if(recSecs>=REC_MAX) stopRecording(); }, 1000);
 }
 $("audioBtn").onclick = toggleRecord;
-$("chatAudioRemove").onclick = ()=>{
-  if(mediaRec && mediaRec.state==="recording"){ recDiscard=true; stopRecording(); }
-  else clearPendingAudio();
-};
+$("chatAudioRemove").onclick = ()=>{ if(recording){ recDiscard=true; stopRecording(); } else clearPendingAudio(); };
 $("chatText").addEventListener("keydown", e=>{
   if(e.key==="Enter" && !e.shiftKey){ e.preventDefault(); sendChat(); }
 });
