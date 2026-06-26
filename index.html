@@ -242,6 +242,8 @@
   .chat-input-row{display:flex;gap:8px;margin-top:12px;align-items:flex-end}
   .chat-input-row textarea{min-height:46px;max-height:120px;resize:none}
   .chat-input-row #audioBtn{font-size:18px;padding:9px 12px}
+  #audioBtn.recording{color:var(--red);border-color:var(--red);animation:recpulse 1.1s ease-in-out infinite}
+  @keyframes recpulse{0%,100%{box-shadow:0 0 6px rgba(255,59,91,0.5)}50%{box-shadow:0 0 20px rgba(255,59,91,0.95)}}
   .chat-audio-pending{
     display:none;align-items:center;justify-content:space-between;gap:10px;margin-top:10px;
     background:rgba(255,138,40,0.12);border:1px solid rgba(255,138,40,0.4);border-radius:10px;padding:8px 12px;font-size:12px;color:var(--cyan);
@@ -541,12 +543,11 @@
     <div class="chat-wrap">
       <div class="chat-log" id="chatLog"></div>
       <div class="chat-audio-pending" id="chatAudioPending">
-        <span>🎵 <b id="chatAudioName">audio</b> listo para enviar</span>
-        <button type="button" id="chatAudioRemove" title="Quitar audio">✕</button>
+        <span id="chatAudioMsg">🎵 grabación lista para enviar</span>
+        <button type="button" id="chatAudioRemove" title="Descartar">✕</button>
       </div>
       <div class="chat-input-row">
-        <button class="btn btn-ghost" id="audioBtn" title="Adjuntar audio">🎵</button>
-        <input type="file" id="audioFile" accept="audio/*" style="display:none" />
+        <button class="btn btn-ghost" id="audioBtn" title="Grabar audio">🎙️</button>
         <textarea id="chatText" placeholder="Escribe un mensaje cifrado..." maxlength="2000"></textarea>
         <button class="btn btn-primary" id="sendChatBtn">➤</button>
       </div>
@@ -1241,7 +1242,7 @@ function openChat(){
   renderChat();
   setTimeout(()=>$("chatText").focus(), 50);
 }
-function closeChat(){ $("chatBg").classList.remove("open"); }
+function closeChat(){ if(mediaRec && mediaRec.state==="recording"){ recDiscard=true; stopRecording(); } $("chatBg").classList.remove("open"); }
 
 function renderChat(){
   const msgs = loadChat();
@@ -1273,8 +1274,8 @@ function renderChat(){
   log.scrollTop = log.scrollHeight;
 }
 
-let pendingAudio = null; // {data, name} del audio adjunto
-function clearPendingAudio(){ pendingAudio=null; $("chatAudioPending").classList.remove("show"); $("audioFile").value=""; }
+let pendingAudio = null; // {data} del audio grabado
+function clearPendingAudio(){ pendingAudio=null; $("chatAudioPending").classList.remove("show"); }
 function sendChat(){
   const text = $("chatText").value.trim();
   const audio = pendingAudio ? pendingAudio.data : null;
@@ -1312,20 +1313,54 @@ $("chatBtn").onclick      = openChat;
 $("closeChatBtn").onclick = closeChat;
 $("sendChatBtn").onclick  = sendChat;
 $("clearChatBtn").onclick = clearChat;
-$("audioBtn").onclick     = ()=>$("audioFile").click();
-$("audioFile").onchange   = e=>{
-  const f = e.target.files[0]; if(!f) return;
-  if(f.size > 1.5*1024*1024){ toast("⚠ Audio demasiado grande (máx 1.5 MB)"); e.target.value=""; return; }
-  const reader = new FileReader();
-  reader.onload = ev=>{
-    pendingAudio = { data: ev.target.result, name: f.name };
-    $("chatAudioName").textContent = f.name;
-    $("chatAudioPending").classList.add("show");
+/* ---- Grabación de audio con el micrófono ---- */
+let mediaRec = null, recChunks = [], recStream = null, recTimer = null, recSecs = 0, recDiscard = false;
+const REC_MAX = 60; // segundos máximo
+function recLabel(){ const m=Math.floor(recSecs/60), s=String(recSecs%60).padStart(2,"0"); $("chatAudioMsg").textContent="🔴 Grabando… "+m+":"+s+" (toca para detener)"; }
+function stopRecording(){ if(mediaRec && mediaRec.state==="recording") mediaRec.stop(); }
+function cleanupRec(){
+  if(recTimer){ clearInterval(recTimer); recTimer=null; }
+  if(recStream){ recStream.getTracks().forEach(t=>t.stop()); recStream=null; }
+  $("audioBtn").classList.remove("recording");
+  $("audioBtn").textContent="🎙️";
+}
+async function toggleRecord(){
+  if(mediaRec && mediaRec.state==="recording"){ stopRecording(); return; }
+  if(!window.MediaRecorder || !navigator.mediaDevices){ toast("⚠ Tu navegador no permite grabar audio"); return; }
+  try{ recStream = await navigator.mediaDevices.getUserMedia({ audio:true }); }
+  catch(e){ toast("⚠ No se pudo acceder al micrófono (permiso denegado)"); return; }
+  recChunks = [];
+  try{ mediaRec = new MediaRecorder(recStream); }
+  catch(e){ mediaRec = new MediaRecorder(recStream, {}); }
+  mediaRec.ondataavailable = e=>{ if(e.data && e.data.size>0) recChunks.push(e.data); };
+  mediaRec.onstop = ()=>{
+    const blob = new Blob(recChunks, { type: (mediaRec && mediaRec.mimeType) || "audio/webm" });
+    cleanupRec();
+    if(recDiscard){ recDiscard=false; clearPendingAudio(); return; }
+    if(blob.size===0){ clearPendingAudio(); return; }
+    if(blob.size > 1.5*1024*1024){ toast("⚠ Grabación demasiado larga (máx ~1.5 MB)"); clearPendingAudio(); return; }
+    const reader = new FileReader();
+    reader.onload = ev=>{
+      pendingAudio = { data: ev.target.result };
+      $("chatAudioMsg").textContent = "🎵 grabación lista para enviar";
+      $("chatAudioPending").classList.add("show");
+    };
+    reader.onerror = ()=>toast("⚠ No se pudo procesar la grabación");
+    reader.readAsDataURL(blob);
   };
-  reader.onerror = ()=>toast("⚠ No se pudo leer el audio");
-  reader.readAsDataURL(f);
+  pendingAudio=null;
+  mediaRec.start();
+  recSecs=0; recLabel();
+  $("chatAudioPending").classList.add("show");
+  $("audioBtn").classList.add("recording");
+  $("audioBtn").textContent="⏹️";
+  recTimer = setInterval(()=>{ recSecs++; recLabel(); if(recSecs>=REC_MAX) stopRecording(); }, 1000);
+}
+$("audioBtn").onclick = toggleRecord;
+$("chatAudioRemove").onclick = ()=>{
+  if(mediaRec && mediaRec.state==="recording"){ recDiscard=true; stopRecording(); }
+  else clearPendingAudio();
 };
-$("chatAudioRemove").onclick = clearPendingAudio;
 $("chatText").addEventListener("keydown", e=>{
   if(e.key==="Enter" && !e.shiftKey){ e.preventDefault(); sendChat(); }
 });
