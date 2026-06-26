@@ -38,12 +38,12 @@ create table if not exists public.agents (
   status    text,
   pin       text,
   photo     text,
-  notes     text,
-  blocked   boolean default false,
-  face      jsonb,
+  notes      text,
+  blocked    boolean default false,
+  voice_hash text,
   created_at timestamptz default now()
 );
-alter table public.agents add column if not exists face jsonb;
+alter table public.agents add column if not exists voice_hash text;
 
 create table if not exists public.chat_messages (
   id    text primary key,

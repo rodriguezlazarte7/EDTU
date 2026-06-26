@@ -272,6 +272,19 @@
   .face-status{min-height:20px;font-size:13px;letter-spacing:.05em;color:var(--muted);margin-bottom:4px}
   .voice-heard{font-size:12px;color:var(--violet);min-height:16px;margin-top:4px}
 
+  /* ---------- OVERLAY ACCESO CONCEDIDO ---------- */
+  #accessOverlay{
+    position:fixed;inset:0;z-index:200;display:none;align-items:center;justify-content:center;
+    background:#000;
+  }
+  #accessOverlay.show{display:flex}
+  #accessOverlay .ao-text{
+    font-family:"Consolas",ui-monospace,monospace;color:#22ff66;font-size:clamp(20px,5vw,34px);
+    font-weight:800;letter-spacing:.22em;text-shadow:0 0 12px #22ff66,0 0 30px rgba(34,255,102,0.6);
+    animation:aoblink 0.5s steps(2,start) infinite;
+  }
+  @keyframes aoblink{50%{opacity:.55}}
+
   /* ---------- BASE TÁCTIL (móvil/tablet) ---------- */
   html{-webkit-text-size-adjust:100%}
   body{-webkit-tap-highlight-color:transparent}
@@ -479,6 +492,10 @@
         <input id="aPin" type="password" inputmode="numeric" maxlength="12" placeholder="Ej: 1234 — déjalo vacío si no tiene acceso" autocomplete="new-password" />
       </div>
       <div class="full">
+        <label>FRASE SECRETA DE VOZ <span id="aVoiceState" style="color:var(--muted);font-weight:400"></span></label>
+        <input id="aVoice" type="password" placeholder="Escríbela para fijar/cambiar — vacío = no cambiar" autocomplete="new-password" />
+      </div>
+      <div class="full">
         <label>NOTAS</label>
         <textarea id="aNotes" placeholder="Notas confidenciales del agente..."></textarea>
       </div>
@@ -552,6 +569,9 @@
   </div>
 </div>
 
+<!-- Overlay de acceso concedido -->
+<div id="accessOverlay"><div class="ao-text">✓ ACCESO COMPLETADO</div></div>
+
 <div class="toast" id="toast"></div>
 
 <!-- Cliente de Supabase (CDN) + credenciales del proyecto -->
@@ -614,12 +634,17 @@ let agents = loadAgents();
 // currentUser: {type:'admin'} ó {type:'agent', id}
 let currentUser = null;
 function getCurrentAgent(){ return currentUser && currentUser.type==="agent" ? agents.find(a=>a.id===currentUser.id) : null; }
-// Pueden editar agentes: el superadmin y los agentes de nivel "Máximo".
+// Pueden gestionar TODOS los agentes: el superadmin y los agentes de nivel "Máximo".
 function canEdit(){
   if(!currentUser) return false;
   if(currentUser.type==="admin") return true;
   const ag = getCurrentAgent();
   return !!ag && ag.clearance==="Máximo";
+}
+// Puede editar un agente concreto: quien puede gestionar todos, o el propio agente sobre sí mismo.
+function canEditAgent(id){
+  if(canEdit()) return true;
+  return !!(currentUser && currentUser.type==="agent" && currentUser.id===id);
 }
 function loadProfile(){ try{ return JSON.parse(localStorage.getItem(LS_PROFILE)) || {}; }catch(e){ return {}; } }
 function saveProfile(p){ persist(LS_PROFILE, p); }
@@ -1021,7 +1046,7 @@ function renderAgents(){
   $("agentsCount").textContent = agents.length ? `// ${agents.length}` : "";
   const list = $("agentsList");
   const note = editable ? "" :
-    `<div class="readonly-note">👁 Modo solo lectura — tu nivel de acceso no permite editar agentes.</div>`;
+    `<div class="readonly-note">👁 Tu nivel solo permite editar <b>tu propio</b> agente (incluida tu frase de voz).</div>`;
   if(agents.length===0){
     list.innerHTML = note + `<div class="agents-empty">
       <div style="font-size:46px;opacity:.5">⬡</div>
@@ -1043,11 +1068,12 @@ function renderAgents(){
       a.clearance ? `Acceso: ${esc(a.clearance)}` : "",
       a.pin ? `🔑 con acceso` : "",
     ].filter(Boolean).join(" · ");
-    const actions = editable ? `
+    const mineRow = canEditAgent(a.id);
+    const actions = (editable || mineRow) ? `
       <div class="agent-actions">
-        <button class="btn btn-ghost btn-sm" data-aedit="${a.id}">✎ Editar</button>
-        <button class="btn btn-ghost btn-sm" data-ablock="${a.id}" style="color:${a.blocked?'var(--green)':'var(--amber)'};border-color:${a.blocked?'var(--green)':'var(--amber)'}">${a.blocked?'🔓 Desbloquear':'🔒 Bloquear'}</button>
-        <button class="btn btn-danger btn-sm" data-adel="${a.id}">🗑</button>
+        ${mineRow ? `<button class="btn btn-ghost btn-sm" data-aedit="${a.id}">✎ Editar</button>` : ""}
+        ${editable ? `<button class="btn btn-ghost btn-sm" data-ablock="${a.id}" style="color:${a.blocked?'var(--green)':'var(--amber)'};border-color:${a.blocked?'var(--green)':'var(--amber)'}">${a.blocked?'🔓 Desbloquear':'🔒 Bloquear'}</button>
+        <button class="btn btn-danger btn-sm" data-adel="${a.id}">🗑</button>` : ""}
       </div>` : "";
     return `<div class="agent-row ${a.blocked?'blocked':''}">
       <div class="agent-av"${avStyle}>${avContent}</div>
@@ -1070,15 +1096,21 @@ function renderAgents(){
 
 let aPhotoData = null; // foto temporal del agente en edición
 function openAgentForm(agent){
-  if(!canEdit()){ toast("👁 Solo lectura: no puedes editar agentes"); return; }
+  const id = agent ? agent.id : null;
+  if(agent){ if(!canEditAgent(id)){ toast("👁 Solo puedes editar tu propio agente"); return; } }
+  else { if(!canEdit()){ toast("👁 No tienes permiso para crear agentes"); return; } }
+  const fullPerm = canEdit();
   $("agentFormTitle").textContent = agent ? "EDITAR AGENTE" : "NUEVO AGENTE";
   $("aId").value        = agent ? agent.id : "";
   $("aName").value      = agent ? agent.name : "";
   $("aCodename").value  = agent ? (agent.codename||"") : "";
   $("aSpecialty").value = agent ? (agent.specialty||"") : "";
   $("aClearance").value = agent ? (agent.clearance||"Bajo") : "Bajo";
+  $("aClearance").disabled = !fullPerm;   // un agente no puede cambiar su propio nivel
   $("aStatus").value    = agent ? (agent.status||"activo") : "activo";
   $("aPin").value       = agent ? (agent.pin||"") : "";
+  $("aVoice").value     = "";
+  $("aVoiceState").textContent = (agent && agent.voice_hash) ? "· configurada ✓" : "· sin configurar";
   $("aNotes").value     = agent ? (agent.notes||"") : "";
   aPhotoData = agent ? (agent.photo || null) : null;
   paintAvatar($("aPhotoPrev"), aPhotoData, ($("aName").value||"?").charAt(0).toUpperCase());
@@ -1087,36 +1119,41 @@ function openAgentForm(agent){
 }
 function closeAgentForm(){ $("agentFormBg").classList.remove("open"); }
 
-function saveAgent(){
-  if(!canEdit()){ toast("👁 Solo lectura: no puedes editar agentes"); return; }
+async function saveAgent(){
+  const id = $("aId").value;
+  if(id){ if(!canEditAgent(id)){ toast("👁 Solo puedes editar tu propio agente"); return; } }
+  else { if(!canEdit()){ toast("👁 No tienes permiso para crear agentes"); return; } }
   const name = $("aName").value.trim();
   if(!name){ toast("⚠ El nombre/alias es obligatorio"); $("aName").focus(); return; }
   const pin = $("aPin").value.trim();
   if(pin){
     if(pin.length<4){ toast("⚠ El PIN del agente debe tener al menos 4 dígitos"); $("aPin").focus(); return; }
-    const id0 = $("aId").value;
     if(pin===localStorage.getItem(LS_PIN)){ toast("⚠ Ese PIN ya es el del superadmin"); $("aPin").focus(); return; }
-    const clash = agents.find(a=> a.pin===pin && a.id!==id0);
+    const clash = agents.find(a=> a.pin===pin && a.id!==id);
     if(clash){ toast(`⚠ Ese PIN ya lo usa el agente "${clash.name}"`); $("aPin").focus(); return; }
   }
-  const id = $("aId").value;
   const existing = id ? agents.find(a=>a.id===id) : null;
+  const fullPerm = canEdit();
   const data = {
     id: id || uid(),
     name,
     codename: $("aCodename").value.trim(),
     specialty: $("aSpecialty").value.trim(),
-    clearance: $("aClearance").value,
+    clearance: fullPerm ? $("aClearance").value : (existing ? existing.clearance : "Bajo"),
     status: $("aStatus").value,
     pin: pin,
     photo: aPhotoData || "",
     notes: $("aNotes").value.trim(),
     blocked: existing ? !!existing.blocked : false,
   };
+  // frase secreta de voz: solo se guarda el HASH (nunca el texto)
+  const voice = $("aVoice").value.trim();
+  if(voice){ data.voice_hash = await sha256hex(normalizePhrase(voice)); }
+  else if(existing && existing.voice_hash){ data.voice_hash = existing.voice_hash; }
   if(id){
     const i = agents.findIndex(a=>a.id===id);
     if(i>-1) agents[i]=data;
-    toast("Agente actualizado");
+    toast(voice ? "Agente actualizado · frase de voz fijada" : "Agente actualizado");
   }else{
     agents.unshift(data);
     toast("Agente registrado");
@@ -1300,18 +1337,35 @@ window.addEventListener("storage", e=>{
 
 /* ============ RECONOCIMIENTO DE VOZ ============ */
 const VOICE_HASH = "49f2c70ac3ddc3c79b65b6854373205a4541f3f50ebb4a4ce56b1a972e06c744";
-const VOICE_WORDS = 4; // nº de palabras de la frase (no revela la frase)
 async function sha256hex(s){
   const buf = await crypto.subtle.digest("SHA-256", new TextEncoder().encode(s));
   return Array.from(new Uint8Array(buf)).map(b=>b.toString(16).padStart(2,"0")).join("");
 }
-async function checkPhrase(transcript){
-  const words = normalizePhrase(transcript).split(" ").filter(Boolean);
-  const tries = [];
-  for(let i=0; i+VOICE_WORDS<=words.length; i++) tries.push(words.slice(i,i+VOICE_WORDS).join(" "));
-  tries.push(words.join(" "));
-  for(const t of tries){ if(t && (await sha256hex(t))===VOICE_HASH) return true; }
-  return false;
+// todas las sub-frases contiguas (ventanas de palabras) de lo reconocido
+function wordWindows(transcript){
+  const words = normalizePhrase(transcript).split(" ").filter(Boolean).slice(0,14);
+  const out = new Set();
+  for(let i=0;i<words.length;i++)
+    for(let j=i+1;j<=words.length;j++)
+      out.add(words.slice(i,j).join(" "));
+  return [...out];
+}
+// devuelve el usuario cuya frase secreta coincide, o null (admin + agentes con frase)
+async function matchUserByVoice(transcript){
+  const enrolled = [{ user:{type:"admin"}, hash:VOICE_HASH }];
+  agents.forEach(a=>{ if(a.voice_hash && !a.blocked) enrolled.push({ user:{type:"agent",id:a.id}, hash:a.voice_hash }); });
+  for(const w of wordWindows(transcript)){
+    const h = await sha256hex(w);
+    const hit = enrolled.find(e=>e.hash===h);
+    if(hit) return hit.user;
+  }
+  return null;
+}
+// pantalla negra "ACCESO COMPLETADO" 1 seg y luego carga la app
+function accessGranted(user){
+  const ov=$("accessOverlay");
+  ov.classList.add("show");
+  setTimeout(()=>{ ov.classList.remove("show"); unlock(user); }, 1000);
 }
 function normalizePhrase(s){
   return (s||"").toLowerCase()
@@ -1352,11 +1406,14 @@ const Voice = {
         for(let j=0;j<ev.results[i].length;j++) cands.push(ev.results[i][j].transcript);
       }
       $("voiceHeard").textContent = shown.trim() ? ('🗣️ "'+shown.trim()+'"') : "";
-      for(const c of cands){ if(await checkPhrase(c)){ this.matched=true; break; } }
-      if(this.matched){
+      let hitUser=null;
+      for(const c of cands){ hitUser = await matchUserByVoice(c); if(hitUser) break; }
+      if(hitUser && !this.matched){
+        this.matched=true;
         this.stopListening();
-        $("voiceStatus").innerHTML='<span style="color:var(--green)">✓ FRASE CORRECTA — Acceso concedido</span>';
-        setTimeout(()=>{ this.close(); unlock({type:"admin"}); }, 700);
+        $("voiceStatus").innerHTML='<span style="color:var(--green)">✓ Identidad confirmada</span>';
+        this.close();
+        accessGranted(hitUser);
       }
     };
     rec.onerror = (e)=>{
