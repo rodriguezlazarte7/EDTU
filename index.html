@@ -259,16 +259,18 @@
   .toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
   footer{text-align:center;color:var(--muted);font-size:11px;letter-spacing:.2em;margin-top:40px}
 
-  /* ---------- RECONOCIMIENTO FACIAL ---------- */
-  .face-cam{
-    position:relative;width:250px;height:250px;max-width:72vw;margin:4px auto 14px;border-radius:18px;overflow:hidden;
-    border:2px solid var(--cyan);box-shadow:0 0 26px rgba(255,138,30,0.45);background:#000;
+  /* ---------- RECONOCIMIENTO DE VOZ ---------- */
+  .voice-mic{
+    position:relative;width:120px;height:120px;margin:10px auto 8px;border-radius:50%;display:grid;place-items:center;
+    font-size:46px;background:radial-gradient(circle,rgba(255,138,30,0.18),transparent 70%);
+    border:2px solid var(--cyan);box-shadow:0 0 26px rgba(255,138,30,0.45);
   }
-  .face-cam video{width:100%;height:100%;object-fit:cover;transform:scaleX(-1)}
-  .face-scan{position:absolute;left:0;right:0;top:0;height:3px;background:linear-gradient(90deg,transparent,var(--cyan),transparent);box-shadow:0 0 14px var(--cyan);animation:scanmove 2.2s linear infinite}
-  .face-ring{position:absolute;inset:24px;border:2px dashed rgba(255,138,30,0.5);border-radius:50%;pointer-events:none}
-  @keyframes scanmove{0%{top:0}50%{top:calc(100% - 3px)}100%{top:0}}
+  .voice-mic.listening{animation:pulse 1.3s ease-in-out infinite}
+  @keyframes pulse{0%,100%{box-shadow:0 0 18px rgba(255,138,30,0.4)}50%{box-shadow:0 0 40px rgba(255,138,30,0.85)}}
+  .voice-phrase{font-size:13px;color:var(--muted);margin:2px 0 10px;letter-spacing:.04em}
+  .voice-phrase b{color:var(--cyan)}
   .face-status{min-height:20px;font-size:13px;letter-spacing:.05em;color:var(--muted);margin-bottom:4px}
+  .voice-heard{font-size:12px;color:var(--violet);min-height:16px;margin-top:4px}
 
   /* ---------- BASE TÁCTIL (móvil/tablet) ---------- */
   html{-webkit-text-size-adjust:100%}
@@ -333,7 +335,7 @@
     <input class="pin mono" id="pinInput" type="password" inputmode="numeric" maxlength="12" placeholder="••••" autocomplete="off" />
     <div class="lockmsg mono" id="lockMsg"></div>
     <button class="btn btn-primary" id="lockBtn" style="width:100%;margin-top:18px">ACCEDER</button>
-    <button class="btn btn-ghost" id="faceLoginBtn" style="width:100%;margin-top:10px">🪪 RECONOCIMIENTO FACIAL</button>
+    <button class="btn btn-ghost" id="voiceLoginBtn" style="width:100%;margin-top:10px">🎙️ RECONOCIMIENTO DE VOZ</button>
     <div class="mono" id="lockReset" style="margin-top:16px;font-size:11px;color:var(--muted);cursor:pointer;display:none">¿Olvidaste el PIN? Reiniciar sistema</div>
   </div>
 </div>
@@ -502,10 +504,6 @@
     </div>
     <label>NOMBRE DE PERFIL</label>
     <input id="pName" placeholder="Tu nombre" />
-    <div style="margin-top:14px;display:flex;align-items:center;justify-content:space-between;gap:10px">
-      <span class="mono" id="faceEnrollState" style="font-size:11px;color:var(--muted)">Rostro: sin registrar</span>
-      <button type="button" class="btn btn-ghost btn-sm" id="enrollFaceBtn">🪪 Registrar rostro</button>
-    </div>
     <div class="modal-actions">
       <button class="btn btn-ghost" id="cancelProfileBtn">Cancelar</button>
       <button class="btn btn-primary" id="saveProfileBtn">💾 GUARDAR</button>
@@ -539,27 +537,23 @@
   </div>
 </div>
 
-<!-- ============ RECONOCIMIENTO FACIAL ============ -->
-<div class="modal-bg" id="faceBg" style="z-index:90">
+<!-- ============ RECONOCIMIENTO DE VOZ ============ -->
+<div class="modal-bg" id="voiceBg" style="z-index:90">
   <div class="modal" style="width:min(440px,96vw);text-align:center">
-    <h2 id="faceTitle" style="justify-content:center">RECONOCIMIENTO FACIAL</h2>
-    <div class="face-cam">
-      <video id="faceVideo" autoplay muted playsinline></video>
-      <div class="face-scan"></div>
-      <div class="face-ring"></div>
-    </div>
-    <div class="face-status mono" id="faceStatus">Iniciando cámara...</div>
+    <h2 style="justify-content:center">RECONOCIMIENTO DE VOZ</h2>
+    <div class="voice-mic" id="voiceMic">🎙️</div>
+    <div class="voice-phrase">Di la frase clave:<br><b>«Mucho nunca es suficiente»</b></div>
+    <div class="face-status mono" id="voiceStatus">Pulsa "Escuchar" y di la frase</div>
+    <div class="voice-heard mono" id="voiceHeard"></div>
     <div class="modal-actions" style="justify-content:center">
-      <button class="btn btn-ghost" id="faceCancelBtn">Cancelar</button>
-      <button class="btn btn-primary" id="faceActionBtn" style="display:none">📸 Capturar</button>
+      <button class="btn btn-ghost" id="voiceCancelBtn">Cancelar</button>
+      <button class="btn btn-primary" id="voiceListenBtn">🎙️ Escuchar</button>
     </div>
   </div>
 </div>
 
 <div class="toast" id="toast"></div>
 
-<!-- Motor de reconocimiento facial -->
-<script src="https://cdn.jsdelivr.net/npm/@vladmandic/face-api/dist/face-api.js"></script>
 <!-- Cliente de Supabase (CDN) + credenciales del proyecto -->
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script>
@@ -697,7 +691,6 @@ const Cloud = {
       const c=cfgR.data;
       if(c.admin_pin) localStorage.setItem(LS_PIN, c.admin_pin);
       persist(LS_PROFILE, { name: c.profile_name||"SUPERADMIN", photo: c.profile_photo||"" });
-      if(c.face_descriptor) localStorage.setItem("edtu_face_admin", JSON.stringify(c.face_descriptor));
     }
     if(msR && !msR.error) persist(LS_DATA,   (msR.data||[]).map(stripTs));
     if(agR && !agR.error) persist(LS_AGENTS, (agR.data||[]).map(stripTs));
@@ -825,9 +818,6 @@ function openProfile(){
     pPhotoData = p.photo || null;
   }
   paintAvatar($("pPhotoPrev"), pPhotoData, ($("pName").value||"?").charAt(0).toUpperCase());
-  $("faceEnrollState").innerHTML = currentUserHasFace()
-    ? 'Rostro: <span style="color:var(--green)">registrado ✓</span>'
-    : 'Rostro: sin registrar';
   $("profileBg").classList.add("open");
   $("pName").focus();
 }
@@ -1175,7 +1165,7 @@ $("agentsBg").addEventListener("click", e=>{ if(e.target===$("agentsBg")) closeA
 $("agentFormBg").addEventListener("click", e=>{ if(e.target===$("agentFormBg")) closeAgentForm(); });
 document.addEventListener("keydown", e=>{
   if(e.key==="Escape"){
-    if($("faceBg").classList.contains("open")) Face.close();
+    if($("voiceBg").classList.contains("open")) Voice.close();
     else if($("profileBg").classList.contains("open")) closeProfile();
     else if($("agentFormBg").classList.contains("open")) closeAgentForm();
     else if($("agentsBg").classList.contains("open")) closeAgentsPanel();
@@ -1308,119 +1298,76 @@ window.addEventListener("storage", e=>{
   if(e.key===LS_CHAT && $("chatBg").classList.contains("open")) renderChat();
 });
 
-/* ============ RECONOCIMIENTO FACIAL ============ */
-const FACE_MODELS_LIST = [
-  "https://cdn.jsdelivr.net/gh/justadudewhohacks/face-api.js@master/weights",
-  "https://cdn.jsdelivr.net/npm/@vladmandic/face-api/model",
-  "https://raw.githubusercontent.com/justadudewhohacks/face-api.js/master/weights"
-];
-const FACE_THRESHOLD = 0.52; // menor = más estricto
-function loadAdminFace(){ try{ return JSON.parse(localStorage.getItem("edtu_face_admin")); }catch(e){ return null; } }
-function saveAdminFace(arr){ persist("edtu_face_admin", arr); }
-function currentUserHasFace(){
-  if(currentUser && currentUser.type==="agent"){ const a=getCurrentAgent(); return !!(a && a.face); }
-  return !!loadAdminFace();
+/* ============ RECONOCIMIENTO DE VOZ ============ */
+const VOICE_PHRASE = "Mucho nunca es suficiente";
+function normalizePhrase(s){
+  return (s||"").toLowerCase()
+    .normalize("NFD").replace(/[̀-ͯ]/g,"")   // quita acentos
+    .replace(/[^a-z0-9ñ ]/g," ").replace(/\s+/g," ").trim();
 }
-
-const Face = {
-  ready:false, stream:null, mode:"login", running:false,
-  async loadModels(){
-    if(this.ready) return true;
-    if(!window.faceapi){ $("faceStatus").textContent="No se pudo cargar el motor facial (sin internet)"; return false; }
-    let lastErr=null;
-    for(const base of FACE_MODELS_LIST){
-      try{
-        $("faceStatus").textContent="Cargando modelos de IA...";
-        await faceapi.nets.tinyFaceDetector.loadFromUri(base);
-        await faceapi.nets.faceLandmark68Net.loadFromUri(base);
-        await faceapi.nets.faceRecognitionNet.loadFromUri(base);
-        this.ready=true; return true;
-      }catch(e){ console.error("Modelos fallaron en", base, e); lastErr=e; }
-    }
-    $("faceStatus").innerHTML='<span style="color:var(--red)">Error cargando modelos: '+esc(lastErr?lastErr.message:"desconocido")+'</span>';
-    return false;
+const Voice = {
+  rec:null, listening:false, matched:false,
+  open(){
+    this.matched=false;
+    $("voiceHeard").textContent="";
+    $("voiceStatus").textContent='Pulsa "Escuchar" y di la frase';
+    $("voiceMic").classList.remove("listening");
+    $("voiceBg").classList.add("open");
   },
-  async startCamera(){
-    try{
-      this.stream = await navigator.mediaDevices.getUserMedia({ video:{ facingMode:"user" } });
-      const v=$("faceVideo"); v.srcObject=this.stream; await v.play(); return true;
-    }catch(e){ console.error(e); $("faceStatus").textContent="No se pudo abrir la cámara (permiso denegado o no disponible)"; return false; }
+  close(){ this.stopListening(); $("voiceBg").classList.remove("open"); },
+  stopListening(){
+    this.listening=false;
+    $("voiceMic").classList.remove("listening");
+    if(this.rec){ try{ this.rec.stop(); }catch(e){} this.rec=null; }
   },
-  stop(){ this.running=false; if(this.stream){ this.stream.getTracks().forEach(t=>t.stop()); this.stream=null; } const v=$("faceVideo"); if(v) v.srcObject=null; },
-  async descriptor(){
-    try{
-      const det = await faceapi.detectSingleFace($("faceVideo"), new faceapi.TinyFaceDetectorOptions({inputSize:320}))
-        .withFaceLandmarks().withFaceDescriptor();
-      return det ? det.descriptor : null;
-    }catch(e){ console.error(e); return null; }
-  },
-  enrolled(){
-    const list=[];
-    const adm = loadAdminFace();
-    if(adm) list.push({ user:{type:"admin"}, name:(loadProfile().name||"SUPERADMIN"), desc:Float32Array.from(adm) });
-    agents.forEach(a=>{ if(a.face && !a.blocked) list.push({ user:{type:"agent",id:a.id}, name:a.name, desc:Float32Array.from(a.face) }); });
-    return list;
-  },
-  async open(mode){
-    this.mode=mode;
-    $("faceTitle").textContent = mode==="enroll" ? "REGISTRAR ROSTRO" : "RECONOCIMIENTO FACIAL";
-    $("faceActionBtn").style.display = mode==="enroll" ? "" : "none";
-    $("faceStatus").textContent="Iniciando cámara...";
-    $("faceBg").classList.add("open");
-    if(!await this.loadModels()) return;
-    if(!await this.startCamera()) return;
-    if(mode==="login") this.loginLoop();
-    else $("faceStatus").textContent="Centra tu rostro en el círculo y pulsa Capturar";
-  },
-  async loginLoop(){
-    const faces = this.enrolled();
-    if(faces.length===0){ $("faceStatus").innerHTML='<span style="color:var(--amber)">No hay rostros registrados. Entra con PIN y regístralo en tu perfil.</span>'; return; }
-    this.running=true;
-    while(this.running){
-      $("faceStatus").textContent="Escaneando rostro...";
-      const desc = await this.descriptor();
-      if(!this.running) return;
-      if(desc){
-        let best=null, bestD=99;
-        faces.forEach(f=>{ const d=faceapi.euclideanDistance(desc,f.desc); if(d<bestD){bestD=d; best=f;} });
-        if(best && bestD < FACE_THRESHOLD){
-          $("faceStatus").innerHTML=`<span style="color:var(--green)">✓ IDENTIDAD CONFIRMADA — ${esc(best.name)}</span>`;
-          this.running=false;
-          setTimeout(()=>{ this.close(); unlock(best.user); }, 800);
-          return;
+  listen(){
+    const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+    if(!SR){ $("voiceStatus").innerHTML='<span style="color:var(--red)">Tu navegador no soporta voz. Usa Chrome.</span>'; return; }
+    if(this.listening){ this.stopListening(); $("voiceStatus").textContent='Detenido. Pulsa "Escuchar".'; return; }
+    const rec = new SR();
+    this.rec = rec; this.matched=false;
+    rec.lang="es-ES"; rec.interimResults=true; rec.continuous=false; rec.maxAlternatives=4;
+    this.listening=true;
+    $("voiceMic").classList.add("listening");
+    $("voiceStatus").textContent="🔴 Escuchando… di la frase clave";
+    $("voiceHeard").textContent="";
+    const target = normalizePhrase(VOICE_PHRASE);
+    rec.onresult = (ev)=>{
+      let shown="";
+      for(let i=0;i<ev.results.length;i++){
+        shown += ev.results[i][0].transcript + " ";
+        for(let j=0;j<ev.results[i].length;j++){
+          const n = normalizePhrase(ev.results[i][j].transcript);
+          if(n===target || n.includes(target)) this.matched=true;
         }
-        $("faceStatus").innerHTML='<span style="color:var(--red)">Rostro no reconocido…</span>';
-      }else{
-        $("faceStatus").textContent="Buscando rostro…";
       }
-      await new Promise(r=>setTimeout(r,450));
-    }
-  },
-  async capture(){
-    $("faceStatus").textContent="Capturando…";
-    const desc = await this.descriptor();
-    if(!desc){ $("faceStatus").innerHTML='<span style="color:var(--red)">No se detectó rostro, inténtalo de nuevo</span>'; return; }
-    const arr = Array.from(desc);
-    if(currentUser && currentUser.type==="agent"){
-      const i=agents.findIndex(a=>a.id===currentUser.id);
-      if(i>-1){ agents[i].face=arr; saveAgents(agents); Cloud.upsertAgent(agents[i]); }
-    }else{
-      saveAdminFace(arr);
-      Cloud.saveConfig({ face_descriptor: arr });
-    }
-    $("faceStatus").innerHTML='<span style="color:var(--green)">✓ Rostro registrado</span>';
-    if($("faceEnrollState")) $("faceEnrollState").innerHTML='Rostro: <span style="color:var(--green)">registrado ✓</span>';
-    toast("Rostro registrado para login facial");
-    setTimeout(()=>this.close(), 900);
-  },
-  close(){ this.stop(); $("faceBg").classList.remove("open"); }
+      $("voiceHeard").textContent = shown.trim() ? ('🗣️ "'+shown.trim()+'"') : "";
+      if(this.matched){
+        this.stopListening();
+        $("voiceStatus").innerHTML='<span style="color:var(--green)">✓ FRASE CORRECTA — Acceso concedido</span>';
+        setTimeout(()=>{ this.close(); unlock({type:"admin"}); }, 700);
+      }
+    };
+    rec.onerror = (e)=>{
+      this.listening=false; $("voiceMic").classList.remove("listening");
+      const msg = e.error==="not-allowed" ? "Permiso de micrófono denegado" : ("Error: "+e.error);
+      $("voiceStatus").innerHTML='<span style="color:var(--red)">'+esc(msg)+'</span>';
+    };
+    rec.onend = ()=>{
+      $("voiceMic").classList.remove("listening");
+      if(this.listening && !this.matched){
+        this.listening=false;
+        $("voiceStatus").innerHTML='<span style="color:var(--amber)">Frase no reconocida. Inténtalo de nuevo.</span>';
+      }
+    };
+    try{ rec.start(); }
+    catch(e){ console.error(e); this.listening=false; $("voiceStatus").textContent="No se pudo iniciar el micrófono"; }
+  }
 };
-
-$("faceLoginBtn").onclick = ()=>Face.open("login");
-$("enrollFaceBtn").onclick = ()=>Face.open("enroll");
-$("faceCancelBtn").onclick = ()=>Face.close();
-$("faceActionBtn").onclick = ()=>Face.capture();
-$("faceBg").addEventListener("click", e=>{ if(e.target===$("faceBg")) Face.close(); });
+$("voiceLoginBtn").onclick  = ()=>Voice.open();
+$("voiceListenBtn").onclick = ()=>Voice.listen();
+$("voiceCancelBtn").onclick = ()=>Voice.close();
+$("voiceBg").addEventListener("click", e=>{ if(e.target===$("voiceBg")) Voice.close(); });
 
 /* ============ RELOJ ============ */
 function tick(){
