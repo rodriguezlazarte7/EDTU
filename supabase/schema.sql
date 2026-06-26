@@ -10,9 +10,11 @@ create table if not exists public.app_config (
   admin_pin    text,
   profile_name text default 'SUPERADMIN',
   profile_photo text,
+  face_descriptor jsonb,
   updated_at   timestamptz default now(),
   constraint app_config_single_row check (id = 1)
 );
+alter table public.app_config add column if not exists face_descriptor jsonb;
 
 create table if not exists public.missions (
   id        text primary key,
@@ -38,8 +40,10 @@ create table if not exists public.agents (
   photo     text,
   notes     text,
   blocked   boolean default false,
+  face      jsonb,
   created_at timestamptz default now()
 );
+alter table public.agents add column if not exists face jsonb;
 
 create table if not exists public.chat_messages (
   id    text primary key,
