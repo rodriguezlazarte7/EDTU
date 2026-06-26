@@ -1299,7 +1299,20 @@ window.addEventListener("storage", e=>{
 });
 
 /* ============ RECONOCIMIENTO DE VOZ ============ */
-const VOICE_PHRASE = "Mucho nunca es suficiente";
+const VOICE_HASH = "49f2c70ac3ddc3c79b65b6854373205a4541f3f50ebb4a4ce56b1a972e06c744";
+const VOICE_WORDS = 4; // nº de palabras de la frase (no revela la frase)
+async function sha256hex(s){
+  const buf = await crypto.subtle.digest("SHA-256", new TextEncoder().encode(s));
+  return Array.from(new Uint8Array(buf)).map(b=>b.toString(16).padStart(2,"0")).join("");
+}
+async function checkPhrase(transcript){
+  const words = normalizePhrase(transcript).split(" ").filter(Boolean);
+  const tries = [];
+  for(let i=0; i+VOICE_WORDS<=words.length; i++) tries.push(words.slice(i,i+VOICE_WORDS).join(" "));
+  tries.push(words.join(" "));
+  for(const t of tries){ if(t && (await sha256hex(t))===VOICE_HASH) return true; }
+  return false;
+}
 function normalizePhrase(s){
   return (s||"").toLowerCase()
     .normalize("NFD").replace(/[̀-ͯ]/g,"")   // quita acentos
@@ -1331,17 +1344,15 @@ const Voice = {
     $("voiceMic").classList.add("listening");
     $("voiceStatus").textContent="🔴 Escuchando… di la frase clave";
     $("voiceHeard").textContent="";
-    const target = normalizePhrase(VOICE_PHRASE);
-    rec.onresult = (ev)=>{
+    rec.onresult = async (ev)=>{
       let shown="";
+      const cands=[];
       for(let i=0;i<ev.results.length;i++){
         shown += ev.results[i][0].transcript + " ";
-        for(let j=0;j<ev.results[i].length;j++){
-          const n = normalizePhrase(ev.results[i][j].transcript);
-          if(n===target || n.includes(target)) this.matched=true;
-        }
+        for(let j=0;j<ev.results[i].length;j++) cands.push(ev.results[i][j].transcript);
       }
       $("voiceHeard").textContent = shown.trim() ? ('🗣️ "'+shown.trim()+'"') : "";
+      for(const c of cands){ if(await checkPhrase(c)){ this.matched=true; break; } }
       if(this.matched){
         this.stopListening();
         $("voiceStatus").innerHTML='<span style="color:var(--green)">✓ FRASE CORRECTA — Acceso concedido</span>';
