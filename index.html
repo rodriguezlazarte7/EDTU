@@ -274,6 +274,23 @@
   .face-status{min-height:20px;font-size:13px;letter-spacing:.05em;color:var(--muted);margin-bottom:4px}
   .voice-heard{font-size:12px;color:var(--violet);min-height:16px;margin-top:4px}
 
+  /* ---------- VIDEOLLAMADA ---------- */
+  .callpick{display:flex;align-items:center;gap:10px;padding:10px 12px;border-radius:10px;background:rgba(255,138,30,0.06);border:1px solid rgba(255,138,30,0.2);cursor:pointer}
+  .callpick input{width:18px;height:18px;accent-color:var(--cyan)}
+  .callpick span{font-size:14px}
+  .call-window{position:fixed;inset:0;display:flex;flex-direction:column;background:#000}
+  .call-grid{flex:1;display:grid;gap:6px;padding:6px;grid-template-columns:repeat(auto-fit,minmax(min(100%,320px),1fr));align-content:center;overflow:auto}
+  .call-tile{position:relative;background:#0a0d14;border-radius:14px;overflow:hidden;border:1px solid rgba(255,138,30,0.3);aspect-ratio:4/3;min-height:160px}
+  .call-tile video{width:100%;height:100%;object-fit:cover;background:#000}
+  .call-label{position:absolute;left:8px;bottom:8px;font-size:12px;font-weight:700;color:#fff;background:rgba(0,0,0,0.55);padding:3px 10px;border-radius:20px;letter-spacing:.04em}
+  .call-controls{display:flex;justify-content:center;gap:16px;padding:16px;padding-bottom:max(16px,env(safe-area-inset-bottom));background:linear-gradient(0deg,#000,transparent)}
+  .call-ctrl{width:58px;height:58px;border-radius:50%;border:1px solid rgba(255,138,30,0.4);background:rgba(255,255,255,0.08);color:#fff;font-size:24px;cursor:pointer;transition:.15s}
+  .call-ctrl:hover{background:rgba(255,138,30,0.2)}
+  .call-ctrl.danger{background:var(--red);border-color:var(--red)}
+  .call-ctrl.off{background:var(--red);border-color:var(--red)}
+  .incoming-ring{animation:ring 0.7s ease-in-out infinite}
+  @keyframes ring{0%,100%{transform:rotate(-12deg)}50%{transform:rotate(12deg)}}
+
   /* ---------- OVERLAY ACCESO CONCEDIDO ---------- */
   #accessOverlay{
     position:fixed;inset:0;z-index:200;display:none;align-items:center;justify-content:center;
@@ -377,6 +394,7 @@
       </div>
       <button class="btn btn-ghost btn-sm" id="agentsBtn">👥 Agentes</button>
       <button class="btn btn-ghost btn-sm" id="chatBtn">💬 Chat</button>
+      <button class="btn btn-ghost btn-sm" id="callBtn">📹 Llamar</button>
       <button class="btn btn-ghost btn-sm" id="exportBtn">⤓ Exportar</button>
       <button class="btn btn-ghost btn-sm" id="lockNow">⏻ Bloquear</button>
     </div>
@@ -567,6 +585,44 @@
     <div class="modal-actions" style="justify-content:center">
       <button class="btn btn-ghost" id="voiceCancelBtn">Cancelar</button>
       <button class="btn btn-primary" id="voiceListenBtn">🎙️ Escuchar</button>
+    </div>
+  </div>
+</div>
+
+<!-- ============ LLAMADA: seleccionar destinatarios ============ -->
+<div class="modal-bg" id="callPickBg">
+  <div class="modal" style="width:min(440px,96vw)">
+    <h2>📹 NUEVA VIDEOLLAMADA</h2>
+    <p class="mono" style="font-size:11px;color:var(--muted);margin-bottom:12px">Elige a quién llamar (cámara + audio):</p>
+    <div id="callPickList" style="display:flex;flex-direction:column;gap:8px;max-height:46vh;overflow:auto"></div>
+    <div class="modal-actions">
+      <button class="btn btn-ghost" id="callPickCancel">Cancelar</button>
+      <button class="btn btn-primary" id="callStartBtn">📞 Iniciar llamada</button>
+    </div>
+  </div>
+</div>
+
+<!-- ============ LLAMADA: ventana de videollamada ============ -->
+<div class="modal-bg" id="callBg" style="z-index:95;padding:0">
+  <div class="call-window">
+    <div class="call-grid" id="callGrid"></div>
+    <div class="call-controls">
+      <button class="call-ctrl" id="callMic" title="Silenciar micrófono">🎙️</button>
+      <button class="call-ctrl" id="callCam" title="Apagar cámara">📹</button>
+      <button class="call-ctrl danger" id="callHangup" title="Colgar">📴</button>
+    </div>
+  </div>
+</div>
+
+<!-- ============ LLAMADA ENTRANTE ============ -->
+<div class="modal-bg" id="incomingBg" style="z-index:96">
+  <div class="modal" style="width:min(380px,94vw);text-align:center">
+    <div style="font-size:46px" class="incoming-ring">📞</div>
+    <h2 style="justify-content:center;margin:6px 0 4px">LLAMADA ENTRANTE</h2>
+    <p style="margin-bottom:18px"><b id="incomingName" style="color:var(--cyan)">Alguien</b> te está llamando…</p>
+    <div class="modal-actions" style="justify-content:center">
+      <button class="btn btn-danger" id="incomingReject">📴 Rechazar</button>
+      <button class="btn btn-primary" id="incomingAccept">📞 Contestar</button>
     </div>
   </div>
 </div>
@@ -799,8 +855,10 @@ function unlock(user){
   toast("Bienvenido, "+(who||"agente"));
   renderUserBox();
   render();
+  Call.initRing();   // escuchar llamadas entrantes
 }
 function lockNow(){
+  Call.hangup(); Call.cleanupRing();
   currentUser = null;
   $("app").style.display="none";
   $("lock").style.display="flex";
@@ -1503,6 +1561,163 @@ $("voiceLoginBtn").onclick  = ()=>Voice.open();
 $("voiceListenBtn").onclick = ()=>Voice.listen();
 $("voiceCancelBtn").onclick = ()=>Voice.close();
 $("voiceBg").addEventListener("click", e=>{ if(e.target===$("voiceBg")) Voice.close(); });
+
+/* ============ VIDEOLLAMADA (WebRTC + Supabase) ============ */
+const RTC_CONFIG = { iceServers:[
+  {urls:"stun:stun.l.google.com:19302"},
+  {urls:"stun:stun1.l.google.com:19302"}
+]};
+const Call = {
+  room:null, chan:null, ringChan:null, peerId:null, localStream:null, peers:{},
+  micOn:true, camOn:true, incomingRoom:null,
+
+  // Suscribirse al canal de llamadas entrantes (al iniciar sesión)
+  initRing(){
+    this.cleanupRing();
+    if(!Cloud.enabled || !currentUser) return;
+    const ch = Cloud.sb.channel("ring:"+currentKey(), {config:{broadcast:{self:false}}});
+    ch.on("broadcast", {event:"invite"}, ({payload})=>this.onIncoming(payload));
+    ch.on("broadcast", {event:"cancel"}, ({payload})=>{ if(this.incomingRoom===payload.room) this.hideIncoming(); });
+    ch.subscribe();
+    this.ringChan = ch;
+  },
+  cleanupRing(){ if(this.ringChan){ try{ Cloud.sb.removeChannel(this.ringChan); }catch(e){} this.ringChan=null; } },
+
+  openPicker(){
+    if(!Cloud.enabled){ toast("⚠ Las llamadas requieren conexión a la nube (Supabase)"); return; }
+    const targets = [];
+    if(currentUser.type!=="admin") targets.push({key:"admin", name:(loadProfile().name||"SUPERADMIN")});
+    agents.forEach(a=>{ const k="agent:"+a.id; if(!a.blocked && k!==currentKey()) targets.push({key:k, name:a.name}); });
+    if(targets.length===0){ toast("No hay agentes disponibles para llamar"); return; }
+    $("callPickList").innerHTML = targets.map(t=>
+      `<label class="callpick"><input type="checkbox" value="${t.key}"><span>${esc(t.name)}</span></label>`).join("");
+    $("callPickBg").classList.add("open");
+  },
+  closePicker(){ $("callPickBg").classList.remove("open"); },
+
+  async startCall(){
+    const checks = [...$("callPickList").querySelectorAll("input:checked")].map(c=>c.value);
+    if(checks.length===0){ toast("Selecciona al menos un agente"); return; }
+    this.closePicker();
+    const room = "call_"+uid();
+    if(!await this.join(room)) return;
+    const fromName = currentDisplayName();
+    checks.forEach(key=>{
+      const rc = Cloud.sb.channel("ring:"+key);
+      rc.subscribe((status)=>{
+        if(status==="SUBSCRIBED"){
+          rc.send({type:"broadcast", event:"invite", payload:{room, fromName, fromKey:currentKey()}});
+          setTimeout(()=>{ try{ Cloud.sb.removeChannel(rc); }catch(e){} }, 1500);
+        }
+      });
+    });
+    toast("📞 Llamando…");
+  },
+
+  onIncoming(payload){
+    if(this.room) return; // ya en llamada
+    this.incomingRoom = payload.room;
+    $("incomingName").textContent = payload.fromName || "Alguien";
+    $("incomingBg").classList.add("open");
+  },
+  hideIncoming(){ $("incomingBg").classList.remove("open"); this.incomingRoom=null; },
+  async accept(){ const room=this.incomingRoom; this.hideIncoming(); if(room) await this.join(room); },
+  reject(){ this.hideIncoming(); },
+
+  async join(room){
+    try{ this.localStream = await navigator.mediaDevices.getUserMedia({video:true, audio:true}); }
+    catch(e){ toast("⚠ No se pudo acceder a cámara/micrófono"); return false; }
+    this.room=room; this.peerId=uid(); this.peers={}; this.micOn=true; this.camOn=true;
+    $("callMic").classList.remove("off"); $("callMic").textContent="🎙️";
+    $("callCam").classList.remove("off"); $("callCam").textContent="📹";
+    $("callGrid").innerHTML="";
+    $("callBg").classList.add("open");
+    this.addTile(this.peerId, this.localStream, currentDisplayName()+" (tú)", true);
+
+    const chan = Cloud.sb.channel("call:"+room, {config:{broadcast:{self:false}, presence:{key:this.peerId}}});
+    this.chan = chan;
+    chan.on("broadcast", {event:"sdp"}, ({payload})=>{ if(payload.to===this.peerId) this.onSdp(payload); });
+    chan.on("broadcast", {event:"ice"}, ({payload})=>{ if(payload.to===this.peerId) this.onIce(payload); });
+    chan.on("presence", {event:"sync"}, ()=>this.syncPeers());
+    chan.on("presence", {event:"leave"}, ({leftPresences})=>leftPresences.forEach(p=>this.removePeer(p.peerId)));
+    chan.subscribe(async (status)=>{ if(status==="SUBSCRIBED") await chan.track({peerId:this.peerId, name:currentDisplayName()}); });
+    return true;
+  },
+
+  syncPeers(){
+    if(!this.chan) return;
+    const state = this.chan.presenceState();
+    Object.values(state).forEach(arr=>arr.forEach(p=>{
+      if(!p.peerId || p.peerId===this.peerId || this.peers[p.peerId]) return;
+      this.createPeer(p.peerId, p.name, this.peerId < p.peerId); // el id menor inicia
+    }));
+  },
+  createPeer(remoteId, name, initiator){
+    const pc = new RTCPeerConnection(RTC_CONFIG);
+    this.peers[remoteId]=pc;
+    this.localStream.getTracks().forEach(t=>pc.addTrack(t, this.localStream));
+    pc.onicecandidate = e=>{ if(e.candidate) this.signal("ice", remoteId, {candidate:e.candidate}); };
+    pc.ontrack = e=>this.addTile(remoteId, e.streams[0], name||"Agente", false);
+    pc.onconnectionstatechange = ()=>{ if(pc.connectionState==="failed"||pc.connectionState==="closed") this.removePeer(remoteId); };
+    if(initiator){
+      pc.onnegotiationneeded = async ()=>{
+        try{ const o=await pc.createOffer(); await pc.setLocalDescription(o); this.signal("sdp", remoteId, {sdp:pc.localDescription}); }
+        catch(e){ console.error(e); }
+      };
+    }
+    return pc;
+  },
+  async onSdp(payload){
+    let pc = this.peers[payload.from] || this.createPeer(payload.from, payload.name, false);
+    try{
+      await pc.setRemoteDescription(payload.sdp);
+      if(payload.sdp.type==="offer"){
+        const ans = await pc.createAnswer(); await pc.setLocalDescription(ans);
+        this.signal("sdp", payload.from, {sdp:pc.localDescription});
+      }
+    }catch(e){ console.error(e); }
+  },
+  async onIce(payload){
+    const pc=this.peers[payload.from];
+    if(pc && payload.candidate){ try{ await pc.addIceCandidate(payload.candidate); }catch(e){ console.error(e); } }
+  },
+  signal(event, to, data){
+    if(this.chan) this.chan.send({type:"broadcast", event, payload:Object.assign({to, from:this.peerId, name:currentDisplayName()}, data)});
+  },
+  addTile(id, stream, label, muted){
+    let tile=document.getElementById("tile_"+id);
+    if(!tile){
+      tile=document.createElement("div"); tile.className="call-tile"; tile.id="tile_"+id;
+      const v=document.createElement("video"); v.autoplay=true; v.playsInline=true; if(muted) v.muted=true;
+      const l=document.createElement("div"); l.className="call-label";
+      tile.appendChild(v); tile.appendChild(l); $("callGrid").appendChild(tile);
+    }
+    const v=tile.querySelector("video"); if(v.srcObject!==stream){ v.srcObject=stream; v.play&&v.play().catch(()=>{}); }
+    tile.querySelector(".call-label").textContent=label;
+  },
+  removePeer(id){
+    if(this.peers[id]){ try{ this.peers[id].close(); }catch(e){} delete this.peers[id]; }
+    const t=document.getElementById("tile_"+id); if(t) t.remove();
+  },
+  toggleMic(){ this.micOn=!this.micOn; this.localStream.getAudioTracks().forEach(t=>t.enabled=this.micOn); $("callMic").textContent=this.micOn?"🎙️":"🔇"; $("callMic").classList.toggle("off",!this.micOn); },
+  toggleCam(){ this.camOn=!this.camOn; this.localStream.getVideoTracks().forEach(t=>t.enabled=this.camOn); $("callCam").textContent=this.camOn?"📹":"🚫"; $("callCam").classList.toggle("off",!this.camOn); },
+  hangup(){
+    Object.keys(this.peers).forEach(id=>this.removePeer(id));
+    if(this.chan){ try{ Cloud.sb.removeChannel(this.chan); }catch(e){} this.chan=null; }
+    if(this.localStream){ this.localStream.getTracks().forEach(t=>t.stop()); this.localStream=null; }
+    $("callGrid").innerHTML=""; $("callBg").classList.remove("open");
+    this.room=null; this.peers={};
+  }
+};
+$("callBtn").onclick        = ()=>Call.openPicker();
+$("callPickCancel").onclick = ()=>Call.closePicker();
+$("callStartBtn").onclick   = ()=>Call.startCall();
+$("callMic").onclick        = ()=>Call.toggleMic();
+$("callCam").onclick        = ()=>Call.toggleCam();
+$("callHangup").onclick     = ()=>Call.hangup();
+$("incomingAccept").onclick = ()=>Call.accept();
+$("incomingReject").onclick = ()=>Call.reject();
+$("callPickBg").addEventListener("click", e=>{ if(e.target===$("callPickBg")) Call.closePicker(); });
 
 /* ============ RELOJ ============ */
 function tick(){
