@@ -1309,7 +1309,11 @@ window.addEventListener("storage", e=>{
 });
 
 /* ============ RECONOCIMIENTO FACIAL ============ */
-const FACE_MODELS = "https://cdn.jsdelivr.net/npm/@vladmandic/face-api/model";
+const FACE_MODELS_LIST = [
+  "https://cdn.jsdelivr.net/gh/justadudewhohacks/face-api.js@master/weights",
+  "https://cdn.jsdelivr.net/npm/@vladmandic/face-api/model",
+  "https://raw.githubusercontent.com/justadudewhohacks/face-api.js/master/weights"
+];
 const FACE_THRESHOLD = 0.52; // menor = más estricto
 function loadAdminFace(){ try{ return JSON.parse(localStorage.getItem("edtu_face_admin")); }catch(e){ return null; } }
 function saveAdminFace(arr){ persist("edtu_face_admin", arr); }
@@ -1323,13 +1327,18 @@ const Face = {
   async loadModels(){
     if(this.ready) return true;
     if(!window.faceapi){ $("faceStatus").textContent="No se pudo cargar el motor facial (sin internet)"; return false; }
-    $("faceStatus").textContent="Cargando modelos de IA...";
-    try{
-      await faceapi.nets.tinyFaceDetector.loadFromUri(FACE_MODELS);
-      await faceapi.nets.faceLandmark68Net.loadFromUri(FACE_MODELS);
-      await faceapi.nets.faceRecognitionNet.loadFromUri(FACE_MODELS);
-      this.ready=true; return true;
-    }catch(e){ console.error(e); $("faceStatus").textContent="Error cargando modelos"; return false; }
+    let lastErr=null;
+    for(const base of FACE_MODELS_LIST){
+      try{
+        $("faceStatus").textContent="Cargando modelos de IA...";
+        await faceapi.nets.tinyFaceDetector.loadFromUri(base);
+        await faceapi.nets.faceLandmark68Net.loadFromUri(base);
+        await faceapi.nets.faceRecognitionNet.loadFromUri(base);
+        this.ready=true; return true;
+      }catch(e){ console.error("Modelos fallaron en", base, e); lastErr=e; }
+    }
+    $("faceStatus").innerHTML='<span style="color:var(--red)">Error cargando modelos: '+esc(lastErr?lastErr.message:"desconocido")+'</span>';
+    return false;
   },
   async startCamera(){
     try{
