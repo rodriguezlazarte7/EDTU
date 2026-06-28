@@ -1,5 +1,5 @@
 // EDTU Service Worker — cache del "shell" para que funcione offline.
-const CACHE = "edtu-v1";
+const CACHE = "edtu-v2";
 const SHELL = ["./", "./index.html", "./manifest.json", "./icon-192.png", "./icon-512.png"];
 
 self.addEventListener("install", e => {
