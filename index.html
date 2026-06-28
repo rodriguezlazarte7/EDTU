@@ -1605,6 +1605,22 @@ function openRanking(){
             : mine.total>0?["🥉","RECLUTA","var(--violet)"]
             : ["🎖️","SIN MISIONES","var(--muted)"];
   const row=(k,v,c)=>`<div class="acard-field"><span class="k">${k}</span><span style="color:${c||'var(--txt)'};font-weight:700">${v}</span></div>`;
+  // posición exagerada y dramática 😎
+  const totalA = Math.max(arr.length, 1);
+  const better = pos>=0 ? (totalA-(pos+1)) : 0;
+  const pct = totalA>1 ? Math.round(better/(totalA-1)*100) : 100;
+  const epic = pos===0 ? "👑 AGENTE Nº1 · LEYENDA VIVIENTE 🌍"
+            : (pos>=0 && pos<3) ? "🔥 ÉLITE MUNDIAL · TEMIDO POR EL ENEMIGO"
+            : (pos>=0 && pos<5) ? "⚡ AGENTE DE ALTO RENDIMIENTO"
+            : pos>=0 ? "🛰️ OPERATIVO EN ASCENSO IMPARABLE"
+            : "🎖️ AGENTE NOVATO";
+  const banner = `
+    <div style="margin-top:16px;padding:16px;border-radius:14px;background:linear-gradient(135deg,rgba(25,255,133,0.16),rgba(138,91,255,0.16));border:1px solid var(--cyan);box-shadow:0 0 24px rgba(25,255,133,0.25)">
+      <div style="font-size:12px;letter-spacing:.2em;color:var(--muted)">POSICIÓN GLOBAL</div>
+      <div style="font-size:46px;font-weight:900;color:var(--cyan);text-shadow:0 0 16px var(--cyan);line-height:1.1">${pos>=0?("#"+(pos+1)):"—"} <span style="font-size:15px;color:var(--muted);font-weight:700">/ ${totalA}</span></div>
+      <div style="font-weight:900;letter-spacing:.06em;margin-top:6px;color:${tier[2]}">${epic}</div>
+      <div style="color:var(--muted);font-size:12px;margin-top:6px">Superas al <b style="color:var(--green);font-size:15px">${pct}%</b> de los agentes del planeta 🌎</div>
+    </div>`;
   $("rankBody").innerHTML = `
     <div style="font-size:54px;line-height:1;margin:6px 0">${tier[0]}</div>
     <div style="font-weight:900;letter-spacing:.12em;color:${tier[2]}">${tier[1]}</div>
@@ -1616,8 +1632,8 @@ function openRanking(){
       ${row("COMPLETADAS", mine.completed, "var(--green)")}
       ${row("EN CURSO / PLAN.", mine.active, "var(--cyan)")}
       ${row("ABORTADAS", mine.aborted, "var(--red)")}
-      ${row("POSICIÓN", pos>=0?("#"+(pos+1)+" de "+arr.length+" agentes"):"—")}
-    </div>`;
+    </div>
+    ${banner}`;
   $("rankBg").classList.add("open");
 }
 $("rankBtn").onclick = openRanking;
