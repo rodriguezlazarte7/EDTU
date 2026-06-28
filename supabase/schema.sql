@@ -26,8 +26,14 @@ create table if not exists public.missions (
   location  text,
   prio      text,
   status    text,
+  lat       double precision,
+  lng       double precision,
+  evidence  jsonb,
   created_at timestamptz default now()
 );
+alter table public.missions add column if not exists lat double precision;
+alter table public.missions add column if not exists lng double precision;
+alter table public.missions add column if not exists evidence jsonb;
 
 create table if not exists public.agents (
   id        text primary key,
