@@ -336,6 +336,16 @@
   .acard-field .k{color:var(--muted);min-width:92px;font-size:11px;letter-spacing:.08em}
   .acard-mission{font-size:12.5px;padding:8px 10px;border-radius:8px;background:rgba(25,255,133,0.06);border-left:3px solid var(--cyan)}
 
+  /* ---------- TANDA 4: stats, screen share ---------- */
+  .stbar-row{display:flex;align-items:center;gap:10px;margin:8px 0;font-size:13px}
+  .stbar-row .lbl{min-width:120px;color:var(--muted);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .stbar{flex:1;height:14px;background:rgba(255,255,255,0.06);border-radius:8px;overflow:hidden}
+  .stbar i{display:block;height:100%;border-radius:8px;transition:width .4s}
+  .stbar-val{min-width:28px;text-align:right;font-weight:700}
+  .st-ring{width:118px;height:118px;border-radius:50%;display:grid;place-items:center;font-weight:900;font-size:22px;color:var(--cyan)}
+  .st-section h3{font-size:12px;color:var(--cyan);letter-spacing:.1em;margin:16px 0 8px}
+  .call-ctrl.share.off{background:var(--cyan);border-color:var(--cyan);color:#000}
+
   /* ---------- OVERLAY ACCESO CONCEDIDO ---------- */
   #accessOverlay{
     position:fixed;inset:0;z-index:200;display:none;align-items:center;justify-content:center;
@@ -441,6 +451,7 @@
       <button class="btn btn-ghost btn-sm" id="agentsBtn">👥 Agentes</button>
       <button class="btn btn-ghost btn-sm" id="chatBtn">💬 Chat<span id="chatBadge" class="navbadge"></span></button>
       <button class="btn btn-ghost btn-sm" id="callBtn">📹 Llamar</button>
+      <button class="btn btn-ghost btn-sm" id="statsBtn">📈 Stats</button>
       <button class="btn btn-ghost btn-sm" id="settingsBtn">⚙️ Ajustes</button>
       <button class="btn btn-ghost btn-sm" id="exportBtn">⤓ Exportar</button>
       <button class="btn btn-ghost btn-sm" id="lockNow">⏻ Bloquear</button>
@@ -521,6 +532,7 @@
       </div>
     </div>
     <div class="modal-actions">
+      <button class="btn btn-ghost" id="briefBtn">🖨️ Brief PDF</button>
       <button class="btn btn-ghost" id="cancelBtn">Cancelar</button>
       <button class="btn btn-primary" id="saveBtn">💾 GUARDAR</button>
     </div>
@@ -683,6 +695,7 @@
     <div class="call-controls">
       <button class="call-ctrl" id="callMic" title="Silenciar micrófono">🎙️</button>
       <button class="call-ctrl" id="callCam" title="Apagar cámara">📹</button>
+      <button class="call-ctrl share" id="callScreen" title="Compartir pantalla">🖥️</button>
       <button class="call-ctrl danger" id="callHangup" title="Colgar">📴</button>
     </div>
   </div>
@@ -698,6 +711,14 @@
       <button class="btn btn-danger" id="incomingReject">📴 Rechazar</button>
       <button class="btn btn-primary" id="incomingAccept">📞 Contestar</button>
     </div>
+  </div>
+</div>
+
+<!-- ============ ESTADÍSTICAS ============ -->
+<div class="modal-bg" id="statsBg" style="z-index:77">
+  <div class="modal wide">
+    <div class="panel-head"><h2 style="margin:0">📈 ESTADÍSTICAS</h2><button class="btn btn-ghost btn-sm" id="statsClose">Cerrar</button></div>
+    <div id="statsBody"></div>
   </div>
 </div>
 
@@ -736,7 +757,18 @@
       <input id="setPin" type="password" inputmode="numeric" maxlength="12" placeholder="Nuevo PIN (mín. 4) — vacío = no cambiar" autocomplete="new-password" />
       <label style="margin-top:14px">CAMBIAR FRASE SECRETA DE VOZ <span id="setVoiceState" style="color:var(--muted);font-weight:400"></span></label>
       <input id="setVoice" type="password" placeholder="Nueva frase — vacío = no cambiar" autocomplete="new-password" />
+      <label style="margin-top:14px;display:flex;align-items:center;gap:8px;cursor:pointer">
+        <input type="checkbox" id="set2fa" style="width:18px;height:18px;accent-color:var(--cyan)">
+        <span style="color:var(--txt);font-weight:400;letter-spacing:0;font-size:13px">Login en 2 pasos (PIN + frase de voz)</span>
+      </label>
       <button type="button" class="btn btn-ghost btn-sm" id="accessLogBtn" style="margin-top:14px;width:100%">📜 Ver registro de accesos</button>
+    </div>
+    <hr style="border:none;border-top:1px solid rgba(25,255,133,0.15);margin:16px 0">
+    <label>COPIA DE SEGURIDAD</label>
+    <div style="display:flex;gap:8px;margin-top:4px">
+      <button type="button" class="btn btn-ghost btn-sm" id="backupExport" style="flex:1">⤓ Exportar todo</button>
+      <button type="button" class="btn btn-ghost btn-sm" id="backupImport" style="flex:1">⤒ Importar</button>
+      <input type="file" id="backupFile" accept="application/json" style="display:none" />
     </div>
     <label style="margin-top:14px">AUTO-BLOQUEO POR INACTIVIDAD</label>
     <select id="setIdle">
@@ -990,15 +1022,27 @@ function attemptLogin(){
     return;
   }
   // 1) superadmin
-  if(val===stored){ accessGranted({type:"admin"}); return; }
+  if(val===stored){ proceedLogin({type:"admin"}); return; }
   // 2) PIN de algún agente
   const ag = agents.find(a=> a.pin && a.pin===val);
   if(ag){
     if(ag.blocked){ lockError("AGENTE BLOQUEADO · acceso revocado"); $("pinInput").value=""; return; }
-    accessGranted({type:"agent", id:ag.id});
+    proceedLogin({type:"agent", id:ag.id});
     return;
   }
   lockError("ACCESO DENEGADO · PIN incorrecto"); $("pinInput").value="";
+}
+// PIN correcto: si el 2FA está activo, exige además la frase de voz del usuario.
+function proceedLogin(user){
+  $("pinInput").value="";
+  if(localStorage.getItem("edtu_2fa")==="1"){
+    const hash = user.type==="admin"
+      ? (localStorage.getItem("edtu_voice_admin")||VOICE_HASH)
+      : ((agents.find(a=>a.id===user.id)||{}).voice_hash);
+    if(hash){ Voice.openVerify(user, hash); return; }
+    toast("2º paso omitido (este usuario no tiene frase de voz)");
+  }
+  accessGranted(user);
 }
 function unlock(user){
   currentUser = user || {type:"admin"};
@@ -1188,20 +1232,86 @@ function deleteMission(id){
 
 $("newBtn").onclick   = ()=>{ if("Notification" in window && Notification.permission==="default"){ Notification.requestPermission().catch(()=>{}); } openModal(null); };
 $("saveBtn").onclick  = saveMission;
+$("briefBtn").onclick = printBrief;
 $("cancelBtn").onclick= closeModal;
 $("modalBg").addEventListener("click", e=>{ if(e.target===$("modalBg")) closeModal(); });
 document.addEventListener("keydown", e=>{ if(e.key==="Escape") closeModal(); });
 
-/* ============ EXPORTAR ============ */
-$("exportBtn").onclick = ()=>{
-  const blob = new Blob([JSON.stringify(missions,null,2)],{type:"application/json"});
-  const a = document.createElement("a");
-  a.href = URL.createObjectURL(blob);
-  a.download = "edtu_misiones.json";
-  a.click();
-  URL.revokeObjectURL(a.href);
-  toast("Datos exportados");
-};
+/* ============ COPIA DE SEGURIDAD (exportar/importar TODO) ============ */
+function exportAllData(){
+  const data = {
+    app:"EDTU", version:1, exportedAt:new Date().toISOString(),
+    missions: loadMissions(),
+    agents: loadAgents(),
+    chat: loadChat(),
+    profile: loadProfile(),
+    voiceAdmin: localStorage.getItem("edtu_voice_admin")||null,
+    adminPin: localStorage.getItem(LS_PIN)||null,
+    settings: { idle: localStorage.getItem("edtu_idle")||"0", twoFA: localStorage.getItem("edtu_2fa")||"" }
+  };
+  const blob = new Blob([JSON.stringify(data,null,2)],{type:"application/json"});
+  const a=document.createElement("a"); a.href=URL.createObjectURL(blob);
+  a.download="edtu_backup_"+new Date().toISOString().slice(0,10)+".json";
+  a.click(); URL.revokeObjectURL(a.href);
+  toast("Copia de seguridad exportada");
+}
+function importData(file){
+  const reader=new FileReader();
+  reader.onload=ev=>{
+    let d; try{ d=JSON.parse(ev.target.result); }catch(e){ toast("⚠ Archivo inválido"); return; }
+    if(!d || (d.app && d.app!=="EDTU")){ if(!confirm("No parece un backup de EDTU. ¿Importar igual?")) return; }
+    if(!confirm("⚠ Esto REEMPLAZARÁ los datos actuales con los del archivo. ¿Continuar?")) return;
+    if(Array.isArray(d.missions)) persist(LS_DATA, d.missions);
+    if(Array.isArray(d.agents)) persist(LS_AGENTS, d.agents);
+    if(Array.isArray(d.chat)) persist(LS_CHAT, d.chat);
+    if(d.profile) persist(LS_PROFILE, d.profile);
+    if(d.voiceAdmin) localStorage.setItem("edtu_voice_admin", d.voiceAdmin);
+    if(d.adminPin) localStorage.setItem(LS_PIN, d.adminPin);
+    if(d.settings){ if(d.settings.idle!=null) localStorage.setItem("edtu_idle", d.settings.idle); localStorage.setItem("edtu_2fa", d.settings.twoFA||""); }
+    missions=loadMissions(); agents=loadAgents();
+    if(Cloud.enabled){
+      missions.forEach(m=>Cloud.upsertMission(m));
+      agents.forEach(a=>Cloud.upsertAgent(a));
+      loadChat().forEach(m=>Cloud.insertChat(m));
+      Cloud.saveConfig({ admin_pin: localStorage.getItem(LS_PIN), profile_name:(d.profile||{}).name||"SUPERADMIN", profile_photo:(d.profile||{}).photo||"", voice_hash: d.voiceAdmin||null });
+    }
+    refreshViews(); renderUserBox();
+    toast("✓ Copia restaurada");
+  };
+  reader.readAsText(file);
+}
+$("exportBtn").onclick   = exportAllData;
+$("backupExport").onclick= exportAllData;
+$("backupImport").onclick= ()=>$("backupFile").click();
+$("backupFile").onchange = e=>{ const f=e.target.files[0]; if(f) importData(f); e.target.value=""; };
+
+/* ============ BRIEF DE MISIÓN (PDF vía impresión) ============ */
+function printBrief(){
+  const g=id=>{ const e=document.getElementById(id); return e?e.value:""; };
+  const checked=[...$("mAgentList").querySelectorAll("input:checked")].map(c=>c.value);
+  const extra=$("mAgentsExtra").value.split(",").map(s=>s.trim()).filter(Boolean);
+  const ags=[...checked,...extra].join(", ")||"—";
+  const prio=prioOf($("mPrio").value).label, stat=statusOf($("mStatus").value).label;
+  const esc2=s=>(s||"").replace(/[&<>]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;'}[c]));
+  const w=window.open("","_blank"); if(!w){ toast("⚠ Permite ventanas emergentes para el PDF"); return; }
+  w.document.write(`<!doctype html><html><head><meta charset="utf-8"><title>Brief — ${esc2(g("#mName"))}</title>
+  <style>body{font-family:Arial,sans-serif;color:#0a0a0a;max-width:720px;margin:30px auto;padding:0 20px}
+  h1{color:#0a7d44;border-bottom:3px solid #19c46e;padding-bottom:8px;letter-spacing:.08em}
+  .tag{display:inline-block;background:#eafff2;border:1px solid #19c46e;border-radius:14px;padding:2px 10px;margin:2px;font-size:13px}
+  .row{margin:10px 0}.k{color:#666;font-size:12px;letter-spacing:.1em;text-transform:uppercase}
+  .v{font-size:15px;margin-top:2px}.foot{margin-top:30px;color:#999;font-size:11px;border-top:1px solid #ddd;padding-top:10px}</style></head>
+  <body>
+  <div style="font-size:12px;letter-spacing:.3em;color:#0a7d44">⬡ EDTU · TOP SECRET ⬡</div>
+  <h1>${esc2(g("mName"))||"(Sin nombre clave)"}</h1>
+  <div class="row"><div class="k">Objetivo</div><div class="v">${esc2(g("mObjective"))||"—"}</div></div>
+  <div class="row"><div class="k">Cuándo</div><div class="v">${esc2(g("mDate"))||"—"} ${esc2(g("mTime"))}</div></div>
+  <div class="row"><div class="k">Ubicación</div><div class="v">${esc2(g("mLocation"))||"—"}${($("mLat").value)?` (${$("mLat").value}, ${$("mLng").value})`:""}</div></div>
+  <div class="row"><div class="k">Prioridad / Estado</div><div class="v">${prio} · ${stat}</div></div>
+  <div class="row"><div class="k">Agentes</div><div class="v">${esc2(ags)}</div></div>
+  <div class="foot">Documento generado por EDTU — Espías De Tecnología Universal · ${new Date().toLocaleString()}</div>
+  </body></html>`);
+  w.document.close(); w.focus(); setTimeout(()=>w.print(), 350);
+}
 
 /* ============ RENDER ============ */
 function fmtDate(d,t){
@@ -1426,6 +1536,32 @@ function checkReminders(){
   });
   if(changed) localStorage.setItem("edtu_notified", JSON.stringify(notified.slice(-200)));
 }
+
+/* ============ PANEL DE ESTADÍSTICAS ============ */
+function renderStatsPanel(){
+  const total=missions.length;
+  const byStatus=STATUSES.map(s=>({label:s.label,color:s.color,n:missions.filter(m=>m.status===s.key).length}));
+  const byPrio=PRIORITIES.map(p=>({label:p.label,color:p.color,n:missions.filter(m=>m.prio===p.key).length}));
+  const completed=missions.filter(m=>m.status==="completada").length;
+  const pct=total?Math.round(completed/total*100):0;
+  const counts={}; missions.forEach(m=>(m.agents||[]).forEach(n=>counts[n]=(counts[n]||0)+1));
+  const top=Object.entries(counts).sort((a,b)=>b[1]-a[1]).slice(0,5);
+  const maxS=Math.max(1,...byStatus.map(s=>s.n)), maxP=Math.max(1,...byPrio.map(p=>p.n));
+  const bar=(label,n,max,color)=>`<div class="stbar-row"><span class="lbl">${label}</span><span class="stbar"><i style="width:${Math.round(n/max*100)}%;background:${color};box-shadow:0 0 8px ${color}"></i></span><span class="stbar-val">${n}</span></div>`;
+  $("statsBody").innerHTML=`
+    <div style="display:flex;gap:18px;flex-wrap:wrap;align-items:center;justify-content:space-around;margin-bottom:6px">
+      <div style="text-align:center"><div class="st-ring" style="background:conic-gradient(#19ff85 ${pct*3.6}deg, rgba(255,255,255,0.08) 0)"><span style="background:var(--bg);width:86px;height:86px;border-radius:50%;display:grid;place-items:center">${pct}%</span></div><div style="color:var(--muted);font-size:11px;margin-top:4px">COMPLETADAS</div></div>
+      <div style="text-align:center"><div style="font-size:40px;font-weight:900;color:var(--cyan)" class="glow">${total}</div><div style="color:var(--muted);font-size:11px">MISIONES</div></div>
+      <div style="text-align:center"><div style="font-size:40px;font-weight:900;color:var(--magenta)" class="glow">${agents.length}</div><div style="color:var(--muted);font-size:11px">AGENTES</div></div>
+    </div>
+    <div class="st-section"><h3>POR ESTADO</h3>${byStatus.map(s=>bar(s.label,s.n,maxS,s.color)).join("")}</div>
+    <div class="st-section"><h3>POR PRIORIDAD</h3>${byPrio.map(p=>bar(p.label,p.n,maxP,p.color)).join("")}</div>
+    <div class="st-section"><h3>AGENTES MÁS ACTIVOS</h3>${top.length?top.map(t=>bar(esc(t[0]),t[1],top[0][1],"var(--cyan)")).join(""):'<span style="color:var(--muted);font-size:12px">Sin agentes asignados a misiones</span>'}</div>`;
+}
+function openStats(){ renderStatsPanel(); $("statsBg").classList.add("open"); }
+$("statsBtn").onclick = openStats;
+$("statsClose").onclick = ()=>$("statsBg").classList.remove("open");
+$("statsBg").addEventListener("click", e=>{ if(e.target===$("statsBg")) $("statsBg").classList.remove("open"); });
 
 /* ============ AGENTES ============ */
 function openAgentsPanel(){ renderAgents(); $("agentsBg").classList.add("open"); }
@@ -1930,15 +2066,16 @@ function normalizePhrase(s){
     .replace(/[^a-z0-9ñ ]/g," ").replace(/\s+/g," ").trim();
 }
 const Voice = {
-  rec:null, listening:false, matched:false,
+  rec:null, listening:false, matched:false, expect:null,
   open(){
     this.matched=false;
     $("voiceHeard").textContent="";
-    $("voiceStatus").textContent='Pulsa "Escuchar" y di la frase';
+    $("voiceStatus").textContent = this.expect ? "2º paso: confirma tu identidad por voz" : 'Pulsa "Escuchar" y di la frase';
     $("voiceMic").classList.remove("listening");
     $("voiceBg").classList.add("open");
   },
-  close(){ this.stopListening(); $("voiceBg").classList.remove("open"); },
+  openVerify(user, hash){ this.expect={user,hash}; this.open(); },
+  close(){ this.stopListening(); this.expect=null; $("voiceBg").classList.remove("open"); },
   stopListening(){
     this.listening=false;
     $("voiceMic").classList.remove("listening");
@@ -1964,9 +2101,15 @@ const Voice = {
       }
       $("voiceHeard").textContent = shown.trim() ? ('🗣️ "'+shown.trim()+'"') : "";
       let hitUser=null;
-      for(const c of cands){ hitUser = await matchUserByVoice(c); if(hitUser) break; }
+      if(this.expect){
+        // 2º paso: solo vale la frase del usuario que puso el PIN
+        for(const c of cands){ for(const w of wordWindows(c)){ if((await sha256hex(w))===this.expect.hash){ hitUser=this.expect.user; break; } } if(hitUser) break; }
+      }else{
+        for(const c of cands){ hitUser = await matchUserByVoice(c); if(hitUser) break; }
+      }
       if(hitUser && !this.matched){
         this.matched=true;
+        this.expect=null;
         this.stopListening();
         $("voiceStatus").innerHTML='<span style="color:var(--green)">✓ Identidad confirmada</span>';
         this.close();
@@ -1989,7 +2132,7 @@ const Voice = {
     catch(e){ console.error(e); this.listening=false; $("voiceStatus").textContent="No se pudo iniciar el micrófono"; }
   }
 };
-$("voiceLoginBtn").onclick  = ()=>Voice.open();
+$("voiceLoginBtn").onclick  = ()=>{ Voice.expect=null; Voice.open(); };
 $("voiceListenBtn").onclick = ()=>Voice.listen();
 $("voiceCancelBtn").onclick = ()=>Voice.close();
 $("voiceBg").addEventListener("click", e=>{ if(e.target===$("voiceBg")) Voice.close(); });
@@ -2034,7 +2177,7 @@ const RTC_CONFIG = { iceServers:[
 ]};
 const Call = {
   room:null, chan:null, ringChan:null, peerId:null, localStream:null, peers:{},
-  micOn:true, camOn:true, incomingRoom:null,
+  micOn:true, camOn:true, incomingRoom:null, screenTrack:null,
 
   // Suscribirse al canal de llamadas entrantes (al iniciar sesión)
   initRing(){
@@ -2167,7 +2310,31 @@ const Call = {
   },
   toggleMic(){ this.micOn=!this.micOn; this.localStream.getAudioTracks().forEach(t=>t.enabled=this.micOn); $("callMic").textContent=this.micOn?"🎙️":"🔇"; $("callMic").classList.toggle("off",!this.micOn); },
   toggleCam(){ this.camOn=!this.camOn; this.localStream.getVideoTracks().forEach(t=>t.enabled=this.camOn); $("callCam").textContent=this.camOn?"📹":"🚫"; $("callCam").classList.toggle("off",!this.camOn); },
+  async toggleScreen(){
+    if(!this.localStream) return;
+    if(this.screenTrack){ this.stopScreen(); return; }
+    if(!navigator.mediaDevices || !navigator.mediaDevices.getDisplayMedia){ toast("⚠ Tu dispositivo no permite compartir pantalla"); return; }
+    let ds;
+    try{ ds = await navigator.mediaDevices.getDisplayMedia({video:true}); }
+    catch(e){ return; }
+    this.screenTrack = ds.getVideoTracks()[0];
+    Object.values(this.peers).forEach(pc=>{ const s=pc.getSenders().find(x=>x.track&&x.track.kind==="video"); if(s) s.replaceTrack(this.screenTrack); });
+    const v=document.querySelector("#tile_"+this.peerId+" video"); if(v) v.srcObject=new MediaStream([this.screenTrack]);
+    $("callScreen").classList.add("off");
+    toast("🖥️ Compartiendo pantalla");
+    this.screenTrack.onended=()=>this.stopScreen();
+  },
+  stopScreen(){
+    if(!this.screenTrack) return;
+    const cam=this.localStream.getVideoTracks()[0];
+    Object.values(this.peers).forEach(pc=>{ const s=pc.getSenders().find(x=>x.track&&x.track.kind==="video"); if(s&&cam) s.replaceTrack(cam); });
+    try{ this.screenTrack.stop(); }catch(e){}
+    this.screenTrack=null;
+    const v=document.querySelector("#tile_"+this.peerId+" video"); if(v) v.srcObject=this.localStream;
+    $("callScreen").classList.remove("off");
+  },
   hangup(){
+    this.stopScreen();
     Object.keys(this.peers).forEach(id=>this.removePeer(id));
     if(this.chan){ try{ Cloud.sb.removeChannel(this.chan); }catch(e){} this.chan=null; }
     if(this.localStream){ this.localStream.getTracks().forEach(t=>t.stop()); this.localStream=null; }
@@ -2180,6 +2347,7 @@ $("callPickCancel").onclick = ()=>Call.closePicker();
 $("callStartBtn").onclick   = ()=>Call.startCall();
 $("callMic").onclick        = ()=>Call.toggleMic();
 $("callCam").onclick        = ()=>Call.toggleCam();
+$("callScreen").onclick     = ()=>Call.toggleScreen();
 $("callHangup").onclick     = ()=>Call.hangup();
 $("incomingAccept").onclick = ()=>Call.accept();
 $("incomingReject").onclick = ()=>Call.reject();
@@ -2217,6 +2385,7 @@ function openSettings(){
   $("setPin").value=""; $("setVoice").value="";
   $("setVoiceState").textContent = localStorage.getItem("edtu_voice_admin") ? "· personalizada ✓" : "· (por defecto)";
   $("setIdle").value = String(localStorage.getItem("edtu_idle")||"0");
+  $("set2fa").checked = localStorage.getItem("edtu_2fa")==="1";
   $("settingsBg").classList.add("open");
 }
 function closeSettings(){ $("settingsBg").classList.remove("open"); }
@@ -2237,6 +2406,7 @@ async function saveSettings(){
     }
   }
   localStorage.setItem("edtu_idle", $("setIdle").value);
+  if(isAdmin) localStorage.setItem("edtu_2fa", $("set2fa").checked ? "1" : "");
   resetIdleTimer();
   closeSettings();
   toast("Ajustes guardados");
