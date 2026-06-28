@@ -89,10 +89,12 @@
   }
   .brand{display:flex;align-items:center;gap:14px}
   .badge{
-    width:46px;height:46px;border-radius:12px;display:grid;place-items:center;font-weight:900;font-size:20px;
-    background:linear-gradient(135deg,var(--cyan),var(--magenta));color:#05060e;
-    box-shadow:0 0 22px rgba(25,255,133,0.5);
+    width:46px;height:46px;border-radius:12px;display:grid;place-items:center;
+    background:#05140d;border:1px solid rgba(25,255,133,0.5);color:var(--cyan);
+    box-shadow:0 0 22px rgba(25,255,133,0.4);
   }
+  .badge svg{width:30px;height:30px;filter:drop-shadow(0 0 4px rgba(25,255,133,0.7))}
+  .lock-logo{width:64px;height:64px;color:var(--cyan);margin:4px auto 6px;filter:drop-shadow(0 0 8px rgba(25,255,133,0.7))}
   .brand h1{font-size:20px;color:var(--cyan)}
   .brand small{display:block;color:var(--muted);font-size:11px;letter-spacing:.25em}
   .top-right{display:flex;align-items:center;gap:10px}
@@ -324,6 +326,16 @@
   #mapView{height:60vh}
   @media (max-width:620px){ .cal-cell{min-height:60px} #mMap{height:170px} }
 
+  /* ---------- TANDA 3: presencia, imágenes, ficha ---------- */
+  .navbadge{display:none;background:var(--red);color:#fff;border-radius:20px;font-size:10px;font-weight:800;padding:1px 6px;margin-left:5px}
+  .navbadge.show{display:inline-block}
+  .bubble img{max-width:210px;max-height:210px;border-radius:8px;display:block;margin-top:6px;cursor:pointer}
+  .online-dot{width:9px;height:9px;border-radius:50%;background:#19ff85;box-shadow:0 0 8px #19ff85;display:inline-block;flex-shrink:0}
+  .online-dot.off{background:#3a4150;box-shadow:none}
+  .acard-field{display:flex;gap:10px;font-size:13px;margin:7px 0}
+  .acard-field .k{color:var(--muted);min-width:92px;font-size:11px;letter-spacing:.08em}
+  .acard-mission{font-size:12.5px;padding:8px 10px;border-radius:8px;background:rgba(25,255,133,0.06);border-left:3px solid var(--cyan)}
+
   /* ---------- OVERLAY ACCESO CONCEDIDO ---------- */
   #accessOverlay{
     position:fixed;inset:0;z-index:200;display:none;align-items:center;justify-content:center;
@@ -394,6 +406,7 @@
 <!-- ============ PANTALLA DE ACCESO ============ -->
 <div id="lock">
   <div class="lockcard" id="lockcard">
+    <svg class="lock-logo" viewBox="0 0 48 48" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="17" y="17" width="14" height="14" rx="2" fill="rgba(25,255,133,0.12)"/><rect x="21" y="21" width="6" height="6" rx="1"/><path d="M21 17v-7M27 17v-7M21 31v7M27 31v7M17 21h-7M17 27h-7M31 21h7M31 27h7"/><g fill="currentColor" stroke="none"><circle cx="21" cy="9" r="1.7"/><circle cx="27" cy="9" r="1.7"/><circle cx="21" cy="39" r="1.7"/><circle cx="27" cy="39" r="1.7"/><circle cx="9" cy="21" r="1.7"/><circle cx="9" cy="27" r="1.7"/><circle cx="39" cy="21" r="1.7"/><circle cx="39" cy="27" r="1.7"/></g></svg>
     <div class="logo mono">⬡ CLASSIFIED SYSTEM ⬡</div>
     <h1 class="glow">EDTU</h1>
     <p class="mono" style="margin:0 0 8px;color:var(--cyan);font-size:10px;letter-spacing:.28em">ESPÍAS DE TECNOLOGÍA UNIVERSAL</p>
@@ -410,7 +423,7 @@
 <div id="app">
   <header class="top">
     <div class="brand">
-      <div class="badge">E</div>
+      <div class="badge"><svg viewBox="0 0 48 48" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="17" y="17" width="14" height="14" rx="2" fill="rgba(25,255,133,0.12)"/><rect x="21" y="21" width="6" height="6" rx="1"/><path d="M21 17v-7M27 17v-7M21 31v7M27 31v7M17 21h-7M17 27h-7M31 21h7M31 27h7"/><g fill="currentColor" stroke="none"><circle cx="21" cy="9" r="1.7"/><circle cx="27" cy="9" r="1.7"/><circle cx="21" cy="39" r="1.7"/><circle cx="27" cy="39" r="1.7"/><circle cx="9" cy="21" r="1.7"/><circle cx="9" cy="27" r="1.7"/><circle cx="39" cy="21" r="1.7"/><circle cx="39" cy="27" r="1.7"/></g></svg></div>
       <div>
         <h1 class="glow">EDTU</h1>
         <small class="mono">ESPÍAS DE TECNOLOGÍA UNIVERSAL // v1.0</small>
@@ -426,7 +439,7 @@
         <span class="uedit">✎</span>
       </div>
       <button class="btn btn-ghost btn-sm" id="agentsBtn">👥 Agentes</button>
-      <button class="btn btn-ghost btn-sm" id="chatBtn">💬 Chat</button>
+      <button class="btn btn-ghost btn-sm" id="chatBtn">💬 Chat<span id="chatBadge" class="navbadge"></span></button>
       <button class="btn btn-ghost btn-sm" id="callBtn">📹 Llamar</button>
       <button class="btn btn-ghost btn-sm" id="settingsBtn">⚙️ Ajustes</button>
       <button class="btn btn-ghost btn-sm" id="exportBtn">⤓ Exportar</button>
@@ -607,20 +620,27 @@
 <div class="modal-bg" id="chatBg">
   <div class="modal wide">
     <div class="panel-head">
-      <h2 style="margin:0">💬 CANAL DE COMUNICACIONES</h2>
+      <h2 style="margin:0">💬 COMUNICACIONES</h2>
       <div style="display:flex;gap:8px">
         <button class="btn btn-danger btn-sm" id="clearChatBtn">🗑 Vaciar</button>
         <button class="btn btn-ghost btn-sm" id="closeChatBtn">Cerrar</button>
       </div>
     </div>
+    <select id="chatConv" style="margin-bottom:10px"></select>
     <div class="chat-wrap">
       <div class="chat-log" id="chatLog"></div>
       <div class="chat-audio-pending" id="chatAudioPending">
         <span id="chatAudioMsg">🎵 grabación lista para enviar</span>
         <button type="button" id="chatAudioRemove" title="Descartar">✕</button>
       </div>
+      <div class="chat-audio-pending" id="chatImgPending">
+        <span>🖼️ imagen lista para enviar</span>
+        <button type="button" id="chatImgRemove" title="Descartar">✕</button>
+      </div>
       <div class="chat-input-row">
         <button class="btn btn-ghost" id="audioBtn" title="Grabar audio">🎙️</button>
+        <button class="btn btn-ghost" id="imgBtn" title="Enviar imagen">🖼️</button>
+        <input type="file" id="imgFile" accept="image/*" style="display:none" />
         <textarea id="chatText" placeholder="Escribe un mensaje cifrado..." maxlength="2000"></textarea>
         <button class="btn btn-primary" id="sendChatBtn">➤</button>
       </div>
@@ -681,6 +701,32 @@
   </div>
 </div>
 
+<!-- ============ FICHA DE AGENTE ============ -->
+<div class="modal-bg" id="agentCardBg" style="z-index:78">
+  <div class="modal" style="width:min(460px,96vw)">
+    <div style="display:flex;align-items:center;gap:14px;margin-bottom:14px">
+      <div class="photo-prev" id="acAvatar" style="width:64px;height:64px;font-size:26px">?</div>
+      <div>
+        <h2 id="acName" style="margin:0">Agente</h2>
+        <div id="acStatus" class="mono" style="font-size:11px;color:var(--muted);margin-top:4px"></div>
+      </div>
+    </div>
+    <div id="acFields"></div>
+    <h3 style="margin:16px 0 6px;font-size:12px;color:var(--cyan);letter-spacing:.1em">MISIONES ASIGNADAS</h3>
+    <div id="acMissions" style="display:flex;flex-direction:column;gap:6px"></div>
+    <div class="modal-actions"><button class="btn btn-ghost" id="acClose">Cerrar</button></div>
+  </div>
+</div>
+
+<!-- ============ REGISTRO DE ACCESOS ============ -->
+<div class="modal-bg" id="accessLogBg" style="z-index:79">
+  <div class="modal" style="width:min(460px,96vw)">
+    <h2>📜 REGISTRO DE ACCESOS</h2>
+    <div id="accessLogList" style="max-height:60vh;overflow:auto;font-size:13px"></div>
+    <div class="modal-actions"><button class="btn btn-ghost" id="accessLogClose">Cerrar</button></div>
+  </div>
+</div>
+
 <!-- ============ AJUSTES ============ -->
 <div class="modal-bg" id="settingsBg" style="z-index:76">
   <div class="modal" style="width:min(460px,96vw)">
@@ -690,6 +736,7 @@
       <input id="setPin" type="password" inputmode="numeric" maxlength="12" placeholder="Nuevo PIN (mín. 4) — vacío = no cambiar" autocomplete="new-password" />
       <label style="margin-top:14px">CAMBIAR FRASE SECRETA DE VOZ <span id="setVoiceState" style="color:var(--muted);font-weight:400"></span></label>
       <input id="setVoice" type="password" placeholder="Nueva frase — vacío = no cambiar" autocomplete="new-password" />
+      <button type="button" class="btn btn-ghost btn-sm" id="accessLogBtn" style="margin-top:14px;width:100%">📜 Ver registro de accesos</button>
     </div>
     <label style="margin-top:14px">AUTO-BLOQUEO POR INACTIVIDAD</label>
     <select id="setIdle">
@@ -879,7 +926,21 @@ const Cloud = {
   async deleteMission(id){ if(this.enabled) this._run(this.sb.from("missions").delete().eq("id",id)); },
   async upsertAgent(a){ if(this.enabled) this._run(this.sb.from("agents").upsert(stripTs(a))); },
   async deleteAgent(id){ if(this.enabled) this._run(this.sb.from("agents").delete().eq("id",id)); },
-  async insertChat(msg){ if(this.enabled) this._run(this.sb.from("chat_messages").upsert(stripTs(msg))); },
+  async insertChat(msg){
+    if(!this.enabled) return;
+    try{
+      const { error } = await this.sb.from("chat_messages").upsert(stripTs(msg));
+      if(error && (error.code==="PGRST204" || /column/i.test(error.message||""))){
+        // si es DM, no degradar a público (evita filtrarlo)
+        if(msg.dest && msg.dest!=="all"){ toast("⚠ Falta columna 'dest' en BD; el DM no se sincronizó"); return; }
+        const m2 = stripTs(msg); delete m2.image; delete m2.dest;
+        const { error:e2 } = await this.sb.from("chat_messages").upsert(m2);
+        if(e2) console.error(e2);
+      } else if(error){ console.error(error); }
+    }catch(e){ console.error(e); }
+  },
+  async logAccess(entry){ if(this.enabled){ try{ await this.sb.from("access_log").insert(entry); }catch(e){} } },
+  async fetchAccessLog(){ if(!this.enabled) return []; try{ const {data}=await this.sb.from("access_log").select("*").order("ts",{ascending:false}).limit(60); return data||[]; }catch(e){ return []; } },
   async clearChat(){ if(this.enabled) this._run(this.sb.from("chat_messages").delete().neq("id","")); },
   async purgeChatBefore(cutoff){ if(this.enabled) this._run(this.sb.from("chat_messages").delete().lt("ts", cutoff)); },
   async saveConfig(patch){ if(this.enabled) this._run(this.sb.from("app_config").upsert(Object.assign({id:1, updated_at:new Date().toISOString()}, patch))); },
@@ -949,10 +1010,13 @@ function unlock(user){
   renderUserBox();
   render();
   Call.initRing();    // escuchar llamadas entrantes
+  initPresence();     // presencia en línea
   resetIdleTimer();   // auto-bloqueo por inactividad
+  updateChatBadge();
+  Cloud.logAccess({ id: uid(), user_key: currentKey(), name: currentDisplayName(), ts: Date.now() });
 }
 function lockNow(){
-  Call.hangup(); Call.cleanupRing();
+  Call.hangup(); Call.cleanupRing(); cleanupPresence();
   currentUser = null;
   $("app").style.display="none";
   $("lock").style.display="flex";
@@ -1396,16 +1460,18 @@ function renderAgents(){
       a.pin ? `🔑 con acceso` : "",
     ].filter(Boolean).join(" · ");
     const mineRow = canEditAgent(a.id);
-    const actions = (editable || mineRow) ? `
+    const online = onlineKeys.has("agent:"+a.id);
+    const actions = `
       <div class="agent-actions">
+        <button class="btn btn-ghost btn-sm" data-acard="${a.id}">👁 Ficha</button>
         ${mineRow ? `<button class="btn btn-ghost btn-sm" data-aedit="${a.id}">✎ Editar</button>` : ""}
         ${editable ? `<button class="btn btn-ghost btn-sm" data-ablock="${a.id}" style="color:${a.blocked?'var(--green)':'var(--amber)'};border-color:${a.blocked?'var(--green)':'var(--amber)'}">${a.blocked?'🔓 Desbloquear':'🔒 Bloquear'}</button>
         <button class="btn btn-danger btn-sm" data-adel="${a.id}">🗑</button>` : ""}
-      </div>` : "";
+      </div>`;
     return `<div class="agent-row ${a.blocked?'blocked':''}">
       <div class="agent-av"${avStyle}>${avContent}</div>
       <div class="agent-info">
-        <div class="nm">${esc(a.name)}
+        <div class="nm"><span class="online-dot ${online?'':'off'}" title="${online?'En línea':'Desconectado'}"></span>${esc(a.name)}
           ${a.blocked
             ? '<span class="sbadge" style="background:#ff3b5b22;color:#ff3b5b;border:1px solid #ff3b5b66">Bloqueado</span>'
             : `<span class="sbadge" style="background:${st.color}22;color:${st.color};border:1px solid ${st.color}66">${st.label}</span>`}
@@ -1416,10 +1482,36 @@ function renderAgents(){
     </div>`;
   }).join("");
 
+  list.querySelectorAll("[data-acard]").forEach(b=>b.onclick=()=>openAgentCard(agents.find(a=>a.id===b.dataset.acard)));
   list.querySelectorAll("[data-aedit]").forEach(b=>b.onclick=()=>openAgentForm(agents.find(a=>a.id===b.dataset.aedit)));
   list.querySelectorAll("[data-ablock]").forEach(b=>b.onclick=()=>toggleBlock(b.dataset.ablock));
   list.querySelectorAll("[data-adel]").forEach(b=>b.onclick=()=>deleteAgent(b.dataset.adel));
 }
+
+/* ---- Ficha de agente ---- */
+function openAgentCard(a){
+  if(!a) return;
+  paintAvatar($("acAvatar"), a.photo, (a.name||"?").charAt(0).toUpperCase());
+  $("acName").textContent = a.name;
+  const online = onlineKeys.has("agent:"+a.id);
+  const st = agStatusOf(a.status);
+  $("acStatus").innerHTML = `<span class="online-dot ${online?'':'off'}"></span> ${online?'EN LÍNEA':'desconectado'} · <span style="color:${a.blocked?'var(--red)':st.color}">${a.blocked?'BLOQUEADO':st.label}</span>`;
+  const f=[];
+  if(a.codename) f.push(["NOMBRE CLAVE", esc(a.codename)]);
+  if(a.specialty) f.push(["ESPECIALIDAD", esc(a.specialty)]);
+  f.push(["NIVEL", esc(a.clearance||"Bajo")]);
+  f.push(["ACCESO", a.pin?"🔑 con PIN":"sin PIN"]);
+  f.push(["VOZ", a.voice_hash?"🎙️ frase configurada":"sin frase"]);
+  if(a.notes) f.push(["NOTAS", esc(a.notes)]);
+  $("acFields").innerHTML = f.map(x=>`<div class="acard-field"><span class="k">${x[0]}</span><span>${x[1]}</span></div>`).join("");
+  const ms = missions.filter(m=>(m.agents||[]).includes(a.name));
+  $("acMissions").innerHTML = ms.length
+    ? ms.map(m=>`<div class="acard-mission" style="border-left-color:${prioOf(m.prio).color}"><b>${esc(m.name)}</b> · ${statusOf(m.status).label}<br><span style="color:var(--muted);font-size:11px">${fmtDate(m.date,m.time)}${m.location?' · '+esc(m.location):''}</span></div>`).join("")
+    : '<span style="color:var(--muted);font-size:12px">Sin misiones asignadas</span>';
+  $("agentCardBg").classList.add("open");
+}
+$("acClose").onclick = ()=>$("agentCardBg").classList.remove("open");
+$("agentCardBg").addEventListener("click", e=>{ if(e.target===$("agentCardBg")) $("agentCardBg").classList.remove("open"); });
 
 let aPhotoData = null; // foto temporal del agente en edición
 function openAgentForm(agent){
@@ -1574,9 +1666,52 @@ function purgeOldChat(){
   }
   return kept;
 }
+let chatConv = "all";   // "all" (canal general) o userKey (DM)
+let pendingImg = null;  // imagen a enviar (dataURL)
+let lastChatOpen = parseInt(localStorage.getItem("edtu_chat_seen")||"0",10);
+let chatNotifyTs = Date.now();
+
+function buildConvOptions(){
+  const me = currentKey();
+  let opts = [{v:"all", label:"📢 Canal general"}];
+  if(me!=="admin") opts.push({v:"admin", label:"🛡️ "+(loadProfile().name||"SUPERADMIN")});
+  agents.forEach(a=>{ const k="agent:"+a.id; if(k!==me && !a.blocked) opts.push({v:k, label:"👤 "+a.name}); });
+  const sel=$("chatConv");
+  sel.innerHTML = opts.map(o=>`<option value="${o.v}">${esc(o.label)}</option>`).join("");
+  sel.value = opts.some(o=>o.v===chatConv) ? chatConv : "all";
+  chatConv = sel.value;
+}
+function msgForMe(m){ const me=currentKey(); if(m.key===me) return false; return (!m.dest || m.dest==="all" || m.dest===me); }
+function msgInConv(m){
+  const me=currentKey();
+  if(chatConv==="all") return (!m.dest || m.dest==="all");
+  return (m.key===me && m.dest===chatConv) || (m.key===chatConv && m.dest===me);
+}
+function updateChatBadge(){
+  const n = loadChat().filter(m=>msgForMe(m) && (m.ts||0)>lastChatOpen).length;
+  const b=$("chatBadge");
+  if(n>0){ b.textContent = n>99?"99+":n; b.classList.add("show"); } else { b.textContent=""; b.classList.remove("show"); }
+}
+function notifyNewMessages(){
+  const msgs=loadChat(); let mx=chatNotifyTs;
+  msgs.forEach(m=>{
+    if(msgForMe(m) && (m.ts||0)>chatNotifyTs){
+      mx=Math.max(mx,m.ts);
+      const dm = m.dest && m.dest!=="all";
+      const body = m.text || (m.image?"📷 imagen":(m.audio?"🎵 nota de voz":"mensaje"));
+      toast((dm?"✉️ ":"💬 ")+m.name+": "+body.slice(0,40));
+      if(("Notification" in window)&&Notification.permission==="granted"){ try{ new Notification("EDTU — "+(dm?"Mensaje directo":"Mensaje"), {body:m.name+": "+body.slice(0,80), icon:"icon-192.png"}); }catch(e){} }
+    }
+  });
+  chatNotifyTs=Math.max(chatNotifyTs,mx);
+}
+
 function openChat(){
   $("clearChatBtn").style.display = (currentUser && currentUser.type==="admin") ? "" : "none";
   purgeOldChat();
+  buildConvOptions();
+  lastChatOpen=Date.now(); localStorage.setItem("edtu_chat_seen", String(lastChatOpen)); chatNotifyTs=Date.now();
+  updateChatBadge();
   $("chatBg").classList.add("open");
   renderChat();
   setTimeout(()=>$("chatText").focus(), 50);
@@ -1584,12 +1719,12 @@ function openChat(){
 function closeChat(){ if(recording){ recDiscard=true; stopRecording(); } $("chatBg").classList.remove("open"); }
 
 function renderChat(){
-  const msgs = loadChat();
+  const msgs = loadChat().filter(msgInConv);
   const log = $("chatLog");
   if(msgs.length===0){
     log.innerHTML = `<div class="chat-empty"><div style="font-size:40px;opacity:.5">📡</div>
-      <p style="margin-top:6px;letter-spacing:.1em">CANAL VACÍO</p>
-      <p style="font-size:12px;margin-top:4px">Sé el primero en transmitir un mensaje.</p></div>`;
+      <p style="margin-top:6px;letter-spacing:.1em">${chatConv==="all"?"CANAL VACÍO":"SIN MENSAJES"}</p>
+      <p style="font-size:12px;margin-top:4px">${chatConv==="all"?"Sé el primero en transmitir.":"Envía el primer mensaje directo."}</p></div>`;
     return;
   }
   const mine = currentKey();
@@ -1599,59 +1734,63 @@ function renderChat(){
     const initial = (m.name||"?").charAt(0).toUpperCase();
     const avStyle = photo ? ` style="background-image:url(${photo})"` : "";
     const avTxt = photo ? "" : esc(initial);
-    const roleTag = m.role==="admin"
-      ? `<span class="role-tag admin">★ ${esc(m.name)}</span>`
-      : `<span class="role-tag">${esc(m.name)}</span>`;
+    const roleTag = m.role==="admin" ? `<span class="role-tag admin">★ ${esc(m.name)}</span>` : `<span class="role-tag">${esc(m.name)}</span>`;
+    const img = m.image ? `<img src="${m.image}" onclick="window.open(this.src,'_blank')">` : "";
+    const aud = m.audio ? `<audio controls preload="none" src="${m.audio}"></audio>` : "";
     return `<div class="msg ${isMine?'mine':''}">
       <div class="msg-av"${avStyle}>${avTxt}</div>
       <div class="msg-body">
         <div class="msg-meta">${roleTag} · ${fmtTime(m.ts)}</div>
-        <div class="bubble">${esc(m.text)}${m.audio?`<audio controls preload="none" src="${m.audio}"></audio>`:""}</div>
+        <div class="bubble">${esc(m.text)}${img}${aud}</div>
       </div>
     </div>`;
   }).join("");
   log.scrollTop = log.scrollHeight;
 }
 
-let pendingAudio = null; // {data} del audio grabado
+let pendingAudio = null;
 function clearPendingAudio(){ pendingAudio=null; $("chatAudioPending").classList.remove("show"); }
+function clearPendingImg(){ pendingImg=null; $("chatImgPending").classList.remove("show"); }
 function sendChat(){
   const text = $("chatText").value.trim();
   const audio = pendingAudio ? pendingAudio.data : null;
-  if(!text && !audio) return;
+  const image = pendingImg;
+  if(!text && !audio && !image) return;
   const msgs = loadChat();
   const msg = {
-    id: uid(),
-    key: currentKey(),
-    name: currentDisplayName(),
+    id: uid(), key: currentKey(), name: currentDisplayName(),
     role: (currentUser && currentUser.type==="admin") ? "admin" : "agent",
-    text,
-    ts: Date.now(),
+    text, ts: Date.now(), dest: chatConv
   };
   if(audio) msg.audio = audio;
+  if(image) msg.image = image;
   msgs.push(msg);
-  // límite para no llenar el almacenamiento: conserva los últimos 500
   if(msgs.length>500) msgs.splice(0, msgs.length-500);
   saveChat(msgs);
   Cloud.insertChat(msg);
+  lastChatOpen=Date.now(); localStorage.setItem("edtu_chat_seen", String(lastChatOpen));
   $("chatText").value = "";
-  clearPendingAudio();
+  clearPendingAudio(); clearPendingImg();
   renderChat();
   $("chatText").focus();
 }
 function clearChat(){
-  if(!(currentUser && currentUser.type==="admin")){ toast("Solo el superadmin puede vaciar el canal"); return; }
-  if(!confirm("¿Vaciar todo el canal de comunicaciones? No se puede deshacer.")) return;
+  if(!(currentUser && currentUser.type==="admin")){ toast("Solo el superadmin puede vaciar el chat"); return; }
+  if(!confirm("¿Vaciar TODO el chat (canal y mensajes directos)? No se puede deshacer.")) return;
   saveChat([]);
   Cloud.clearChat();
-  renderChat();
-  toast("Canal vaciado");
+  renderChat(); updateChatBadge();
+  toast("Chat vaciado");
 }
 
 $("chatBtn").onclick      = openChat;
 $("closeChatBtn").onclick = closeChat;
 $("sendChatBtn").onclick  = sendChat;
 $("clearChatBtn").onclick = clearChat;
+$("chatConv").onchange    = ()=>{ chatConv=$("chatConv").value; renderChat(); };
+$("imgBtn").onclick       = ()=>$("imgFile").click();
+$("imgFile").onchange     = e=>{ const f=e.target.files[0]; if(!f) return; readImageScaled(f,900,data=>{ pendingImg=data; $("chatImgPending").classList.add("show"); }); e.target.value=""; };
+$("chatImgRemove").onclick= clearPendingImg;
 /* ---- Grabación de audio en WAV (compatible con iPhone/Android/PC) ---- */
 let recCtx=null, recSrc=null, recProc=null, recBuffers=[], recLen=0, recSR=0;
 let recStream=null, recTimer=null, recSecs=0, recDiscard=false, recording=false;
@@ -1854,6 +1993,39 @@ $("voiceLoginBtn").onclick  = ()=>Voice.open();
 $("voiceListenBtn").onclick = ()=>Voice.listen();
 $("voiceCancelBtn").onclick = ()=>Voice.close();
 $("voiceBg").addEventListener("click", e=>{ if(e.target===$("voiceBg")) Voice.close(); });
+
+/* ============ PRESENCIA EN LÍNEA ============ */
+let onlineKeys = new Set();
+let presChan = null;
+function initPresence(){
+  cleanupPresence();
+  if(!Cloud.enabled || !currentUser) return;
+  const ch = Cloud.sb.channel("presence-global", {config:{presence:{key:currentKey()}}});
+  ch.on("presence", {event:"sync"}, ()=>{
+    onlineKeys = new Set(Object.keys(ch.presenceState()));
+    if($("agentsBg").classList.contains("open")) renderAgents();
+    renderUserBox();
+  });
+  ch.subscribe(async s=>{ if(s==="SUBSCRIBED") await ch.track({name:currentDisplayName()}); });
+  presChan = ch;
+}
+function cleanupPresence(){ if(presChan){ try{ Cloud.sb.removeChannel(presChan); }catch(e){} presChan=null; } onlineKeys=new Set(); }
+
+/* ============ REGISTRO DE ACCESOS ============ */
+async function openAccessLog(){
+  $("accessLogBg").classList.add("open");
+  $("accessLogList").innerHTML = '<p style="color:var(--muted)">Cargando…</p>';
+  const rows = await Cloud.fetchAccessLog();
+  if(!rows.length){ $("accessLogList").innerHTML='<p style="color:var(--muted)">Sin registros (o falta la tabla access_log en la BD).</p>'; return; }
+  $("accessLogList").innerHTML = rows.map(r=>{
+    const d=new Date(r.ts), p=n=>String(n).padStart(2,"0");
+    const when=`${p(d.getDate())}/${p(d.getMonth()+1)}/${d.getFullYear()} ${p(d.getHours())}:${p(d.getMinutes())}`;
+    return `<div class="acard-field"><span class="k mono">${when}</span><span>${esc(r.name||r.user_key||"?")}</span></div>`;
+  }).join("");
+}
+$("accessLogBtn").onclick = openAccessLog;
+$("accessLogClose").onclick = ()=>$("accessLogBg").classList.remove("open");
+$("accessLogBg").addEventListener("click", e=>{ if(e.target===$("accessLogBg")) $("accessLogBg").classList.remove("open"); });
 
 /* ============ VIDEOLLAMADA (WebRTC + Supabase) ============ */
 const RTC_CONFIG = { iceServers:[
@@ -2111,7 +2283,8 @@ function onCloudChange(){
       purgeOldChat();
       if($("app").style.display !== "none"){ refreshViews(); renderUserBox(); }
       if($("agentsBg").classList.contains("open")) renderAgents();
-      if($("chatBg").classList.contains("open")) renderChat();
+      if($("chatBg").classList.contains("open")){ renderChat(); lastChatOpen=Date.now(); localStorage.setItem("edtu_chat_seen",String(lastChatOpen)); chatNotifyTs=Date.now(); }
+      else if(currentUser){ notifyNewMessages(); updateChatBadge(); }
     }catch(e){ console.error(e); }
   }, 250);
 }

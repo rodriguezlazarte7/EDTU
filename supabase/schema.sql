@@ -58,17 +58,30 @@ create table if not exists public.chat_messages (
   role  text,
   text  text,
   audio text,
+  image text,
+  dest  text,
   ts    bigint,
   created_at timestamptz default now()
 );
--- por si la tabla ya existía sin la columna de audio:
+-- por si la tabla ya existía sin estas columnas:
 alter table public.chat_messages add column if not exists audio text;
+alter table public.chat_messages add column if not exists image text;
+alter table public.chat_messages add column if not exists dest  text;
+
+create table if not exists public.access_log (
+  id       text primary key,
+  user_key text,
+  name     text,
+  ts       bigint,
+  created_at timestamptz default now()
+);
 
 -- 2) RLS (Row Level Security) --------------------------------
 alter table public.app_config     enable row level security;
 alter table public.missions       enable row level security;
 alter table public.agents         enable row level security;
 alter table public.chat_messages  enable row level security;
+alter table public.access_log     enable row level security;
 
 -- 3) POLÍTICAS — acceso abierto (login por PIN, sin Supabase Auth)
 --    ⚠️ Cualquiera con la clave publicable puede leer/escribir.
@@ -77,11 +90,13 @@ drop policy if exists edtu_all on public.app_config;
 drop policy if exists edtu_all on public.missions;
 drop policy if exists edtu_all on public.agents;
 drop policy if exists edtu_all on public.chat_messages;
+drop policy if exists edtu_all on public.access_log;
 
 create policy edtu_all on public.app_config    for all to anon, authenticated using (true) with check (true);
 create policy edtu_all on public.missions      for all to anon, authenticated using (true) with check (true);
 create policy edtu_all on public.agents        for all to anon, authenticated using (true) with check (true);
 create policy edtu_all on public.chat_messages for all to anon, authenticated using (true) with check (true);
+create policy edtu_all on public.access_log    for all to anon, authenticated using (true) with check (true);
 
 -- 4) REALTIME (actualización en vivo entre dispositivos) -----
 do $$ begin alter publication supabase_realtime add table public.missions;      exception when duplicate_object then null; end $$;
