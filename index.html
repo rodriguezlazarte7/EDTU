@@ -1036,11 +1036,13 @@ function attemptLogin(){
 function proceedLogin(user){
   $("pinInput").value="";
   if(localStorage.getItem("edtu_2fa")==="1"){
+    const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
     const hash = user.type==="admin"
       ? (localStorage.getItem("edtu_voice_admin")||VOICE_HASH)
       : ((agents.find(a=>a.id===user.id)||{}).voice_hash);
-    if(hash){ Voice.openVerify(user, hash); return; }
-    toast("2º paso omitido (este usuario no tiene frase de voz)");
+    if(hash && SR){ toast("🔒 Paso 2: confirma por voz"); Voice.openVerify(user, hash); return; }
+    if(hash && !SR){ toast("⚠ Este dispositivo no soporta voz; 2º paso omitido"); }
+    else if(!hash){ toast("2º paso omitido (sin frase de voz)"); }
   }
   accessGranted(user);
 }
@@ -2079,7 +2081,7 @@ const Voice = {
     $("voiceMic").classList.remove("listening");
     $("voiceBg").classList.add("open");
   },
-  openVerify(user, hash){ this.expect={user,hash}; this.open(); },
+  openVerify(user, hash){ this.expect={user,hash}; this.open(); setTimeout(()=>this.listen(), 250); },
   close(){ this.stopListening(); this.expect=null; $("voiceBg").classList.remove("open"); },
   stopListening(){
     this.listening=false;
