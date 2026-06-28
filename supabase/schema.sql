@@ -10,11 +10,11 @@ create table if not exists public.app_config (
   admin_pin    text,
   profile_name text default 'SUPERADMIN',
   profile_photo text,
-  face_descriptor jsonb,
+  voice_hash   text,
   updated_at   timestamptz default now(),
   constraint app_config_single_row check (id = 1)
 );
-alter table public.app_config add column if not exists face_descriptor jsonb;
+alter table public.app_config add column if not exists voice_hash text;
 
 create table if not exists public.missions (
   id        text primary key,

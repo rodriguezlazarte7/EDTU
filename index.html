@@ -7,6 +7,9 @@
 <meta name="mobile-web-app-capable" content="yes" />
 <meta name="apple-mobile-web-app-capable" content="yes" />
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+<link rel="manifest" href="manifest.json" />
+<link rel="apple-touch-icon" href="icon-192.png" />
+<link rel="icon" href="icon-192.png" />
 <title>EDTU // Centro de Mando</title>
 <style>
   :root{
@@ -395,6 +398,7 @@
       <button class="btn btn-ghost btn-sm" id="agentsBtn">👥 Agentes</button>
       <button class="btn btn-ghost btn-sm" id="chatBtn">💬 Chat</button>
       <button class="btn btn-ghost btn-sm" id="callBtn">📹 Llamar</button>
+      <button class="btn btn-ghost btn-sm" id="settingsBtn">⚙️ Ajustes</button>
       <button class="btn btn-ghost btn-sm" id="exportBtn">⤓ Exportar</button>
       <button class="btn btn-ghost btn-sm" id="lockNow">⏻ Bloquear</button>
     </div>
@@ -627,6 +631,31 @@
   </div>
 </div>
 
+<!-- ============ AJUSTES ============ -->
+<div class="modal-bg" id="settingsBg" style="z-index:76">
+  <div class="modal" style="width:min(460px,96vw)">
+    <h2>⚙️ AJUSTES</h2>
+    <div id="settingsAdmin">
+      <label>CAMBIAR PIN DE SUPERADMIN</label>
+      <input id="setPin" type="password" inputmode="numeric" maxlength="12" placeholder="Nuevo PIN (mín. 4) — vacío = no cambiar" autocomplete="new-password" />
+      <label style="margin-top:14px">CAMBIAR FRASE SECRETA DE VOZ <span id="setVoiceState" style="color:var(--muted);font-weight:400"></span></label>
+      <input id="setVoice" type="password" placeholder="Nueva frase — vacío = no cambiar" autocomplete="new-password" />
+    </div>
+    <label style="margin-top:14px">AUTO-BLOQUEO POR INACTIVIDAD</label>
+    <select id="setIdle">
+      <option value="0">Desactivado</option>
+      <option value="2">2 minutos</option>
+      <option value="5">5 minutos</option>
+      <option value="10">10 minutos</option>
+      <option value="30">30 minutos</option>
+    </select>
+    <div class="modal-actions">
+      <button class="btn btn-ghost" id="settingsCancel">Cancelar</button>
+      <button class="btn btn-primary" id="settingsSave">💾 GUARDAR</button>
+    </div>
+  </div>
+</div>
+
 <!-- Overlay de acceso concedido -->
 <div id="accessOverlay"><div class="ao-text">PROCESSING</div></div>
 
@@ -774,6 +803,7 @@ const Cloud = {
       const c=cfgR.data;
       if(c.admin_pin) localStorage.setItem(LS_PIN, c.admin_pin);
       persist(LS_PROFILE, { name: c.profile_name||"SUPERADMIN", photo: c.profile_photo||"" });
+      if(c.voice_hash) localStorage.setItem("edtu_voice_admin", c.voice_hash);
     }
     if(msR && !msR.error) persist(LS_DATA,   (msR.data||[]).map(stripTs));
     if(agR && !agR.error) persist(LS_AGENTS, (agR.data||[]).map(stripTs));
@@ -855,7 +885,8 @@ function unlock(user){
   toast("Bienvenido, "+(who||"agente"));
   renderUserBox();
   render();
-  Call.initRing();   // escuchar llamadas entrantes
+  Call.initRing();    // escuchar llamadas entrantes
+  resetIdleTimer();   // auto-bloqueo por inactividad
 }
 function lockNow(){
   Call.hangup(); Call.cleanupRing();
@@ -1487,7 +1518,7 @@ function wordWindows(transcript){
 }
 // devuelve el usuario cuya frase secreta coincide, o null (admin + agentes con frase)
 async function matchUserByVoice(transcript){
-  const enrolled = [{ user:{type:"admin"}, hash:VOICE_HASH }];
+  const enrolled = [{ user:{type:"admin"}, hash:(localStorage.getItem("edtu_voice_admin")||VOICE_HASH) }];
   agents.forEach(a=>{ if(a.voice_hash && !a.blocked) enrolled.push({ user:{type:"agent",id:a.id}, hash:a.voice_hash }); });
   for(const w of wordWindows(transcript)){
     const h = await sha256hex(w);
@@ -1646,8 +1677,9 @@ const Call = {
     this.incomingRoom = payload.room;
     $("incomingName").textContent = payload.fromName || "Alguien";
     $("incomingBg").classList.add("open");
+    Ring.start();
   },
-  hideIncoming(){ $("incomingBg").classList.remove("open"); this.incomingRoom=null; },
+  hideIncoming(){ Ring.stop(); $("incomingBg").classList.remove("open"); this.incomingRoom=null; },
   async accept(){ const room=this.incomingRoom; this.hideIncoming(); if(room) await this.join(room); },
   reject(){ this.hideIncoming(); },
 
@@ -1746,6 +1778,82 @@ $("incomingAccept").onclick = ()=>Call.accept();
 $("incomingReject").onclick = ()=>Call.reject();
 $("callPickBg").addEventListener("click", e=>{ if(e.target===$("callPickBg")) Call.closePicker(); });
 
+/* ============ TONO DE LLAMADA ============ */
+const Ring = {
+  ctx:null, timer:null,
+  start(){
+    try{
+      const AC=window.AudioContext||window.webkitAudioContext; if(!AC) return;
+      this.stop();
+      this.ctx=new AC();
+      if(this.ctx.state==="suspended"){ this.ctx.resume().catch(()=>{}); }
+      const beep=()=>{
+        if(!this.ctx) return;
+        const o=this.ctx.createOscillator(), g=this.ctx.createGain();
+        o.type="sine"; o.frequency.value=880; o.connect(g); g.connect(this.ctx.destination);
+        const t=this.ctx.currentTime;
+        g.gain.setValueAtTime(0.0001,t);
+        g.gain.exponentialRampToValueAtTime(0.25,t+0.05);
+        g.gain.exponentialRampToValueAtTime(0.0001,t+0.5);
+        o.start(t); o.stop(t+0.55);
+      };
+      beep(); this.timer=setInterval(beep,1200);
+    }catch(e){}
+  },
+  stop(){ if(this.timer){clearInterval(this.timer); this.timer=null;} if(this.ctx){ try{this.ctx.close();}catch(e){} this.ctx=null; } }
+};
+
+/* ============ AJUSTES ============ */
+function openSettings(){
+  const isAdmin = currentUser && currentUser.type==="admin";
+  $("settingsAdmin").style.display = isAdmin ? "" : "none";
+  $("setPin").value=""; $("setVoice").value="";
+  $("setVoiceState").textContent = localStorage.getItem("edtu_voice_admin") ? "· personalizada ✓" : "· (por defecto)";
+  $("setIdle").value = String(localStorage.getItem("edtu_idle")||"0");
+  $("settingsBg").classList.add("open");
+}
+function closeSettings(){ $("settingsBg").classList.remove("open"); }
+async function saveSettings(){
+  const isAdmin = currentUser && currentUser.type==="admin";
+  if(isAdmin){
+    const pin = $("setPin").value.trim();
+    if(pin){
+      if(pin.length<4){ toast("⚠ El PIN debe tener al menos 4 caracteres"); return; }
+      localStorage.setItem(LS_PIN, pin);
+      Cloud.saveConfig({ admin_pin: pin });
+    }
+    const voice = $("setVoice").value.trim();
+    if(voice){
+      const h = await sha256hex(normalizePhrase(voice));
+      localStorage.setItem("edtu_voice_admin", h);
+      Cloud.saveConfig({ voice_hash: h });
+    }
+  }
+  localStorage.setItem("edtu_idle", $("setIdle").value);
+  resetIdleTimer();
+  closeSettings();
+  toast("Ajustes guardados");
+}
+$("settingsBtn").onclick    = openSettings;
+$("settingsCancel").onclick = closeSettings;
+$("settingsSave").onclick   = saveSettings;
+$("settingsBg").addEventListener("click", e=>{ if(e.target===$("settingsBg")) closeSettings(); });
+
+/* ============ AUTO-BLOQUEO POR INACTIVIDAD ============ */
+let idleTimer=null;
+function resetIdleTimer(){
+  if(idleTimer){ clearTimeout(idleTimer); idleTimer=null; }
+  const mins = parseInt(localStorage.getItem("edtu_idle")||"0",10);
+  if(!mins) return;
+  if(!currentUser) return;                 // solo con sesión activa
+  if($("app").style.display==="none") return;
+  idleTimer = setTimeout(()=>{
+    if(currentUser && $("app").style.display!=="none"){ toast("🔒 Sesión bloqueada por inactividad"); lockNow(); }
+  }, mins*60*1000);
+}
+["mousemove","keydown","click","touchstart","scroll"].forEach(ev=>
+  document.addEventListener(ev, ()=>{ if(currentUser) resetIdleTimer(); }, {passive:true}));
+
 /* ============ RELOJ ============ */
 function tick(){
   const d = new Date();
@@ -1790,6 +1898,11 @@ function onCloudChange(){
 // Aviso si se abre como archivo local (file://): el guardado local puede no persistir en Chrome.
 if(location.protocol === "file:" && !Cloud.enabled){
   setTimeout(()=>toast("⚠ Ábrela vía http://localhost o conecta Supabase para guardar datos"), 600);
+}
+
+// PWA: registrar Service Worker (app instalable + offline)
+if("serviceWorker" in navigator && location.protocol!=="file:"){
+  window.addEventListener("load", ()=>{ navigator.serviceWorker.register("sw.js").catch(e=>console.log("SW no registrado:", e)); });
 }
 </script>
 </body>
