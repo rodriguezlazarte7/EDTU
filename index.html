@@ -1544,7 +1544,12 @@ function renderStatsPanel(){
   const byPrio=PRIORITIES.map(p=>({label:p.label,color:p.color,n:missions.filter(m=>m.prio===p.key).length}));
   const completed=missions.filter(m=>m.status==="completada").length;
   const pct=total?Math.round(completed/total*100):0;
-  const counts={}; missions.forEach(m=>(m.agents||[]).forEach(n=>counts[n]=(counts[n]||0)+1));
+  const normName=s=>(s||"").toLowerCase().normalize("NFD").replace(/[̀-ͯ]/g,"").replace(/\s+/g," ").trim();
+  const counts={}, labelOf={};
+  missions.forEach(m=>{
+    const seen=new Set();
+    (m.agents||[]).forEach(n=>{ const k=normName(n); if(!k || seen.has(k)) return; seen.add(k); counts[k]=(counts[k]||0)+1; if(!labelOf[k]) labelOf[k]=String(n).trim(); });
+  });
   const top=Object.entries(counts).sort((a,b)=>b[1]-a[1]).slice(0,5);
   const maxS=Math.max(1,...byStatus.map(s=>s.n)), maxP=Math.max(1,...byPrio.map(p=>p.n));
   const bar=(label,n,max,color)=>`<div class="stbar-row"><span class="lbl">${label}</span><span class="stbar"><i style="width:${Math.round(n/max*100)}%;background:${color};box-shadow:0 0 8px ${color}"></i></span><span class="stbar-val">${n}</span></div>`;
@@ -1556,7 +1561,7 @@ function renderStatsPanel(){
     </div>
     <div class="st-section"><h3>POR ESTADO</h3>${byStatus.map(s=>bar(s.label,s.n,maxS,s.color)).join("")}</div>
     <div class="st-section"><h3>POR PRIORIDAD</h3>${byPrio.map(p=>bar(p.label,p.n,maxP,p.color)).join("")}</div>
-    <div class="st-section"><h3>AGENTES MÁS ACTIVOS</h3>${top.length?top.map(t=>bar(esc(t[0]),t[1],top[0][1],"var(--cyan)")).join(""):'<span style="color:var(--muted);font-size:12px">Sin agentes asignados a misiones</span>'}</div>`;
+    <div class="st-section"><h3>AGENTES MÁS ACTIVOS</h3>${top.length?top.map(t=>bar(esc(labelOf[t[0]]),t[1],top[0][1],"var(--cyan)")).join(""):'<span style="color:var(--muted);font-size:12px">Sin agentes asignados a misiones</span>'}</div>`;
 }
 function openStats(){ renderStatsPanel(); $("statsBg").classList.add("open"); }
 $("statsBtn").onclick = openStats;
