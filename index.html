@@ -452,6 +452,7 @@
       <button class="btn btn-ghost btn-sm" id="chatBtn">💬 Chat<span id="chatBadge" class="navbadge"></span></button>
       <button class="btn btn-ghost btn-sm" id="callBtn">📹 Llamar</button>
       <button class="btn btn-ghost btn-sm" id="statsBtn">📈 Stats</button>
+      <button class="btn btn-ghost btn-sm" id="rankBtn">🎖️ Ranking</button>
       <button class="btn btn-ghost btn-sm" id="settingsBtn">⚙️ Ajustes</button>
       <button class="btn btn-ghost btn-sm" id="exportBtn">⤓ Exportar</button>
       <button class="btn btn-ghost btn-sm" id="lockNow">⏻ Bloquear</button>
@@ -711,6 +712,14 @@
       <button class="btn btn-danger" id="incomingReject">📴 Rechazar</button>
       <button class="btn btn-primary" id="incomingAccept">📞 Contestar</button>
     </div>
+  </div>
+</div>
+
+<!-- ============ MI RANKING ============ -->
+<div class="modal-bg" id="rankBg" style="z-index:77">
+  <div class="modal" style="width:min(420px,96vw);text-align:center">
+    <div class="panel-head"><h2 style="margin:0">🎖️ MI RANKING</h2><button class="btn btn-ghost btn-sm" id="rankClose">Cerrar</button></div>
+    <div id="rankBody"></div>
   </div>
 </div>
 
@@ -1569,6 +1578,51 @@ function openStats(){ renderStatsPanel(); $("statsBg").classList.add("open"); }
 $("statsBtn").onclick = openStats;
 $("statsClose").onclick = ()=>$("statsBg").classList.remove("open");
 $("statsBg").addEventListener("click", e=>{ if(e.target===$("statsBg")) $("statsBg").classList.remove("open"); });
+
+/* ============ MI RANKING ============ */
+function openRanking(){
+  const norm=s=>(s||"").toLowerCase().normalize("NFD").replace(/[̀-ͯ]/g,"").replace(/\s+/g," ").trim();
+  const me = currentDisplayName(), meK = norm(me);
+  const stats={};
+  missions.forEach(m=>{
+    const seen=new Set();
+    (m.agents||[]).forEach(n=>{ const k=norm(n); if(!k||seen.has(k))return; seen.add(k);
+      if(!stats[k]) stats[k]={label:String(n).trim(),total:0,completed:0,aborted:0,active:0};
+      const s=stats[k]; s.total++;
+      if(m.status==="completada") s.completed++;
+      else if(m.status==="abortada") s.aborted++;
+      else s.active++;
+    });
+  });
+  const mine = stats[meK] || {label:me,total:0,completed:0,aborted:0,active:0};
+  const eff = mine.total ? Math.round(mine.completed/mine.total*100) : 0;
+  const arr=Object.values(stats).map(v=>({...v,e:v.total?v.completed/v.total:0}));
+  arr.sort((a,b)=> b.completed-a.completed || b.e-a.e);
+  const pos = arr.findIndex(x=>norm(x.label)===meK);
+  const tier = eff>=85?["🏆","LEYENDA","var(--green)"]
+            : eff>=65?["🥇","AGENTE ÉLITE","var(--cyan)"]
+            : eff>=40?["🥈","OPERATIVO","var(--amber)"]
+            : mine.total>0?["🥉","RECLUTA","var(--violet)"]
+            : ["🎖️","SIN MISIONES","var(--muted)"];
+  const row=(k,v,c)=>`<div class="acard-field"><span class="k">${k}</span><span style="color:${c||'var(--txt)'};font-weight:700">${v}</span></div>`;
+  $("rankBody").innerHTML = `
+    <div style="font-size:54px;line-height:1;margin:6px 0">${tier[0]}</div>
+    <div style="font-weight:900;letter-spacing:.12em;color:${tier[2]}">${tier[1]}</div>
+    <div style="color:var(--muted);font-size:12px;margin:2px 0 14px">${esc(me)}</div>
+    <div class="st-ring" style="margin:0 auto 6px;background:conic-gradient(#19ff85 ${eff*3.6}deg, rgba(255,255,255,0.08) 0)"><span style="background:var(--bg);width:88px;height:88px;border-radius:50%;display:grid;place-items:center;font-size:26px">${eff}%</span></div>
+    <div style="color:var(--muted);font-size:11px;letter-spacing:.15em;margin-bottom:14px">EFICACIA</div>
+    <div style="text-align:left">
+      ${row("ASIGNADAS", mine.total)}
+      ${row("COMPLETADAS", mine.completed, "var(--green)")}
+      ${row("EN CURSO / PLAN.", mine.active, "var(--cyan)")}
+      ${row("ABORTADAS", mine.aborted, "var(--red)")}
+      ${row("POSICIÓN", pos>=0?("#"+(pos+1)+" de "+arr.length+" agentes"):"—")}
+    </div>`;
+  $("rankBg").classList.add("open");
+}
+$("rankBtn").onclick = openRanking;
+$("rankClose").onclick = ()=>$("rankBg").classList.remove("open");
+$("rankBg").addEventListener("click", e=>{ if(e.target===$("rankBg")) $("rankBg").classList.remove("open"); });
 
 /* ============ AGENTES ============ */
 function openAgentsPanel(){ renderAgents(); $("agentsBg").classList.add("open"); }
