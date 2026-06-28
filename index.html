@@ -346,6 +346,14 @@
   .st-section h3{font-size:12px;color:var(--cyan);letter-spacing:.1em;margin:16px 0 8px}
   .call-ctrl.share.off{background:var(--cyan);border-color:var(--cyan);color:#000}
 
+  /* ---------- MISIONES CLASIFICADAS (todo en rojo) ---------- */
+  .clf-red, .clf-red *{ color:#ff3b5b !important; }
+  .clf-red{ border:1px solid #ff3b5b !important; box-shadow:0 0 44px rgba(255,59,91,0.28) !important; }
+  .clf-red input, .clf-red textarea{ border-color:rgba(255,59,91,0.45) !important; background:rgba(255,59,91,0.05) !important; }
+  .clf-red input::placeholder, .clf-red textarea::placeholder{ color:rgba(255,59,91,0.5) !important; }
+  .clf-red .btn{ background:transparent !important; border:1px solid #ff3b5b !important; }
+  .clf-entry{ border:1px solid rgba(255,59,91,0.4); border-radius:10px; padding:10px 12px; margin-bottom:8px; background:rgba(255,59,91,0.06); }
+
   /* ---------- OVERLAY ACCESO CONCEDIDO ---------- */
   #accessOverlay{
     position:fixed;inset:0;z-index:200;display:none;align-items:center;justify-content:center;
@@ -453,6 +461,7 @@
       <button class="btn btn-ghost btn-sm" id="callBtn">📹 Llamar</button>
       <button class="btn btn-ghost btn-sm" id="statsBtn">📈 Stats</button>
       <button class="btn btn-ghost btn-sm" id="rankBtn">🎖️ Ranking</button>
+      <button class="btn btn-ghost btn-sm" id="clfBtn" style="color:var(--red);border-color:rgba(255,59,91,0.5)">🔴 Clasificadas</button>
       <button class="btn btn-ghost btn-sm" id="settingsBtn">⚙️ Ajustes</button>
       <button class="btn btn-ghost btn-sm" id="exportBtn">⤓ Exportar</button>
       <button class="btn btn-ghost btn-sm" id="lockNow">⏻ Bloquear</button>
@@ -712,6 +721,37 @@
       <button class="btn btn-danger" id="incomingReject">📴 Rechazar</button>
       <button class="btn btn-primary" id="incomingAccept">📞 Contestar</button>
     </div>
+  </div>
+</div>
+
+<!-- ============ CLASIFICADAS: acceso ============ -->
+<div class="modal-bg" id="clfGateBg" style="z-index:80">
+  <div class="modal" style="width:min(400px,96vw)">
+    <h2 style="color:var(--red)">🔴 MISIONES CLASIFICADAS</h2>
+    <p id="clfGateSub" class="mono" style="font-size:11px;color:var(--muted);margin-bottom:14px">Acceso restringido</p>
+    <label>CORREO</label>
+    <input id="clfEmail" type="email" autocomplete="off" placeholder="correo@ejemplo.com" />
+    <label style="margin-top:10px">CONTRASEÑA</label>
+    <input id="clfPass" type="password" autocomplete="new-password" placeholder="••••••" />
+    <div id="clfGateMsg" class="mono" style="min-height:16px;font-size:12px;color:var(--red);margin-top:8px"></div>
+    <div class="modal-actions">
+      <button class="btn btn-ghost" id="clfGateCancel">Cancelar</button>
+      <button class="btn btn-primary" id="clfGateBtn" style="background:linear-gradient(135deg,#ff3b5b,#a01020);color:#fff">ACCEDER</button>
+    </div>
+    <div id="clfReset" class="mono" style="margin-top:12px;font-size:10px;color:var(--muted);cursor:pointer;display:none">¿Olvidaste el acceso? Reiniciar credenciales</div>
+  </div>
+</div>
+
+<!-- ============ CLASIFICADAS: panel (todo en rojo) ============ -->
+<div class="modal-bg" id="clfBg" style="z-index:81">
+  <div class="modal wide clf-red">
+    <div class="panel-head"><h2 style="margin:0">🔴 MISIONES CLASIFICADAS</h2><button class="btn btn-sm" id="clfClose">Cerrar</button></div>
+    <div style="display:flex;gap:8px;margin-bottom:8px">
+      <input id="clfTitle" placeholder="Nombre clave clasificado" style="flex:1" />
+      <button class="btn btn-sm" id="clfAdd">＋ Añadir</button>
+    </div>
+    <textarea id="clfDetail" placeholder="Detalle / inteligencia clasificada..." style="margin-bottom:12px"></textarea>
+    <div id="clfList"></div>
   </div>
 </div>
 
@@ -1639,6 +1679,63 @@ function openRanking(){
 $("rankBtn").onclick = openRanking;
 $("rankClose").onclick = ()=>$("rankBg").classList.remove("open");
 $("rankBg").addEventListener("click", e=>{ if(e.target===$("rankBg")) $("rankBg").classList.remove("open"); });
+
+/* ============ MISIONES CLASIFICADAS (correo + contraseña) ============ */
+function clfHasCreds(){ return !!localStorage.getItem("edtu_clf_hash"); }
+function loadClf(){ try{ return JSON.parse(localStorage.getItem("edtu_clf_data"))||[]; }catch(e){ return []; } }
+function saveClf(d){ persist("edtu_clf_data", d); }
+function openClfGate(){
+  const has=clfHasCreds();
+  $("clfGateSub").textContent = has ? "Acceso restringido — introduce tus credenciales" : "PRIMER ACCESO — crea tu correo y contraseña";
+  $("clfGateBtn").textContent = has ? "ACCEDER" : "CREAR ACCESO";
+  $("clfEmail").value = has ? (localStorage.getItem("edtu_clf_email")||"") : "";
+  $("clfPass").value=""; $("clfGateMsg").textContent="";
+  $("clfReset").style.display = has ? "block" : "none";
+  $("clfGateBg").classList.add("open");
+  setTimeout(()=>$( has?"clfPass":"clfEmail" ).focus(), 60);
+}
+async function clfGateSubmit(){
+  const email=$("clfEmail").value.trim().toLowerCase();
+  const pass=$("clfPass").value;
+  if(!email || email.indexOf("@")<1){ $("clfGateMsg").textContent="Correo inválido"; return; }
+  if(pass.length<4){ $("clfGateMsg").textContent="Contraseña mínima: 4 caracteres"; return; }
+  const h=await sha256hex(email+"::"+pass);
+  if(!clfHasCreds()){
+    localStorage.setItem("edtu_clf_email", email);
+    localStorage.setItem("edtu_clf_hash", h);
+    toast("🔴 Acceso clasificado creado");
+    $("clfGateBg").classList.remove("open"); openClfPanel();
+  }else if(email===localStorage.getItem("edtu_clf_email") && h===localStorage.getItem("edtu_clf_hash")){
+    $("clfGateBg").classList.remove("open"); openClfPanel();
+  }else{
+    $("clfGateMsg").textContent="✖ ACCESO DENEGADO · correo o contraseña incorrectos";
+    $("clfPass").value="";
+  }
+}
+function openClfPanel(){ renderClf(); $("clfBg").classList.add("open"); }
+function renderClf(){
+  const d=loadClf();
+  $("clfList").innerHTML = d.length
+    ? d.map(x=>`<div class="clf-entry"><b>${esc(x.title)}</b>${x.detail?`<div style="font-size:13px;margin-top:4px;white-space:pre-wrap">${esc(x.detail)}</div>`:""}<div style="margin-top:8px"><button class="btn btn-sm" data-cdel="${x.id}">🗑 Eliminar</button></div></div>`).join("")
+    : '<p style="font-size:13px;text-align:center;opacity:.7">SIN MISIONES CLASIFICADAS</p>';
+  $("clfList").querySelectorAll("[data-cdel]").forEach(b=>b.onclick=()=>{
+    if(!confirm("¿Eliminar esta misión clasificada?")) return;
+    saveClf(loadClf().filter(y=>y.id!==b.dataset.cdel)); renderClf();
+  });
+}
+$("clfBtn").onclick      = openClfGate;
+$("clfGateCancel").onclick = ()=>$("clfGateBg").classList.remove("open");
+$("clfGateBtn").onclick  = clfGateSubmit;
+$("clfPass").addEventListener("keydown", e=>{ if(e.key==="Enter") clfGateSubmit(); });
+$("clfReset").onclick = ()=>{ if(confirm("⚠ Esto borrará el correo y contraseña clasificados (las misiones clasificadas se conservan). ¿Continuar?")){ localStorage.removeItem("edtu_clf_email"); localStorage.removeItem("edtu_clf_hash"); openClfGate(); toast("Credenciales reiniciadas"); } };
+$("clfClose").onclick    = ()=>$("clfBg").classList.remove("open");
+$("clfAdd").onclick      = ()=>{
+  const t=$("clfTitle").value.trim(); if(!t){ toast("Pon un nombre clave"); return; }
+  const d=loadClf(); d.unshift({ id:uid(), title:t, detail:$("clfDetail").value.trim(), ts:Date.now() });
+  saveClf(d); $("clfTitle").value=""; $("clfDetail").value=""; renderClf();
+};
+$("clfGateBg").addEventListener("click", e=>{ if(e.target===$("clfGateBg")) $("clfGateBg").classList.remove("open"); });
+$("clfBg").addEventListener("click", e=>{ if(e.target===$("clfBg")) $("clfBg").classList.remove("open"); });
 
 /* ============ AGENTES ============ */
 function openAgentsPanel(){ renderAgents(); $("agentsBg").classList.add("open"); }
