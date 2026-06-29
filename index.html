@@ -779,13 +779,14 @@
     <div id="gameMsg">🎮 EDTU RUSH</div>
     <div id="gameOverScores" style="font-size:14px"></div>
     <div style="display:flex;gap:8px;flex-wrap:wrap;justify-content:center;margin-top:4px">
-      <button class="btn btn-primary game-pc" data-pc="1">1 Jugador</button>
-      <button class="btn btn-primary game-pc" data-pc="2">2 Jugadores</button>
-      <button class="btn btn-primary game-pc" data-pc="3">3 Jugadores</button>
+      <button class="btn btn-primary game-pc" data-pc="1">1 Jug.</button>
+      <button class="btn btn-primary game-pc" data-pc="2">2 Jug.</button>
+      <button class="btn btn-primary game-pc" data-pc="3">3 Jug.</button>
+      <button class="btn btn-primary game-pc" data-pc="4">4 Jug.</button>
     </div>
     <div id="gameWins" style="font-size:13px;color:var(--cyan)"></div>
     <div id="gameBoard" style="margin-top:6px;font-size:12px;text-align:left;max-width:280px"></div>
-    <div style="font-size:11px;color:var(--muted);margin-top:6px;max-width:320px">P1 <b style="color:#19ff85">A/D</b> · P2 <b style="color:#2f9bff">← →</b> · P3 <b style="color:#ffd23f">4/6</b> · móvil: toca los lados (P1)<br>🔶 datos · ⭐ x2 · 🛡️ escudo · 🧲 imán · 🟥 evita</div>
+    <div style="font-size:11px;color:var(--muted);margin-top:6px;max-width:320px">P1 <b style="color:#19ff85">A/D</b> · P2 <b style="color:#2f9bff">← →</b> · P3 <b style="color:#ffd23f">4/6</b> · P4 <b style="color:#ff5ba8">B/M</b> · móvil: toca los lados (P1)<br>🔶 datos · ⭐ x2 · 🛡️ escudo · 🧲 imán · 🟥 evita</div>
     <button class="btn btn-ghost" id="gameExit2" style="margin-top:8px">✕ Salir</button>
   </div>
 </div>
@@ -1777,7 +1778,7 @@ $("clfBg").addEventListener("click", e=>{ if(e.target===$("clfBg")) $("clfBg").c
 
 /* ============ JUEGO: EDTU RUSH (pantalla completa · 6 carriles · hasta 3 jugadores) ============ */
 const LANES = 6;
-const PLAYER_CFG = [ {color:"#19ff85"}, {color:"#2f9bff"}, {color:"#ffd23f"} ];
+const PLAYER_CFG = [ {color:"#19ff85"}, {color:"#2f9bff"}, {color:"#ffd23f"}, {color:"#ff5ba8"} ];
 const SFX = {
   ctx:null,
   ensure(){ if(!this.ctx){ const AC=window.AudioContext||window.webkitAudioContext; if(AC) this.ctx=new AC(); } if(this.ctx&&this.ctx.state==="suspended") this.ctx.resume().catch(()=>{}); return this.ctx; },
@@ -1790,7 +1791,7 @@ const Game = {
   cv:null, ctx:null, raf:null, running:false, W:0, H:0,
   players:[], items:[], dist:0, speed:0, spawn:0, last:0, best:0,
   laneX(i){ return this.W*((i+0.5)/LANES); },
-  loadWins(){ try{ return JSON.parse(localStorage.getItem("edtu_game_wins"))||[0,0,0]; }catch(e){ return [0,0,0]; } },
+  loadWins(){ try{ return JSON.parse(localStorage.getItem("edtu_game_wins"))||[0,0,0,0]; }catch(e){ return [0,0,0,0]; } },
   saveWins(w){ localStorage.setItem("edtu_game_wins", JSON.stringify(w)); },
   resize(){ if(!this.cv) return; this.W=this.cv.clientWidth||this.cv.parentElement.clientWidth; this.H=this.cv.clientHeight||window.innerHeight; this.cv.width=this.W; this.cv.height=this.H; },
   open(){
@@ -1807,7 +1808,7 @@ const Game = {
   },
   renderWins(){
     const w=this.loadWins();
-    $("gameWins").innerHTML = (w[0]||w[1]||w[2]) ? "VICTORIAS · "+[0,1,2].map(i=>`<span style="color:${PLAYER_CFG[i].color}">P${i+1}:${w[i]||0}</span>`).join("  ") : "";
+    $("gameWins").innerHTML = w.some(Boolean) ? "VICTORIAS · "+PLAYER_CFG.map((cfg,i)=>`<span style="color:${cfg.color}">P${i+1}:${w[i]||0}</span>`).join("  ") : "";
   },
   async loadBoard(){
     const rows=await Cloud.fetchTopScores();
@@ -1819,7 +1820,7 @@ const Game = {
   start(count){
     SFX.ensure();
     this.resize();
-    const startLanes=[1,4,2];
+    const startLanes=[1,4,2,5];
     this.players=[];
     for(let i=0;i<count;i++) this.players.push({ idx:i, lane:startLanes[i], vx:startLanes[i], score:0, alive:true, color:PLAYER_CFG[i].color, multUntil:0, magnetUntil:0, shield:false });
     this.items=[]; this.dist=0; this.speed=3.2; this.spawn=0;
@@ -1905,13 +1906,14 @@ const Game = {
       const x=this.laneX(p.vx);
       if(p.magnetUntil>now){ c.strokeStyle="#b06bff"; c.lineWidth=3; c.globalAlpha=0.55; c.beginPath(); c.arc(x,py,sz*1.9,0,7); c.stroke(); c.globalAlpha=1; }
       c.globalAlpha=p.alive?1:0.3; c.fillStyle=p.color; c.shadowColor=p.color; c.shadowBlur=16;
-      c.beginPath(); c.moveTo(x,py-sz); c.lineTo(x+sz,py+sz); c.lineTo(x-sz,py+sz); c.closePath(); c.fill();
+      this.hexagon(x,py,sz); c.fill();
       c.shadowBlur=0;
-      if(p.shield){ c.strokeStyle="#2fd0ff"; c.lineWidth=3; c.beginPath(); c.arc(x,py,sz*1.5,0,7); c.stroke(); }
+      if(p.shield){ c.strokeStyle="#2fd0ff"; c.lineWidth=3; c.beginPath(); c.arc(x,py,sz*1.6,0,7); c.stroke(); }
       c.globalAlpha=1;
     });
   },
   diamond(x,y,s){ const c=this.ctx; c.beginPath(); c.moveTo(x,y-s); c.lineTo(x+s,y); c.lineTo(x,y+s); c.lineTo(x-s,y); c.closePath(); c.fill(); },
+  hexagon(x,y,s){ const c=this.ctx; c.beginPath(); for(let i=0;i<6;i++){ const a=Math.PI/180*(60*i-90); const hx=x+s*Math.cos(a), hy=y+s*Math.sin(a); if(i===0)c.moveTo(hx,hy); else c.lineTo(hx,hy); } c.closePath(); },
   move(pi,d){ if(!this.running) return; const p=this.players[pi]; if(p&&p.alive) p.lane=Math.max(0,Math.min(LANES-1,p.lane+d)); },
   gameOver(){
     this.running=false; SFX.crash();
@@ -1946,6 +1948,8 @@ document.addEventListener("keydown", e=>{
   else if(k==="ArrowRight"){ pi=1; dir=1; }
   else if(code==="Numpad4"||k==="4"){ pi=2; dir=-1; }
   else if(code==="Numpad6"||k==="6"){ pi=2; dir=1; }
+  else if(k==="b"||k==="B"){ pi=3; dir=-1; }
+  else if(k==="m"||k==="M"){ pi=3; dir=1; }
   if(dir!==0){ e.preventDefault(); Game.move(single?0:pi, dir); }   // 1 jugador: cualquier control sirve
 });
 
