@@ -1927,13 +1927,15 @@ window.addEventListener("resize", ()=>{ if($("gameFs").classList.contains("open"
 $("gameCanvas").addEventListener("pointerdown", e=>{ const r=e.currentTarget.getBoundingClientRect(); Game.move(0,(e.clientX-r.left) < r.width/2 ? -1 : 1); });
 document.addEventListener("keydown", e=>{
   if(!$("gameFs").classList.contains("open") || !Game.running) return;
-  const k=e.key, code=e.code;
-  if(k==="a"||k==="A"){ e.preventDefault(); Game.move(0,-1); }
-  else if(k==="d"||k==="D"){ e.preventDefault(); Game.move(0,1); }
-  else if(k==="ArrowLeft"){ e.preventDefault(); Game.move(1,-1); }
-  else if(k==="ArrowRight"){ e.preventDefault(); Game.move(1,1); }
-  else if(code==="Numpad4"||k==="4"){ e.preventDefault(); Game.move(2,-1); }
-  else if(code==="Numpad6"||k==="6"){ e.preventDefault(); Game.move(2,1); }
+  const k=e.key, code=e.code, single=Game.players.length<=1;
+  let pi=-1, dir=0;
+  if(k==="a"||k==="A"){ pi=0; dir=-1; }
+  else if(k==="d"||k==="D"){ pi=0; dir=1; }
+  else if(k==="ArrowLeft"){ pi=1; dir=-1; }
+  else if(k==="ArrowRight"){ pi=1; dir=1; }
+  else if(code==="Numpad4"||k==="4"){ pi=2; dir=-1; }
+  else if(code==="Numpad6"||k==="6"){ pi=2; dir=1; }
+  if(dir!==0){ e.preventDefault(); Game.move(single?0:pi, dir); }   // 1 jugador: cualquier control sirve
 });
 
 /* ============ AGENTES ============ */
