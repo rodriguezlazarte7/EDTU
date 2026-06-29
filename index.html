@@ -1846,20 +1846,31 @@ const Game = {
     if(this.spawn<=0){
       this.spawn = Math.max(10, 40 - this.speed*1.8);
       const r=Math.random();
-      const type = r<0.58 ? "obstacle" : r<0.84 ? "chip" : r<0.92 ? "x2" : r<0.96 ? "shield" : "magnet";
-      this.items.push({ lane:Math.floor(Math.random()*LANES), y:-30, type });
+      const type = r<0.56 ? "obstacle" : r<0.80 ? "chip" : r<0.88 ? "x2" : r<0.94 ? "shield" : "magnet";
+      const ln=Math.floor(Math.random()*LANES);
+      this.items.push({ lane:ln, fx:ln, y:-30, type });
     }
+    // 🧲 imán: atrae datos/power-ups de carriles vecinos hacia el jugador
+    const mags=this.players.filter(p=>p.alive && p.magnetUntil>now).map(p=>p.lane);
+    this.items.forEach(it=>{
+      if(it.fx==null) it.fx=it.lane;
+      if(it.type!=="obstacle" && mags.length){
+        let tgt=null; mags.forEach(ml=>{ if(Math.abs(ml-it.lane)<=1 && (tgt===null||Math.abs(ml-it.fx)<Math.abs(tgt-it.fx))) tgt=ml; });
+        if(tgt!==null){ it.fx += (tgt-it.fx)*Math.min(1,0.2*dt); if(Math.abs(it.fx-tgt)<0.06){ it.fx=tgt; it.lane=tgt; } }
+        else it.fx += (it.lane-it.fx)*Math.min(1,0.5*dt);
+      } else it.fx += (it.lane-it.fx)*Math.min(1,0.5*dt);
+    });
     const py=this.H-64;
     for(let i=this.items.length-1;i>=0;i--){
       const it=this.items[i]; it.y += this.speed*3.2*dt;
       if(Math.abs(it.y-py)<30){
         if(it.type==="obstacle"){
-          const dead=[];
-          this.players.forEach(p=>{ if(p.alive && p.lane===it.lane){ if(p.shield){ p.shield=false; } else { p.alive=false; dead.push(p); } } });
-          if(dead.length) SFX.crash();
+          if(!it.hit) it.hit=new Set();
+          let crashed=false;
+          this.players.forEach(p=>{ if(p.alive && p.lane===it.lane && !it.hit.has(p.idx)){ it.hit.add(p.idx); if(p.shield){ p.shield=false; SFX.power(); } else { p.alive=false; crashed=true; } } });
+          if(crashed) SFX.crash();
         }else{
-          const reach=p=> p.alive && (p.lane===it.lane || (p.magnetUntil>now && Math.abs(p.lane-it.lane)<=1));
-          const got=this.players.filter(reach);
+          const got=this.players.filter(p=> p.alive && (p.lane===it.lane || (p.magnetUntil>now && Math.abs(p.lane-it.lane)<=1)));
           if(got.length){
             if(it.type==="chip"){ got.forEach(p=>p.score += (now<p.multUntil?30:15)); SFX.chip(); }
             else if(it.type==="x2"){ got.forEach(p=>{ p.score+=25; p.multUntil=now+6000; }); SFX.power(); }
@@ -1882,7 +1893,7 @@ const Game = {
     const sz=Math.min(28, this.W/LANES*0.4);
     const lab=(t,x,y,s)=>{ c.fillStyle="#000"; c.font="bold "+Math.round(s*0.8)+"px Arial"; c.textAlign="center"; c.textBaseline="middle"; c.fillText(t,x,y+1); };
     this.items.forEach(it=>{
-      const x=this.laneX(it.lane);
+      const x=this.laneX(it.fx!=null?it.fx:it.lane);
       if(it.type==="obstacle"){ c.fillStyle="#ff3b5b"; c.shadowColor="#ff3b5b"; c.shadowBlur=12; c.fillRect(x-sz,it.y-sz,sz*2,sz*2); c.shadowBlur=0; }
       else if(it.type==="chip"){ c.fillStyle="#19ff85"; c.shadowColor="#19ff85"; c.shadowBlur=12; this.diamond(x,it.y,sz); c.shadowBlur=0; }
       else if(it.type==="x2"){ c.fillStyle="#ffd23f"; c.shadowColor="#ffd23f"; c.shadowBlur=16; this.diamond(x,it.y,sz*1.15); c.shadowBlur=0; lab("x2",x,it.y,sz); }
