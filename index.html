@@ -358,8 +358,8 @@
   #gameFs{position:fixed;inset:0;z-index:120;background:#020a06;display:none}
   #gameFs.open{display:block}
   #gameFs #gameCanvas{position:absolute;inset:0;width:100%;height:100%;display:block;background:#04110a;touch-action:none}
-  .game-top{position:absolute;top:0;left:0;right:0;display:flex;justify-content:space-between;align-items:flex-start;padding:max(10px,env(safe-area-inset-top)) 12px 0;z-index:2;pointer-events:none}
-  .game-top .btn{pointer-events:auto}
+  .game-top{position:absolute;top:0;left:0;right:0;display:flex;justify-content:space-between;align-items:flex-start;padding:max(10px,env(safe-area-inset-top)) 12px 0;z-index:5;pointer-events:none}
+  .game-top .btn{pointer-events:auto;background:rgba(0,0,0,0.4)}
   #gameScores{display:flex;gap:14px;font-weight:900;font-size:17px;text-shadow:0 0 8px currentColor}
   .game-overlay{position:absolute;inset:0;z-index:3;display:flex;flex-direction:column;align-items:center;justify-content:center;background:rgba(0,0,0,0.7);gap:8px;text-align:center;padding:16px}
   .game-overlay.hide{display:none}
@@ -783,8 +783,10 @@
       <button class="btn btn-primary game-pc" data-pc="2">2 Jugadores</button>
       <button class="btn btn-primary game-pc" data-pc="3">3 Jugadores</button>
     </div>
+    <div id="gameWins" style="font-size:13px;color:var(--cyan)"></div>
     <div id="gameBoard" style="margin-top:6px;font-size:12px;text-align:left;max-width:280px"></div>
-    <div style="font-size:11px;color:var(--muted);margin-top:6px;max-width:300px">P1 <b style="color:#19ff85">A/D</b> · P2 <b style="color:#2f9bff">← →</b> · P3 <b style="color:#ffc24b">4/6</b> · móvil: toca los lados (P1) · recoge 🔶 datos y ⭐ x2</div>
+    <div style="font-size:11px;color:var(--muted);margin-top:6px;max-width:320px">P1 <b style="color:#19ff85">A/D</b> · P2 <b style="color:#2f9bff">← →</b> · P3 <b style="color:#ffd23f">4/6</b> · móvil: toca los lados (P1)<br>🔶 datos · ⭐ x2 · 🛡️ escudo · 🧲 imán · 🟥 evita</div>
+    <button class="btn btn-ghost" id="gameExit2" style="margin-top:8px">✕ Salir</button>
   </div>
 </div>
 
@@ -1776,21 +1778,36 @@ $("clfBg").addEventListener("click", e=>{ if(e.target===$("clfBg")) $("clfBg").c
 /* ============ JUEGO: EDTU RUSH (pantalla completa · 6 carriles · hasta 3 jugadores) ============ */
 const LANES = 6;
 const PLAYER_CFG = [ {color:"#19ff85"}, {color:"#2f9bff"}, {color:"#ffd23f"} ];
+const SFX = {
+  ctx:null,
+  ensure(){ if(!this.ctx){ const AC=window.AudioContext||window.webkitAudioContext; if(AC) this.ctx=new AC(); } if(this.ctx&&this.ctx.state==="suspended") this.ctx.resume().catch(()=>{}); return this.ctx; },
+  beep(freq,dur,type,vol){ const c=this.ensure(); if(!c) return; const o=c.createOscillator(),g=c.createGain(); o.type=type||"square"; o.frequency.value=freq; o.connect(g); g.connect(c.destination); const t=c.currentTime; g.gain.setValueAtTime(0.0001,t); g.gain.exponentialRampToValueAtTime(vol||0.13,t+0.01); g.gain.exponentialRampToValueAtTime(0.0001,t+(dur||0.12)); o.start(t); o.stop(t+(dur||0.12)+0.03); },
+  chip(){ this.beep(680,0.07,"square",0.1); },
+  power(){ this.beep(880,0.09,"triangle",0.15); setTimeout(()=>this.beep(1320,0.11,"triangle",0.12),60); },
+  crash(){ this.beep(130,0.32,"sawtooth",0.2); }
+};
 const Game = {
   cv:null, ctx:null, raf:null, running:false, W:0, H:0,
   players:[], items:[], dist:0, speed:0, spawn:0, last:0, best:0,
   laneX(i){ return this.W*((i+0.5)/LANES); },
+  loadWins(){ try{ return JSON.parse(localStorage.getItem("edtu_game_wins"))||[0,0,0]; }catch(e){ return [0,0,0]; } },
+  saveWins(w){ localStorage.setItem("edtu_game_wins", JSON.stringify(w)); },
   resize(){ if(!this.cv) return; this.W=this.cv.clientWidth||this.cv.parentElement.clientWidth; this.H=this.cv.clientHeight||window.innerHeight; this.cv.width=this.W; this.cv.height=this.H; },
   open(){
     this.cv=$("gameCanvas"); this.ctx=this.cv.getContext("2d");
     this.best=parseInt(localStorage.getItem("edtu_game_best")||"0",10);
     $("gameMsg").textContent="🎮 EDTU RUSH"; $("gameOverScores").innerHTML=""; $("gameScores").innerHTML="";
+    this.renderWins();
     $("gameOverlay").classList.remove("hide");
     $("gameFs").classList.add("open");
     this.players=[]; this.items=[];
     setTimeout(()=>{ this.resize(); this.drawIdle(); }, 30);
     Cloud.fetchMyScore(currentKey()).then(b=>{ if(b&&b>this.best){ this.best=b; localStorage.setItem("edtu_game_best",b); this.loadBoard(); } });
     this.loadBoard();
+  },
+  renderWins(){
+    const w=this.loadWins();
+    $("gameWins").innerHTML = (w[0]||w[1]||w[2]) ? "VICTORIAS · "+[0,1,2].map(i=>`<span style="color:${PLAYER_CFG[i].color}">P${i+1}:${w[i]||0}</span>`).join("  ") : "";
   },
   async loadBoard(){
     const rows=await Cloud.fetchTopScores();
@@ -1800,10 +1817,11 @@ const Game = {
   },
   drawIdle(){ const c=this.ctx; if(!c) return; c.fillStyle="#04110a"; c.fillRect(0,0,this.W,this.H); },
   start(count){
+    SFX.ensure();
     this.resize();
     const startLanes=[1,4,2];
     this.players=[];
-    for(let i=0;i<count;i++) this.players.push({ idx:i, lane:startLanes[i], score:0, alive:true, color:PLAYER_CFG[i].color, multUntil:0 });
+    for(let i=0;i<count;i++) this.players.push({ idx:i, lane:startLanes[i], vx:startLanes[i], score:0, alive:true, color:PLAYER_CFG[i].color, multUntil:0, magnetUntil:0, shield:false });
     this.items=[]; this.dist=0; this.speed=3.2; this.spawn=0;
     this.running=true; $("gameOverlay").classList.add("hide");
     if($("gameFs").requestFullscreen){ $("gameFs").requestFullscreen().catch(()=>{}); }
@@ -1820,54 +1838,72 @@ const Game = {
     const now=performance.now();
     this.speed += 0.0026*dt;
     this.dist += this.speed*dt;
-    this.players.forEach(p=>{ if(p.alive) p.score += this.speed*dt*0.1*(now<p.multUntil?2:1); });
+    this.players.forEach(p=>{
+      if(p.alive) p.score += this.speed*dt*0.1*(now<p.multUntil?2:1);
+      p.vx += (p.lane - p.vx) * Math.min(1, 0.28*dt);   // deslizamiento suave (no afecta velocidad)
+    });
     this.spawn -= dt;
     if(this.spawn<=0){
       this.spawn = Math.max(10, 40 - this.speed*1.8);
       const r=Math.random();
-      const type = r<0.6 ? "obstacle" : (r<0.92 ? "chip" : "x2");
+      const type = r<0.58 ? "obstacle" : r<0.84 ? "chip" : r<0.92 ? "x2" : r<0.96 ? "shield" : "magnet";
       this.items.push({ lane:Math.floor(Math.random()*LANES), y:-30, type });
     }
     const py=this.H-64;
     for(let i=this.items.length-1;i>=0;i--){
       const it=this.items[i]; it.y += this.speed*3.2*dt;
       if(Math.abs(it.y-py)<30){
-        const hitters=this.players.filter(p=>p.alive && p.lane===it.lane);
-        if(hitters.length){
-          if(it.type==="obstacle"){ hitters.forEach(p=>p.alive=false); }
-          else if(it.type==="chip"){ hitters.forEach(p=>{ p.score += (now<p.multUntil?30:15); }); this.items.splice(i,1); continue; }
-          else { hitters.forEach(p=>{ p.score+=25; p.multUntil=now+6000; }); this.items.splice(i,1); continue; }
+        if(it.type==="obstacle"){
+          const dead=[];
+          this.players.forEach(p=>{ if(p.alive && p.lane===it.lane){ if(p.shield){ p.shield=false; } else { p.alive=false; dead.push(p); } } });
+          if(dead.length) SFX.crash();
+        }else{
+          const reach=p=> p.alive && (p.lane===it.lane || (p.magnetUntil>now && Math.abs(p.lane-it.lane)<=1));
+          const got=this.players.filter(reach);
+          if(got.length){
+            if(it.type==="chip"){ got.forEach(p=>p.score += (now<p.multUntil?30:15)); SFX.chip(); }
+            else if(it.type==="x2"){ got.forEach(p=>{ p.score+=25; p.multUntil=now+6000; }); SFX.power(); }
+            else if(it.type==="shield"){ got.forEach(p=>p.shield=true); SFX.power(); }
+            else { got.forEach(p=>p.magnetUntil=now+6000); SFX.power(); }
+            this.items.splice(i,1); continue;
+          }
         }
       }
       if(it.y>this.H+30) this.items.splice(i,1);
     }
     if(!this.players.some(p=>p.alive)){ this.gameOver(); return; }
-    $("gameScores").innerHTML = this.players.map((p,i)=>`<span style="color:${p.color};opacity:${p.alive?1:.4}">${Math.floor(p.score)}${(now<p.multUntil)?"⭐":""}</span>`).join("");
+    $("gameScores").innerHTML = this.players.map(p=>`<span style="color:${p.color};opacity:${p.alive?1:.4}">${Math.floor(p.score)}${p.shield?"🛡":""}${p.magnetUntil>now?"🧲":""}${now<p.multUntil?"⭐":""}</span>`).join("");
   },
   draw(){
-    const c=this.ctx; c.fillStyle="#04110a"; c.fillRect(0,0,this.W,this.H);
+    const c=this.ctx, now=performance.now(); c.fillStyle="#04110a"; c.fillRect(0,0,this.W,this.H);
     c.strokeStyle="rgba(25,255,133,0.16)"; c.lineWidth=2;
     const off=(this.dist*3.2)%44;
     for(let i=0;i<LANES;i++){ const x=this.laneX(i); for(let y=-44+off;y<this.H;y+=44){ c.beginPath(); c.moveTo(x,y); c.lineTo(x,y+20); c.stroke(); } }
     const sz=Math.min(28, this.W/LANES*0.4);
+    const lab=(t,x,y,s)=>{ c.fillStyle="#000"; c.font="bold "+Math.round(s*0.8)+"px Arial"; c.textAlign="center"; c.textBaseline="middle"; c.fillText(t,x,y+1); };
     this.items.forEach(it=>{
       const x=this.laneX(it.lane);
       if(it.type==="obstacle"){ c.fillStyle="#ff3b5b"; c.shadowColor="#ff3b5b"; c.shadowBlur=12; c.fillRect(x-sz,it.y-sz,sz*2,sz*2); c.shadowBlur=0; }
       else if(it.type==="chip"){ c.fillStyle="#19ff85"; c.shadowColor="#19ff85"; c.shadowBlur=12; this.diamond(x,it.y,sz); c.shadowBlur=0; }
-      else { c.fillStyle="#ffd23f"; c.shadowColor="#ffd23f"; c.shadowBlur=18; this.diamond(x,it.y,sz*1.15); c.shadowBlur=0; c.fillStyle="#000"; c.font="bold "+Math.round(sz*0.9)+"px Arial"; c.textAlign="center"; c.textBaseline="middle"; c.fillText("x2",x,it.y+1); }
+      else if(it.type==="x2"){ c.fillStyle="#ffd23f"; c.shadowColor="#ffd23f"; c.shadowBlur=16; this.diamond(x,it.y,sz*1.15); c.shadowBlur=0; lab("x2",x,it.y,sz); }
+      else if(it.type==="shield"){ c.fillStyle="#2fd0ff"; c.shadowColor="#2fd0ff"; c.shadowBlur=16; this.diamond(x,it.y,sz*1.1); c.shadowBlur=0; lab("🛡",x,it.y,sz); }
+      else { c.fillStyle="#b06bff"; c.shadowColor="#b06bff"; c.shadowBlur=16; this.diamond(x,it.y,sz*1.1); c.shadowBlur=0; lab("🧲",x,it.y,sz); }
     });
     const py=this.H-64;
     this.players.forEach(p=>{
-      const x=this.laneX(p.lane);
+      const x=this.laneX(p.vx);
+      if(p.magnetUntil>now){ c.strokeStyle="#b06bff"; c.lineWidth=3; c.globalAlpha=0.55; c.beginPath(); c.arc(x,py,sz*1.9,0,7); c.stroke(); c.globalAlpha=1; }
       c.globalAlpha=p.alive?1:0.3; c.fillStyle=p.color; c.shadowColor=p.color; c.shadowBlur=16;
       c.beginPath(); c.moveTo(x,py-sz); c.lineTo(x+sz,py+sz); c.lineTo(x-sz,py+sz); c.closePath(); c.fill();
-      c.shadowBlur=0; c.globalAlpha=1;
+      c.shadowBlur=0;
+      if(p.shield){ c.strokeStyle="#2fd0ff"; c.lineWidth=3; c.beginPath(); c.arc(x,py,sz*1.5,0,7); c.stroke(); }
+      c.globalAlpha=1;
     });
   },
   diamond(x,y,s){ const c=this.ctx; c.beginPath(); c.moveTo(x,y-s); c.lineTo(x+s,y); c.lineTo(x,y+s); c.lineTo(x-s,y); c.closePath(); c.fill(); },
   move(pi,d){ if(!this.running) return; const p=this.players[pi]; if(p&&p.alive) p.lane=Math.max(0,Math.min(LANES-1,p.lane+d)); },
   gameOver(){
-    this.running=false;
+    this.running=false; SFX.crash();
     const maxScore=Math.max(0,...this.players.map(p=>Math.floor(p.score)));
     if(maxScore>this.best){
       this.best=maxScore; localStorage.setItem("edtu_game_best",this.best);
@@ -1875,6 +1911,8 @@ const Game = {
       setTimeout(()=>this.loadBoard(), 400);
     } else this.loadBoard();
     let win=null; this.players.forEach(p=>{ if(!win||p.score>win.score) win=p; });
+    if(this.players.length>1 && win){ const w=this.loadWins(); w[win.idx]=(w[win.idx]||0)+1; this.saveWins(w); }
+    this.renderWins();
     $("gameMsg").innerHTML='<span style="color:var(--red)">FIN DE LA PARTIDA</span>';
     $("gameOverScores").innerHTML = this.players.map((p,i)=>`<div style="color:${p.color}">P${i+1}: <b>${Math.floor(p.score)}</b></div>`).join("") + ((this.players.length>1&&win)?`<div style="margin-top:4px;color:var(--cyan)">🏆 Gana el Jugador ${win.idx+1}</div>`:"");
     $("gameOverlay").classList.remove("hide");
@@ -1883,6 +1921,7 @@ const Game = {
 };
 $("gameBtn").onclick   = ()=>Game.open();
 $("gameClose").onclick = ()=>Game.close();
+$("gameExit2").onclick = ()=>Game.close();
 document.querySelectorAll(".game-pc").forEach(b=>b.onclick=()=>Game.start(parseInt(b.dataset.pc,10)));
 window.addEventListener("resize", ()=>{ if($("gameFs").classList.contains("open")) Game.resize(); });
 $("gameCanvas").addEventListener("pointerdown", e=>{ const r=e.currentTarget.getBoundingClientRect(); Game.move(0,(e.clientX-r.left) < r.width/2 ? -1 : 1); });
