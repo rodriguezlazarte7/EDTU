@@ -76,12 +76,20 @@ create table if not exists public.access_log (
   created_at timestamptz default now()
 );
 
+create table if not exists public.game_scores (
+  user_key  text primary key,
+  name      text,
+  best      int default 0,
+  updated_at timestamptz default now()
+);
+
 -- 2) RLS (Row Level Security) --------------------------------
 alter table public.app_config     enable row level security;
 alter table public.missions       enable row level security;
 alter table public.agents         enable row level security;
 alter table public.chat_messages  enable row level security;
 alter table public.access_log     enable row level security;
+alter table public.game_scores    enable row level security;
 
 -- 3) POLÍTICAS — acceso abierto (login por PIN, sin Supabase Auth)
 --    ⚠️ Cualquiera con la clave publicable puede leer/escribir.
@@ -91,12 +99,14 @@ drop policy if exists edtu_all on public.missions;
 drop policy if exists edtu_all on public.agents;
 drop policy if exists edtu_all on public.chat_messages;
 drop policy if exists edtu_all on public.access_log;
+drop policy if exists edtu_all on public.game_scores;
 
 create policy edtu_all on public.app_config    for all to anon, authenticated using (true) with check (true);
 create policy edtu_all on public.missions      for all to anon, authenticated using (true) with check (true);
 create policy edtu_all on public.agents        for all to anon, authenticated using (true) with check (true);
 create policy edtu_all on public.chat_messages for all to anon, authenticated using (true) with check (true);
 create policy edtu_all on public.access_log    for all to anon, authenticated using (true) with check (true);
+create policy edtu_all on public.game_scores   for all to anon, authenticated using (true) with check (true);
 
 -- 4) REALTIME (actualización en vivo entre dispositivos) -----
 do $$ begin alter publication supabase_realtime add table public.missions;      exception when duplicate_object then null; end $$;
