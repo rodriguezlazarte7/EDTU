@@ -1808,7 +1808,7 @@ $("clfBg").addEventListener("click", e=>{ if(e.target===$("clfBg")) $("clfBg").c
 /* ============ JUEGO: EDTU RUSH (pantalla completa · 8 carriles · hasta 4 jugadores) ============ */
 const LANES = 8;
 const PLAYER_CFG = [ {color:"#19ff85"}, {color:"#2f9bff"}, {color:"#ffd23f"}, {color:"#ff5ba8"} ];
-const DIFF = { easy:{speed:2.4,ramp:0.0018,spawn:44}, normal:{speed:3.2,ramp:0.0026,spawn:40}, expert:{speed:4.4,ramp:0.0034,spawn:34} };
+const DIFF = { easy:{speed:1.6,ramp:0.00028,spawn:56,cap:5.5}, normal:{speed:2.2,ramp:0.0005,spawn:50,cap:6.5}, expert:{speed:3.0,ramp:0.0009,spawn:44,cap:8} };
 const LEVEL_DUR = 204000;  // 3 min 24 s por nivel (en ms)
 const MAX_LEVEL = 77;
 const SKINS = [ {name:"Hexágono",req:0,shape:"hex"}, {name:"Octágono",req:400,shape:"oct"}, {name:"Estrella",req:1000,shape:"star"}, {name:"Rombo",req:2000,shape:"diamond"} ];
@@ -1941,6 +1941,7 @@ const Game = {
     const now=performance.now();
     const slow = now<this.slowUntil ? 0.5 : 1;
     this.speed += DIFF[this.diff].ramp*dt;
+    if(this.speed > DIFF[this.diff].cap) this.speed = DIFF[this.diff].cap;   // tope de velocidad
     const eff = this.speed*slow;
     this.dist += eff*dt;
     this.players.forEach(p=>{
@@ -1950,9 +1951,9 @@ const Game = {
     });
     this.spawn -= dt;
     if(this.spawn<=0){
-      this.spawn = Math.max(9, DIFF[this.diff].spawn - this.speed*1.8);
+      this.spawn = Math.max(16, DIFF[this.diff].spawn - this.speed*1.4);
       const r=Math.random();
-      const type = r<0.5?"obstacle": r<0.74?"chip": r<0.80?"x2": r<0.84?"x3": r<0.89?"shield": r<0.92?"life": r<0.97?"magnet": r<0.99?"bomb":"slow";
+      const type = r<0.4?"obstacle": r<0.68?"chip": r<0.75?"x2": r<0.79?"x3": r<0.86?"shield": r<0.91?"life": r<0.96?"magnet": r<0.985?"bomb":"slow";
       const ln=Math.floor(Math.random()*LANES);
       this.items.push({ lane:ln, fx:ln, y:-30, type });
     }
@@ -2038,7 +2039,7 @@ const Game = {
     if(this.level>=MAX_LEVEL){ this.gameWin(); return; }
     this.level++;
     this.levelStart=performance.now();
-    this.speed += 0.5;                 // sube la dificultad cada nivel
+    this.speed += 0.1;                 // sube muy poco la dificultad por nivel
     Music.start();                     // reproduce The Mandalorian al arrancar el nivel
     SFX.power();
     toast("▶ NIVEL "+this.level+" / "+MAX_LEVEL);
