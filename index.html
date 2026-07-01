@@ -362,6 +362,10 @@
   .game-top .btn{pointer-events:auto;background:rgba(0,0,0,0.4)}
   #gameScores{display:flex;gap:14px;font-weight:900;font-size:17px;text-shadow:0 0 8px currentColor}
   #gameLevel{color:var(--cyan);font-weight:800;font-size:14px;text-shadow:0 0 8px var(--cyan);white-space:nowrap}
+  #levelBanner{position:absolute;inset:0;z-index:4;display:none;align-items:center;justify-content:center;pointer-events:none}
+  #levelBanner.show{display:flex}
+  #levelBanner .lb-text{font-family:"Consolas",ui-monospace,monospace;font-weight:900;font-size:clamp(24px,7vw,56px);color:#19ff85;text-shadow:0 0 16px #19ff85,0 0 44px rgba(25,255,133,0.7);letter-spacing:.08em;text-align:center;line-height:1.15;animation:lbpop .55s cubic-bezier(.2,1.5,.4,1)}
+  @keyframes lbpop{0%{transform:scale(.3) rotate(-6deg);opacity:0}55%{transform:scale(1.18) rotate(2deg)}100%{transform:scale(1) rotate(0);opacity:1}}
   .game-overlay{position:absolute;inset:0;z-index:3;display:flex;flex-direction:column;align-items:center;justify-content:center;background:rgba(0,0,0,0.7);gap:8px;text-align:center;padding:16px}
   .game-overlay.hide{display:none}
   #gameMsg{font-weight:900;letter-spacing:.08em;color:var(--cyan);font-size:22px;line-height:1.3}
@@ -792,6 +796,7 @@
     <div id="gameLevel"></div>
     <button class="btn btn-ghost btn-sm" id="gameClose">✕ Salir</button>
   </div>
+  <div id="levelBanner"><div class="lb-text">✅ NIVEL COMPLETADO</div></div>
   <div id="gameOverlay" class="game-overlay">
     <div id="gameMsg">🎮 EDTU RUSH</div>
     <div id="gameOverScores" style="font-size:14px"></div>
@@ -1861,8 +1866,11 @@ const Game = {
   diff: localStorage.getItem("edtu_game_diff")||"normal",
   coop: localStorage.getItem("edtu_game_mode")==="coop",
   skin: parseInt(localStorage.getItem("edtu_game_skin")||"0",10),
-  slowUntil:0, gpPrev:{},
+  slowUntil:0, gpPrev:{}, confetti:[], paused:false,
   laneX(i){ return this.W*((i+0.5)/LANES); },
+  spawnConfetti(){ this.confetti=[]; const cx=this.W/2, cols=["#19ff85","#2f9bff","#ffd23f","#ff5ba8","#ff8c1a","#2fd0ff"]; for(let i=0;i<90;i++){ this.confetti.push({ x:cx+(Math.random()-0.5)*this.W*0.6, y:this.H*0.32+(Math.random()-0.5)*90, vx:(Math.random()-0.5)*9, vy:-5-Math.random()*7, life:1, color:cols[i%cols.length] }); } },
+  updateConfetti(dt){ this.confetti.forEach(p=>{ p.x+=p.vx*dt; p.y+=p.vy*dt; p.vy+=0.35*dt; p.life-=0.011*dt; }); this.confetti=this.confetti.filter(p=>p.life>0 && p.y<this.H+40); },
+  drawConfetti(){ const c=this.ctx; this.confetti.forEach(p=>{ c.globalAlpha=Math.max(0,p.life); c.fillStyle=p.color; c.fillRect(p.x-4,p.y-4,8,8); }); c.globalAlpha=1; },
   loadWins(){ try{ return JSON.parse(localStorage.getItem("edtu_game_wins"))||[0,0,0,0]; }catch(e){ return [0,0,0,0]; } },
   saveWins(w){ localStorage.setItem("edtu_game_wins", JSON.stringify(w)); },
   resize(){ if(!this.cv) return; this.W=this.cv.clientWidth||this.cv.parentElement.clientWidth; this.H=this.cv.clientHeight||window.innerHeight; this.cv.width=this.W; this.cv.height=this.H; },
@@ -1904,6 +1912,7 @@ const Game = {
     for(let i=0;i<count;i++) this.players.push({ idx:i, lane:startLanes[i], vx:startLanes[i], score:0, alive:true, color:PLAYER_CFG[i].color, mult:1, multUntil:0, magnetUntil:0, shield:false, lives:0 });
     this.items=[]; this.dist=0; this.speed=DIFF[this.diff].speed; this.spawn=0; this.slowUntil=0; this.gpPrev={};
     this.level=1; this.levelStart=performance.now();
+    this.paused=false; this.confetti=[]; $("levelBanner").classList.remove("show");
     this.running=true; $("gameOverlay").classList.add("hide");
     ginc("edtu_game_games");
     if($("gameFs").requestFullscreen){ $("gameFs").requestFullscreen().catch(()=>{}); }
@@ -1938,6 +1947,7 @@ const Game = {
     if(gp && gp.vibrationActuator && gp.vibrationActuator.playEffect){ gp.vibrationActuator.playEffect("dual-rumble",{duration:250,strongMagnitude:0.8,weakMagnitude:0.5}).catch(()=>{}); }
   },
   update(dt){
+    if(this.paused){ this.updateConfetti(dt); return; }
     const now=performance.now();
     const slow = now<this.slowUntil ? 0.5 : 1;
     this.speed += DIFF[this.diff].ramp*dt;
@@ -2026,6 +2036,7 @@ const Game = {
       if(p.shield){ c.strokeStyle="#2fd0ff"; c.lineWidth=3; c.beginPath(); c.arc(x,py,sz*1.7,0,7); c.stroke(); }
       c.globalAlpha=1;
     });
+    this.drawConfetti();
   },
   diamond(x,y,s){ const c=this.ctx; c.beginPath(); c.moveTo(x,y-s); c.lineTo(x+s,y); c.lineTo(x,y+s); c.lineTo(x-s,y); c.closePath(); c.fill(); },
   playerPath(shape,x,y,s){
@@ -2037,12 +2048,23 @@ const Game = {
   move(pi,d){ if(!this.running) return; const p=this.players[pi]; if(p&&p.alive) p.lane=Math.max(0,Math.min(LANES-1,p.lane+d)); },
   nextLevel(){
     if(this.level>=MAX_LEVEL){ this.gameWin(); return; }
+    const done=this.level;
     this.level++;
-    this.levelStart=performance.now();
     this.speed += 0.1;                 // sube muy poco la dificultad por nivel
-    Music.start();                     // reproduce The Mandalorian al arrancar el nivel
-    SFX.power();
-    toast("▶ NIVEL "+this.level+" / "+MAX_LEVEL);
+    this.paused=true;                  // congela mientras muestra el efecto
+    this.spawnConfetti();
+    levelUpSound();
+    if(navigator.vibrate){ try{ navigator.vibrate([60,40,60,40,140]); }catch(e){} }
+    $("levelBanner").querySelector(".lb-text").innerHTML = "✅ NIVEL "+done+"<br>COMPLETADO";
+    $("levelBanner").classList.add("show");
+    setTimeout(()=>{
+      $("levelBanner").classList.remove("show");
+      this.confetti=[]; this.paused=false;
+      if(!this.running) return;        // si salió durante el efecto, no reanudar
+      this.levelStart=performance.now();
+      Music.start();                   // reproduce The Mandalorian al arrancar el nuevo nivel
+      toast("▶ NIVEL "+this.level+" / "+MAX_LEVEL);
+    }, 1700);
   },
   gameWin(){
     this.running=false; Music.stop(); approveSound(); $("gameLevel").innerHTML=""; $("gameScores").innerHTML="";
@@ -2074,7 +2096,7 @@ const Game = {
     this.renderWins();
     $("gameOverlay").classList.remove("hide");
   },
-  close(){ this.running=false; Music.stop(); if(this.raf) cancelAnimationFrame(this.raf); if(document.fullscreenElement){ document.exitFullscreen().catch(()=>{}); } $("gameFs").classList.remove("open"); }
+  close(){ this.running=false; this.paused=false; Music.stop(); $("levelBanner").classList.remove("show"); if(this.raf) cancelAnimationFrame(this.raf); if(document.fullscreenElement){ document.exitFullscreen().catch(()=>{}); } $("gameFs").classList.remove("open"); }
 };
 $("gameBtn").onclick   = ()=>Game.open();
 $("gameClose").onclick = ()=>Game.close();
@@ -2611,6 +2633,20 @@ function playApprove(){
   if(a && a.src){ try{ a.currentTime=0; const p=a.play(); if(p){ used=true; if(p.catch) p.catch(()=>approveSound()); } }catch(e){ used=false; } }
   if(!used) approveSound();
   setTimeout(()=>{ if(a){ try{ a.pause(); }catch(e){} } }, 1600);
+}
+// Jingle triunfal de nivel completado.
+function levelUpSound(){
+  try{
+    const AC=window.AudioContext||window.webkitAudioContext; if(!AC) return;
+    const ctx=new AC(); const master=ctx.createGain(); master.gain.value=0.18; master.connect(ctx.destination);
+    [523.25,659.25,783.99,1046.5,1318.5].forEach((f,i)=>{
+      const o=ctx.createOscillator(), g=ctx.createGain(); o.type="square"; o.frequency.value=f; o.connect(g); g.connect(master);
+      const s=ctx.currentTime+i*0.085, e=s+0.16;
+      g.gain.setValueAtTime(0.0001,s); g.gain.exponentialRampToValueAtTime(1,s+0.01); g.gain.exponentialRampToValueAtTime(0.0001,e);
+      o.start(s); o.stop(e+0.02);
+    });
+    setTimeout(()=>{ try{ctx.close();}catch(e){} }, 900);
+  }catch(e){}
 }
 function accessGranted(user){
   const ov=$("accessOverlay");
