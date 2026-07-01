@@ -895,6 +895,7 @@
 <!-- Overlay de acceso concedido -->
 <div id="accessOverlay"><div class="ao-text">PROCESSING</div></div>
 <div id="denyOverlay"><div class="deny-text">⛔ ACCESO DENEGADO</div></div>
+<audio id="alarmAudio" src="alarm.mp3" preload="auto"></audio>
 
 <div class="toast" id="toast"></div>
 
@@ -2578,7 +2579,14 @@ function alarmSound(){
 function accessDenied(){
   const ov=$("denyOverlay");
   ov.classList.add("show");
-  alarmSound();
+  // usa tu archivo alarm.mp3 si existe; si no, la alarma sintetizada
+  const a=$("alarmAudio");
+  let usedFile=false;
+  if(a && a.src){
+    try{ a.currentTime=0; const p=a.play(); if(p){ usedFile=true; if(p.catch) p.catch(()=>alarmSound()); } }catch(e){ usedFile=false; }
+  }
+  if(!usedFile) alarmSound();
+  setTimeout(()=>{ if(a){ try{ a.pause(); }catch(e){} } }, 1400);   // corta a ~1.4 s
   if(navigator.vibrate){ try{ navigator.vibrate([120,60,120,60,120]); }catch(e){} }
   clearTimeout(ov._t); ov._t=setTimeout(()=>ov.classList.remove("show"), 1100);
 }
