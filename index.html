@@ -384,6 +384,16 @@
     animation:aoflicker 0.12s steps(2,start) infinite;
   }
   @keyframes aoflicker{50%{opacity:.82}}
+  /* ---- ACCESO DENEGADO ---- */
+  #denyOverlay{position:fixed;inset:0;z-index:210;display:none;align-items:center;justify-content:center;background:#000}
+  #denyOverlay.show{display:flex;animation:denyflash 0.16s steps(2,start) infinite}
+  @keyframes denyflash{50%{background:#1c0000}}
+  #denyOverlay .deny-text{
+    font-family:"Consolas",ui-monospace,monospace;color:#ff2b3d;font-size:clamp(20px,6vw,42px);
+    font-weight:900;letter-spacing:.16em;text-align:center;text-shadow:0 0 12px #ff2b3d,0 0 34px rgba(255,43,61,0.7);
+    animation:denyshake .1s infinite;
+  }
+  @keyframes denyshake{0%,100%{transform:translateX(0)}25%{transform:translateX(-5px)}75%{transform:translateX(5px)}}
 
   /* ---------- BASE TÁCTIL (móvil/tablet) ---------- */
   html{-webkit-text-size-adjust:100%}
@@ -884,6 +894,7 @@
 
 <!-- Overlay de acceso concedido -->
 <div id="accessOverlay"><div class="ao-text">PROCESSING</div></div>
+<div id="denyOverlay"><div class="deny-text">⛔ ACCESO DENEGADO</div></div>
 
 <div class="toast" id="toast"></div>
 
@@ -1126,11 +1137,11 @@ function attemptLogin(){
   // 2) PIN de algún agente
   const ag = agents.find(a=> a.pin && a.pin===val);
   if(ag){
-    if(ag.blocked){ lockError("AGENTE BLOQUEADO · acceso revocado"); $("pinInput").value=""; return; }
+    if(ag.blocked){ lockError("AGENTE BLOQUEADO · acceso revocado"); $("pinInput").value=""; accessDenied(); return; }
     proceedLogin({type:"agent", id:ag.id});
     return;
   }
-  lockError("ACCESO DENEGADO · PIN incorrecto"); $("pinInput").value="";
+  lockError("ACCESO DENEGADO · PIN incorrecto"); $("pinInput").value=""; accessDenied();
 }
 // PIN correcto: si el 2FA está activo, exige además la frase de voz del usuario.
 function proceedLogin(user){
@@ -1761,6 +1772,7 @@ async function clfGateSubmit(){
   }else{
     $("clfGateMsg").textContent="✖ ACCESO DENEGADO · correo o contraseña incorrectos";
     $("clfPass").value="";
+    accessDenied();
   }
 }
 function openClfPanel(){ renderClf(); $("clfBg").classList.add("open"); }
@@ -2544,6 +2556,32 @@ function accessGranted(user){
   decodeEffect(txt, "PROCESSING", 900);
   setTimeout(()=>{ ov.classList.remove("show"); txt.textContent="PROCESSING"; unlock(user); }, 1050);
 }
+// Alarma tipo klaxon (~1 s) sintetizada con Web Audio.
+function alarmSound(){
+  try{
+    const AC=window.AudioContext||window.webkitAudioContext; if(!AC) return;
+    const ctx=new AC();
+    const master=ctx.createGain(); master.gain.value=0.16; master.connect(ctx.destination);
+    const t0=ctx.currentTime;
+    for(let i=0;i<8;i++){
+      const o=ctx.createOscillator(), g=ctx.createGain();
+      o.type="sawtooth"; o.frequency.value=(i%2===0)?540:400;
+      o.connect(g); g.connect(master);
+      const s=t0+i*0.125, e=s+0.115;
+      g.gain.setValueAtTime(0.0001,s); g.gain.exponentialRampToValueAtTime(1,s+0.01); g.gain.exponentialRampToValueAtTime(0.0001,e);
+      o.start(s); o.stop(e+0.02);
+    }
+    setTimeout(()=>{ try{ctx.close();}catch(e){} }, 1300);
+  }catch(e){}
+}
+// Pantalla negra "ACCESO DENEGADO" en rojo + alarma (~1 s).
+function accessDenied(){
+  const ov=$("denyOverlay");
+  ov.classList.add("show");
+  alarmSound();
+  if(navigator.vibrate){ try{ navigator.vibrate([120,60,120,60,120]); }catch(e){} }
+  clearTimeout(ov._t); ov._t=setTimeout(()=>ov.classList.remove("show"), 1100);
+}
 function normalizePhrase(s){
   return (s||"").toLowerCase()
     .normalize("NFD").replace(/[̀-ͯ]/g,"")   // quita acentos
@@ -2609,7 +2647,8 @@ const Voice = {
       $("voiceMic").classList.remove("listening");
       if(this.listening && !this.matched){
         this.listening=false;
-        $("voiceStatus").innerHTML='<span style="color:var(--amber)">Frase no reconocida. Inténtalo de nuevo.</span>';
+        $("voiceStatus").innerHTML='<span style="color:var(--red)">Frase no reconocida.</span>';
+        accessDenied();
       }
     };
     try{ rec.start(); }
