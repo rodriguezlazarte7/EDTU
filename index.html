@@ -1979,7 +1979,7 @@ const Game = {
         }else{
           const got=this.players.filter(p=> p.alive && (p.lane===it.lane || (p.magnetUntil>now && Math.abs(p.lane-it.lane)<=1)));
           if(got.length){
-            if(it.type==="chip"){ got.forEach(p=>{ const m=now<p.multUntil?p.mult:1; p.score += 15*m; }); SFX.chip(); }
+            if(it.type==="chip"){ got.forEach(p=>{ const m=now<p.multUntil?p.mult:1; p.score += 10*m; }); SFX.chip(); }
             else if(it.type==="x2"){ got.forEach(p=>{ p.score+=25; p.mult=2; p.multUntil=now+6000; }); SFX.power(); ginc("edtu_game_pows"); }
             else if(it.type==="x3"){ got.forEach(p=>{ p.score+=40; p.mult=3; p.multUntil=now+6000; }); SFX.power(); ginc("edtu_game_pows"); }
             else if(it.type==="shield"){ got.forEach(p=>p.shield=true); SFX.power(); ginc("edtu_game_pows"); }
