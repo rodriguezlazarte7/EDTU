@@ -803,6 +803,7 @@
     <div id="gameWins" style="font-size:13px;color:var(--cyan)"></div>
     <div class="game-cfg"><span>Dificultad</span><button class="gc-opt" data-diff="easy">Fácil</button><button class="gc-opt" data-diff="normal">Normal</button><button class="gc-opt" data-diff="expert">Experto</button></div>
     <div class="game-cfg"><span>Modo</span><button class="gc-opt" data-mode="versus">Versus</button><button class="gc-opt" data-mode="coop">Co-op</button><button class="gc-opt" id="gameMusicBtn">🎵 Música</button></div>
+    <div class="game-cfg" id="gameTeams"><span>Equipos</span></div>
     <div class="game-cfg" id="gameSkins"><span>Skin</span></div>
     <div class="game-cfg" id="gameResumeRow"><span id="gameResume" style="min-width:auto;color:var(--cyan)"></span><button class="gc-opt" id="gameResetLevel">↺ Nivel 1</button></div>
     <div style="display:flex;gap:6px;flex-wrap:wrap;justify-content:center;margin-top:2px">
@@ -1818,6 +1819,8 @@ const DIFF = { easy:{speed:1.6,ramp:0.00028,spawn:56,cap:5.5}, normal:{speed:2.2
 const LEVEL_DUR = 204000;  // 3 min 24 s por nivel (en ms)
 const MAX_LEVEL = 77;
 const SKINS = [ {name:"Hexágono",req:0,shape:"hex"}, {name:"Octágono",req:400,shape:"oct"}, {name:"Estrella",req:1000,shape:"star"}, {name:"Rombo",req:2000,shape:"diamond"} ];
+const TEAM_COL = ["#2fd0ff","#ff8c1a","#b06bff","#19ff85"];
+const TEAM_LAB = ["A","B","C","D"];
 const ACHIEVEMENTS = [ {id:"first",name:"Primer despliegue"}, {id:"p500",name:"500 pts"}, {id:"p1000",name:"Leyenda 1000 pts"}, {id:"dodge100",name:"Esquiva 100 obstáculos"}, {id:"pow15",name:"15 power-ups"} ];
 function gstat(k){ return parseInt(localStorage.getItem(k)||"0",10); }
 function gset(k,v){ localStorage.setItem(k,String(v)); }
@@ -1867,8 +1870,11 @@ const Game = {
   diff: localStorage.getItem("edtu_game_diff")||"normal",
   coop: localStorage.getItem("edtu_game_mode")==="coop",
   skin: parseInt(localStorage.getItem("edtu_game_skin")||"0",10),
-  slowUntil:0, gpPrev:{}, confetti:[], paused:false,
+  slowUntil:0, gpPrev:{}, confetti:[], paused:false, boomParts:[], teamOf:[0,0,0,0],
   laneX(i){ return this.W*((i+0.5)/LANES); },
+  boom(x,y,color){ for(let i=0;i<26;i++){ const a=Math.random()*Math.PI*2, sp=2+Math.random()*6; this.boomParts.push({ x,y, vx:Math.cos(a)*sp, vy:Math.sin(a)*sp, life:1, color:i%3?color:"#ff8c1a" }); } if(navigator.vibrate){ try{navigator.vibrate(120);}catch(e){} } },
+  updateBoom(dt){ this.boomParts.forEach(p=>{ p.x+=p.vx*dt; p.y+=p.vy*dt; p.vy+=0.22*dt; p.life-=0.028*dt; }); this.boomParts=this.boomParts.filter(p=>p.life>0); },
+  drawBoom(){ const c=this.ctx; this.boomParts.forEach(p=>{ c.globalAlpha=Math.max(0,p.life); c.fillStyle=p.color; c.fillRect(p.x-3,p.y-3,6,6); }); c.globalAlpha=1; },
   spawnConfetti(){ this.confetti=[]; const cx=this.W/2, cols=["#19ff85","#2f9bff","#ffd23f","#ff5ba8","#ff8c1a","#2fd0ff"]; for(let i=0;i<90;i++){ this.confetti.push({ x:cx+(Math.random()-0.5)*this.W*0.6, y:this.H*0.32+(Math.random()-0.5)*90, vx:(Math.random()-0.5)*9, vy:-5-Math.random()*7, life:1, color:cols[i%cols.length] }); } },
   updateConfetti(dt){ this.confetti.forEach(p=>{ p.x+=p.vx*dt; p.y+=p.vy*dt; p.vy+=0.35*dt; p.life-=0.011*dt; }); this.confetti=this.confetti.filter(p=>p.life>0 && p.y<this.H+40); },
   drawConfetti(){ const c=this.ctx; this.confetti.forEach(p=>{ c.globalAlpha=Math.max(0,p.life); c.fillStyle=p.color; c.fillRect(p.x-4,p.y-4,8,8); }); c.globalAlpha=1; },
@@ -1881,6 +1887,7 @@ const Game = {
     this.cv=$("gameCanvas"); this.ctx=this.cv.getContext("2d");
     this.best=parseInt(localStorage.getItem("edtu_game_best")||"0",10);
     $("gameMsg").textContent="🎮 EDTU RUSH"; $("gameOverScores").innerHTML=""; $("gameScores").innerHTML=""; $("gameLevel").innerHTML="";
+    try{ const tt=JSON.parse(localStorage.getItem("edtu_game_teams")); if(Array.isArray(tt)) this.teamOf=tt.concat([0,0,0,0]).slice(0,4); }catch(e){}
     this.renderWins(); this.renderConfig(); this.renderSkins(); this.renderAch(); this.renderResume();
     $("gameMusicBtn").textContent = Music.on ? "🎵 Música" : "🔇 Música"; $("gameMusicBtn").classList.toggle("sel",Music.on);
     $("gameOverlay").classList.remove("hide"); $("gameFs").classList.add("open");
@@ -1892,7 +1899,17 @@ const Game = {
   renderConfig(){
     document.querySelectorAll("[data-diff]").forEach(b=>b.classList.toggle("sel", b.dataset.diff===this.diff));
     document.querySelectorAll("[data-mode]").forEach(b=>b.classList.toggle("sel", b.dataset.mode===(this.coop?"coop":"versus")));
+    this.renderTeams();
   },
+  renderTeams(){
+    const el=$("gameTeams"); if(!el) return;
+    el.style.display = this.coop ? "" : "none";
+    if(!this.coop) return;
+    el.innerHTML='<span>Equipos</span>'+[0,1,2,3].map(i=>{ const t=this.teamOf[i]||0; return `<button class="gc-opt" data-team="${i}" style="border-color:${TEAM_COL[t]};color:${TEAM_COL[t]}">P${i+1}·${TEAM_LAB[t]}</button>`; }).join("")
+      +'<span style="min-width:auto;color:var(--muted);font-size:10px">(3-4 jug.)</span>';
+    el.querySelectorAll("[data-team]").forEach(b=>b.onclick=()=>{ const i=+b.dataset.team; this.teamOf[i]=(this.teamOf[i]+1)%2; localStorage.setItem("edtu_game_teams",JSON.stringify(this.teamOf)); this.renderTeams(); });
+  },
+  revive(p){ p.alive=true; p.lives=0; p.shield=false; p.mult=1; p.multUntil=0; p.magnetUntil=0; const ln=Math.floor(LANES/2); p.lane=ln; p.vx=ln; this.boom(this.laneX(ln),this.H-64,"#19ff85"); toast("💚 P"+(p.idx+1)+" revivido por su equipo"); },
   renderSkins(){
     const el=$("gameSkins");
     el.innerHTML='<span>Skin</span>'+SKINS.map((s,i)=>{ const lk=this.best<s.req; return `<button class="gc-opt ${this.skin===i?'sel':''}" data-skin="${i}" ${lk?'disabled':''}>${lk?'🔒'+s.req:s.name}</button>`; }).join("");
@@ -1912,7 +1929,8 @@ const Game = {
     this.resize();
     const startLanes=[1,6,3,4];
     this.players=[];
-    for(let i=0;i<count;i++) this.players.push({ idx:i, lane:startLanes[i], vx:startLanes[i], score:0, alive:true, color:PLAYER_CFG[i].color, mult:1, multUntil:0, magnetUntil:0, shield:false, lives:0 });
+    for(let i=0;i<count;i++) this.players.push({ idx:i, lane:startLanes[i], vx:startLanes[i], score:0, alive:true, color:PLAYER_CFG[i].color, mult:1, multUntil:0, magnetUntil:0, shield:false, lives:0, team:(this.coop?(this.teamOf[i]||0):i) });
+    this.boomParts=[];
     this.level = (count===1) ? this.savedLevel() : 1;   // 1 jugador: continúa donde quedó
     this.items=[]; this.dist=0; this.speed=DIFF[this.diff].speed + (this.level-1)*0.1; this.spawn=0; this.slowUntil=0; this.gpPrev={};
     this.levelStart=performance.now();
@@ -1964,6 +1982,7 @@ const Game = {
       if(p.alive) p.score += eff*dt*0.1*m;
       p.vx += (p.lane-p.vx)*Math.min(1,0.28*dt);
     });
+    this.updateBoom(dt);
     this.spawn -= dt;
     if(this.spawn<=0){
       this.spawn = Math.max(16, DIFF[this.diff].spawn - this.speed*1.4);
@@ -1989,17 +2008,24 @@ const Game = {
         if(it.type==="obstacle"){
           if(!it.hit) it.hit=new Set();
           let crashed=false;
-          this.players.forEach(p=>{ if(p.alive && p.lane===it.lane && !it.hit.has(p.idx)){ it.hit.add(p.idx); if(p.shield){ p.shield=false; SFX.power(); } else if(p.lives>0){ p.lives--; SFX.power(); } else { p.alive=false; crashed=true; this.rumble(p.idx); } } });
+          this.players.forEach(p=>{ if(p.alive && p.lane===it.lane && !it.hit.has(p.idx)){ it.hit.add(p.idx); if(p.shield){ p.shield=false; SFX.power(); } else if(p.lives>0){ p.lives--; SFX.power(); } else { p.alive=false; crashed=true; this.rumble(p.idx); this.boom(this.laneX(p.lane), py, p.color); } } });
           if(crashed) SFX.crash();
         }else{
           const got=this.players.filter(p=> p.alive && (p.lane===it.lane || (p.magnetUntil>now && Math.abs(p.lane-it.lane)<=1)));
           if(got.length){
+            // En co-op el bonus se aplica a TODO el equipo (mismos team) del que lo cogió
+            const teamsHit = this.coop ? new Set(got.map(p=>p.team)) : null;
+            const targets  = this.coop ? this.players.filter(p=>p.alive && teamsHit.has(p.team)) : got;
             if(it.type==="chip"){ got.forEach(p=>{ const m=now<p.multUntil?p.mult:1; p.score += 10*m; }); SFX.chip(); }
-            else if(it.type==="x2"){ got.forEach(p=>{ p.score+=25; p.mult=2; p.multUntil=now+6000; }); SFX.power(); ginc("edtu_game_pows"); }
-            else if(it.type==="x3"){ got.forEach(p=>{ p.score+=40; p.mult=3; p.multUntil=now+6000; }); SFX.power(); ginc("edtu_game_pows"); }
-            else if(it.type==="shield"){ got.forEach(p=>p.shield=true); SFX.power(); ginc("edtu_game_pows"); }
-            else if(it.type==="life"){ got.forEach(p=>p.lives=Math.min(3,p.lives+1)); SFX.power(); ginc("edtu_game_pows"); }
-            else if(it.type==="magnet"){ got.forEach(p=>p.magnetUntil=now+6000); SFX.power(); ginc("edtu_game_pows"); }
+            else if(it.type==="x2"){ targets.forEach(p=>{ p.score+=25; p.mult=2; p.multUntil=now+6000; }); SFX.power(); ginc("edtu_game_pows"); }
+            else if(it.type==="x3"){ targets.forEach(p=>{ p.score+=40; p.mult=3; p.multUntil=now+6000; }); SFX.power(); ginc("edtu_game_pows"); }
+            else if(it.type==="shield"){ targets.forEach(p=>p.shield=true); SFX.power(); ginc("edtu_game_pows"); }
+            else if(it.type==="life"){
+              if(this.coop){ teamsHit.forEach(tm=>{ const dead=this.players.find(p=>!p.alive && p.team===tm); if(dead) this.revive(dead); else this.players.filter(p=>p.alive && p.team===tm).forEach(p=>p.lives=Math.min(3,p.lives+1)); }); }
+              else got.forEach(p=>p.lives=Math.min(3,p.lives+1));
+              SFX.power(); ginc("edtu_game_pows");
+            }
+            else if(it.type==="magnet"){ targets.forEach(p=>p.magnetUntil=now+6000); SFX.power(); ginc("edtu_game_pows"); }
             else if(it.type==="bomb"){ bomb=true; SFX.power(); ginc("edtu_game_pows"); }
             else { this.slowUntil=now+5000; SFX.power(); ginc("edtu_game_pows"); }
             this.items.splice(i,1); continue;
@@ -2013,7 +2039,17 @@ const Game = {
     if(now - this.levelStart >= LEVEL_DUR){ this.nextLevel(); if(!this.running) return; }
     const rem=Math.max(0,Math.ceil((LEVEL_DUR-(performance.now()-this.levelStart))/1000));
     $("gameLevel").innerHTML = `NIVEL <b>${this.level}</b>/${MAX_LEVEL} · ${Math.floor(rem/60)}:${String(rem%60).padStart(2,"0")}`;
-    if(this.coop){ const total=Math.floor(this.players.reduce((a,p)=>a+p.score,0)); $("gameScores").innerHTML=`<span style="color:var(--cyan)">EQUIPO ${total}</span>`; }
+    if(this.coop){
+      const teams=[...new Set(this.players.map(p=>p.team))].sort();
+      $("gameScores").innerHTML = teams.map(t=>{
+        const ps=this.players.filter(p=>p.team===t), alive=ps.filter(p=>p.alive);
+        const sc=Math.floor(ps.reduce((a,p)=>a+p.score,0));
+        const lives=alive.reduce((a,p)=>a+p.lives,0);
+        const sh=alive.some(p=>p.shield), mg=alive.some(p=>p.magnetUntil>now), ml=alive.some(p=>now<p.multUntil);
+        const lbl=teams.length>1?("EQ "+TEAM_LAB[t]):"EQUIPO";
+        return `<span style="color:${teams.length>1?TEAM_COL[t]:'var(--cyan)'};opacity:${alive.length?1:.4}">${lbl} ${sc}${sh?"🛡":""}${"❤".repeat(Math.min(9,lives))}${mg?"🧲":""}${ml?"⭐":""}</span>`;
+      }).join("");
+    }
     else $("gameScores").innerHTML = this.players.map(p=>`<span style="color:${p.color};opacity:${p.alive?1:.4}">${Math.floor(p.score)}${p.shield?"🛡":""}${"❤".repeat(p.lives)}${p.magnetUntil>now?"🧲":""}${(now<p.multUntil)?(p.mult===3?"✖3":"⭐"):""}</span>`).join("");
   },
   draw(){
@@ -2041,6 +2077,7 @@ const Game = {
       if(p.shield){ c.strokeStyle="#2fd0ff"; c.lineWidth=3; c.beginPath(); c.arc(x,py,sz*1.7,0,7); c.stroke(); }
       c.globalAlpha=1;
     });
+    this.drawBoom();
     this.drawConfetti();
   },
   diamond(x,y,s){ const c=this.ctx; c.beginPath(); c.moveTo(x,y-s); c.lineTo(x+s,y); c.lineTo(x,y+s); c.lineTo(x-s,y); c.closePath(); c.fill(); },
@@ -2093,8 +2130,15 @@ const Game = {
     if(result>this.best){ this.best=result; gset("edtu_game_best",result); Cloud.saveScore({ user_key:currentKey(), name:currentDisplayName(), best:result, updated_at:new Date().toISOString() }); setTimeout(()=>this.loadBoard(),400); } else this.loadBoard();
     checkAch(); this.renderAch(); this.renderSkins(); this.renderResume();
     if(this.coop){
-      $("gameMsg").innerHTML='<span style="color:var(--cyan)">FIN · EQUIPO</span>';
-      $("gameOverScores").innerHTML=`<div style="font-size:24px;color:var(--cyan)"><b>${result}</b> pts en equipo 🤝</div>`;
+      const teams=[...new Set(this.players.map(p=>p.team))].sort();
+      if(teams.length>1){
+        const tot=teams.map(t=>({t, s:Math.floor(this.players.filter(p=>p.team===t).reduce((a,p)=>a+p.score,0))})).sort((a,b)=>b.s-a.s);
+        $("gameMsg").innerHTML='<span style="color:var(--cyan)">FIN · BATALLA DE EQUIPOS</span>';
+        $("gameOverScores").innerHTML = tot.map(x=>`<div style="color:${TEAM_COL[x.t]}">Equipo ${TEAM_LAB[x.t]}: <b>${x.s}</b></div>`).join("")+`<div style="margin-top:4px;color:var(--green)">🏆 Gana el Equipo ${TEAM_LAB[tot[0].t]}</div>`;
+      }else{
+        $("gameMsg").innerHTML='<span style="color:var(--cyan)">FIN · EQUIPO</span>';
+        $("gameOverScores").innerHTML=`<div style="font-size:24px;color:var(--cyan)"><b>${result}</b> pts en equipo 🤝</div>`;
+      }
     }else{
       let win=null; this.players.forEach(p=>{ if(!win||p.score>win.score) win=p; });
       if(this.players.length>1 && win){ const w=this.loadWins(); w[win.idx]=(w[win.idx]||0)+1; this.saveWins(w); }
