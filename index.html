@@ -2066,18 +2066,23 @@ const Game = {
     const sky=c.createLinearGradient(0,0,0,horizon+50); sky.addColorStop(0,"#0a2418"); sky.addColorStop(1,"#04110a"); c.fillStyle=sky; c.fillRect(0,0,W,horizon+50);
     // ---- curvas de perspectiva 3D (lejos=chico en el horizonte, cerca=grande) ----
     const pw = y=>{ const t=Math.max(0,Math.min(1.12,y/camY)); return Math.pow(t,1.7); };
+    const FAR=0.4;                                        // ancho de la pista a lo lejos (no se cierra en punta)
+    const spread = y=>FAR+(1-FAR)*Math.min(1.06,pw(y));   // pista tipo trapecio, no cono
     const projY = y=>horizon+(camY-horizon)*pw(y);
-    const projX = (laneF,y)=>cx+(this.laneX(laneF)-cx)*Math.min(1.05,pw(y));
-    const scaleAt = y=>0.14+0.9*pw(y);
-    // superficie de la pista (trapecio hacia el punto de fuga)
+    const projX = (laneF,y)=>cx+(this.laneX(laneF)-cx)*spread(y);
+    const scaleAt = y=>0.2+0.84*pw(y);
+    const farHalf=(W/2)*FAR;
+    // superficie de la pista (trapecio: ancha también a lo lejos)
     const road=c.createLinearGradient(0,horizon,0,Hh); road.addColorStop(0,"#0a1f16"); road.addColorStop(1,"#03100a");
-    c.fillStyle=road; c.beginPath(); c.moveTo(0,Hh); c.lineTo(W,Hh); c.lineTo(cx+3,horizon); c.lineTo(cx-3,horizon); c.closePath(); c.fill();
-    // líneas de carril que convergen al punto de fuga
+    c.fillStyle=road; c.beginPath(); c.moveTo(0,Hh); c.lineTo(W,Hh); c.lineTo(cx+farHalf,horizon); c.lineTo(cx-farHalf,horizon); c.closePath(); c.fill();
+    // borde lejano de la pista
+    c.strokeStyle="rgba(255,255,255,0.30)"; c.lineWidth=2; c.beginPath(); c.moveTo(cx-farHalf,horizon); c.lineTo(cx+farHalf,horizon); c.stroke();
+    // líneas de carril (van a un borde ancho, no a un solo punto)
     c.strokeStyle="rgba(255,255,255,0.18)"; c.lineWidth=2;
-    for(let i=0;i<=LANES;i++){ const bx=W*(i/LANES); c.beginPath(); c.moveTo(bx,Hh); c.lineTo(cx,horizon); c.stroke(); }
+    for(let i=0;i<=LANES;i++){ const bx=W*(i/LANES), tx=cx+(bx-cx)*FAR; c.beginPath(); c.moveTo(bx,Hh); c.lineTo(tx,horizon); c.stroke(); }
     // travesaños horizontales que se acercan (sensación de velocidad)
     const scroll=(this.dist*0.7)%1;
-    for(let k=0;k<16;k++){ const yy=((k+scroll)/16)*camY, sy=projY(yy), half=(W/2)*Math.min(1.05,pw(yy)); c.globalAlpha=0.05+0.16*pw(yy); c.beginPath(); c.moveTo(cx-half,sy); c.lineTo(cx+half,sy); c.stroke(); }
+    for(let k=0;k<16;k++){ const yy=((k+scroll)/16)*camY, sy=projY(yy), half=(W/2)*spread(yy); c.globalAlpha=0.05+0.16*pw(yy); c.beginPath(); c.moveTo(cx-half,sy); c.lineTo(cx+half,sy); c.stroke(); }
     c.globalAlpha=1;
     if(now<this.slowUntil){ c.fillStyle="rgba(120,200,255,0.06)"; c.fillRect(0,0,W,Hh); }
     const sz=Math.min(24, W/LANES*0.42);
@@ -2172,17 +2177,16 @@ const Game = {
     });
     // ---- MOTORES INFERIORES ----
     [1,-1].forEach(d=>{ c.beginPath(); c.rect(Math.min(d*3,d*9),24,6,17); c.fillStyle=dark; c.fill(); c.lineWidth=2.4; c.strokeStyle=OL; c.stroke(); });
-    // ---- NARIZ + FUSELAJE (nariz chata y ancha, no cono) ----
+    // ---- NARIZ + FUSELAJE (nariz puntiaguda, como X-Wing real) ----
     c.beginPath();
-    c.moveTo(-4,-32); c.quadraticCurveTo(0,-36,4,-32);   // nariz redondeada y ancha
-    c.lineTo(8,-6); c.lineTo(12,10); c.lineTo(10,24);
+    c.moveTo(0,-46); c.lineTo(6,-6); c.lineTo(11,8); c.lineTo(10,24);
     c.quadraticCurveTo(9,30,3,30); c.lineTo(-3,30); c.quadraticCurveTo(-9,30,-10,24);
-    c.lineTo(-12,10); c.lineTo(-8,-6); c.closePath();
-    const bg=c.createLinearGradient(-13,0,13,0); bg.addColorStop(0,light); bg.addColorStop(0.5,color); bg.addColorStop(1,dark);
+    c.lineTo(-11,8); c.lineTo(-6,-6); c.closePath();
+    const bg=c.createLinearGradient(-12,0,12,0); bg.addColorStop(0,light); bg.addColorStop(0.5,color); bg.addColorStop(1,dark);
     c.shadowColor=color; c.shadowBlur=12; c.fillStyle=bg; c.fill(); c.shadowBlur=0;
     c.lineWidth=3; c.strokeStyle=OL; c.stroke();
     // arista central (brillo 3D)
-    c.beginPath(); c.moveTo(0,-32); c.lineTo(0,26); c.strokeStyle=this.tint(color,0.4); c.globalAlpha=alpha*0.55; c.lineWidth=1.6; c.stroke(); c.globalAlpha=alpha;
+    c.beginPath(); c.moveTo(0,-44); c.lineTo(0,26); c.strokeStyle=this.tint(color,0.4); c.globalAlpha=alpha*0.55; c.lineWidth=1.6; c.stroke(); c.globalAlpha=alpha;
     // ---- CABINA ----
     c.beginPath(); c.moveTo(0,-20); c.lineTo(6,-14); c.lineTo(6,-2); c.lineTo(0,3); c.lineTo(-6,-2); c.lineTo(-6,-14); c.closePath();
     c.fillStyle=this.shade(color,0.35); c.fill(); c.lineWidth=2; c.strokeStyle=OL; c.stroke();
