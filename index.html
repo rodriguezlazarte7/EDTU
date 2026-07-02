@@ -2077,7 +2077,7 @@ const Game = {
     this.players.forEach(p=>{
       const x=this.laneX(p.vx);
       if(p.magnet>0){ c.strokeStyle="#b06bff"; c.lineWidth=3; c.globalAlpha=(p.alive?1:0.3)*0.5; c.beginPath(); c.arc(x,py,sz*2,0,7); c.stroke(); c.globalAlpha=1; }
-      if(shape==="xwing"){ this.drawXwing(x,py,sz,p.color,p.alive?1:0.3); }
+      if(shape==="xwing"){ const tilt=Math.max(-0.5,Math.min(0.5,(p.lane-p.vx)*0.6)); this.drawXwing(x,py,sz*1.28,p.color,p.alive?1:0.3,tilt); }
       else { c.globalAlpha=p.alive?1:0.3; c.fillStyle=p.color; c.shadowColor=p.color; c.shadowBlur=16; this.playerPath(shape,x,py,sz); c.fill(); c.shadowBlur=0; }
       if(p.shields>0){   // escudo: aro azul + número (esquina sup-der)
         c.globalAlpha=p.alive?1:0.4; c.strokeStyle="#2fd0ff"; c.lineWidth=3; c.beginPath(); c.arc(x,py,sz*1.75,0,7); c.stroke();
@@ -2115,10 +2115,15 @@ const Game = {
   tint(h,f){ return this.mix(h,[255,255,255],f); },
   shade(h,f){ return this.mix(h,[0,0,0],f); },
   cornerBadge(bx,by,sz,num,color){ const c=this.ctx; const r=sz*0.6; c.fillStyle=color; c.shadowColor=color; c.shadowBlur=8; c.beginPath(); c.arc(bx,by,r,0,7); c.fill(); c.shadowBlur=0; c.fillStyle="#04110a"; c.font="bold "+Math.round(sz*0.72)+"px Arial"; c.textAlign="center"; c.textBaseline="middle"; c.fillText(num,bx,by+1); },
-  drawXwing(x,y,s,color,alpha){
-    const c=this.ctx; c.save(); c.globalAlpha=alpha; c.translate(x,y); const k=s/40; c.scale(k,k);
+  drawXwing(x,y,s,color,alpha,tilt){
+    const c=this.ctx; c.save(); c.globalAlpha=alpha; c.translate(x,y); if(tilt) c.rotate(tilt); const k=s/40; c.scale(k,k);
     c.lineJoin="round"; c.lineCap="round";
     const dark=this.shade(color,0.5), light=this.tint(color,0.55), root=this.shade(color,0.28), OL="#0b0f0d";
+    // ---- ESTELA DE MOTOR ----
+    const plen=(18+this.speed*7)*(1+0.15*Math.sin(performance.now()/40));
+    c.shadowColor=color; c.shadowBlur=14;
+    [6,-6].forEach(ex=>{ const g=c.createLinearGradient(0,40,0,41+plen); g.addColorStop(0,this.tint(color,0.6)); g.addColorStop(0.35,color); g.addColorStop(1,"rgba(255,255,255,0)"); c.globalAlpha=alpha*0.85; c.fillStyle=g; c.beginPath(); c.moveTo(ex-3,40); c.lineTo(ex+3,40); c.lineTo(ex+1.1,41+plen); c.lineTo(ex-1.1,41+plen); c.closePath(); c.fill(); });
+    c.shadowBlur=0; c.globalAlpha=alpha;
     // ---- ALAS + CAÑONES (detrás del fuselaje) ----
     [1,-1].forEach(d=>{
       // ala
