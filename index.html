@@ -1977,7 +1977,7 @@ const Game = {
     if(this.speed > DIFF[this.diff].cap) this.speed = DIFF[this.diff].cap;   // tope de velocidad
     const eff = this.speed*slow;
     this.dist += eff*dt;
-    const agile = (SKINS[this.skin] && SKINS[this.skin].shape==="xwing") ? 0.55 : 0.28;   // X-Wing gira más rápido
+    const agile = (SKINS[this.skin] && SKINS[this.skin].shape==="xwing") ? 0.2 : 0.28;   // X-Wing gira suave (se nota el banqueo)
     this.players.forEach(p=>{
       const m = now<p.multUntil?p.mult:1;
       if(p.alive) p.score += eff*dt*0.1*m;
@@ -2101,7 +2101,7 @@ const Game = {
       let x=this.laneX(p.vx), yy=py, ps=1;
       if(fa>0){ const t=Math.max(0.02,1-fa*fa); const kk=Math.pow(t,1.7); x=cx+(this.laneX(p.vx)-cx)*kk; yy=horizon+(py-horizon)*kk; ps=0.14+0.9*kk; }   // acelera y se pierde en el horizonte
       if(fa<=0 && p.magnet>0){ c.strokeStyle="#b06bff"; c.lineWidth=3; c.globalAlpha=(p.alive?1:0.3)*0.5; c.beginPath(); c.arc(x,py,sz*2,0,7); c.stroke(); c.globalAlpha=1; }
-      if(shape==="xwing"){ const tilt=(fa>0)?0:Math.max(-0.5,Math.min(0.5,(p.lane-p.vx)*0.6)); this.drawXwing(x,yy,sz*1.28*ps,p.color,p.alive?1:0.3,tilt); }
+      if(shape==="xwing"){ const tilt=(fa>0)?0:Math.max(-0.7,Math.min(0.7,(p.lane-p.vx)*1.05)); this.drawXwing(x,yy,sz*1.28*ps,p.color,p.alive?1:0.3,tilt); }
       else { c.globalAlpha=p.alive?1:0.3; const rs=sz*ps; const g=c.createRadialGradient(x-rs*0.35,yy-rs*0.35,rs*0.1,x,yy,rs*1.15); g.addColorStop(0,this.tint(p.color,0.5)); g.addColorStop(0.6,p.color); g.addColorStop(1,this.shade(p.color,0.4)); c.fillStyle=g; c.shadowColor=p.color; c.shadowBlur=16; this.playerPath(shape,x,yy,rs); c.fill(); c.shadowBlur=0; c.lineWidth=1.6; c.strokeStyle=this.shade(p.color,0.5); c.stroke(); }
       if(fa<=0){
         if(p.shields>0){ c.globalAlpha=p.alive?1:0.4; c.strokeStyle="#2fd0ff"; c.lineWidth=3; c.beginPath(); c.arc(x,py,sz*1.75,0,7); c.stroke(); if(p.shields>1) this.cornerBadge(x+sz*1.25, py-sz*1.25, sz, p.shields, "#2fd0ff"); }
@@ -2158,10 +2158,18 @@ const Game = {
     const c=this.ctx; c.save(); c.globalAlpha=alpha; c.translate(x,y); if(tilt) c.rotate(tilt); const k=s/40; c.scale(k,k);
     c.lineJoin="round"; c.lineCap="round";
     const dark=this.shade(color,0.5), light=this.tint(color,0.55), root=this.shade(color,0.28), OL="#0b0f0d";
-    // ---- ESTELA DE MOTOR ----
-    const plen=(18+this.speed*7)*(1+0.15*Math.sin(performance.now()/40));
-    c.shadowColor=color; c.shadowBlur=14;
-    [6,-6].forEach(ex=>{ const g=c.createLinearGradient(0,40,0,41+plen); g.addColorStop(0,this.tint(color,0.6)); g.addColorStop(0.35,color); g.addColorStop(1,"rgba(255,255,255,0)"); c.globalAlpha=alpha*0.85; c.fillStyle=g; c.beginPath(); c.moveTo(ex-3,40); c.lineTo(ex+3,40); c.lineTo(ex+1.1,41+plen); c.lineTo(ex-1.1,41+plen); c.closePath(); c.fill(); });
+    // ---- FUEGO AZUL DE MOTOR (efecto de llama) ----
+    const t0=performance.now();
+    c.shadowColor="#2f7bff"; c.shadowBlur=13;
+    const flame=[ {l:1.0, w:4.4, col:"#1e5bff"}, {l:0.68, w:3.1, col:"#3fd0ff"}, {l:0.38, w:1.9, col:"#eaf7ff"} ];
+    [6,-6].forEach((ex,ei)=>{
+      const flick=0.78+0.2*Math.sin(t0/50+ei*2)+0.12*Math.sin(t0/19+ei);   // parpadeo de llama
+      const baseLen=(22+this.speed*8)*flick;
+      const wob=Math.sin(t0/60+ei*3)*3;                                     // coletazo lateral
+      flame.forEach(F=>{ const len=baseLen*F.l; c.globalAlpha=alpha*0.9; c.fillStyle=F.col;
+        c.beginPath(); c.moveTo(ex-F.w,40); c.quadraticCurveTo(ex-F.w*0.5,40+len*0.55, ex+wob*F.l,40+len); c.quadraticCurveTo(ex+F.w*0.5,40+len*0.55, ex+F.w,40); c.closePath(); c.fill();
+      });
+    });
     c.shadowBlur=0; c.globalAlpha=alpha;
     // ---- ALAS + CAÑONES (detrás del fuselaje) ----
     [1,-1].forEach(d=>{
