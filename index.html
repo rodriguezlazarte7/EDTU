@@ -1870,7 +1870,7 @@ const Game = {
   diff: localStorage.getItem("edtu_game_diff")||"normal",
   coop: localStorage.getItem("edtu_game_mode")==="coop",
   skin: parseInt(localStorage.getItem("edtu_game_skin")||"0",10),
-  slowUntil:0, gpPrev:{}, confetti:[], paused:false, boomParts:[], teamOf:[0,0,0,0],
+  slowUntil:0, gpPrev:{}, confetti:[], paused:false, boomParts:[], teamOf:[0,0,0,0], flyAway:0,
   laneX(i){ return this.W*((i+0.5)/LANES); },
   boom(x,y,color){ for(let i=0;i<26;i++){ const a=Math.random()*Math.PI*2, sp=2+Math.random()*6; this.boomParts.push({ x,y, vx:Math.cos(a)*sp, vy:Math.sin(a)*sp, life:1, color:i%3?color:"#ff8c1a" }); } if(navigator.vibrate){ try{navigator.vibrate(120);}catch(e){} } },
   updateBoom(dt){ this.boomParts.forEach(p=>{ p.x+=p.vx*dt; p.y+=p.vy*dt; p.vy+=0.22*dt; p.life-=0.028*dt; }); this.boomParts=this.boomParts.filter(p=>p.life>0); },
@@ -1935,7 +1935,7 @@ const Game = {
     this.items=[]; this.dist=0; this.speed=DIFF[this.diff].speed + (this.level-1)*0.1; this.spawn=0; this.slowUntil=0; this.gpPrev={};
     this.levelStart=performance.now();
     if(count===1) gset("edtu_game_level", this.level);
-    this.paused=false; this.confetti=[]; $("levelBanner").classList.remove("show");
+    this.paused=false; this.confetti=[]; this.flyAway=0; $("levelBanner").classList.remove("show");
     this.running=true; $("gameOverlay").classList.add("hide");
     ginc("edtu_game_games");
     if($("gameFs").requestFullscreen){ $("gameFs").requestFullscreen().catch(()=>{}); }
@@ -1970,7 +1970,7 @@ const Game = {
     if(gp && gp.vibrationActuator && gp.vibrationActuator.playEffect){ gp.vibrationActuator.playEffect("dual-rumble",{duration:250,strongMagnitude:0.8,weakMagnitude:0.5}).catch(()=>{}); }
   },
   update(dt){
-    if(this.paused){ this.updateConfetti(dt); return; }
+    if(this.paused){ this.updateConfetti(dt); this.updateBoom(dt); if(this.flyAway<1) this.flyAway=Math.min(1,this.flyAway+dt*0.022); return; }
     const now=performance.now();
     const slow = now<this.slowUntil ? 0.5 : 1;
     this.speed += DIFF[this.diff].ramp*dt;
@@ -2091,17 +2091,17 @@ const Game = {
       const gl={x2:"x2",x3:"x3",shield:"🛡",life:"❤",magnet:"🧲",bomb:"💣",slow:"⏳"}[it.type];
       if(gl) lab(gl,sx,sy,s2);
     });
-    const py=this.H-64, shape=SKINS[this.skin]?SKINS[this.skin].shape:"hex";
+    const py=camY, shape=SKINS[this.skin]?SKINS[this.skin].shape:"hex", fa=this.flyAway;
     this.players.forEach(p=>{
-      const x=this.laneX(p.vx);
-      if(p.magnet>0){ c.strokeStyle="#b06bff"; c.lineWidth=3; c.globalAlpha=(p.alive?1:0.3)*0.5; c.beginPath(); c.arc(x,py,sz*2,0,7); c.stroke(); c.globalAlpha=1; }
-      if(shape==="xwing"){ const tilt=Math.max(-0.5,Math.min(0.5,(p.lane-p.vx)*0.6)); this.drawXwing(x,py,sz*1.28,p.color,p.alive?1:0.3,tilt); }
-      else { c.globalAlpha=p.alive?1:0.3; const g=c.createRadialGradient(x-sz*0.35,py-sz*0.35,sz*0.1,x,py,sz*1.15); g.addColorStop(0,this.tint(p.color,0.5)); g.addColorStop(0.6,p.color); g.addColorStop(1,this.shade(p.color,0.4)); c.fillStyle=g; c.shadowColor=p.color; c.shadowBlur=16; this.playerPath(shape,x,py,sz); c.fill(); c.shadowBlur=0; c.lineWidth=1.6; c.strokeStyle=this.shade(p.color,0.5); c.stroke(); }
-      if(p.shields>0){   // escudo: aro azul + número (esquina sup-der)
-        c.globalAlpha=p.alive?1:0.4; c.strokeStyle="#2fd0ff"; c.lineWidth=3; c.beginPath(); c.arc(x,py,sz*1.75,0,7); c.stroke();
-        if(p.shields>1) this.cornerBadge(x+sz*1.25, py-sz*1.25, sz, p.shields, "#2fd0ff");
+      let x=this.laneX(p.vx), yy=py, ps=1;
+      if(fa>0){ const t=Math.max(0.02,1-fa*fa); const kk=Math.pow(t,1.7); x=cx+(this.laneX(p.vx)-cx)*kk; yy=horizon+(py-horizon)*kk; ps=0.14+0.9*kk; }   // acelera y se pierde en el horizonte
+      if(fa<=0 && p.magnet>0){ c.strokeStyle="#b06bff"; c.lineWidth=3; c.globalAlpha=(p.alive?1:0.3)*0.5; c.beginPath(); c.arc(x,py,sz*2,0,7); c.stroke(); c.globalAlpha=1; }
+      if(shape==="xwing"){ const tilt=(fa>0)?0:Math.max(-0.5,Math.min(0.5,(p.lane-p.vx)*0.6)); this.drawXwing(x,yy,sz*1.28*ps,p.color,p.alive?1:0.3,tilt); }
+      else { c.globalAlpha=p.alive?1:0.3; const rs=sz*ps; const g=c.createRadialGradient(x-rs*0.35,yy-rs*0.35,rs*0.1,x,yy,rs*1.15); g.addColorStop(0,this.tint(p.color,0.5)); g.addColorStop(0.6,p.color); g.addColorStop(1,this.shade(p.color,0.4)); c.fillStyle=g; c.shadowColor=p.color; c.shadowBlur=16; this.playerPath(shape,x,yy,rs); c.fill(); c.shadowBlur=0; c.lineWidth=1.6; c.strokeStyle=this.shade(p.color,0.5); c.stroke(); }
+      if(fa<=0){
+        if(p.shields>0){ c.globalAlpha=p.alive?1:0.4; c.strokeStyle="#2fd0ff"; c.lineWidth=3; c.beginPath(); c.arc(x,py,sz*1.75,0,7); c.stroke(); if(p.shields>1) this.cornerBadge(x+sz*1.25, py-sz*1.25, sz, p.shields, "#2fd0ff"); }
+        if(p.magnet>1){ c.globalAlpha=p.alive?1:0.4; this.cornerBadge(x-sz*1.25, py-sz*1.25, sz, p.magnet, "#b06bff"); }
       }
-      if(p.magnet>1){ c.globalAlpha=p.alive?1:0.4; this.cornerBadge(x-sz*1.25, py-sz*1.25, sz, p.magnet, "#b06bff"); }   // imán: número (esquina sup-izq)
       c.globalAlpha=1;
     });
     this.drawBoom();
@@ -2172,16 +2172,17 @@ const Game = {
     });
     // ---- MOTORES INFERIORES ----
     [1,-1].forEach(d=>{ c.beginPath(); c.rect(Math.min(d*3,d*9),24,6,17); c.fillStyle=dark; c.fill(); c.lineWidth=2.4; c.strokeStyle=OL; c.stroke(); });
-    // ---- NARIZ + FUSELAJE (con volumen 3D) ----
+    // ---- NARIZ + FUSELAJE (nariz chata y ancha, no cono) ----
     c.beginPath();
-    c.moveTo(0,-46); c.lineTo(6,-6); c.lineTo(11,8); c.lineTo(10,24);
+    c.moveTo(-4,-32); c.quadraticCurveTo(0,-36,4,-32);   // nariz redondeada y ancha
+    c.lineTo(8,-6); c.lineTo(12,10); c.lineTo(10,24);
     c.quadraticCurveTo(9,30,3,30); c.lineTo(-3,30); c.quadraticCurveTo(-9,30,-10,24);
-    c.lineTo(-11,8); c.lineTo(-6,-6); c.closePath();
-    const bg=c.createLinearGradient(-12,0,12,0); bg.addColorStop(0,light); bg.addColorStop(0.5,color); bg.addColorStop(1,dark);
+    c.lineTo(-12,10); c.lineTo(-8,-6); c.closePath();
+    const bg=c.createLinearGradient(-13,0,13,0); bg.addColorStop(0,light); bg.addColorStop(0.5,color); bg.addColorStop(1,dark);
     c.shadowColor=color; c.shadowBlur=12; c.fillStyle=bg; c.fill(); c.shadowBlur=0;
     c.lineWidth=3; c.strokeStyle=OL; c.stroke();
     // arista central (brillo 3D)
-    c.beginPath(); c.moveTo(0,-44); c.lineTo(0,26); c.strokeStyle=this.tint(color,0.4); c.globalAlpha=alpha*0.55; c.lineWidth=1.6; c.stroke(); c.globalAlpha=alpha;
+    c.beginPath(); c.moveTo(0,-32); c.lineTo(0,26); c.strokeStyle=this.tint(color,0.4); c.globalAlpha=alpha*0.55; c.lineWidth=1.6; c.stroke(); c.globalAlpha=alpha;
     // ---- CABINA ----
     c.beginPath(); c.moveTo(0,-20); c.lineTo(6,-14); c.lineTo(6,-2); c.lineTo(0,3); c.lineTo(-6,-2); c.lineTo(-6,-14); c.closePath();
     c.fillStyle=this.shade(color,0.35); c.fill(); c.lineWidth=2; c.strokeStyle=OL; c.stroke();
@@ -2198,6 +2199,7 @@ const Game = {
     if(this.players.length===1) gset("edtu_game_level", this.level);   // guarda el progreso (1 jugador)
     this.speed += 0.1;                 // sube muy poco la dificultad por nivel
     this.paused=true;                  // congela mientras muestra el efecto
+    this.flyAway=0;                    // la nave despega hacia el horizonte
     this.spawnConfetti();
     levelUpSound();
     if(navigator.vibrate){ try{ navigator.vibrate([60,40,60,40,140]); }catch(e){} }
@@ -2205,7 +2207,7 @@ const Game = {
     $("levelBanner").classList.add("show");
     setTimeout(()=>{
       $("levelBanner").classList.remove("show");
-      this.confetti=[]; this.paused=false;
+      this.confetti=[]; this.paused=false; this.flyAway=0;
       if(!this.running) return;        // si salió durante el efecto, no reanudar
       this.levelStart=performance.now();
       Music.start();                   // reproduce The Mandalorian al arrancar el nuevo nivel
