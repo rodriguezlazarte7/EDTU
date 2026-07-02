@@ -2155,7 +2155,9 @@ const Game = {
   shade(h,f){ return this.mix(h,[0,0,0],f); },
   cornerBadge(bx,by,sz,num,color){ const c=this.ctx; const r=sz*0.6; c.fillStyle=color; c.shadowColor=color; c.shadowBlur=8; c.beginPath(); c.arc(bx,by,r,0,7); c.fill(); c.shadowBlur=0; c.fillStyle="#04110a"; c.font="bold "+Math.round(sz*0.72)+"px Arial"; c.textAlign="center"; c.textBaseline="middle"; c.fillText(num,bx,by+1); },
   drawXwing(x,y,s,color,alpha,tilt){
-    const c=this.ctx; c.save(); c.globalAlpha=alpha; c.translate(x,y); if(tilt) c.rotate(tilt); const k=s/40; c.scale(k,k);
+    const c=this.ctx; c.save(); c.globalAlpha=alpha; c.translate(x,y);
+    if(tilt){ c.rotate(tilt*0.5); c.transform(1,0,-tilt*0.45,1,0,0); }   // banqueo 3D (eje Z): rota poco + se recuesta en profundidad
+    const k=s/40, kx=k*(1-Math.min(0.55,Math.abs(tilt)*0.6)); c.scale(kx,k);   // ala de adentro se acorta = vuelco 3D
     c.lineJoin="round"; c.lineCap="round";
     const dark=this.shade(color,0.5), light=this.tint(color,0.55), root=this.shade(color,0.28), OL="#0b0f0d";
     // ---- FUEGO AZUL DE MOTOR (efecto de llama) ----
