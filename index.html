@@ -1992,11 +1992,11 @@ const Game = {
       const ln=Math.floor(Math.random()*LANES);
       this.items.push({ lane:ln, fx:ln, y:-30, type });
     }
-    const mags=this.players.filter(p=>p.alive && p.magnet>0).map(p=>p.lane);
+    const mags=this.players.filter(p=>p.alive && p.magnet>0).map(p=>({lane:p.lane, range:p.magnet}));   // alcance = nº de imanes
     this.items.forEach(it=>{
       if(it.fx==null) it.fx=it.lane;
       if(it.type!=="obstacle" && mags.length){
-        let tgt=null; mags.forEach(ml=>{ if(Math.abs(ml-it.lane)<=1 && (tgt===null||Math.abs(ml-it.fx)<Math.abs(tgt-it.fx))) tgt=ml; });
+        let tgt=null; mags.forEach(m=>{ if(Math.abs(m.lane-it.lane)<=m.range && (tgt===null||Math.abs(m.lane-it.fx)<Math.abs(tgt-it.fx))) tgt=m.lane; });
         if(tgt!==null){ it.fx += (tgt-it.fx)*Math.min(1,0.2*dt); if(Math.abs(it.fx-tgt)<0.06){ it.fx=tgt; it.lane=tgt; } }
         else it.fx += (it.lane-it.fx)*Math.min(1,0.5*dt);
       } else it.fx += (it.lane-it.fx)*Math.min(1,0.5*dt);
@@ -2012,7 +2012,7 @@ const Game = {
           this.players.forEach(p=>{ if(p.alive && p.lane===it.lane && !it.hit.has(p.idx)){ it.hit.add(p.idx); if(p.magnet>0) p.magnet--; if(p.shields>0){ p.shields--; SFX.power(); } else if(p.lives>0){ p.lives--; SFX.power(); } else { p.alive=false; crashed=true; this.rumble(p.idx); this.boom(this.laneX(p.lane), py, p.color); } } });
           if(crashed) SFX.crash();
         }else{
-          const got=this.players.filter(p=> p.alive && (p.lane===it.lane || (p.magnet>0 && Math.abs(p.lane-it.lane)<=1)));
+          const got=this.players.filter(p=> p.alive && (p.lane===it.lane || (p.magnet>0 && Math.abs(p.lane-it.lane)<=p.magnet)));
           if(got.length){
             // En co-op el bonus se aplica a TODO el equipo (mismos team) del que lo cogió
             const teamsHit = this.coop ? new Set(got.map(p=>p.team)) : null;
@@ -2100,7 +2100,7 @@ const Game = {
     this.players.forEach(p=>{
       let x=this.laneX(p.vx), yy=py, ps=1;
       if(fa>0){ const t=Math.max(0.02,1-fa*fa); const kk=Math.pow(t,1.7); x=cx+(this.laneX(p.vx)-cx)*kk; yy=horizon+(py-horizon)*kk; ps=0.14+0.9*kk; }   // acelera y se pierde en el horizonte
-      if(fa<=0 && p.magnet>0){ c.strokeStyle="#b06bff"; c.lineWidth=3; c.globalAlpha=(p.alive?1:0.3)*0.5; c.beginPath(); c.arc(x,py,sz*2,0,7); c.stroke(); c.globalAlpha=1; }
+      if(fa<=0 && p.magnet>0){ c.strokeStyle="#b06bff"; c.lineWidth=3; c.globalAlpha=(p.alive?1:0.3)*0.5; c.beginPath(); c.arc(x,py,sz*(1.4+0.6*p.magnet),0,7); c.stroke(); c.globalAlpha=1; }
       if(shape==="xwing"){ const tilt=(fa>0)?0:Math.max(-0.7,Math.min(0.7,(p.lane-p.vx)*1.05)); this.drawXwing(x,yy,sz*1.28*ps,p.color,p.alive?1:0.3,tilt); }
       else { c.globalAlpha=p.alive?1:0.3; const rs=sz*ps; const g=c.createRadialGradient(x-rs*0.35,yy-rs*0.35,rs*0.1,x,yy,rs*1.15); g.addColorStop(0,this.tint(p.color,0.5)); g.addColorStop(0.6,p.color); g.addColorStop(1,this.shade(p.color,0.4)); c.fillStyle=g; c.shadowColor=p.color; c.shadowBlur=16; this.playerPath(shape,x,yy,rs); c.fill(); c.shadowBlur=0; c.lineWidth=1.6; c.strokeStyle=this.shade(p.color,0.5); c.stroke(); }
       if(fa<=0){
