@@ -816,7 +816,7 @@
     </div>
     <div id="gameBoard" style="margin-top:4px;font-size:12px;text-align:left;max-width:300px"></div>
     <div id="gameAch" style="font-size:10.5px;color:var(--amber);max-width:320px"></div>
-    <div style="font-size:11px;color:var(--muted);margin-top:2px;max-width:340px">P1 <b style="color:#19ff85">A/D</b> · P2 <b style="color:#2f9bff">←→</b> · P3 <b style="color:#ffd23f">4/6</b> · P4 <b style="color:#ffffff">B/M</b> · 🎮 mandos Xbox · móvil: toca los lados<br>🔶 · ⭐x2 · ✖️3 · 🛡️ · ❤️ · 🧲 · 💣 · ⏳ · 🟥 evita</div>
+    <div style="font-size:11px;color:var(--muted);margin-top:2px;max-width:340px">P1 <b style="color:#19ff85">A/D</b> · P2 <b style="color:#2f9bff">←→</b> · P3 <b style="color:#ffd23f">4/6</b> · P4 <b style="color:#ffffff">B/M</b> · 🎮 mandos Xbox · móvil: toca los lados<br>🔶 · ⭐x2 · ✖️3 · 🛡️ · ❤️ · 🧲 · 💣 · ⏳ · 🛸 caza TIE (evita)</div>
     <div style="display:flex;gap:8px;margin-top:6px">
       <button class="btn btn-ghost" id="gameExit2">✕ Salir</button>
       <button class="btn btn-ghost" id="gameResetWins">↺ Victorias</button>
@@ -2099,7 +2099,7 @@ const Game = {
     // items proyectados en 3D (se dibujan de lejos a cerca); cubos de frente creciendo hacia ti
     [...this.items].sort((a,b)=>a.y-b.y).forEach(it=>{
       const laneF=it.fx!=null?it.fx:it.lane, sc=scaleAt(it.y), sx=projX(laneF,it.y), sy=projY(it.y), s2=sz*sc;
-      if(it.type==="obstacle"){ c.shadowColor="#ff3b5b"; c.shadowBlur=12*sc; this.drawCube(sx,sy,s2*0.92,"#ff3b5b"); c.shadowBlur=0; return; }
+      if(it.type==="obstacle"){ this.drawTIE(sx,sy,s2*0.66); return; }   // caza TIE en vez de cubo
       const col={chip:"#19ff85",x2:"#ffd23f",x3:"#ffa020",shield:"#2fd0ff",life:"#ff4d6d",magnet:"#b06bff",bomb:"#ff8c1a",slow:"#7ad0ff"}[it.type];
       c.shadowColor=col; c.shadowBlur=15*sc; this.drawGem(sx,sy,it.type==="chip"?s2:s2*1.12,col); c.shadowBlur=0;
       const gl={x2:"x2",x3:"x3",shield:"🛡",life:"❤",magnet:"🧲",bomb:"💣",slow:"⏳"}[it.type];
@@ -2131,6 +2131,31 @@ const Game = {
     c.fillStyle=top;   c.beginPath(); c.moveTo(A[0],A[1]); c.lineTo(B[0],B[1]); c.lineTo(Bp[0],Bp[1]); c.lineTo(Ap[0],Ap[1]); c.closePath(); c.fill(); c.stroke();   // cara superior
     c.fillStyle=side;  c.beginPath(); c.moveTo(B[0],B[1]); c.lineTo(C[0],C[1]); c.lineTo(Cp[0],Cp[1]); c.lineTo(Bp[0],Bp[1]); c.closePath(); c.fill(); c.stroke();   // cara derecha
     c.fillStyle=front; c.beginPath(); c.moveTo(A[0],A[1]); c.lineTo(B[0],B[1]); c.lineTo(C[0],C[1]); c.lineTo(D[0],D[1]); c.closePath(); c.fill(); c.stroke();   // cara frontal
+  },
+  drawTIE(x,y,s){
+    const c=this.ctx, OL="#0b0f0d";
+    const hull="#4a505b", hi="#6a727e", lo="#252a31", eye="#ff3b5b";
+    c.save(); c.translate(x,y); c.lineJoin="round";
+    // barras que unen la cabina con los paneles
+    c.strokeStyle="#363b44"; c.lineWidth=s*0.3; c.beginPath(); c.moveTo(-s*1.5,0); c.lineTo(s*1.5,0); c.stroke();
+    // paneles hexagonales (alas solares) izq y der
+    [1,-1].forEach(d=>{
+      const px=d*1.5*s, pw=0.62*s, ph=1.25*s;
+      const g=c.createLinearGradient(px-pw,0,px+pw,0); g.addColorStop(0,lo); g.addColorStop(0.5,hull); g.addColorStop(1,lo);
+      c.fillStyle=g; c.lineWidth=Math.max(1.4,s*0.1); c.strokeStyle=OL;
+      c.beginPath(); c.moveTo(px,-ph); c.lineTo(px+pw,-ph*0.6); c.lineTo(px+pw,ph*0.6); c.lineTo(px,ph); c.lineTo(px-pw,ph*0.6); c.lineTo(px-pw,-ph*0.6); c.closePath(); c.fill(); c.stroke();
+      c.strokeStyle="rgba(0,0,0,0.45)"; c.lineWidth=Math.max(0.6,s*0.05);
+      c.beginPath(); c.moveTo(px,-ph); c.lineTo(px,ph); c.moveTo(px-pw,-ph*0.3); c.lineTo(px+pw,-ph*0.3); c.moveTo(px-pw,ph*0.3); c.lineTo(px+pw,ph*0.3); c.stroke();
+    });
+    // cabina esférica con halo rojo (peligro)
+    const r=s*0.66;
+    c.shadowColor=eye; c.shadowBlur=s*0.7;
+    const rg=c.createRadialGradient(-r*0.3,-r*0.35,r*0.15,0,0,r); rg.addColorStop(0,hi); rg.addColorStop(1,lo);
+    c.fillStyle=rg; c.beginPath(); c.arc(0,0,r,0,7); c.fill();
+    c.shadowBlur=0; c.lineWidth=Math.max(1.4,s*0.1); c.strokeStyle=OL; c.stroke();
+    c.fillStyle="#0f131b"; c.beginPath(); c.arc(0,0,r*0.6,0,7); c.fill();               // ventana
+    c.fillStyle=eye; c.shadowColor=eye; c.shadowBlur=s*0.5; c.beginPath(); c.arc(0,0,r*0.24,0,7); c.fill(); c.shadowBlur=0;   // ojo rojo
+    c.restore();
   },
   drawGem(x,y,s,base){
     const c=this.ctx; const OL="#0b0f0d";
