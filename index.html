@@ -1872,7 +1872,7 @@ const Game = {
   diff: localStorage.getItem("edtu_game_diff")||"normal",
   coop: localStorage.getItem("edtu_game_mode")==="coop",
   skin: parseInt(localStorage.getItem("edtu_game_skin")||"0",10),
-  slowUntil:0, gpPrev:{}, confetti:[], paused:false, boomParts:[], teamOf:[0,0,0,0], flyAway:0, pnames:[],
+  slowUntil:0, gpPrev:{}, confetti:[], paused:false, boomParts:[], teamOf:[0,0,0,0], flyAway:0, pnames:[], pskins:[],
   laneX(i){ return this.W*((i+0.5)/LANES); },
   boom(x,y,color){ for(let i=0;i<26;i++){ const a=Math.random()*Math.PI*2, sp=2+Math.random()*6; this.boomParts.push({ x,y, vx:Math.cos(a)*sp, vy:Math.sin(a)*sp, life:1, color:i%3?color:"#ff8c1a" }); } if(navigator.vibrate){ try{navigator.vibrate(120);}catch(e){} } },
   updateBoom(dt){ this.boomParts.forEach(p=>{ p.x+=p.vx*dt; p.y+=p.vy*dt; p.vy+=0.22*dt; p.life-=0.028*dt; }); this.boomParts=this.boomParts.filter(p=>p.life>0); },
@@ -1928,11 +1928,22 @@ const Game = {
   drawIdle(){ const c=this.ctx; if(!c) return; c.fillStyle="#04110a"; c.fillRect(0,0,this.W,this.H); },
   start(count){
     SFX.ensure();
-    this.pnames=[];
-    if(count>1){   // antes de jugar, pide los nombres de cada jugador
-      let saved=[]; try{ saved=JSON.parse(localStorage.getItem("edtu_game_pnames"))||[]; }catch(e){}
-      for(let i=0;i<count;i++){ const def=saved[i]||("Jugador "+(i+1)); let nm=prompt("Nombre del Jugador "+(i+1)+":", def); nm=((nm||def).trim()||("Jugador "+(i+1))).slice(0,14); this.pnames[i]=nm; }
+    this.pnames=[]; this.pskins=[];
+    if(count>1){   // antes de jugar, pide nombre y nave de cada jugador
+      let savedN=[], savedS=[];
+      try{ savedN=JSON.parse(localStorage.getItem("edtu_game_pnames"))||[]; }catch(e){}
+      try{ savedS=JSON.parse(localStorage.getItem("edtu_game_pskins"))||[]; }catch(e){}
+      const opts=SKINS.map((s,idx)=>({idx,name:s.name,req:s.req})).filter(o=>this.best>=o.req);   // solo naves desbloqueadas
+      const menu=opts.map((o,n)=>(n+1)+"="+o.name).join("   ");
+      for(let i=0;i<count;i++){
+        const defN=savedN[i]||("Jugador "+(i+1));
+        let nm=prompt("Nombre del Jugador "+(i+1)+":", defN); nm=((nm||defN).trim()||("Jugador "+(i+1))).slice(0,14); this.pnames[i]=nm;
+        const defIdx=(savedS[i]!=null)?savedS[i]:1; let defNo=opts.findIndex(o=>o.idx===defIdx)+1; if(defNo<1) defNo=1;
+        let sp=prompt("Nave de "+nm+":\n"+menu, String(defNo)); let n=parseInt(sp,10); if(isNaN(n)||n<1||n>opts.length) n=defNo;
+        this.pskins[i]=opts[n-1].idx;
+      }
       localStorage.setItem("edtu_game_pnames", JSON.stringify(this.pnames));
+      localStorage.setItem("edtu_game_pskins", JSON.stringify(this.pskins));
     }
     Music.start();
     this.resize();
@@ -1986,11 +1997,11 @@ const Game = {
     if(this.speed > DIFF[this.diff].cap) this.speed = DIFF[this.diff].cap;   // tope de velocidad
     const eff = this.speed*slow;
     this.dist += eff*dt;
-    const agile = (SKINS[this.skin] && (SKINS[this.skin].shape==="xwing"||SKINS[this.skin].shape==="tie")) ? 0.2 : 0.28;   // naves giran suave (se nota el banqueo)
     this.players.forEach(p=>{
       const m = now<p.multUntil?p.mult:1;
       if(p.alive) p.score += eff*dt*0.1*m;
-      p.vx += (p.lane-p.vx)*Math.min(1,agile*dt);
+      const sh=this.playerShape(p.idx), ag=(sh==="xwing"||sh==="tie")?0.2:0.28;   // naves giran suave (por jugador)
+      p.vx += (p.lane-p.vx)*Math.min(1,ag*dt);
     });
     this.updateBoom(dt);
     this.spawn -= dt;
@@ -2095,7 +2106,7 @@ const Game = {
     c.globalAlpha=1;
     if(now<this.slowUntil){ c.fillStyle="rgba(120,200,255,0.06)"; c.fillRect(0,0,W,Hh); }
     const sz=Math.min(24, W/LANES*0.42);
-    const pShape=SKINS[this.skin]?SKINS[this.skin].shape:"hex";   // enemigos = inverso de tu nave
+    const pShape=this.playerShape(0);   // enemigos = inverso de la nave del Jugador 1
     const lab=(t,x,y,s)=>{ if(s<9) return; c.fillStyle="#000"; c.font="bold "+Math.round(s*0.8)+"px Arial"; c.textAlign="center"; c.textBaseline="middle"; c.fillText(t,x,y+1); };
     // items proyectados en 3D (se dibujan de lejos a cerca); enemigos de frente creciendo hacia ti
     [...this.items].sort((a,b)=>a.y-b.y).forEach(it=>{
@@ -2110,8 +2121,9 @@ const Game = {
       const gl={x2:"x2",x3:"x3",shield:"🛡",life:"❤",magnet:"🧲",bomb:"💣",slow:"⏳"}[it.type];
       if(gl) lab(gl,sx,sy,s2);
     });
-    const py=camY, shape=SKINS[this.skin]?SKINS[this.skin].shape:"hex", fa=this.flyAway;
+    const py=camY, fa=this.flyAway;
     this.players.forEach(p=>{
+      const shape=this.playerShape(p.idx);   // cada jugador con su nave
       let x=this.laneX(p.vx), yy=py, ps=1;
       if(fa>0){ const t=Math.max(0.02,1-fa*fa); const kk=Math.pow(t,1.7); x=cx+(this.laneX(p.vx)-cx)*kk; yy=horizon+(py-horizon)*kk; ps=0.14+0.9*kk; }   // acelera y se pierde en el horizonte
       if(fa<=0 && p.magnet>0){ c.strokeStyle="#b06bff"; c.lineWidth=3; c.globalAlpha=(p.alive?1:0.3)*0.5; c.beginPath(); c.arc(x,py,sz*(1.4+0.6*p.magnet),0,7); c.stroke(); c.globalAlpha=1; }
@@ -2206,6 +2218,7 @@ const Game = {
   shade(h,f){ return this.mix(h,[0,0,0],f); },
   cornerBadge(bx,by,sz,num,color){ const c=this.ctx; const r=sz*0.6; c.fillStyle=color; c.shadowColor=color; c.shadowBlur=8; c.beginPath(); c.arc(bx,by,r,0,7); c.fill(); c.shadowBlur=0; c.fillStyle="#04110a"; c.font="bold "+Math.round(sz*0.72)+"px Arial"; c.textAlign="center"; c.textBaseline="middle"; c.fillText(num,bx,by+1); },
   pname(i){ return (this.pnames && this.pnames[i]) ? this.pnames[i] : ("Jugador "+(i+1)); },
+  playerShape(i){ const idx=(this.pskins && this.pskins[i]!=null) ? this.pskins[i] : this.skin; return SKINS[idx]?SKINS[idx].shape:"hex"; },
   celebrate(){ const host=$("gameFs"); const cols=["#19ff85","#2f9bff","#ffd23f","#ffffff","#ff8c1a","#b06bff","#2fd0ff"]; for(let i=0;i<90;i++){ const d=document.createElement("div"); d.className="confetti-pc"; d.style.left=(8+Math.random()*84)+"%"; d.style.background=cols[i%cols.length]; d.style.animationDelay=(Math.random()*0.7).toFixed(2)+"s"; d.style.setProperty("--dx",((Math.random()*2-1)*180).toFixed(0)+"px"); host.appendChild(d); setTimeout(()=>d.remove(),3600); } },
   drawXwing(x,y,s,color,alpha,tilt){
     const c=this.ctx; c.save(); c.globalAlpha=alpha; c.translate(x,y);
