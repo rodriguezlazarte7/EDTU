@@ -1878,6 +1878,14 @@ const Game = {
   updateBoom(dt){ this.boomParts.forEach(p=>{ p.x+=p.vx*dt; p.y+=p.vy*dt; p.vy+=0.22*dt; p.life-=0.028*dt; }); this.boomParts=this.boomParts.filter(p=>p.life>0); },
   drawBoom(){ const c=this.ctx; this.boomParts.forEach(p=>{ c.globalAlpha=Math.max(0,p.life); c.fillStyle=p.color; c.fillRect(p.x-3,p.y-3,6,6); }); c.globalAlpha=1; },
   spawnConfetti(){ this.confetti=[]; const cx=this.W/2, cols=["#19ff85","#2f9bff","#ffd23f","#ffffff","#ff8c1a","#2fd0ff"]; for(let i=0;i<90;i++){ this.confetti.push({ x:cx+(Math.random()-0.5)*this.W*0.6, y:this.H*0.32+(Math.random()-0.5)*90, vx:(Math.random()-0.5)*9, vy:-5-Math.random()*7, life:1, color:cols[i%cols.length] }); } },
+  spawnWave(){   // oleada: enemigos en casi todos los carriles, dejando 2 huecos seguros adyacentes
+    const gapStart=Math.floor(Math.random()*(LANES-1));
+    const safe=new Set([gapStart, gapStart+1]);
+    for(let ln=0; ln<LANES; ln++){ if(!safe.has(ln)) this.items.push({ lane:ln, fx:ln, y:-30, type:"obstacle", hit:new Set() }); }
+    toast("⚠ ¡OLEADA DE ENEMIGOS!");
+    SFX.crash();
+    if(navigator.vibrate){ try{ navigator.vibrate([70,40,70,40,110]); }catch(e){} }
+  },
   updateConfetti(dt){ this.confetti.forEach(p=>{ p.x+=p.vx*dt; p.y+=p.vy*dt; p.vy+=0.35*dt; p.life-=0.011*dt; }); this.confetti=this.confetti.filter(p=>p.life>0 && p.y<this.H+40); },
   drawConfetti(){ const c=this.ctx; this.confetti.forEach(p=>{ c.globalAlpha=Math.max(0,p.life); c.fillStyle=p.color; c.fillRect(p.x-4,p.y-4,8,8); }); c.globalAlpha=1; },
   loadWins(){ try{ return JSON.parse(localStorage.getItem("edtu_game_wins"))||[0,0,0,0]; }catch(e){ return [0,0,0,0]; } },
@@ -1954,6 +1962,7 @@ const Game = {
     this.level = (count===1) ? this.savedLevel() : 1;   // 1 jugador: continúa donde quedó
     this.items=[]; this.dist=0; this.speed=DIFF[this.diff].speed + (this.level-1)*0.1; this.spawn=0; this.slowUntil=0; this.gpPrev={};
     this.levelStart=performance.now();
+    this.waveAt=performance.now()+20000;   // primera oleada a los 20 s
     if(count===1) gset("edtu_game_level", this.level);
     this.paused=false; this.confetti=[]; this.flyAway=0; $("levelBanner").classList.remove("show");
     this.running=true; $("gameOverlay").classList.add("hide");
@@ -2004,6 +2013,7 @@ const Game = {
       p.vx += (p.lane-p.vx)*Math.min(1,ag*dt);
     });
     this.updateBoom(dt);
+    if(now >= this.waveAt){ this.spawnWave(); this.waveAt = now + 20000; }   // oleada cada 20 s
     this.spawn -= dt;
     if(this.spawn<=0){
       this.spawn = Math.max(16, DIFF[this.diff].spawn - this.speed*1.4);
@@ -2040,13 +2050,13 @@ const Game = {
             if(it.type==="chip"){ got.forEach(p=>{ const m=now<p.multUntil?p.mult:1; p.score += 10*m; }); SFX.chip(); }
             else if(it.type==="x2"){ targets.forEach(p=>{ p.score+=25; p.mult=2; p.multUntil=now+6000; }); SFX.power(); ginc("edtu_game_pows"); }
             else if(it.type==="x3"){ targets.forEach(p=>{ p.score+=40; p.mult=3; p.multUntil=now+6000; }); SFX.power(); ginc("edtu_game_pows"); }
-            else if(it.type==="shield"){ targets.forEach(p=>p.shields++); SFX.power(); ginc("edtu_game_pows"); }
+            else if(it.type==="shield"){ targets.forEach(p=>p.shields=Math.min(3,p.shields+1)); SFX.power(); ginc("edtu_game_pows"); }
             else if(it.type==="life"){
               if(this.coop){ teamsHit.forEach(tm=>{ const dead=this.players.find(p=>!p.alive && p.team===tm); if(dead) this.revive(dead); else this.players.filter(p=>p.alive && p.team===tm).forEach(p=>p.lives++); }); }
               else got.forEach(p=>p.lives++);
               SFX.power(); ginc("edtu_game_pows");
             }
-            else if(it.type==="magnet"){ targets.forEach(p=>p.magnet++); SFX.power(); ginc("edtu_game_pows"); }
+            else if(it.type==="magnet"){ targets.forEach(p=>p.magnet=Math.min(3,p.magnet+1)); SFX.power(); ginc("edtu_game_pows"); }
             else if(it.type==="bomb"){ bomb=true; SFX.power(); ginc("edtu_game_pows"); }
             else { this.slowUntil=now+5000; SFX.power(); ginc("edtu_game_pows"); }
             this.items.splice(i,1); continue;
