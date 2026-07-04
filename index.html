@@ -816,7 +816,7 @@
     </div>
     <div id="gameBoard" style="margin-top:4px;font-size:12px;text-align:left;max-width:300px"></div>
     <div id="gameAch" style="font-size:10.5px;color:var(--amber);max-width:320px"></div>
-    <div style="font-size:11px;color:var(--muted);margin-top:2px;max-width:340px">P1 <b style="color:#19ff85">A/D</b> · P2 <b style="color:#2f9bff">←→</b> · P3 <b style="color:#ffd23f">4/6</b> · P4 <b style="color:#ffffff">B/M</b> · 🎮 mandos Xbox · móvil: toca los lados<br>🔶 · ⭐x2 · ✖️3 · 🛡️ · ❤️ · 🧲 · 💣 · ⏳ · 🛸 caza TIE (evita)</div>
+    <div style="font-size:11px;color:var(--muted);margin-top:2px;max-width:340px">P1 <b style="color:#19ff85">A/D</b> · P2 <b style="color:#2f9bff">←→</b> · P3 <b style="color:#ffd23f">4/6</b> · P4 <b style="color:#ffffff">B/M</b> · 🎮 mandos Xbox · móvil: toca los lados<br>🔶 · ⭐x2 · ✖️3 · 🛡️ · ❤️ · 🧲 · 💣 · ⏳ · 🛸 enemigos (evita)</div>
     <div style="display:flex;gap:8px;margin-top:6px">
       <button class="btn btn-ghost" id="gameExit2">✕ Salir</button>
       <button class="btn btn-ghost" id="gameResetWins">↺ Victorias</button>
@@ -1820,7 +1820,7 @@ const PLAYER_CFG = [ {color:"#19ff85"}, {color:"#2f9bff"}, {color:"#ffd23f"}, {c
 const DIFF = { easy:{speed:1.6,ramp:0.00028,spawn:56,cap:5.5}, normal:{speed:2.2,ramp:0.0005,spawn:50,cap:6.5}, expert:{speed:3.0,ramp:0.0009,spawn:44,cap:8} };
 const LEVEL_DUR = 114000;  // 1 min 54 s por nivel (en ms)
 const MAX_LEVEL = 77;
-const SKINS = [ {name:"Hexágono",req:0,shape:"hex"}, {name:"X-Wing",req:0,shape:"xwing"}, {name:"Octágono",req:400,shape:"oct"}, {name:"Estrella",req:1000,shape:"star"}, {name:"Rombo",req:2000,shape:"diamond"} ];
+const SKINS = [ {name:"Hexágono",req:0,shape:"hex"}, {name:"X-Wing",req:0,shape:"xwing"}, {name:"Caza TIE",req:0,shape:"tie"}, {name:"Octágono",req:400,shape:"oct"}, {name:"Estrella",req:1000,shape:"star"}, {name:"Rombo",req:2000,shape:"diamond"} ];
 const TEAM_COL = ["#2fd0ff","#ff8c1a","#b06bff","#19ff85"];
 const TEAM_LAB = ["A","B","C","D"];
 const ACHIEVEMENTS = [ {id:"first",name:"Primer despliegue"}, {id:"p500",name:"500 pts"}, {id:"p1000",name:"Leyenda 1000 pts"}, {id:"dodge100",name:"Esquiva 100 obstáculos"}, {id:"pow15",name:"15 power-ups"} ];
@@ -1986,7 +1986,7 @@ const Game = {
     if(this.speed > DIFF[this.diff].cap) this.speed = DIFF[this.diff].cap;   // tope de velocidad
     const eff = this.speed*slow;
     this.dist += eff*dt;
-    const agile = (SKINS[this.skin] && SKINS[this.skin].shape==="xwing") ? 0.2 : 0.28;   // X-Wing gira suave (se nota el banqueo)
+    const agile = (SKINS[this.skin] && (SKINS[this.skin].shape==="xwing"||SKINS[this.skin].shape==="tie")) ? 0.2 : 0.28;   // naves giran suave (se nota el banqueo)
     this.players.forEach(p=>{
       const m = now<p.multUntil?p.mult:1;
       if(p.alive) p.score += eff*dt*0.1*m;
@@ -2095,11 +2095,16 @@ const Game = {
     c.globalAlpha=1;
     if(now<this.slowUntil){ c.fillStyle="rgba(120,200,255,0.06)"; c.fillRect(0,0,W,Hh); }
     const sz=Math.min(24, W/LANES*0.42);
+    const pShape=SKINS[this.skin]?SKINS[this.skin].shape:"hex";   // enemigos = inverso de tu nave
     const lab=(t,x,y,s)=>{ if(s<9) return; c.fillStyle="#000"; c.font="bold "+Math.round(s*0.8)+"px Arial"; c.textAlign="center"; c.textBaseline="middle"; c.fillText(t,x,y+1); };
-    // items proyectados en 3D (se dibujan de lejos a cerca); cubos de frente creciendo hacia ti
+    // items proyectados en 3D (se dibujan de lejos a cerca); enemigos de frente creciendo hacia ti
     [...this.items].sort((a,b)=>a.y-b.y).forEach(it=>{
       const laneF=it.fx!=null?it.fx:it.lane, sc=scaleAt(it.y), sx=projX(laneF,it.y), sy=projY(it.y), s2=sz*sc;
-      if(it.type==="obstacle"){ this.drawTIE(sx,sy,s2*0.66); return; }   // caza TIE en vez de cubo
+      if(it.type==="obstacle"){
+        if(pShape==="tie"){ c.save(); c.translate(sx,sy); c.scale(1,-1); this.drawXwing(0,0,s2*0.92,"#ff3b5b",1,0); c.restore(); }   // usas TIE → enemigos X-Wing (rojos, hacia ti)
+        else this.drawTIE(sx,sy,s2*0.66);                                                                                        // por defecto → enemigos TIE
+        return;
+      }
       const col={chip:"#19ff85",x2:"#ffd23f",x3:"#ffa020",shield:"#2fd0ff",life:"#ff4d6d",magnet:"#b06bff",bomb:"#ff8c1a",slow:"#7ad0ff"}[it.type];
       c.shadowColor=col; c.shadowBlur=15*sc; this.drawGem(sx,sy,it.type==="chip"?s2:s2*1.12,col); c.shadowBlur=0;
       const gl={x2:"x2",x3:"x3",shield:"🛡",life:"❤",magnet:"🧲",bomb:"💣",slow:"⏳"}[it.type];
@@ -2111,6 +2116,7 @@ const Game = {
       if(fa>0){ const t=Math.max(0.02,1-fa*fa); const kk=Math.pow(t,1.7); x=cx+(this.laneX(p.vx)-cx)*kk; yy=horizon+(py-horizon)*kk; ps=0.14+0.9*kk; }   // acelera y se pierde en el horizonte
       if(fa<=0 && p.magnet>0){ c.strokeStyle="#b06bff"; c.lineWidth=3; c.globalAlpha=(p.alive?1:0.3)*0.5; c.beginPath(); c.arc(x,py,sz*(1.4+0.6*p.magnet),0,7); c.stroke(); c.globalAlpha=1; }
       if(shape==="xwing"){ const tilt=(fa>0)?0:Math.max(-0.7,Math.min(0.7,(p.lane-p.vx)*1.05)); this.drawXwing(x,yy,sz*1.28*ps,p.color,p.alive?1:0.3,tilt); }
+      else if(shape==="tie"){ const tilt=(fa>0)?0:Math.max(-0.7,Math.min(0.7,(p.lane-p.vx)*1.05)); this.drawTIEship(x,yy,sz*1.18*ps,p.color,p.alive?1:0.3,tilt); }
       else { c.globalAlpha=p.alive?1:0.3; const rs=sz*ps; const g=c.createRadialGradient(x-rs*0.35,yy-rs*0.35,rs*0.1,x,yy,rs*1.15); g.addColorStop(0,this.tint(p.color,0.5)); g.addColorStop(0.6,p.color); g.addColorStop(1,this.shade(p.color,0.4)); c.fillStyle=g; c.shadowColor=p.color; c.shadowBlur=16; this.playerPath(shape,x,yy,rs); c.fill(); c.shadowBlur=0; c.lineWidth=1.6; c.strokeStyle=this.shade(p.color,0.5); c.stroke(); }
       if(fa<=0){
         if(p.shields>0){ c.globalAlpha=p.alive?1:0.4; c.strokeStyle="#2fd0ff"; c.lineWidth=3; c.beginPath(); c.arc(x,py,sz*1.75,0,7); c.stroke(); if(p.shields>1) this.cornerBadge(x+sz*1.25, py-sz*1.25, sz, p.shields, "#2fd0ff"); }
@@ -2132,9 +2138,9 @@ const Game = {
     c.fillStyle=side;  c.beginPath(); c.moveTo(B[0],B[1]); c.lineTo(C[0],C[1]); c.lineTo(Cp[0],Cp[1]); c.lineTo(Bp[0],Bp[1]); c.closePath(); c.fill(); c.stroke();   // cara derecha
     c.fillStyle=front; c.beginPath(); c.moveTo(A[0],A[1]); c.lineTo(B[0],B[1]); c.lineTo(C[0],C[1]); c.lineTo(D[0],D[1]); c.closePath(); c.fill(); c.stroke();   // cara frontal
   },
-  drawTIE(x,y,s){
+  drawTIE(x,y,s,eyeC){
     const c=this.ctx, OL="#0b0f0d";
-    const hull="#4a505b", hi="#6a727e", lo="#252a31", eye="#ff3b5b";
+    const hull="#4a505b", hi="#6a727e", lo="#252a31", eye=eyeC||"#ff3b5b";
     c.save(); c.translate(x,y); c.lineJoin="round";
     // barras que unen la cabina con los paneles
     c.strokeStyle="#363b44"; c.lineWidth=s*0.3; c.beginPath(); c.moveTo(-s*1.5,0); c.lineTo(s*1.5,0); c.stroke();
@@ -2154,7 +2160,18 @@ const Game = {
     c.fillStyle=rg; c.beginPath(); c.arc(0,0,r,0,7); c.fill();
     c.shadowBlur=0; c.lineWidth=Math.max(1.4,s*0.1); c.strokeStyle=OL; c.stroke();
     c.fillStyle="#0f131b"; c.beginPath(); c.arc(0,0,r*0.6,0,7); c.fill();               // ventana
-    c.fillStyle=eye; c.shadowColor=eye; c.shadowBlur=s*0.5; c.beginPath(); c.arc(0,0,r*0.24,0,7); c.fill(); c.shadowBlur=0;   // ojo rojo
+    c.fillStyle=eye; c.shadowColor=eye; c.shadowBlur=s*0.5; c.beginPath(); c.arc(0,0,r*0.24,0,7); c.fill(); c.shadowBlur=0;   // ojo
+    c.restore();
+  },
+  drawTIEship(x,y,s,color,alpha,tilt){   // TIE como nave del jugador (banqueo + fuego azul + ojo del color del jugador)
+    const c=this.ctx; c.save(); c.globalAlpha=alpha; c.translate(x,y);
+    if(tilt){ c.rotate(tilt*0.5); c.transform(1,0,-tilt*0.45,1,0,0); }
+    c.scale(1-Math.min(0.55,Math.abs(tilt)*0.6),1);
+    const t0=performance.now(), flick=0.78+0.2*Math.sin(t0/50)+0.12*Math.sin(t0/19), len=(s*1.0+this.speed*s*0.3)*flick;
+    c.shadowColor="#2f7bff"; c.shadowBlur=11;
+    [-s*0.5,s*0.5].forEach(ex=>{ const g=c.createLinearGradient(0,s*0.55,0,s*0.55+len); g.addColorStop(0,"#eaf7ff"); g.addColorStop(0.4,"#3fd0ff"); g.addColorStop(1,"rgba(47,123,255,0)"); c.globalAlpha=alpha*0.9; c.fillStyle=g; c.beginPath(); c.moveTo(ex-s*0.24,s*0.55); c.lineTo(ex+s*0.24,s*0.55); c.lineTo(ex,s*0.55+len); c.closePath(); c.fill(); });
+    c.shadowBlur=0; c.globalAlpha=alpha;
+    this.drawTIE(0,0,s,color);
     c.restore();
   },
   drawGem(x,y,s,base){
