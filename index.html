@@ -894,19 +894,26 @@
     </div>
 
     <div class="rb-row">
-      <button class="rb-btn" id="rbLine">🛣️ Seguir línea</button>
-      <button class="rb-btn" id="rbAvoid">🧭 Esquivar</button>
-      <button class="rb-btn warn off" id="rbLights">💡 Luces (Etapa 2)</button>
-      <button class="rb-btn" id="rbProbe">🔍 Probar mando</button>
+      <button class="rb-btn" id="rbFront">🔦 Faros del. <small>(X)</small></button>
+      <button class="rb-btn" id="rbRear">🔴 Trasero <small>(B)</small></button>
+      <button class="rb-btn" id="rbTurnL">⬅️ Int. izq <small>(LB)</small></button>
+      <button class="rb-btn" id="rbTurnR">➡️ Int. der <small>(RB)</small></button>
     </div>
-    <div class="rb-row" style="align-items:center">
-      <button class="rb-btn primary" id="rbMapNext">▶ Siguiente pin (mapeo)</button>
-      <span class="rb-chip ok" id="rbMapPin" style="font-size:15px;font-weight:800">🔦 PIN: —</span>
+    <div class="rb-row">
+      <button class="rb-btn primary" id="rbAllOn">🟢 TODO <small>(RT)</small></button>
+      <button class="rb-btn" id="rbAllOff">⚫ APAGAR <small>(LT)</small></button>
+      <button class="rb-btn warn" id="rbEmerg">🚨 Emergencia <small>(Y)</small></button>
+      <button class="rb-btn" id="rbAvoid">🧭 Esquivar <small>(A)</small></button>
+    </div>
+    <div class="rb-row" style="align-items:center;opacity:.85">
+      <button class="rb-btn" id="rbProbe">🔍 Probar mando</button>
+      <button class="rb-btn" id="rbMapNext">▶ Siguiente pin</button>
+      <span class="rb-chip ok" id="rbMapPin" style="font-size:13px;font-weight:800">🔦 PIN: —</span>
     </div>
 
     <div class="rb-help">
-      ⌨️ <b>WASD</b> o <b>Flechas</b> = manejar · <b>Espacio</b> = parar · <b>T</b> = línea · <b>G</b> = esquivar · <b>L</b> = luces (teclado, lo más confiable)<br>
-      🎮 <b>Palanca izq / cruceta</b> = manejar · <b>A</b> = línea · <b>B</b> = esquivar · <b>Y</b> = luces · suelta = parar<br>
+      🎮 <b>Stick L</b> = manejar · <b>A</b> = esquivar · <b>X</b> = faros del. · <b>B</b> = trasero · <b>LB</b>/<b>RB</b> = intermitentes izq/der · <b>RT</b> = TODO · <b>LT</b> = apagar · <b>Y</b> = 🚨 EMERGENCIA<br>
+      ⌨️ <b>WASD</b>/Flechas = manejar · <b>Espacio</b> = parar · <b>G</b> = esquivar · <b>L</b> = faros · <b>O</b> = todo ON · <b>P</b> = apagar (teclado)<br>
       Requiere <b>Chrome/Edge en PC</b> y el HC-05 emparejado en Windows.<br>
       Ábrela en <b>http://localhost:8080</b> (corre <b>server.ps1</b>) para que el navegador permita el puerto Bluetooth.
     </div>
@@ -3825,7 +3832,7 @@ const Robot = {
   lastCmd:"", lastAt:0, padVec:{x:0,y:0},
   _aPrev:false, _bPrev:false, _timer:null, _readAbort:false, _af:null, _run:false, _padId:null, _dbg:"", _frames:0, lightsOn:false, _yPrev:false, _rxbuf:"",
 
-  open(){ $("robotFs").classList.add("open"); this.startLoop(); this.drawStick(); this.updateLightsBtn(); },
+  open(){ $("robotFs").classList.add("open"); this.startLoop(); this.drawStick(); },
   close(){
     $("robotFs").classList.remove("open");
     this.touchCmd=null; this.modeActive=false;
@@ -3929,14 +3936,16 @@ const Robot = {
     if(gp.buttons[13] && gp.buttons[13].pressed) y=1;    // cruceta ↓
     if(gp.buttons[14] && gp.buttons[14].pressed) x=-1;   // cruceta ←
     if(gp.buttons[15] && gp.buttons[15].pressed) x=1;    // cruceta →
-    const a=!!(gp.buttons[0] && gp.buttons[0].pressed);  // A → seguir línea
-    const b=!!(gp.buttons[1] && gp.buttons[1].pressed);  // B → esquivar
-    if(a && !this._aPrev) this.oneShot="%T#";
-    if(b && !this._bPrev) this.oneShot="%A#";
-    this._aPrev=a; this._bPrev=b;
-    const yb=!!(gp.buttons[3] && gp.buttons[3].pressed);   // Y → luces
-    if(yb && !this._yPrev) this.toggleLights();
-    this._yPrev=yb;
+    // Botones del mando (flanco de subida) → comandos:
+    //  A(0)=esquivar  B(1)=faro trasero  X(2)=faros delanteros  Y(3)=EMERGENCIA
+    //  LB(4)=int.izq  RB(5)=int.der  LT(6)=APAGAR TODO  RT(7)=ENCENDER TODO
+    const BCMD={0:"%A#",1:"%E#",2:"%H#",3:"%P#",4:"%I#",5:"%D#",6:"%X#",7:"%O#"};
+    if(!this._btnPrev) this._btnPrev={};
+    for(let bi=0; bi<=7; bi++){
+      const pr=!!(gp.buttons[bi] && (gp.buttons[bi].pressed || gp.buttons[bi].value>0.5));
+      if(pr && !this._btnPrev[bi] && BCMD[bi]){ this.send(BCMD[bi]); this.log("🎮 "+BCMD[bi]); }
+      this._btnPrev[bi]=pr;
+    }
     this.padVec={ x:Math.abs(x)<dz?0:x, y:Math.abs(y)<dz?0:y };
     if(Math.abs(x)<dz && Math.abs(y)<dz) return null;
     if(Math.abs(y)>=Math.abs(x)) return y<0?"F":"B";
@@ -3949,22 +3958,13 @@ const Robot = {
   tick(){
     const now=performance.now();
     this._frames++;
-    const pad=this.readPad();               // 'F/B/L/R' o null (y fija oneShot con A/B)
-    let cmd=this.touchCmd || pad || "S";     // los botones en pantalla mandan sobre el mando
-    // Activación de modo (línea/esquivar) — una sola vez
-    if(this.oneShot){
-      const os=this.oneShot; this.oneShot=null;
-      this.modeActive=(os==="%T#"||os==="%A#");
-      this.send(os); this.lastCmd=os; this.lastAt=now;
-      this.hud(os==="%T#"?"🛣️ siguiendo línea":os==="%A#"?"🧭 esquivando":"— parado —");
-      this.drawStick(); return;
-    }
-    if(cmd!=="S") this.modeActive=false;     // cualquier manejo cancela el modo automático
-    if(this.modeActive && cmd==="S"){ this.hud("🤖 modo automático"); this.drawStick(); return; }
+    const pad=this.readPad();                 // 'F/B/L/R' o null (los botones se mandan solos)
+    if(this.oneShot){ this.send(this.oneShot); this.oneShot=null; }   // comando puntual (luz/acción desde la pantalla)
+    let cmd=this.touchCmd || pad || "S";       // teclado/pantalla mandan sobre el stick
     const frame="%"+cmd+"#";
     if(this.connected){
       if(frame!==this.lastCmd && now-this.lastAt>=90){ this.send(frame); this.lastCmd=frame; this.lastAt=now; }
-      else if(cmd!=="S" && now-this.lastAt>=450){ this.send(frame); this.lastAt=now; }  // sostener el movimiento
+      else if(cmd!=="S" && now-this.lastAt>=300){ this.send(frame); this.lastAt=now; }   // sostener el movimiento (< watchdog del firmware)
     }
     this.hud(cmd==="F"?"▲ adelante":cmd==="B"?"▼ atrás":cmd==="L"?"◀ izquierda":cmd==="R"?"▶ derecha":"— parado —");
     this.drawStick();
@@ -3982,9 +3982,8 @@ const Robot = {
   },
 
   hud(t){ const el=$("rbCmd"); if(el) el.textContent=t; },
-  toggleLights(){ if(!this.connected){ toast("Conecta el robot primero"); return; } this.lightsOn=!this.lightsOn; this.send("%W#"); this.updateLightsBtn(); this.log(this.lightsOn?"💡 Luces ON":"💡 Luces OFF"); },
+  cmd(frame){ if(!this.connected){ toast("Conecta el robot primero"); return; } this.send(frame); this.log("→ "+frame); },
   mapNext(){ if(!this.connected){ toast("Conecta la app al puerto USB del Arduino primero"); return; } this.send("\n"); },
-  updateLightsBtn(){ const b=$("rbLights"); if(!b) return; b.textContent=this.lightsOn?"💡 Luces: ON":"💡 Luces: OFF"; b.classList.remove("warn","off"); b.classList.toggle("primary", this.lightsOn); },
   probe(){
     const pads=navigator.getGamepads?navigator.getGamepads():[];
     let any=false;
@@ -3999,8 +3998,6 @@ const Robot = {
     const b1=$("rbConnect"), b2=$("rbDisconnect");
     if(b1) b1.style.display=on?"none":"";
     if(b2) b2.style.display=on?"":"none";
-    if(on) this.lightsOn=false;   // al conectar, el Arduino arranca con luces apagadas
-    this.updateLightsBtn();
   },
   setPad(on){ const p=$("rbPad"); if(p && p._on!==on){ p._on=on; p.textContent=on?"🎮 Mando OK":"🎮 Sin mando"; p.className="rb-chip "+(on?"ok":"bad"); } }
 };
@@ -4012,9 +4009,14 @@ $("rbConnect").onclick    = ()=>Robot.connect();
 $("rbDisconnect").onclick = ()=>Robot.disconnect();
 $("rbProbe").onclick      = ()=>Robot.probe();
 $("rbMapNext").onclick    = ()=>Robot.mapNext();
-$("rbLine").onclick       = ()=>{ Robot.oneShot="%T#"; };
-$("rbAvoid").onclick      = ()=>{ Robot.oneShot="%A#"; };
-$("rbLights").onclick     = ()=>Robot.toggleLights();
+$("rbFront").onclick      = ()=>Robot.cmd("%H#");   // faros delanteros (10+12)
+$("rbRear").onclick       = ()=>Robot.cmd("%E#");   // faro trasero (3)
+$("rbTurnL").onclick      = ()=>Robot.cmd("%I#");   // intermitente izquierdo (13)
+$("rbTurnR").onclick      = ()=>Robot.cmd("%D#");   // intermitente derecho (9)
+$("rbAllOn").onclick      = ()=>Robot.cmd("%O#");   // encender todo
+$("rbAllOff").onclick     = ()=>Robot.cmd("%X#");   // apagar todo
+$("rbEmerg").onclick      = ()=>Robot.cmd("%P#");   // paro de emergencia
+$("rbAvoid").onclick      = ()=>Robot.cmd("%A#");   // esquivar
 // D-pad en pantalla (toque/clic) → mismo camino que el mando
 document.querySelectorAll("#robotFs .rb-pad button").forEach(btn=>{
   const cmd=btn.getAttribute("data-cmd");
@@ -4034,11 +4036,12 @@ const rbKeys={};
 document.addEventListener("keydown", e=>{
   if(!$("robotFs").classList.contains("open")) return;
   const k=e.key.toLowerCase();
-  if(rbKeymap[k]){ rbKeys[k]=rbKeymap[k]; Robot.touchCmd=rbKeymap[k]; Robot.modeActive=false; e.preventDefault(); }
-  else if(k===" "){ Robot.touchCmd=null; Robot.modeActive=false; Robot.oneShot="%S#"; e.preventDefault(); }
-  else if(k==="t"){ Robot.oneShot="%T#"; e.preventDefault(); }
-  else if(k==="g"){ Robot.oneShot="%A#"; e.preventDefault(); }
-  else if(k==="l" && !e.repeat){ Robot.toggleLights(); e.preventDefault(); }
+  if(rbKeymap[k]){ rbKeys[k]=rbKeymap[k]; Robot.touchCmd=rbKeymap[k]; e.preventDefault(); }
+  else if(k===" "){ Robot.touchCmd=null; Robot.oneShot="%S#"; e.preventDefault(); }
+  else if(k==="g" && !e.repeat){ Robot.oneShot="%A#"; e.preventDefault(); }   // esquivar
+  else if(k==="l" && !e.repeat){ Robot.oneShot="%H#"; e.preventDefault(); }   // faros delanteros
+  else if(k==="o" && !e.repeat){ Robot.oneShot="%O#"; e.preventDefault(); }   // encender todo
+  else if(k==="p" && !e.repeat){ Robot.oneShot="%X#"; e.preventDefault(); }   // apagar todo
 });
 document.addEventListener("keyup", e=>{
   if(!$("robotFs").classList.contains("open")) return;
