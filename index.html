@@ -897,6 +897,7 @@
       <button class="rb-btn" id="rbLine">🛣️ Seguir línea</button>
       <button class="rb-btn" id="rbAvoid">🧭 Esquivar</button>
       <button class="rb-btn warn off" id="rbLights">💡 Luces (Etapa 2)</button>
+      <button class="rb-btn" id="rbProbe">🔍 Probar mando</button>
     </div>
 
     <div class="rb-help">
@@ -3952,6 +3953,15 @@ const Robot = {
   },
 
   hud(t){ const el=$("rbCmd"); if(el) el.textContent=t; },
+  probe(){
+    const pads=navigator.getGamepads?navigator.getGamepads():[];
+    const alive=[].filter.call(pads,Boolean);
+    const gp=pads[0]||alive[0]||null;
+    if(!gp){ this.log("🔍 pads:"+alive.length+" · NINGÚN mando en getGamepads. Haz clic en esta pantalla y presiona un botón del control, con la ventana de Chrome enfocada."); return; }
+    const ax=(gp.axes||[]).map(a=>(+a).toFixed(2)).join(", ");
+    const bs=[]; (gp.buttons||[]).forEach((b,i)=>{ if(b&&b.pressed) bs.push(i); });
+    this.log("🔍 pads:"+alive.length+" · id:"+String(gp.id||"?").slice(0,22)+" · map:"+(gp.mapping||"—")+" · ejes:["+ax+"] · btn:["+(bs.join(",")||"—")+"]");
+  },
   setConn(on){
     this.connected=on;
     const c=$("rbConn"); if(c){ c.textContent=on?"🔌 Conectado":"🔌 Desconectado"; c.className="rb-chip "+(on?"ok":"bad"); }
@@ -3967,6 +3977,7 @@ $("robotBtn").onclick     = ()=>Robot.open();
 $("robotClose").onclick   = ()=>Robot.close();
 $("rbConnect").onclick    = ()=>Robot.connect();
 $("rbDisconnect").onclick = ()=>Robot.disconnect();
+$("rbProbe").onclick      = ()=>Robot.probe();
 $("rbLine").onclick       = ()=>{ Robot.oneShot="%T#"; };
 $("rbAvoid").onclick      = ()=>{ Robot.oneShot="%A#"; };
 $("rbLights").onclick     = ()=>toast("💡 Las luces llegan en la Etapa 2: hay que actualizar el firmware del Arduino. ¡Dime el pin y lo agregamos!");
