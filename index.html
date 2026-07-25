@@ -358,6 +358,31 @@
   #gameFs{position:fixed;inset:0;z-index:120;background:#020a06;display:none;--cyan:#ffffff;--green:#ffffff}
   #gameFs.open{display:block}
   #gameFs #gameCanvas{position:absolute;inset:0;width:100%;height:100%;display:block;background:#04110a;touch-action:none}
+  /* ===== Control del Robot (LAFVIN) ===== */
+  #robotFs{position:fixed;inset:0;z-index:121;display:none;overflow:auto;color:#eafff5;background:radial-gradient(circle at 50% -10%,#07271c,#020a06 70%)}
+  #robotFs.open{display:block}
+  #robotFs .rb-wrap{max-width:760px;margin:0 auto;padding:16px 16px 46px;display:flex;flex-direction:column;gap:14px}
+  #robotFs .rb-top{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+  #robotFs h2{margin:0;font-size:18px;letter-spacing:.14em;color:#19ff85;flex:1;min-width:150px}
+  #robotFs .rb-chip{font-size:11px;padding:4px 9px;border-radius:20px;border:1px solid rgba(255,255,255,.18);background:rgba(255,255,255,.05);white-space:nowrap}
+  #robotFs .rb-chip.ok{color:#19ff85;border-color:rgba(25,255,133,.55);box-shadow:0 0 10px rgba(25,255,133,.25)}
+  #robotFs .rb-chip.bad{color:#ff6b81;border-color:rgba(255,59,91,.5)}
+  #robotFs .rb-row{display:flex;gap:8px;flex-wrap:wrap;justify-content:center}
+  #robotFs .rb-btn{padding:10px 14px;border-radius:10px;border:1px solid rgba(255,255,255,.2);background:rgba(255,255,255,.06);color:#eafff5;font-size:13px;cursor:pointer}
+  #robotFs .rb-btn.primary{border-color:rgba(25,255,133,.55);color:#19ff85}
+  #robotFs .rb-btn.warn{border-color:rgba(255,210,63,.5);color:#ffd23f}
+  #robotFs .rb-btn.off{opacity:.55}
+  #robotFs .rb-stick{position:relative;width:150px;height:150px;border-radius:50%;margin:2px auto;border:1px solid rgba(47,208,255,.3);background:radial-gradient(circle,rgba(47,208,255,.08),transparent 70%)}
+  #robotFs .rb-stick .dot{position:absolute;width:34px;height:34px;border-radius:50%;left:50%;top:50%;transform:translate(-50%,-50%);background:#2fd0ff;box-shadow:0 0 18px #2fd0ff;transition:left .06s,top .06s,background .1s}
+  #robotFs .rb-cmd{text-align:center;font-size:14px;color:#19ff85;letter-spacing:.08em;min-height:18px}
+  #robotFs .rb-pad{display:grid;grid-template-columns:repeat(3,70px);grid-template-rows:repeat(3,70px);gap:8px;justify-content:center;margin:2px auto}
+  #robotFs .rb-pad>span{display:block}
+  #robotFs .rb-pad button{font-size:24px;border-radius:14px;border:1px solid rgba(47,208,255,.4);background:rgba(47,208,255,.08);color:#eafff5;touch-action:none;user-select:none;-webkit-user-select:none;cursor:pointer;transition:transform .05s,background .1s,box-shadow .1s}
+  #robotFs .rb-pad button:active,#robotFs .rb-pad button.on{background:rgba(47,208,255,.35);transform:scale(.93);box-shadow:0 0 16px rgba(47,208,255,.45)}
+  #robotFs .rb-pad button.stop{border-color:rgba(255,59,91,.5);background:rgba(255,59,91,.12)}
+  #robotFs .rb-pad button.stop:active,#robotFs .rb-pad button.stop.on{background:rgba(255,59,91,.35);box-shadow:0 0 16px rgba(255,59,91,.45)}
+  #robotFs .rb-help{font-size:11.5px;color:#8fb9ab;text-align:center;line-height:1.55}
+  #robotFs .rb-log{font-family:ui-monospace,Consolas,monospace;font-size:11px;color:#7fe9c0;background:#02120c;border:1px solid rgba(25,255,133,.15);border-radius:8px;padding:8px;height:88px;overflow:auto;white-space:pre-wrap}
   .game-top{position:absolute;top:0;left:0;right:0;display:flex;justify-content:space-between;align-items:flex-start;padding:max(10px,env(safe-area-inset-top)) 12px 0;z-index:5;pointer-events:none}
   .game-top .btn{pointer-events:auto;background:rgba(0,0,0,0.4)}
   #gameScores{display:flex;gap:14px;font-weight:900;font-size:17px;text-shadow:0 0 8px currentColor}
@@ -510,6 +535,7 @@
       <button class="btn btn-ghost btn-sm" id="rankBtn">🎖️ Ranking</button>
       <button class="btn btn-ghost btn-sm" id="clfBtn" style="color:var(--red);border-color:rgba(255,59,91,0.5)">🔴 Clasificadas</button>
       <button class="btn btn-ghost btn-sm" id="gameBtn">🎮 Juego</button>
+      <button class="btn btn-ghost btn-sm" id="robotBtn" style="color:#2fd0ff;border-color:rgba(47,208,255,0.5)">🚗 Robot</button>
       <button class="btn btn-ghost btn-sm" id="settingsBtn">⚙️ Ajustes</button>
       <button class="btn btn-ghost btn-sm" id="exportBtn">⤓ Exportar</button>
       <button class="btn btn-ghost btn-sm" id="lockNow">⏻ Bloquear</button>
@@ -834,6 +860,52 @@
       <button class="btn btn-ghost" id="gameExit2">✕ Salir</button>
       <button class="btn btn-ghost" id="gameResetWins">↺ Victorias</button>
     </div>
+  </div>
+</div>
+
+<!-- ============ CONTROL DEL ROBOT (LAFVIN) ============ -->
+<div id="robotFs">
+  <div class="rb-wrap">
+    <div class="rb-top">
+      <h2>🚗 CONTROL DEL ROBOT</h2>
+      <span class="rb-chip bad" id="rbConn">🔌 Desconectado</span>
+      <span class="rb-chip bad" id="rbPad">🎮 Sin mando</span>
+      <button class="btn btn-ghost btn-sm" id="robotClose">✕ Salir</button>
+    </div>
+
+    <div class="rb-row">
+      <button class="rb-btn primary" id="rbConnect">🔌 Conectar robot</button>
+      <button class="rb-btn" id="rbDisconnect" style="display:none">⛔ Desconectar</button>
+    </div>
+
+    <div class="rb-stick"><div class="dot" id="rbDot"></div></div>
+    <div class="rb-cmd" id="rbCmd">— parado —</div>
+
+    <div class="rb-pad">
+      <span></span>
+      <button data-cmd="F" title="Adelante">▲</button>
+      <span></span>
+      <button data-cmd="L" title="Izquierda">◀</button>
+      <button class="stop" data-cmd="S" title="Parar">⏹</button>
+      <button data-cmd="R" title="Derecha">▶</button>
+      <span></span>
+      <button data-cmd="B" title="Atrás">▼</button>
+      <span></span>
+    </div>
+
+    <div class="rb-row">
+      <button class="rb-btn" id="rbLine">🛣️ Seguir línea</button>
+      <button class="rb-btn" id="rbAvoid">🧭 Esquivar</button>
+      <button class="rb-btn warn off" id="rbLights">💡 Luces (Etapa 2)</button>
+    </div>
+
+    <div class="rb-help">
+      🎮 <b>Palanca izquierda</b> o <b>cruceta</b> = manejar · <b>A</b> = seguir línea · <b>B</b> = esquivar · suelta = parar<br>
+      (Presiona un botón del mando para que se detecte.) Requiere <b>Chrome/Edge en PC</b> y el HC-05 emparejado en Windows.<br>
+      Ábrela en <b>http://localhost:8080</b> (corre <b>server.ps1</b>) para que el navegador permita el puerto Bluetooth.
+    </div>
+
+    <div class="rb-log" id="rbLog">Registro del robot…</div>
   </div>
 </div>
 
@@ -3471,7 +3543,7 @@ const Foot = {
     for(let t=0;t<2;t++) for(let i=0;i<5;i++){ let[fx,fy,role]=form[i]; if(t===1)fy=1-fy; const wx=fx*PW,wy=fy*PL; const rt=FTEAMS[t===0?this.myTeam:this.cpuTeam].rating; this.players.push({team:t,idx:i,role,wx,wy,home:{wx,wy},face:t===0?Math.PI/2:-Math.PI/2,run:i*1.3,stamina:100,num:[1,4,5,8,9][i],name:FNAMES[(t*11+i*5)%FNAMES.length],rating:rt,dive:0,diveDir:1}); }
     this.kickoffTeam=0;   // el saque de inicio lo hace TU equipo (no siempre el rival)
     this.resetPositions(); this.kickPause=45;
-    $("footScore").textContent="0 - 0"; $("footBanner").classList.remove("show");
+    this.showScore(); $("footBanner").classList.remove("show");
     $("footOverlay").classList.add("hide"); this.running=true; this.paused=false;
     if($("footFs").requestFullscreen) $("footFs").requestFullscreen().catch(()=>{});
     setTimeout(()=>this.resize(),60);
@@ -3588,7 +3660,8 @@ const Foot = {
   doPass(t){ const o=this.kicker(t); if(!o||o.team!==t) return; const gy=this.goalY(t),mates=this.players.filter(p=>p.team===t&&p!==o&&p.role==="out"); if(!mates.length) return; let tgt=null,bd=1e9; mates.forEach(p=>{ const fwd=gy===PL?p.wy-o.wy:o.wy-p.wy; const d=Math.hypot(p.wx-o.wx,p.wy-o.wy)-(fwd>0?11:0); if(d<bd){bd=d;tgt=p;} }); if(!tgt) return; const L=Math.hypot(tgt.wx-o.wx,tgt.wy-o.wy); this.kickTo(o,tgt.wx,tgt.wy,0,Math.max(0.9,Math.min(1.6,L*0.06))); },
   doShoot(t){ const o=this.kicker(t); if(!o||o.team!==t) return; this.kickTo(o,PW/2+(Math.random()-0.5)*GOALW*0.75,this.goalY(t),0.32,1.9); },
   checkGoal(){ const b=this.ball; if(b.wy>=PL&&this.inGoalX(b.wx)&&b.wz<2.6) this.goal(0); else if(b.wy<=0&&this.inGoalX(b.wx)&&b.wz<2.6) this.goal(1); },
-  goal(team){ this.score[team]++; $("footScore").textContent=`${this.score[0]} - ${this.score[1]}`; const you=team===0; $("footBanner").querySelector(".lb-text").textContent=you?"⚽ ¡GOOOL!":(this.mode==="2p"?"⚽ GOL J2":"⚽ GOL RIVAL"); $("footBanner").classList.add("show"); this.bannerT=100; try{SFX.beep(660,0.14,"square",0.16); setTimeout(()=>SFX.beep(990,0.18,"square",0.14),120);}catch(e){} if(navigator.vibrate){try{navigator.vibrate(140);}catch(e){}} this.kickoffTeam=team===0?1:0; this.resetPositions(); this.kickPause=50; },
+  showScore(){ const a=FTEAMS[this.myTeam],b=FTEAMS[this.cpuTeam]; $("footScore").innerHTML=`<span style="color:${a.c}">${a.name}</span> <b>${this.score[0]} - ${this.score[1]}</b> <span style="color:${b.c}">${b.name}</span>`; },
+  goal(team){ this.score[team]++; this.showScore(); const you=team===0; $("footBanner").querySelector(".lb-text").textContent=you?"⚽ ¡GOOOL!":(this.mode==="2p"?"⚽ GOL J2":"⚽ GOL RIVAL"); $("footBanner").classList.add("show"); this.bannerT=100; try{SFX.beep(660,0.14,"square",0.16); setTimeout(()=>SFX.beep(990,0.18,"square",0.14),120);}catch(e){} if(navigator.vibrate){try{navigator.vibrate(140);}catch(e){}} this.kickoffTeam=team===0?1:0; this.resetPositions(); this.kickPause=50; },
   endMatch(){ this.running=false; const s=this.score,me=FTEAMS[this.myTeam].name,ri=FTEAMS[this.cpuTeam].name; let res; if(s[0]>s[1])res='<span style="color:#19ff85">🏆 ¡GANA '+me.toUpperCase()+'!</span>'; else if(s[0]<s[1])res='<span style="color:#ff5b6e">🏆 GANA '+ri.toUpperCase()+'</span>'; else res='<span style="color:var(--cyan)">Empate</span>'; $("footMsg").innerHTML="⚽ FIN DEL PARTIDO"; $("footResult").innerHTML=`<div style="font-size:20px;margin:4px 0">${me} <b>${s[0]} - ${s[1]}</b> ${ri}</div>${res}`; $("footBanner").classList.remove("show"); $("footOverlay").classList.remove("hide"); if(document.fullscreenElement)document.exitFullscreen().catch(()=>{}); },
   close(){ this.running=false; if(this.raf)cancelAnimationFrame(this.raf); $("footBanner").classList.remove("show"); if(document.fullscreenElement)document.exitFullscreen().catch(()=>{}); $("footFs").classList.remove("open"); },
   /* ---------- DIBUJO 3D ---------- */
@@ -3733,6 +3806,177 @@ if(location.protocol === "file:" && !Cloud.enabled){
 // PWA: registrar Service Worker (app instalable + offline)
 if("serviceWorker" in navigator && location.protocol!=="file:"){
   window.addEventListener("load", ()=>{ navigator.serviceWorker.register("sw.js").catch(e=>console.log("SW no registrado:", e)); });
+}
+
+/* ============================================================
+   CONTROL DEL ROBOT (LAFVIN)  ·  Xbox → EDTU → Bluetooth → Arduino
+   Etapa 1: usa los comandos que el robot YA entiende (%F# %B# %L# %R# %S# %T# %A#) a 9600 baudios.
+   Camino: Gamepad API (mando) + Web Serial API (puerto COM del HC-05, solo Chrome/Edge en PC).
+   ============================================================ */
+const Robot = {
+  port:null, writer:null, reader:null, connected:false,
+  touchCmd:null, oneShot:null, modeActive:false,
+  lastCmd:"", lastAt:0, padVec:{x:0,y:0},
+  _aPrev:false, _bPrev:false, _timer:null, _readAbort:false,
+
+  open(){ $("robotFs").classList.add("open"); this.startLoop(); this.drawStick(); },
+  close(){
+    $("robotFs").classList.remove("open");
+    this.touchCmd=null; this.modeActive=false;
+    if(this.connected) this.send("%S#");
+    this.stopLoop();
+  },
+
+  log(msg){
+    const el=$("rbLog"); if(!el) return;
+    el.textContent=(el.textContent+"\n"+msg).split("\n").slice(-40).join("\n");
+    el.scrollTop=el.scrollHeight;
+  },
+
+  async connect(){
+    if(!("serial" in navigator)){
+      toast("Este navegador no soporta Web Serial. Usa Chrome o Edge en la PC.");
+      this.log("✖ Sin Web Serial (usa Chrome/Edge en PC)."); return;
+    }
+    try{
+      this.port=await navigator.serial.requestPort();
+      await this.port.open({ baudRate:9600 });
+      this.writer=this.port.writable.getWriter();
+      this.setConn(true);
+      this.log("✔ Conectado a 9600 baudios.");
+      toast("🤖 Robot conectado");
+      this.readLoop();
+    }catch(e){
+      this.log("✖ "+((e&&e.message)?e.message:e));
+      if(e && e.name!=="NotFoundError") toast("No se pudo conectar: "+((e&&e.message)?e.message:e));
+    }
+  },
+
+  async disconnect(){
+    try{ if(this.connected) await this.send("%S#"); }catch(e){}
+    this._readAbort=true;
+    try{ if(this.reader){ await this.reader.cancel(); } }catch(e){}
+    try{ if(this.writer){ this.writer.releaseLock(); } }catch(e){}
+    try{ if(this.port){ await this.port.close(); } }catch(e){}
+    this.port=this.writer=this.reader=null;
+    this.setConn(false);
+    this.log("⛔ Desconectado.");
+  },
+
+  async readLoop(){
+    this._readAbort=false;
+    try{
+      while(this.port && this.port.readable && !this._readAbort){
+        this.reader=this.port.readable.getReader();
+        try{
+          while(true){
+            const {value,done}=await this.reader.read();
+            if(done) break;
+            if(value){ const t=new TextDecoder().decode(value).trim(); if(t) this.log("↩ "+t); }
+          }
+        }catch(e){ /* stream cerrado */ }
+        finally{ try{ this.reader.releaseLock(); }catch(e){} }
+      }
+    }catch(e){}
+  },
+
+  async send(cmd){
+    if(!this.connected || !this.writer) return;
+    try{ await this.writer.write(new TextEncoder().encode(cmd)); }
+    catch(e){ this.log("✖ envío: "+((e&&e.message)?e.message:e)); this.setConn(false); }
+  },
+
+  readPad(){
+    if(!navigator.getGamepads){ this.setPad(false); return null; }
+    const pads=navigator.getGamepads(); let gp=null;
+    for(let i=0;i<pads.length;i++){ if(pads[i]){ gp=pads[i]; break; } }
+    this.setPad(!!gp);
+    if(!gp){ this.padVec={x:0,y:0}; return null; }
+    const dz=0.35;
+    let x=gp.axes[0]||0, y=gp.axes[1]||0;
+    if(gp.buttons[12] && gp.buttons[12].pressed) y=-1;   // cruceta ↑
+    if(gp.buttons[13] && gp.buttons[13].pressed) y=1;    // cruceta ↓
+    if(gp.buttons[14] && gp.buttons[14].pressed) x=-1;   // cruceta ←
+    if(gp.buttons[15] && gp.buttons[15].pressed) x=1;    // cruceta →
+    const a=!!(gp.buttons[0] && gp.buttons[0].pressed);  // A → seguir línea
+    const b=!!(gp.buttons[1] && gp.buttons[1].pressed);  // B → esquivar
+    if(a && !this._aPrev) this.oneShot="%T#";
+    if(b && !this._bPrev) this.oneShot="%A#";
+    this._aPrev=a; this._bPrev=b;
+    this.padVec={ x:Math.abs(x)<dz?0:x, y:Math.abs(y)<dz?0:y };
+    if(Math.abs(x)<dz && Math.abs(y)<dz) return null;
+    if(Math.abs(y)>=Math.abs(x)) return y<0?"F":"B";
+    return x<0?"L":"R";
+  },
+
+  startLoop(){ if(!this._timer) this._timer=setInterval(()=>this.tick(),60); },
+  stopLoop(){ if(this._timer){ clearInterval(this._timer); this._timer=null; } },
+
+  tick(){
+    const now=performance.now();
+    const pad=this.readPad();               // 'F/B/L/R' o null (y fija oneShot con A/B)
+    let cmd=this.touchCmd || pad || "S";     // los botones en pantalla mandan sobre el mando
+    // Activación de modo (línea/esquivar) — una sola vez
+    if(this.oneShot){
+      const os=this.oneShot; this.oneShot=null;
+      this.modeActive=(os==="%T#"||os==="%A#");
+      this.send(os); this.lastCmd=os; this.lastAt=now;
+      this.hud(os==="%T#"?"🛣️ siguiendo línea":os==="%A#"?"🧭 esquivando":"— parado —");
+      this.drawStick(); return;
+    }
+    if(cmd!=="S") this.modeActive=false;     // cualquier manejo cancela el modo automático
+    if(this.modeActive && cmd==="S"){ this.hud("🤖 modo automático"); this.drawStick(); return; }
+    const frame="%"+cmd+"#";
+    if(this.connected){
+      if(frame!==this.lastCmd && now-this.lastAt>=90){ this.send(frame); this.lastCmd=frame; this.lastAt=now; }
+      else if(cmd!=="S" && now-this.lastAt>=450){ this.send(frame); this.lastAt=now; }  // sostener el movimiento
+    }
+    this.hud(cmd==="F"?"▲ adelante":cmd==="B"?"▼ atrás":cmd==="L"?"◀ izquierda":cmd==="R"?"▶ derecha":"— parado —");
+    this.drawStick();
+  },
+
+  drawStick(){
+    const dot=$("rbDot"); if(!dot) return;
+    let x=this.padVec.x, y=this.padVec.y;
+    if(this.touchCmd){ x=this.touchCmd==="L"?-1:this.touchCmd==="R"?1:0; y=this.touchCmd==="F"?-1:this.touchCmd==="B"?1:0; }
+    const moving=!!(x||y);
+    dot.style.left=(50+x*33)+"%";
+    dot.style.top=(50+y*33)+"%";
+    dot.style.background=moving?"#19ff85":"#2fd0ff";
+    dot.style.boxShadow="0 0 18px "+(moving?"#19ff85":"#2fd0ff");
+  },
+
+  hud(t){ const el=$("rbCmd"); if(el) el.textContent=t; },
+  setConn(on){
+    this.connected=on;
+    const c=$("rbConn"); if(c){ c.textContent=on?"🔌 Conectado":"🔌 Desconectado"; c.className="rb-chip "+(on?"ok":"bad"); }
+    const b1=$("rbConnect"), b2=$("rbDisconnect");
+    if(b1) b1.style.display=on?"none":"";
+    if(b2) b2.style.display=on?"":"none";
+  },
+  setPad(on){ const p=$("rbPad"); if(p && p._on!==on){ p._on=on; p.textContent=on?"🎮 Mando OK":"🎮 Sin mando"; p.className="rb-chip "+(on?"ok":"bad"); } }
+};
+
+// --- Wiring de la pestaña Robot ---
+$("robotBtn").onclick     = ()=>Robot.open();
+$("robotClose").onclick   = ()=>Robot.close();
+$("rbConnect").onclick    = ()=>Robot.connect();
+$("rbDisconnect").onclick = ()=>Robot.disconnect();
+$("rbLine").onclick       = ()=>{ Robot.oneShot="%T#"; };
+$("rbAvoid").onclick      = ()=>{ Robot.oneShot="%A#"; };
+$("rbLights").onclick     = ()=>toast("💡 Las luces llegan en la Etapa 2: hay que actualizar el firmware del Arduino. ¡Dime el pin y lo agregamos!");
+// D-pad en pantalla (toque/clic) → mismo camino que el mando
+document.querySelectorAll("#robotFs .rb-pad button").forEach(btn=>{
+  const cmd=btn.getAttribute("data-cmd");
+  const press=e=>{ e.preventDefault(); if(cmd==="S"){ Robot.touchCmd=null; Robot.modeActive=false; Robot.oneShot="%S#"; } else { Robot.touchCmd=cmd; } btn.classList.add("on"); };
+  const release=e=>{ e.preventDefault(); if(cmd!=="S") Robot.touchCmd=null; btn.classList.remove("on"); };
+  btn.addEventListener("pointerdown",press);
+  btn.addEventListener("pointerup",release);
+  btn.addEventListener("pointerleave",release);
+  btn.addEventListener("pointercancel",release);
+});
+if("serial" in navigator){
+  navigator.serial.addEventListener("disconnect", ()=>{ if(Robot.port){ Robot.setConn(false); Robot.log("⚠ El puerto Bluetooth se desconectó."); } });
 }
 </script>
 </body>
