@@ -3817,7 +3817,7 @@ const Robot = {
   port:null, writer:null, reader:null, connected:false,
   touchCmd:null, oneShot:null, modeActive:false,
   lastCmd:"", lastAt:0, padVec:{x:0,y:0},
-  _aPrev:false, _bPrev:false, _timer:null, _readAbort:false, _af:null, _run:false, _padId:null,
+  _aPrev:false, _bPrev:false, _timer:null, _readAbort:false, _af:null, _run:false, _padId:null, _dbg:"", _frames:0,
 
   open(){ $("robotFs").classList.add("open"); this.startLoop(); this.drawStick(); },
   close(){
@@ -3892,6 +3892,8 @@ const Robot = {
     for(let i=0;i<pads.length;i++){ if(pads[i]){ gp=pads[i]; break; } }
     this.setPad(!!gp);
     if(gp && gp.id!==this._padId){ this._padId=gp.id; this.log("🎮 Mando detectado: "+(gp.id||"?")); }
+    const nPads=pads?[].filter.call(pads,Boolean).length:0;
+    this._dbg = gp ? ("x"+(gp.axes[0]||0).toFixed(2)+" y"+(gp.axes[1]||0).toFixed(2)+" ejes:"+gp.axes.length+" pads:"+nPads) : "sin-mando";
     if(!gp){ if(this._padId){ this._padId=null; this.log("🎮 Mando desconectado."); } this.padVec={x:0,y:0}; return null; }
     const dz=0.30;
     let x=gp.axes[0]||0, y=gp.axes[1]||0;
@@ -3915,6 +3917,7 @@ const Robot = {
 
   tick(){
     const now=performance.now();
+    this._frames++;
     const pad=this.readPad();               // 'F/B/L/R' o null (y fija oneShot con A/B)
     let cmd=this.touchCmd || pad || "S";     // los botones en pantalla mandan sobre el mando
     // Activación de modo (línea/esquivar) — una sola vez
@@ -3947,7 +3950,7 @@ const Robot = {
     dot.style.boxShadow="0 0 18px "+(moving?"#19ff85":"#2fd0ff");
   },
 
-  hud(t){ const el=$("rbCmd"); if(el) el.textContent=t; },
+  hud(t){ const el=$("rbCmd"); if(el) el.textContent=t+"   ["+this._dbg+" f"+(this._frames%1000)+"]"; },
   setConn(on){
     this.connected=on;
     const c=$("rbConn"); if(c){ c.textContent=on?"🔌 Conectado":"🔌 Desconectado"; c.className="rb-chip "+(on?"ok":"bad"); }
