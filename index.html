@@ -3906,8 +3906,6 @@ const Robot = {
     const gp=this.choosePad();   // elige el control real, ignorando el Jabra/parlante
     this.setPad(!!gp);
     if(gp && gp.id!==this._padId){ this._padId=gp.id; this.log("🎮 Mando detectado: "+(gp.id||"?")); }
-    const nPads=pads?[].filter.call(pads,Boolean).length:0;
-    this._dbg = gp ? ("x"+(gp.axes[0]||0).toFixed(2)+" y"+(gp.axes[1]||0).toFixed(2)+" ejes:"+gp.axes.length+" pads:"+nPads) : "sin-mando";
     if(!gp){ if(this._padId){ this._padId=null; this.log("🎮 Mando desconectado."); } this.padVec={x:0,y:0}; return null; }
     const dz=0.30;
     let x=gp.axes[0]||0, y=gp.axes[1]||0;
