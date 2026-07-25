@@ -3888,8 +3888,8 @@ const Robot = {
 
   readPad(){
     if(!navigator.getGamepads){ this.setPad(false); return null; }
-    const pads=navigator.getGamepads(); let gp=null;
-    for(let i=0;i<pads.length;i++){ if(pads[i]){ gp=pads[i]; break; } }
+    const pads=navigator.getGamepads(); let gp=pads[0]||null;   // como los juegos: índice 0 primero
+    if(!gp){ for(let i=0;i<pads.length;i++){ if(pads[i]){ gp=pads[i]; break; } } }
     this.setPad(!!gp);
     if(gp && gp.id!==this._padId){ this._padId=gp.id; this.log("🎮 Mando detectado: "+(gp.id||"?")); }
     const nPads=pads?[].filter.call(pads,Boolean).length:0;
@@ -3912,7 +3912,7 @@ const Robot = {
     return x<0?"L":"R";
   },
 
-  startLoop(){ this._run=true; if(!this._af){ const f=()=>{ if(!this._run){ this._af=null; return; } this.tick(); this._af=requestAnimationFrame(f); }; this._af=requestAnimationFrame(f); } },
+  startLoop(){ this._run=true; if(!this._af){ const f=()=>{ if(!this._run){ this._af=null; return; } try{ this.tick(); }catch(e){ this.log("✖ tick: "+((e&&e.message)?e.message:e)); } this._af=requestAnimationFrame(f); }; this._af=requestAnimationFrame(f); } },
   stopLoop(){ this._run=false; if(this._af){ cancelAnimationFrame(this._af); this._af=null; } },
 
   tick(){
