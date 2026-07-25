@@ -870,6 +870,7 @@
       <h2>🚗 CONTROL DEL ROBOT</h2>
       <span class="rb-chip bad" id="rbConn">🔌 Desconectado</span>
       <span class="rb-chip bad" id="rbPad">🎮 Sin mando</span>
+      <span class="rb-chip" id="rbBatt">🔋 --%</span>
       <button class="btn btn-ghost btn-sm" id="robotClose">✕ Salir</button>
     </div>
 
@@ -3894,7 +3895,9 @@ const Robot = {
             if(value){
               this._rxbuf += new TextDecoder().decode(value);
               let parts=this._rxbuf.split("\n"); this._rxbuf=parts.pop();
-              for(let line of parts){ line=line.trim(); if(!line) continue; this.log("↩ "+line);
+              for(let line of parts){ line=line.trim(); if(!line) continue;
+                const mb=line.match(/BAT=(\d+),(\d+)/); if(mb){ this.updateBatt(+mb[1],(+mb[2])/100); continue; }   // batería (no se loguea, llega cada 2s)
+                this.log("↩ "+line);
                 const m=line.match(/ENCENDIDO pin (\S+)/); if(m){ const el=$("rbMapPin"); if(el) el.textContent="🔦 PIN: "+m[1]; }
               }
             }
@@ -3983,6 +3986,7 @@ const Robot = {
 
   hud(t){ const el=$("rbCmd"); if(el) el.textContent=t; },
   cmd(frame){ if(!this.connected){ toast("Conecta el robot primero"); return; } this.send(frame); this.log("→ "+frame); },
+  updateBatt(pct,volts){ const el=$("rbBatt"); if(!el) return; el.textContent=(pct<15?"🪫":"🔋")+" "+pct+"% ("+volts.toFixed(1)+"V)"; el.className="rb-chip "+(pct>=30?"ok":"bad"); },
   mapNext(){ if(!this.connected){ toast("Conecta la app al puerto USB del Arduino primero"); return; } this.send("\n"); },
   probe(){
     const pads=navigator.getGamepads?navigator.getGamepads():[];
@@ -3998,6 +4002,7 @@ const Robot = {
     const b1=$("rbConnect"), b2=$("rbDisconnect");
     if(b1) b1.style.display=on?"none":"";
     if(b2) b2.style.display=on?"":"none";
+    if(!on){ const bt=$("rbBatt"); if(bt){ bt.textContent="🔋 --%"; bt.className="rb-chip"; } }
   },
   setPad(on){ const p=$("rbPad"); if(p && p._on!==on){ p._on=on; p.textContent=on?"🎮 Mando OK":"🎮 Sin mando"; p.className="rb-chip "+(on?"ok":"bad"); } }
 };
