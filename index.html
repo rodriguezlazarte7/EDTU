@@ -3888,10 +3888,22 @@ const Robot = {
     catch(e){ this.log("✖ envío: "+((e&&e.message)?e.message:e)); this.setConn(false); }
   },
 
+  choosePad(){
+    const pads=navigator.getGamepads?navigator.getGamepads():[];
+    let best=null,score=-1;
+    for(let i=0;i<pads.length;i++){ const p=pads[i]; if(!p) continue;
+      const id=(p.id||"").toLowerCase();
+      if(/jabra|speak|speaker|headset|audio|micr|webcam|camera|receiver/.test(id)) continue;   // ignora parlantes/mics (ej. Jabra Speak 510)
+      const nax=(p.axes||[]).length, nbt=(p.buttons||[]).length;
+      if(nax<2 || nbt<4) continue;   // un control real tiene ejes y varios botones
+      const sc=nax+nbt+(p.mapping==="standard"?100:0);   // prefiere mapeo estándar (Xbox)
+      if(sc>score){ score=sc; best=p; }
+    }
+    return best;
+  },
   readPad(){
     if(!navigator.getGamepads){ this.setPad(false); return null; }
-    const pads=navigator.getGamepads(); let gp=pads[0]||null;   // como los juegos: índice 0 primero
-    if(!gp){ for(let i=0;i<pads.length;i++){ if(pads[i]){ gp=pads[i]; break; } } }
+    const gp=this.choosePad();   // elige el control real, ignorando el Jabra/parlante
     this.setPad(!!gp);
     if(gp && gp.id!==this._padId){ this._padId=gp.id; this.log("🎮 Mando detectado: "+(gp.id||"?")); }
     const nPads=pads?[].filter.call(pads,Boolean).length:0;
@@ -3955,12 +3967,11 @@ const Robot = {
   hud(t){ const el=$("rbCmd"); if(el) el.textContent=t; },
   probe(){
     const pads=navigator.getGamepads?navigator.getGamepads():[];
-    const alive=[].filter.call(pads,Boolean);
-    const gp=pads[0]||alive[0]||null;
-    if(!gp){ this.log("🔍 pads:"+alive.length+" · NINGÚN mando en getGamepads. Haz clic en esta pantalla y presiona un botón del control, con la ventana de Chrome enfocada."); return; }
-    const ax=(gp.axes||[]).map(a=>(+a).toFixed(2)).join(", ");
-    const bs=[]; (gp.buttons||[]).forEach((b,i)=>{ if(b&&b.pressed) bs.push(i); });
-    this.log("🔍 pads:"+alive.length+" · id:"+String(gp.id||"?").slice(0,22)+" · map:"+(gp.mapping||"—")+" · ejes:["+ax+"] · btn:["+(bs.join(",")||"—")+"]");
+    let any=false;
+    for(let i=0;i<pads.length;i++){ const p=pads[i]; if(!p) continue; any=true; this.log("• #"+i+" "+String(p.id||"?").slice(0,26)+" ejes:"+(p.axes||[]).length+" btn:"+(p.buttons||[]).length+" map:"+(p.mapping||"—")); }
+    if(!any){ this.log("🔍 NINGÚN dispositivo. Da clic aquí y presiona un botón del control (Chrome enfocado)."); return; }
+    const gp=this.choosePad();
+    this.log(gp ? ("✔ Control elegido: "+String(gp.id||"?").slice(0,26)+" · ejes:["+(gp.axes||[]).map(a=>(+a).toFixed(2)).join(", ")+"]") : "✖ Ninguno parece un control (¿solo audio/Jabra?).");
   },
   setConn(on){
     this.connected=on;
