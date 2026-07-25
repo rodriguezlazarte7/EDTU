@@ -900,8 +900,9 @@
     </div>
 
     <div class="rb-help">
-      🎮 <b>Palanca izquierda</b> o <b>cruceta</b> = manejar · <b>A</b> = seguir línea · <b>B</b> = esquivar · suelta = parar<br>
-      (Presiona un botón del mando para que se detecte.) Requiere <b>Chrome/Edge en PC</b> y el HC-05 emparejado en Windows.<br>
+      ⌨️ <b>WASD</b> o <b>Flechas</b> = manejar · <b>Espacio</b> = parar · <b>T</b> = seguir línea · <b>G</b> = esquivar (teclado, lo más confiable)<br>
+      🎮 <b>Palanca izq / cruceta</b> = manejar · <b>A</b> = línea · <b>B</b> = esquivar · suelta = parar · (presiona un botón del mando para que se detecte)<br>
+      Requiere <b>Chrome/Edge en PC</b> y el HC-05 emparejado en Windows.<br>
       Ábrela en <b>http://localhost:8080</b> (corre <b>server.ps1</b>) para que el navegador permita el puerto Bluetooth.
     </div>
 
@@ -3950,7 +3951,7 @@ const Robot = {
     dot.style.boxShadow="0 0 18px "+(moving?"#19ff85":"#2fd0ff");
   },
 
-  hud(t){ const el=$("rbCmd"); if(el) el.textContent=t+"   ["+this._dbg+" f"+(this._frames%1000)+"]"; },
+  hud(t){ const el=$("rbCmd"); if(el) el.textContent=t; },
   setConn(on){
     this.connected=on;
     const c=$("rbConn"); if(c){ c.textContent=on?"🔌 Conectado":"🔌 Desconectado"; c.className="rb-chip "+(on?"ok":"bad"); }
@@ -3982,6 +3983,22 @@ document.querySelectorAll("#robotFs .rb-pad button").forEach(btn=>{
 if("serial" in navigator){
   navigator.serial.addEventListener("disconnect", ()=>{ if(Robot.port){ Robot.setConn(false); Robot.log("⚠ El puerto Bluetooth se desconectó."); } });
 }
+// Teclado (PC) → mismo camino que los botones (100% confiable)
+const rbKeymap={ w:"F", arrowup:"F", s:"B", arrowdown:"B", a:"L", arrowleft:"L", d:"R", arrowright:"R" };
+const rbKeys={};
+document.addEventListener("keydown", e=>{
+  if(!$("robotFs").classList.contains("open")) return;
+  const k=e.key.toLowerCase();
+  if(rbKeymap[k]){ rbKeys[k]=rbKeymap[k]; Robot.touchCmd=rbKeymap[k]; Robot.modeActive=false; e.preventDefault(); }
+  else if(k===" "){ Robot.touchCmd=null; Robot.modeActive=false; Robot.oneShot="%S#"; e.preventDefault(); }
+  else if(k==="t"){ Robot.oneShot="%T#"; e.preventDefault(); }
+  else if(k==="g"){ Robot.oneShot="%A#"; e.preventDefault(); }
+});
+document.addEventListener("keyup", e=>{
+  if(!$("robotFs").classList.contains("open")) return;
+  const k=e.key.toLowerCase();
+  if(rbKeys[k]){ delete rbKeys[k]; const rem=Object.keys(rbKeys); Robot.touchCmd = rem.length ? rbKeys[rem[rem.length-1]] : null; }
+});
 window.addEventListener("gamepadconnected", e=>{ Robot.setPad(true); Robot.log("🎮 Mando conectado: "+((e.gamepad&&e.gamepad.id)?e.gamepad.id:"?")+" — mueve el stick o la cruceta."); });
 window.addEventListener("gamepaddisconnected", ()=>{ Robot.setPad(false); Robot.log("🎮 Mando desconectado."); });
 </script>
