@@ -901,8 +901,8 @@
     </div>
 
     <div class="rb-help">
-      ⌨️ <b>WASD</b> o <b>Flechas</b> = manejar · <b>Espacio</b> = parar · <b>T</b> = seguir línea · <b>G</b> = esquivar (teclado, lo más confiable)<br>
-      🎮 <b>Palanca izq / cruceta</b> = manejar · <b>A</b> = línea · <b>B</b> = esquivar · suelta = parar · (presiona un botón del mando para que se detecte)<br>
+      ⌨️ <b>WASD</b> o <b>Flechas</b> = manejar · <b>Espacio</b> = parar · <b>T</b> = línea · <b>G</b> = esquivar · <b>L</b> = luces (teclado, lo más confiable)<br>
+      🎮 <b>Palanca izq / cruceta</b> = manejar · <b>A</b> = línea · <b>B</b> = esquivar · <b>Y</b> = luces · suelta = parar<br>
       Requiere <b>Chrome/Edge en PC</b> y el HC-05 emparejado en Windows.<br>
       Ábrela en <b>http://localhost:8080</b> (corre <b>server.ps1</b>) para que el navegador permita el puerto Bluetooth.
     </div>
@@ -3819,9 +3819,9 @@ const Robot = {
   port:null, writer:null, reader:null, connected:false,
   touchCmd:null, oneShot:null, modeActive:false,
   lastCmd:"", lastAt:0, padVec:{x:0,y:0},
-  _aPrev:false, _bPrev:false, _timer:null, _readAbort:false, _af:null, _run:false, _padId:null, _dbg:"", _frames:0,
+  _aPrev:false, _bPrev:false, _timer:null, _readAbort:false, _af:null, _run:false, _padId:null, _dbg:"", _frames:0, lightsOn:false, _yPrev:false,
 
-  open(){ $("robotFs").classList.add("open"); this.startLoop(); this.drawStick(); },
+  open(){ $("robotFs").classList.add("open"); this.startLoop(); this.drawStick(); this.updateLightsBtn(); },
   close(){
     $("robotFs").classList.remove("open");
     this.touchCmd=null; this.modeActive=false;
@@ -3918,6 +3918,9 @@ const Robot = {
     if(a && !this._aPrev) this.oneShot="%T#";
     if(b && !this._bPrev) this.oneShot="%A#";
     this._aPrev=a; this._bPrev=b;
+    const yb=!!(gp.buttons[3] && gp.buttons[3].pressed);   // Y → luces
+    if(yb && !this._yPrev) this.toggleLights();
+    this._yPrev=yb;
     this.padVec={ x:Math.abs(x)<dz?0:x, y:Math.abs(y)<dz?0:y };
     if(Math.abs(x)<dz && Math.abs(y)<dz) return null;
     if(Math.abs(y)>=Math.abs(x)) return y<0?"F":"B";
@@ -3963,6 +3966,8 @@ const Robot = {
   },
 
   hud(t){ const el=$("rbCmd"); if(el) el.textContent=t; },
+  toggleLights(){ if(!this.connected){ toast("Conecta el robot primero"); return; } this.lightsOn=!this.lightsOn; this.send("%W#"); this.updateLightsBtn(); this.log(this.lightsOn?"💡 Luces ON":"💡 Luces OFF"); },
+  updateLightsBtn(){ const b=$("rbLights"); if(!b) return; b.textContent=this.lightsOn?"💡 Luces: ON":"💡 Luces: OFF"; b.classList.remove("warn","off"); b.classList.toggle("primary", this.lightsOn); },
   probe(){
     const pads=navigator.getGamepads?navigator.getGamepads():[];
     let any=false;
@@ -3977,6 +3982,8 @@ const Robot = {
     const b1=$("rbConnect"), b2=$("rbDisconnect");
     if(b1) b1.style.display=on?"none":"";
     if(b2) b2.style.display=on?"":"none";
+    if(on) this.lightsOn=false;   // al conectar, el Arduino arranca con luces apagadas
+    this.updateLightsBtn();
   },
   setPad(on){ const p=$("rbPad"); if(p && p._on!==on){ p._on=on; p.textContent=on?"🎮 Mando OK":"🎮 Sin mando"; p.className="rb-chip "+(on?"ok":"bad"); } }
 };
@@ -3989,7 +3996,7 @@ $("rbDisconnect").onclick = ()=>Robot.disconnect();
 $("rbProbe").onclick      = ()=>Robot.probe();
 $("rbLine").onclick       = ()=>{ Robot.oneShot="%T#"; };
 $("rbAvoid").onclick      = ()=>{ Robot.oneShot="%A#"; };
-$("rbLights").onclick     = ()=>toast("💡 Las luces llegan en la Etapa 2: hay que actualizar el firmware del Arduino. ¡Dime el pin y lo agregamos!");
+$("rbLights").onclick     = ()=>Robot.toggleLights();
 // D-pad en pantalla (toque/clic) → mismo camino que el mando
 document.querySelectorAll("#robotFs .rb-pad button").forEach(btn=>{
   const cmd=btn.getAttribute("data-cmd");
@@ -4013,6 +4020,7 @@ document.addEventListener("keydown", e=>{
   else if(k===" "){ Robot.touchCmd=null; Robot.modeActive=false; Robot.oneShot="%S#"; e.preventDefault(); }
   else if(k==="t"){ Robot.oneShot="%T#"; e.preventDefault(); }
   else if(k==="g"){ Robot.oneShot="%A#"; e.preventDefault(); }
+  else if(k==="l" && !e.repeat){ Robot.toggleLights(); e.preventDefault(); }
 });
 document.addEventListener("keyup", e=>{
   if(!$("robotFs").classList.contains("open")) return;
