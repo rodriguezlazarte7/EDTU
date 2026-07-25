@@ -899,6 +899,10 @@
       <button class="rb-btn warn off" id="rbLights">💡 Luces (Etapa 2)</button>
       <button class="rb-btn" id="rbProbe">🔍 Probar mando</button>
     </div>
+    <div class="rb-row" style="align-items:center">
+      <button class="rb-btn primary" id="rbMapNext">▶ Siguiente pin (mapeo)</button>
+      <span class="rb-chip ok" id="rbMapPin" style="font-size:15px;font-weight:800">🔦 PIN: —</span>
+    </div>
 
     <div class="rb-help">
       ⌨️ <b>WASD</b> o <b>Flechas</b> = manejar · <b>Espacio</b> = parar · <b>T</b> = línea · <b>G</b> = esquivar · <b>L</b> = luces (teclado, lo más confiable)<br>
@@ -3819,7 +3823,7 @@ const Robot = {
   port:null, writer:null, reader:null, connected:false,
   touchCmd:null, oneShot:null, modeActive:false,
   lastCmd:"", lastAt:0, padVec:{x:0,y:0},
-  _aPrev:false, _bPrev:false, _timer:null, _readAbort:false, _af:null, _run:false, _padId:null, _dbg:"", _frames:0, lightsOn:false, _yPrev:false,
+  _aPrev:false, _bPrev:false, _timer:null, _readAbort:false, _af:null, _run:false, _padId:null, _dbg:"", _frames:0, lightsOn:false, _yPrev:false, _rxbuf:"",
 
   open(){ $("robotFs").classList.add("open"); this.startLoop(); this.drawStick(); this.updateLightsBtn(); },
   close(){
@@ -3874,7 +3878,13 @@ const Robot = {
           while(true){
             const {value,done}=await this.reader.read();
             if(done) break;
-            if(value){ const t=new TextDecoder().decode(value).trim(); if(t) this.log("↩ "+t); }
+            if(value){
+              this._rxbuf += new TextDecoder().decode(value);
+              let parts=this._rxbuf.split("\n"); this._rxbuf=parts.pop();
+              for(let line of parts){ line=line.trim(); if(!line) continue; this.log("↩ "+line);
+                const m=line.match(/ENCENDIDO pin (\S+)/); if(m){ const el=$("rbMapPin"); if(el) el.textContent="🔦 PIN: "+m[1]; }
+              }
+            }
           }
         }catch(e){ /* stream cerrado */ }
         finally{ try{ this.reader.releaseLock(); }catch(e){} }
@@ -3967,6 +3977,7 @@ const Robot = {
 
   hud(t){ const el=$("rbCmd"); if(el) el.textContent=t; },
   toggleLights(){ if(!this.connected){ toast("Conecta el robot primero"); return; } this.lightsOn=!this.lightsOn; this.send("%W#"); this.updateLightsBtn(); this.log(this.lightsOn?"💡 Luces ON":"💡 Luces OFF"); },
+  mapNext(){ if(!this.connected){ toast("Conecta la app al puerto USB del Arduino primero"); return; } this.send("\n"); },
   updateLightsBtn(){ const b=$("rbLights"); if(!b) return; b.textContent=this.lightsOn?"💡 Luces: ON":"💡 Luces: OFF"; b.classList.remove("warn","off"); b.classList.toggle("primary", this.lightsOn); },
   probe(){
     const pads=navigator.getGamepads?navigator.getGamepads():[];
@@ -3994,6 +4005,7 @@ $("robotClose").onclick   = ()=>Robot.close();
 $("rbConnect").onclick    = ()=>Robot.connect();
 $("rbDisconnect").onclick = ()=>Robot.disconnect();
 $("rbProbe").onclick      = ()=>Robot.probe();
+$("rbMapNext").onclick    = ()=>Robot.mapNext();
 $("rbLine").onclick       = ()=>{ Robot.oneShot="%T#"; };
 $("rbAvoid").onclick      = ()=>{ Robot.oneShot="%A#"; };
 $("rbLights").onclick     = ()=>Robot.toggleLights();
