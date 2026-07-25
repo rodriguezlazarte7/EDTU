@@ -3853,8 +3853,14 @@ const Robot = {
       toast("🤖 Robot conectado");
       this.readLoop();
     }catch(e){
-      this.log("✖ "+((e&&e.message)?e.message:e));
-      if(e && e.name!=="NotFoundError") toast("No se pudo conectar: "+((e&&e.message)?e.message:e));
+      if(e && e.name==="NotFoundError"){
+        this.log("✖ No elegiste un puerto (o no apareció ninguno).");
+        this.log("   → CIERRA el Monitor Serie del Arduino IDE, verifica el USB, toca Conectar de nuevo y ELIGE el puerto (ej. 'USB-SERIAL CH340' / 'Arduino Uno'). Evita los puertos 'Bluetooth' para el mapeo por USB.");
+        toast("Elige el puerto USB del Arduino en la ventana");
+      } else {
+        this.log("✖ "+((e&&e.message)?e.message:e));
+        toast("No se pudo conectar: "+((e&&e.message)?e.message:e));
+      }
     }
   },
 
