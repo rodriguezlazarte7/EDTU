@@ -383,16 +383,14 @@
   #robotFs .rb-pad button.stop:active,#robotFs .rb-pad button.stop.on{background:rgba(255,59,91,.35);box-shadow:0 0 16px rgba(255,59,91,.45)}
   #robotFs .rb-help{font-size:11.5px;color:#8fb9ab;text-align:center;line-height:1.55}
   #robotFs .rb-log{font-family:ui-monospace,Consolas,monospace;font-size:11px;color:#7fe9c0;background:#02120c;border:1px solid rgba(25,255,133,.15);border-radius:8px;padding:8px;height:88px;overflow:auto;white-space:pre-wrap}
-  #robotFs .rb-stickrow{display:flex;align-items:center;justify-content:center;gap:24px;flex-wrap:wrap;margin:2px auto}
-  #robotFs #rbSpeed{font-size:24px;font-weight:900;color:#2fd0ff;text-shadow:0 0 12px rgba(47,208,255,.4);margin-top:6px}
-  #robotFs #rbBattBig{text-align:center}
-  #robotFs #rbBattBig .bb-lbl{font-size:11px;color:#8fb9ab;letter-spacing:.14em}
-  #robotFs .batt-icon{display:flex;align-items:center;justify-content:center;margin:5px auto}
-  #robotFs .batt-body{position:relative;width:150px;height:66px;border:5px solid #d7ffe9;border-radius:9px;overflow:hidden;background:rgba(0,0,0,.4);box-shadow:0 0 12px rgba(25,255,133,.2)}
-  #robotFs .batt-fill{position:absolute;left:0;top:0;bottom:0;width:0%;background:#19ff85;transition:width .5s ease,background .5s}
-  #robotFs .batt-pct{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font-size:30px;font-weight:900;color:#fff;text-shadow:0 1px 4px #000,0 0 10px rgba(0,0,0,.8)}
-  #robotFs .batt-cap{width:9px;height:30px;background:#d7ffe9;border-radius:0 3px 3px 0;margin-left:2px}
-  #robotFs #rbBattBig .bb-volt{font-size:14px;color:#8fb9ab;letter-spacing:.04em;margin-top:2px}
+  #robotFs .rb-stickrow{display:flex;align-items:center;justify-content:center;gap:20px;flex-wrap:wrap;margin:4px auto}
+  #robotFs .vgauge{text-align:center}
+  #robotFs .vgauge .cap{width:26px;height:11px;margin:0 auto 2px;border-radius:5px 5px 3px 3px;background:linear-gradient(#eef,#99a);box-shadow:0 1px 2px rgba(0,0,0,.5)}
+  #robotFs .vgauge .body{position:relative;width:78px;height:180px;margin:0 auto;border:5px solid #c9d6e0;border-radius:18px;overflow:hidden;background:linear-gradient(90deg,rgba(255,255,255,.05),rgba(255,255,255,.16) 22%,rgba(0,0,0,.28) 60%,rgba(255,255,255,.08));box-shadow:inset 0 0 20px rgba(0,0,0,.55)}
+  #robotFs .vgauge .fill{position:absolute;left:0;right:0;bottom:0;height:0%;transition:height .45s ease,background .45s,box-shadow .45s}
+  #robotFs .vgauge .bolt{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font-size:56px;opacity:.20;pointer-events:none}
+  #robotFs .vgauge .val{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font-size:27px;font-weight:900;color:#fff;text-shadow:0 1px 4px #000,0 0 10px rgba(0,0,0,.9)}
+  #robotFs .vgauge .glbl{font-size:12px;color:#8fb9ab;letter-spacing:.08em;margin-top:6px}
   .game-top{position:absolute;top:0;left:0;right:0;display:flex;justify-content:space-between;align-items:flex-start;padding:max(10px,env(safe-area-inset-top)) 12px 0;z-index:5;pointer-events:none}
   .game-top .btn{pointer-events:auto;background:rgba(0,0,0,0.4)}
   #gameScores{display:flex;gap:14px;font-weight:900;font-size:17px;text-shadow:0 0 8px currentColor}
@@ -890,14 +888,16 @@
     </div>
 
     <div class="rb-stickrow">
-      <div style="text-align:center">
-        <div class="rb-stick"><div class="dot" id="rbDot"></div></div>
-        <div id="rbSpeed">🏎️ Velocidad 0%</div>
+      <div class="rb-stick"><div class="dot" id="rbDot"></div></div>
+      <div class="vgauge">
+        <div class="cap"></div>
+        <div class="body"><div class="fill" id="rbBattFill"></div><div class="bolt">⚡</div><div class="val" id="rbBattPct">--%</div></div>
+        <div class="glbl">🔋 <span id="rbBattVolt">-- V</span></div>
       </div>
-      <div id="rbBattBig">
-        <div class="bb-lbl">🔋 BATERÍA</div>
-        <div class="batt-icon"><div class="batt-body"><div class="batt-fill" id="rbBattFill"></div><div class="batt-pct" id="rbBattPct">--%</div></div><div class="batt-cap"></div></div>
-        <div class="bb-volt" id="rbBattVolt">-- V</div>
+      <div class="vgauge">
+        <div class="cap"></div>
+        <div class="body"><div class="fill" id="rbSpeedFill"></div><div class="bolt">🏎️</div><div class="val" id="rbSpeedVal">0%</div></div>
+        <div class="glbl">VELOCIDAD</div>
       </div>
     </div>
     <div class="rb-cmd" id="rbCmd">— parado —</div>
@@ -3991,7 +3991,7 @@ const Robot = {
       if(frame!==this.lastCmd && now-this.lastAt>=90){ this.send(frame); this.lastCmd=frame; this.lastAt=now; }
       else if(cmd!=="S" && now-this.lastAt>=300){ this.send(frame); this.lastAt=now; }   // sostener el movimiento (< watchdog del firmware)
     }
-    const sp=$("rbSpeed"); if(sp) sp.textContent="🏎️ Velocidad "+(cmd==="S"?0:spd)+"%";
+    const spShown=(cmd==="S")?0:spd; this.setGauge($("rbSpeedFill"), spShown, this.speedColor(spShown)); const sv=$("rbSpeedVal"); if(sv) sv.textContent=spShown+"%";
     this.hud(cmd==="F"?"▲ adelante":cmd==="B"?"▼ atrás":cmd==="L"?"◀ izquierda":cmd==="R"?"▶ derecha":"— parado —");
     this.drawStick();
   },
@@ -4009,12 +4009,14 @@ const Robot = {
 
   hud(t){ const el=$("rbCmd"); if(el) el.textContent=t; },
   cmd(frame){ if(!this.connected){ toast("Conecta el robot primero"); return; } this.send(frame); this.log("→ "+frame); },
+  battColor(p){ return p>=80?"#19ff85": p>=60?"#8cff3a": p>=40?"#ffd23f": p>=20?"#ff8c1a":"#ff3b3b"; },
+  speedColor(p){ return p>=66?"#19ff85": p>=33?"#2fd0ff":"#2f6bff"; },
+  setGauge(el,pct,color){ if(!el) return; el.style.height=Math.max(0,Math.min(100,pct))+"%"; el.style.background="linear-gradient(180deg, rgba(255,255,255,0.55), "+color+" 72%)"; el.style.boxShadow="0 0 22px "+color+", 0 0 10px "+color+" inset"; },
   updateBatt(pct,volts){
-    const col = pct>=50?"#19ff85" : pct>=20?"#ffd23f" : "#ff5b5b";
     const chip=$("rbBatt"); if(chip){ chip.textContent=(pct<15?"🪫":"🔋")+" "+pct+"%"; chip.className="rb-chip "+(pct>=30?"ok":"bad"); }
-    const num=$("rbBattPct"); if(num){ num.textContent=pct+"%"; }
-    const fill=$("rbBattFill"); if(fill){ fill.style.width=pct+"%"; fill.style.background=col; }
-    const v=$("rbBattVolt"); if(v){ v.textContent=volts.toFixed(2)+" V"; }
+    this.setGauge($("rbBattFill"), pct, this.battColor(pct));
+    const num=$("rbBattPct"); if(num) num.textContent=pct+"%";
+    const v=$("rbBattVolt"); if(v) v.textContent=volts.toFixed(2)+" V";
   },
   mapNext(){ if(!this.connected){ toast("Conecta la app al puerto USB del Arduino primero"); return; } this.send("\n"); },
   probe(){
@@ -4031,7 +4033,7 @@ const Robot = {
     const b1=$("rbConnect"), b2=$("rbDisconnect");
     if(b1) b1.style.display=on?"none":"";
     if(b2) b2.style.display=on?"":"none";
-    if(!on){ const bt=$("rbBatt"); if(bt){ bt.textContent="🔋 --%"; bt.className="rb-chip"; } const n=$("rbBattPct"); if(n){ n.textContent="--%"; n.style.color=""; } const f=$("rbBattFill"); if(f) f.style.width="0%"; const v=$("rbBattVolt"); if(v) v.textContent="-- V"; }
+    if(!on){ const bt=$("rbBatt"); if(bt){ bt.textContent="🔋 --%"; bt.className="rb-chip"; } const n=$("rbBattPct"); if(n) n.textContent="--%"; const f=$("rbBattFill"); if(f) f.style.height="0%"; const v=$("rbBattVolt"); if(v) v.textContent="-- V"; const sf=$("rbSpeedFill"); if(sf) sf.style.height="0%"; const sv=$("rbSpeedVal"); if(sv) sv.textContent="0%"; }
   },
   setPad(on){ const p=$("rbPad"); if(p && p._on!==on){ p._on=on; p.textContent=on?"🎮 Mando OK":"🎮 Sin mando"; p.className="rb-chip "+(on?"ok":"bad"); } }
 };
