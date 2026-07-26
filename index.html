@@ -383,6 +383,13 @@
   #robotFs .rb-pad button.stop:active,#robotFs .rb-pad button.stop.on{background:rgba(255,59,91,.35);box-shadow:0 0 16px rgba(255,59,91,.45)}
   #robotFs .rb-help{font-size:11.5px;color:#8fb9ab;text-align:center;line-height:1.55}
   #robotFs .rb-log{font-family:ui-monospace,Consolas,monospace;font-size:11px;color:#7fe9c0;background:#02120c;border:1px solid rgba(25,255,133,.15);border-radius:8px;padding:8px;height:88px;overflow:auto;white-space:pre-wrap}
+  #robotFs .rb-stickrow{display:flex;align-items:center;justify-content:center;gap:22px;flex-wrap:wrap;margin:2px auto}
+  #robotFs #rbBattBig{text-align:center;min-width:132px}
+  #robotFs #rbBattBig .bb-num{font-size:46px;font-weight:900;line-height:1;color:#19ff85;text-shadow:0 0 14px rgba(25,255,133,.4)}
+  #robotFs #rbBattBig .bb-bar{width:118px;height:16px;border:2px solid rgba(255,255,255,.45);border-radius:5px;margin:7px auto;overflow:hidden;background:rgba(0,0,0,.35)}
+  #robotFs #rbBattBig .bb-fill{height:100%;width:0%;background:#19ff85;transition:width .5s ease,background .5s}
+  #robotFs #rbBattBig .bb-volt{font-size:13px;color:#8fb9ab;letter-spacing:.04em}
+  #robotFs #rbBattBig .bb-lbl{font-size:11px;color:#8fb9ab;letter-spacing:.14em}
   .game-top{position:absolute;top:0;left:0;right:0;display:flex;justify-content:space-between;align-items:flex-start;padding:max(10px,env(safe-area-inset-top)) 12px 0;z-index:5;pointer-events:none}
   .game-top .btn{pointer-events:auto;background:rgba(0,0,0,0.4)}
   #gameScores{display:flex;gap:14px;font-weight:900;font-size:17px;text-shadow:0 0 8px currentColor}
@@ -879,7 +886,15 @@
       <button class="rb-btn" id="rbDisconnect" style="display:none">⛔ Desconectar</button>
     </div>
 
-    <div class="rb-stick"><div class="dot" id="rbDot"></div></div>
+    <div class="rb-stickrow">
+      <div class="rb-stick"><div class="dot" id="rbDot"></div></div>
+      <div id="rbBattBig">
+        <div class="bb-lbl">🔋 BATERÍA</div>
+        <div class="bb-num" id="rbBattPct">--%</div>
+        <div class="bb-bar"><div class="bb-fill" id="rbBattFill"></div></div>
+        <div class="bb-volt" id="rbBattVolt">-- V</div>
+      </div>
+    </div>
     <div class="rb-cmd" id="rbCmd">— parado —</div>
 
     <div class="rb-pad">
@@ -3986,7 +4001,13 @@ const Robot = {
 
   hud(t){ const el=$("rbCmd"); if(el) el.textContent=t; },
   cmd(frame){ if(!this.connected){ toast("Conecta el robot primero"); return; } this.send(frame); this.log("→ "+frame); },
-  updateBatt(pct,volts){ const el=$("rbBatt"); if(!el) return; el.textContent=(pct<15?"🪫":"🔋")+" "+pct+"% ("+volts.toFixed(1)+"V)"; el.className="rb-chip "+(pct>=30?"ok":"bad"); },
+  updateBatt(pct,volts){
+    const col = pct>=50?"#19ff85" : pct>=20?"#ffd23f" : "#ff5b5b";
+    const chip=$("rbBatt"); if(chip){ chip.textContent=(pct<15?"🪫":"🔋")+" "+pct+"%"; chip.className="rb-chip "+(pct>=30?"ok":"bad"); }
+    const num=$("rbBattPct"); if(num){ num.textContent=pct+"%"; num.style.color=col; num.style.textShadow="0 0 14px "+col+"66"; }
+    const fill=$("rbBattFill"); if(fill){ fill.style.width=pct+"%"; fill.style.background=col; }
+    const v=$("rbBattVolt"); if(v){ v.textContent=volts.toFixed(2)+" V"; }
+  },
   mapNext(){ if(!this.connected){ toast("Conecta la app al puerto USB del Arduino primero"); return; } this.send("\n"); },
   probe(){
     const pads=navigator.getGamepads?navigator.getGamepads():[];
@@ -4002,7 +4023,7 @@ const Robot = {
     const b1=$("rbConnect"), b2=$("rbDisconnect");
     if(b1) b1.style.display=on?"none":"";
     if(b2) b2.style.display=on?"":"none";
-    if(!on){ const bt=$("rbBatt"); if(bt){ bt.textContent="🔋 --%"; bt.className="rb-chip"; } }
+    if(!on){ const bt=$("rbBatt"); if(bt){ bt.textContent="🔋 --%"; bt.className="rb-chip"; } const n=$("rbBattPct"); if(n){ n.textContent="--%"; n.style.color=""; } const f=$("rbBattFill"); if(f) f.style.width="0%"; const v=$("rbBattVolt"); if(v) v.textContent="-- V"; }
   },
   setPad(on){ const p=$("rbPad"); if(p && p._on!==on){ p._on=on; p.textContent=on?"🎮 Mando OK":"🎮 Sin mando"; p.className="rb-chip "+(on?"ok":"bad"); } }
 };
