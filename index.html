@@ -3880,7 +3880,7 @@ const Robot = {
   port:null, writer:null, reader:null, connected:false,
   touchCmd:null, oneShot:null, modeActive:false,
   lastCmd:"", lastAt:0, padVec:{x:0,y:0},
-  _aPrev:false, _bPrev:false, _timer:null, _readAbort:false, _af:null, _run:false, _padId:null, _dbg:"", _frames:0, lightsOn:false, _yPrev:false, _rxbuf:"", speedPct:0, _lastSpd:-1,
+  _aPrev:false, _bPrev:false, _timer:null, _readAbort:false, _af:null, _run:false, _padId:null, _dbg:"", _frames:0, lightsOn:false, _yPrev:false, _rxbuf:"", speedPct:0, _lastSpd:-1, dispSpeed:0, _lastTickMs:0,
 
   open(){ $("robotFs").classList.add("open"); this.startLoop(); this.drawStick(); this._lastSpd=-1; this.drawRing("rgBatt",0,"batt"); this.drawRing("rgSpeed",0,"speed"); },
   close(){
@@ -4014,13 +4014,19 @@ const Robot = {
     const pad=this.readPad();                 // 'F/B/L/R' o null (los botones se mandan solos)
     if(this.oneShot){ this.send(this.oneShot); this.oneShot=null; }   // comando puntual (luz/acción desde la pantalla)
     let cmd=this.touchCmd || pad || "S";       // teclado/pantalla mandan sobre el stick
-    let spd=(cmd==="S")?0:(this.touchCmd?100:this.speedPct);   // teclado/pantalla=100%; stick=cuánto lo empujas
-    const frame=(cmd==="S")?"%S#":"%"+cmd+spd+"#";             // ej: %F34#  (adelante al 34%)
+    const target=(cmd==="S")?0:(this.touchCmd?100:this.speedPct);   // objetivo: cuánto empujas (o 100% teclado)
+    const dts=Math.min(0.1,(now-(this._lastTickMs||now))/1000); this._lastTickMs=now;
+    const upRate=100/2.77, downRate=100/1.0;   // aceleración: 0→100 en 2.77s; frena un poco más rápido
+    if(cmd==="S") this.dispSpeed=0;
+    else if(target>this.dispSpeed) this.dispSpeed=Math.min(target, this.dispSpeed+upRate*dts);
+    else this.dispSpeed=Math.max(target, this.dispSpeed-downRate*dts);
+    const spd=Math.round(this.dispSpeed);
+    const frame=(cmd==="S")?"%S#":"%"+cmd+spd+"#";             // ej: %F34# (adelante al 34%, ya con rampa)
     if(this.connected){
       if(frame!==this.lastCmd && now-this.lastAt>=90){ this.send(frame); this.lastCmd=frame; this.lastAt=now; }
       else if(cmd!=="S" && now-this.lastAt>=300){ this.send(frame); this.lastAt=now; }   // sostener el movimiento (< watchdog del firmware)
     }
-    const spShown=(cmd==="S")?0:spd; if(spShown!==this._lastSpd){ this.drawRing("rgSpeed",spShown,"speed"); const sv=$("rbSpeedVal"); if(sv) sv.textContent=spShown+"%"; this._lastSpd=spShown; }
+    if(spd!==this._lastSpd){ this.drawRing("rgSpeed",spd,"speed"); const sv=$("rbSpeedVal"); if(sv) sv.textContent=spd+"%"; this._lastSpd=spd; }
     this.hud(cmd==="F"?"▲ adelante":cmd==="B"?"▼ atrás":cmd==="L"?"◀ izquierda":cmd==="R"?"▶ derecha":"— parado —");
     this.drawStick();
   },
