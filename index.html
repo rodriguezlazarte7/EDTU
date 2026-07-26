@@ -4014,14 +4014,14 @@ const Robot = {
     const pad=this.readPad();                 // 'F/B/L/R' o null (los botones se mandan solos)
     if(this.oneShot){ this.send(this.oneShot); this.oneShot=null; }   // comando puntual (luz/acción desde la pantalla)
     let cmd=this.touchCmd || pad || "S";       // teclado/pantalla mandan sobre el stick
-    const target=(cmd==="S")?0:(this.touchCmd?100:this.speedPct);   // objetivo: cuánto empujas (o 100% teclado)
-    const dts=Math.min(0.1,(now-(this._lastTickMs||now))/1000); this._lastTickMs=now;
-    const upRate=100/2.77, downRate=100/1.0;   // aceleración: 0→100 en 2.77s; frena un poco más rápido
+    const realSpd=(cmd==="S")?0:(this.touchCmd?100:this.speedPct);   // AL ROBOT: instantáneo (ágil, sin rampa)
+    const target=realSpd, dts=Math.min(0.1,(now-(this._lastTickMs||now))/1000); this._lastTickMs=now;
+    const upRate=100/2.77, downRate=100/1.0;   // rampa SOLO visual: el medidor sube 0→100 en 2.77s
     if(cmd==="S") this.dispSpeed=0;
     else if(target>this.dispSpeed) this.dispSpeed=Math.min(target, this.dispSpeed+upRate*dts);
     else this.dispSpeed=Math.max(target, this.dispSpeed-downRate*dts);
-    const spd=Math.round(this.dispSpeed);
-    const frame=(cmd==="S")?"%S#":"%"+cmd+spd+"#";             // ej: %F34# (adelante al 34%, ya con rampa)
+    const spd=Math.round(this.dispSpeed);      // para el MEDIDOR (suave)
+    const frame=(cmd==="S")?"%S#":"%"+cmd+realSpd+"#";         // AL ROBOT: velocidad real del stick (ágil)
     if(this.connected){
       if(frame!==this.lastCmd && now-this.lastAt>=90){ this.send(frame); this.lastCmd=frame; this.lastAt=now; }
       else if(cmd!=="S" && now-this.lastAt>=300){ this.send(frame); this.lastAt=now; }   // sostener el movimiento (< watchdog del firmware)
