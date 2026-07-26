@@ -398,6 +398,18 @@
   #robotFs .rg-val{font-size:clamp(30px,5.2vw,60px);font-weight:900;color:#fff;line-height:1;text-shadow:0 2px 8px #000}
   #robotFs .rg-pill{margin-top:5px;font-size:12px;font-weight:800;letter-spacing:.12em;padding:3px 14px;border-radius:20px;border:1px solid #19ff85;color:#19ff85;background:rgba(0,0,0,.4)}
   #robotFs .rg-pill.spd{border-color:#2fd0ff}
+  #robotFs .rb-temp{margin:8px 0 2px;padding:9px 13px;border:1px solid rgba(255,140,26,.35);border-radius:12px;background:rgba(255,140,26,.06)}
+  #robotFs .rt-head{display:flex;align-items:center;gap:10px;font-size:12px;font-weight:800;letter-spacing:.1em;color:#ffb060}
+  #robotFs .rt-head b{margin-left:auto;font-size:15px;color:#ffd23f}
+  #robotFs .rt-alert{display:none;margin-left:auto;color:#ff3b3b;text-shadow:0 0 10px rgba(255,59,59,.75);animation:rtblink .5s steps(1) infinite}
+  #robotFs .rb-temp.alert .rt-alert{display:inline}
+  #robotFs .rb-temp.alert{border-color:#ff3b3b;background:rgba(255,59,59,.10)}
+  @keyframes rtblink{50%{opacity:.2}}
+  #robotFs .rt-bar{margin-top:6px;height:12px;border-radius:8px;background:rgba(0,0,0,.45);overflow:hidden;border:1px solid rgba(255,255,255,.08)}
+  #robotFs .rt-bar i{display:block;height:100%;width:0;border-radius:8px;background:linear-gradient(90deg,#2fd0ff,#ffd23f 55%,#ff8c1a 78%,#ff3b3b);transition:width .12s linear}
+  #robotFs .rt-over{display:none;margin-top:7px;font-size:13px;font-weight:800;color:#ff3b3b;text-align:center;text-shadow:0 0 12px rgba(255,59,59,.6)}
+  #robotFs .rb-temp.over .rt-over{display:block}
+  #robotFs .rb-temp.over{border-color:#ff3b3b;background:rgba(255,59,59,.14)}
   #robotFs .glossbatt{display:flex;flex-direction:column;align-items:center;margin:2px 0}
   #robotFs .gb-cap{width:26px;height:9px;border-radius:4px 4px 0 0;background:linear-gradient(#eef,#8aa);margin-bottom:1px}
   #robotFs .gb-tube{position:relative;width:66px;height:108px;border-radius:13px;border:2px solid rgba(255,255,255,.55);overflow:hidden;background:linear-gradient(90deg,rgba(255,255,255,.06),rgba(255,255,255,.22) 30%,rgba(0,0,0,.22))}
@@ -937,6 +949,12 @@
           <div class="rg-pill spd" id="rbSpPill">VELOCIDAD</div>
         </div>
       </div>
+    </div>
+
+    <div class="rb-temp" id="rbTempWrap">
+      <div class="rt-head"><span>🌡️ TEMP NITRO</span><span class="rt-alert" id="rbTempAlert">⚠️ ALERTA</span><b id="rbTempPct">0%</b></div>
+      <div class="rt-bar"><i id="rbTempFill"></i></div>
+      <div class="rt-over" id="rbTempOver">🥵 SOBRECALENTADO — robot detenido <b id="rbOverSec">5</b> s</div>
     </div>
 
     <div class="rb-row rb-lights">
@@ -3880,9 +3898,9 @@ const Robot = {
   port:null, writer:null, reader:null, connected:false,
   touchCmd:null, oneShot:null, modeActive:false,
   lastCmd:"", lastAt:0, padVec:{x:0,y:0},
-  _aPrev:false, _bPrev:false, _timer:null, _readAbort:false, _af:null, _run:false, _padId:null, _dbg:"", _frames:0, lightsOn:false, _yPrev:false, _rxbuf:"", speedPct:0, _lastSpd:-1, dispSpeed:0, _lastTickMs:0, nitro:false,
+  _aPrev:false, _bPrev:false, _timer:null, _readAbort:false, _af:null, _run:false, _padId:null, _dbg:"", _frames:0, lightsOn:false, _yPrev:false, _rxbuf:"", speedPct:0, _lastSpd:-1, dispSpeed:0, _lastTickMs:0, nitro:false, temp:0, overheat:false, overheatUntil:0, _t100:0, _padNitro:false, _btnNitro:false,
 
-  open(){ $("robotFs").classList.add("open"); this.startLoop(); this.drawStick(); this._lastSpd=-1; this.drawRing("rgBatt",0,"batt"); this.drawRing("rgSpeed",0,"speed"); },
+  open(){ $("robotFs").classList.add("open"); this.startLoop(); this.drawStick(); this._lastSpd=-1; this.temp=0; this.overheat=false; this._t100=0; this._padNitro=false; this._btnNitro=false; this.setNitro(false); this.updateTemp(performance.now()); this.drawRing("rgBatt",0,"batt"); this.drawRing("rgSpeed",0,"speed"); },
   close(){
     $("robotFs").classList.remove("open");
     this.touchCmd=null; this.modeActive=false;
@@ -3995,10 +4013,8 @@ const Robot = {
     if(!this._btnPrev) this._btnPrev={};
     for(let bi=0; bi<=7; bi++){
       const pr=!!(gp.buttons[bi] && (gp.buttons[bi].pressed || gp.buttons[bi].value>0.5));
-      if(pr && !this._btnPrev[bi]){
-        if(bi===3) this.toggleNitro();                                  // Y = NITRO
-        else if(BCMD[bi]){ this.send(BCMD[bi]); this.log("🎮 "+BCMD[bi]); }
-      }
+      if(bi===3){ this._padNitro=pr; }                                  // Y = NITRO (mantener presionado)
+      else if(pr && !this._btnPrev[bi] && BCMD[bi]){ this.send(BCMD[bi]); this.log("🎮 "+BCMD[bi]); }
       this._btnPrev[bi]=pr;
     }
     this.padVec={ x:Math.abs(x)<dz?0:x, y:Math.abs(y)<dz?0:y };
@@ -4017,8 +4033,23 @@ const Robot = {
     const pad=this.readPad();                 // 'F/B/L/R' o null (los botones se mandan solos)
     if(this.oneShot){ this.send(this.oneShot); this.oneShot=null; }   // comando puntual (luz/acción desde la pantalla)
     let cmd=this.touchCmd || pad || "S";       // teclado/pantalla mandan sobre el stick
+    const dts=Math.min(0.1,(now-(this._lastTickMs||now))/1000); this._lastTickMs=now;
+
+    // ---- NITRO por mantener Y + TEMPERATURA (simulada en la app) ----
+    const wantNitro=(this._padNitro || this._btnNitro) && !this.overheat;
+    if(wantNitro!==this.nitro) this.setNitro(wantNitro);
+    if(this.nitro) this.temp=Math.min(100, this.temp + 26*dts);      // usando nitro -> se calienta (~4s a 100%)
+    else           this.temp=Math.max(0,   this.temp - 15*dts);      // soltando -> se enfría
+    if(this.temp>=100 && !this.overheat){                            // 1s al 100% -> paro 5s
+      if(!this._t100) this._t100=now;
+      if(now-this._t100>=1000){ this.overheat=true; this.overheatUntil=now+5000; this.setNitro(false); this.log("🥵 SOBRECALENTADO — robot detenido 5s"); }
+    } else if(this.temp<100) this._t100=0;
+    if(this.overheat && now>=this.overheatUntil){ this.overheat=false; this._t100=0; this.log("✅ Temperatura normal"); }
+    if(this.overheat) cmd="S";                                       // bloqueo: robot parado durante el enfriado
+    this.updateTemp(now);
+
     const realSpd=(cmd==="S")?0:(this.touchCmd?100:this.speedPct);   // AL ROBOT: instantáneo (ágil, sin rampa)
-    const target=realSpd, dts=Math.min(0.1,(now-(this._lastTickMs||now))/1000); this._lastTickMs=now;
+    const target=realSpd;
     const rate=100/2.77;   // rampa SOLO visual: sube Y baja suave (0↔100 en 2.77s)
     if(target>this.dispSpeed) this.dispSpeed=Math.min(target, this.dispSpeed+rate*dts);
     else this.dispSpeed=Math.max(target, this.dispSpeed-rate*dts);
@@ -4061,11 +4092,20 @@ const Robot = {
     }
     c.shadowBlur=0;
   },
-  toggleNitro(){
-    this.nitro=!this.nitro;
-    this.send("%N#");                                    // avisa al robot (sube tope 70% -> 100%)
+  setNitro(v){
+    if(this.nitro===v) return;
+    this.nitro=v;
+    this.send(v?"%N1#":"%N0#");                           // ON sube tope a 100%, OFF vuelve a 70%
     this.updateNitro();
-    this.log(this.nitro?"🔥 NITRO ON (100%)":"NITRO OFF (tope 70%)");
+    this.log(v?"🔥 NITRO ON (100%)":"NITRO OFF (tope 70%)");
+  },
+  updateTemp(now){
+    const wrap=$("rbTempWrap"), fill=$("rbTempFill"), pct=$("rbTempPct"), sec=$("rbOverSec");
+    const t=Math.round(this.temp);
+    if(fill) fill.style.width=t+"%";
+    if(pct)  pct.textContent=t+"%";
+    if(wrap){ wrap.classList.toggle("alert", t>=80 && !this.overheat); wrap.classList.toggle("over", this.overheat); }
+    if(sec && this.overheat) sec.textContent=Math.max(0,Math.ceil((this.overheatUntil-now)/1000));
   },
   updateNitro(){
     const pill=$("rbSpPill"), title=$("rbSpTitle"), car=$("rbCar"), btn=$("rbEmerg");
@@ -4115,7 +4155,9 @@ $("rbTurnL").onclick      = ()=>Robot.cmd("%I#");   // intermitente izquierdo (1
 $("rbTurnR").onclick      = ()=>Robot.cmd("%D#");   // intermitente derecho (9)
 $("rbAllOn").onclick      = ()=>Robot.cmd("%O#");   // encender todo
 $("rbAllOff").onclick     = ()=>Robot.cmd("%X#");   // apagar todo
-$("rbEmerg").onclick      = ()=>Robot.toggleNitro();   // 🔥 NITRO (botón Y)
+(function(){ const b=$("rbEmerg"), on=e=>{e.preventDefault(); Robot._btnNitro=true;}, off=()=>{ Robot._btnNitro=false; };
+  b.addEventListener("pointerdown",on); b.addEventListener("pointerup",off); b.addEventListener("pointerleave",off); b.addEventListener("pointercancel",off);
+})();   // 🔥 NITRO = mantener presionado
 $("rbAvoid").onclick      = ()=>Robot.cmd("%A#");   // esquivar
 // D-pad en pantalla (toque/clic) → mismo camino que el mando
 document.querySelectorAll("#robotFs .rb-pad button").forEach(btn=>{
