@@ -383,13 +383,16 @@
   #robotFs .rb-pad button.stop:active,#robotFs .rb-pad button.stop.on{background:rgba(255,59,91,.35);box-shadow:0 0 16px rgba(255,59,91,.45)}
   #robotFs .rb-help{font-size:11.5px;color:#8fb9ab;text-align:center;line-height:1.55}
   #robotFs .rb-log{font-family:ui-monospace,Consolas,monospace;font-size:11px;color:#7fe9c0;background:#02120c;border:1px solid rgba(25,255,133,.15);border-radius:8px;padding:8px;height:88px;overflow:auto;white-space:pre-wrap}
-  #robotFs .rb-stickrow{display:flex;align-items:center;justify-content:center;gap:22px;flex-wrap:wrap;margin:2px auto}
-  #robotFs #rbBattBig{text-align:center;min-width:132px}
-  #robotFs #rbBattBig .bb-num{font-size:46px;font-weight:900;line-height:1;color:#19ff85;text-shadow:0 0 14px rgba(25,255,133,.4)}
-  #robotFs #rbBattBig .bb-bar{width:118px;height:16px;border:2px solid rgba(255,255,255,.45);border-radius:5px;margin:7px auto;overflow:hidden;background:rgba(0,0,0,.35)}
-  #robotFs #rbBattBig .bb-fill{height:100%;width:0%;background:#19ff85;transition:width .5s ease,background .5s}
-  #robotFs #rbBattBig .bb-volt{font-size:13px;color:#8fb9ab;letter-spacing:.04em}
+  #robotFs .rb-stickrow{display:flex;align-items:center;justify-content:center;gap:24px;flex-wrap:wrap;margin:2px auto}
+  #robotFs #rbSpeed{font-size:24px;font-weight:900;color:#2fd0ff;text-shadow:0 0 12px rgba(47,208,255,.4);margin-top:6px}
+  #robotFs #rbBattBig{text-align:center}
   #robotFs #rbBattBig .bb-lbl{font-size:11px;color:#8fb9ab;letter-spacing:.14em}
+  #robotFs .batt-icon{display:flex;align-items:center;justify-content:center;margin:5px auto}
+  #robotFs .batt-body{position:relative;width:150px;height:66px;border:5px solid #d7ffe9;border-radius:9px;overflow:hidden;background:rgba(0,0,0,.4);box-shadow:0 0 12px rgba(25,255,133,.2)}
+  #robotFs .batt-fill{position:absolute;left:0;top:0;bottom:0;width:0%;background:#19ff85;transition:width .5s ease,background .5s}
+  #robotFs .batt-pct{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font-size:30px;font-weight:900;color:#fff;text-shadow:0 1px 4px #000,0 0 10px rgba(0,0,0,.8)}
+  #robotFs .batt-cap{width:9px;height:30px;background:#d7ffe9;border-radius:0 3px 3px 0;margin-left:2px}
+  #robotFs #rbBattBig .bb-volt{font-size:14px;color:#8fb9ab;letter-spacing:.04em;margin-top:2px}
   .game-top{position:absolute;top:0;left:0;right:0;display:flex;justify-content:space-between;align-items:flex-start;padding:max(10px,env(safe-area-inset-top)) 12px 0;z-index:5;pointer-events:none}
   .game-top .btn{pointer-events:auto;background:rgba(0,0,0,0.4)}
   #gameScores{display:flex;gap:14px;font-weight:900;font-size:17px;text-shadow:0 0 8px currentColor}
@@ -887,11 +890,13 @@
     </div>
 
     <div class="rb-stickrow">
-      <div class="rb-stick"><div class="dot" id="rbDot"></div></div>
+      <div style="text-align:center">
+        <div class="rb-stick"><div class="dot" id="rbDot"></div></div>
+        <div id="rbSpeed">🏎️ Velocidad 0%</div>
+      </div>
       <div id="rbBattBig">
         <div class="bb-lbl">🔋 BATERÍA</div>
-        <div class="bb-num" id="rbBattPct">--%</div>
-        <div class="bb-bar"><div class="bb-fill" id="rbBattFill"></div></div>
+        <div class="batt-icon"><div class="batt-body"><div class="batt-fill" id="rbBattFill"></div><div class="batt-pct" id="rbBattPct">--%</div></div><div class="batt-cap"></div></div>
         <div class="bb-volt" id="rbBattVolt">-- V</div>
       </div>
     </div>
@@ -3846,7 +3851,7 @@ const Robot = {
   port:null, writer:null, reader:null, connected:false,
   touchCmd:null, oneShot:null, modeActive:false,
   lastCmd:"", lastAt:0, padVec:{x:0,y:0},
-  _aPrev:false, _bPrev:false, _timer:null, _readAbort:false, _af:null, _run:false, _padId:null, _dbg:"", _frames:0, lightsOn:false, _yPrev:false, _rxbuf:"",
+  _aPrev:false, _bPrev:false, _timer:null, _readAbort:false, _af:null, _run:false, _padId:null, _dbg:"", _frames:0, lightsOn:false, _yPrev:false, _rxbuf:"", speedPct:0,
 
   open(){ $("robotFs").classList.add("open"); this.startLoop(); this.drawStick(); },
   close(){
@@ -3965,6 +3970,7 @@ const Robot = {
       this._btnPrev[bi]=pr;
     }
     this.padVec={ x:Math.abs(x)<dz?0:x, y:Math.abs(y)<dz?0:y };
+    this.speedPct = Math.round(Math.min(1, Math.hypot(this.padVec.x, this.padVec.y))*100);   // velocidad = magnitud del stick
     if(Math.abs(x)<dz && Math.abs(y)<dz) return null;
     if(Math.abs(y)>=Math.abs(x)) return y<0?"F":"B";
     return x<0?"L":"R";
@@ -3979,11 +3985,13 @@ const Robot = {
     const pad=this.readPad();                 // 'F/B/L/R' o null (los botones se mandan solos)
     if(this.oneShot){ this.send(this.oneShot); this.oneShot=null; }   // comando puntual (luz/acción desde la pantalla)
     let cmd=this.touchCmd || pad || "S";       // teclado/pantalla mandan sobre el stick
-    const frame="%"+cmd+"#";
+    let spd=(cmd==="S")?0:(this.touchCmd?100:this.speedPct);   // teclado/pantalla=100%; stick=cuánto lo empujas
+    const frame=(cmd==="S")?"%S#":"%"+cmd+spd+"#";             // ej: %F34#  (adelante al 34%)
     if(this.connected){
       if(frame!==this.lastCmd && now-this.lastAt>=90){ this.send(frame); this.lastCmd=frame; this.lastAt=now; }
       else if(cmd!=="S" && now-this.lastAt>=300){ this.send(frame); this.lastAt=now; }   // sostener el movimiento (< watchdog del firmware)
     }
+    const sp=$("rbSpeed"); if(sp) sp.textContent="🏎️ Velocidad "+(cmd==="S"?0:spd)+"%";
     this.hud(cmd==="F"?"▲ adelante":cmd==="B"?"▼ atrás":cmd==="L"?"◀ izquierda":cmd==="R"?"▶ derecha":"— parado —");
     this.drawStick();
   },
@@ -4004,7 +4012,7 @@ const Robot = {
   updateBatt(pct,volts){
     const col = pct>=50?"#19ff85" : pct>=20?"#ffd23f" : "#ff5b5b";
     const chip=$("rbBatt"); if(chip){ chip.textContent=(pct<15?"🪫":"🔋")+" "+pct+"%"; chip.className="rb-chip "+(pct>=30?"ok":"bad"); }
-    const num=$("rbBattPct"); if(num){ num.textContent=pct+"%"; num.style.color=col; num.style.textShadow="0 0 14px "+col+"66"; }
+    const num=$("rbBattPct"); if(num){ num.textContent=pct+"%"; }
     const fill=$("rbBattFill"); if(fill){ fill.style.width=pct+"%"; fill.style.background=col; }
     const v=$("rbBattVolt"); if(v){ v.textContent=volts.toFixed(2)+" V"; }
   },
