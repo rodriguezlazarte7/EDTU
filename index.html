@@ -4028,12 +4028,15 @@ const Robot = {
     // Botones del mando (flanco de subida) → comandos:
     //  A(0)=esquivar  B(1)=faro trasero  X(2)=faros delanteros  Y(3)=EMERGENCIA
     //  LB(4)=int.izq  RB(5)=int.der  LT(6)=APAGAR TODO  RT(7)=ENCENDER TODO
-    const BCMD={0:"%A#",1:"%E#",2:"%H#",4:"%I#",5:"%D#",6:"%X#",7:"%O#"};   // Y(3) = NITRO (aparte)
+    const BCMD={1:"%E#",2:"%H#",4:"%I#",5:"%D#",6:"%X#",7:"%O#"};   // A(0)=barrido radar, Y(3)=NITRO (aparte)
     if(!this._btnPrev) this._btnPrev={};
     for(let bi=0; bi<=7; bi++){
       const pr=!!(gp.buttons[bi] && (gp.buttons[bi].pressed || gp.buttons[bi].value>0.5));
       if(bi===3){ this._padNitro=pr; }                                  // Y = NITRO (mantener presionado)
-      else if(pr && !this._btnPrev[bi] && BCMD[bi]){ this.send(BCMD[bi]); this.log("🎮 "+BCMD[bi]); }
+      else if(pr && !this._btnPrev[bi]){
+        if(bi===0) this.toggleRadarAuto();                              // A = barrido automático del radar
+        else if(BCMD[bi]){ this.send(BCMD[bi]); this.log("🎮 "+BCMD[bi]); }
+      }
       this._btnPrev[bi]=pr;
     }
     this.padVec={ x:Math.abs(x)<dz?0:x, y:Math.abs(y)<dz?0:y };
