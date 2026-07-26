@@ -410,6 +410,12 @@
   #robotFs .rt-over{display:none;margin-top:7px;font-size:13px;font-weight:800;color:#ff3b3b;text-align:center;text-shadow:0 0 12px rgba(255,59,59,.6)}
   #robotFs .rb-temp.over .rt-over{display:block}
   #robotFs .rb-temp.over{border-color:#ff3b3b;background:rgba(255,59,59,.14)}
+  #robotFs .rb-radar{margin:8px 0 2px;padding:10px 12px;border:1px solid rgba(25,255,133,.3);border-radius:12px;background:rgba(25,255,133,.05)}
+  #robotFs .rr-head{display:flex;align-items:center;gap:12px;flex-wrap:wrap;font-size:12px;font-weight:800;letter-spacing:.08em;color:#19ff85;margin-bottom:6px}
+  #robotFs .rr-read b{color:#eafff3}
+  #robotFs .rb-radar.auto #rbRadarAuto{background:rgba(25,255,133,.25);border-color:#19ff85;color:#19ff85}
+  #robotFs #rgRadar{display:block;width:100%;max-width:460px;margin:0 auto;height:auto}
+  #robotFs .rr-tip{margin-top:6px;font-size:11px;opacity:.65;text-align:center}
   #robotFs .glossbatt{display:flex;flex-direction:column;align-items:center;margin:2px 0}
   #robotFs .gb-cap{width:26px;height:9px;border-radius:4px 4px 0 0;background:linear-gradient(#eef,#8aa);margin-bottom:1px}
   #robotFs .gb-tube{position:relative;width:66px;height:108px;border-radius:13px;border:2px solid rgba(255,255,255,.55);overflow:hidden;background:linear-gradient(90deg,rgba(255,255,255,.06),rgba(255,255,255,.22) 30%,rgba(0,0,0,.22))}
@@ -955,6 +961,16 @@
       <div class="rt-head"><span>🌡️ TEMP NITRO</span><span class="rt-alert" id="rbTempAlert">⚠️ ALERTA</span><b id="rbTempPct">0%</b></div>
       <div class="rt-bar"><i id="rbTempFill"></i></div>
       <div class="rt-over" id="rbTempOver">🥵 SOBRECALENTADO — robot detenido <b id="rbOverSec">5</b> s</div>
+    </div>
+
+    <div class="rb-radar">
+      <div class="rr-head">
+        <span>📡 RADAR ULTRASÓNICO</span>
+        <span class="rr-read">🧭 <b id="rbRadAng">90°</b> · 📏 <b id="rbRadDist">— libre —</b></span>
+        <button class="rb-btn" id="rbRadarAuto" style="margin-left:auto">🔄 Barrido auto</button>
+      </div>
+      <canvas id="rgRadar" width="440" height="230"></canvas>
+      <div class="rr-tip">Mueve el <b>R stick</b> ⟷ para apuntar el sensor. El punto rojo es un obstáculo.</div>
     </div>
 
     <div class="rb-row rb-lights">
@@ -3898,15 +3914,16 @@ const Robot = {
   port:null, writer:null, reader:null, connected:false,
   touchCmd:null, oneShot:null, modeActive:false,
   lastCmd:"", lastAt:0, padVec:{x:0,y:0},
-  _aPrev:false, _bPrev:false, _timer:null, _readAbort:false, _af:null, _run:false, _padId:null, _dbg:"", _frames:0, lightsOn:false, _yPrev:false, _rxbuf:"", speedPct:0, _lastSpd:-1, dispSpeed:0, _lastTickMs:0, nitro:false, temp:0, overheat:false, overheatUntil:0, _t100:0, _padNitro:false, _btnNitro:false,
+  _aPrev:false, _bPrev:false, _timer:null, _readAbort:false, _af:null, _run:false, _padId:null, _dbg:"", _frames:0, lightsOn:false, _yPrev:false, _rxbuf:"", speedPct:0, _lastSpd:-1, dispSpeed:0, _lastTickMs:0, nitro:false, temp:0, overheat:false, overheatUntil:0, _t100:0, _padNitro:false, _btnNitro:false, radarAuto:false, servoAngle:90, _rx:0, _echoDist:0, _echoAng:90, _lastAng:-1, _radAt:0,
 
-  open(){ $("robotFs").classList.add("open"); this.startLoop(); this.drawStick(); this._lastSpd=-1; this.temp=0; this.overheat=false; this._t100=0; this._padNitro=false; this._btnNitro=false; this.setNitro(false); this.updateTemp(performance.now()); this.drawRing("rgBatt",0,"batt"); this.drawRing("rgSpeed",0,"speed"); },
+  open(){ $("robotFs").classList.add("open"); this.startLoop(); this.drawStick(); this._lastSpd=-1; this.temp=0; this.overheat=false; this._t100=0; this._padNitro=false; this._btnNitro=false; this.setNitro(false); this.updateTemp(performance.now()); this._echoDist=0; this._lastAng=-1; this.drawRadar(); this.drawRing("rgBatt",0,"batt"); this.drawRing("rgSpeed",0,"speed"); },
   close(){
     $("robotFs").classList.remove("open");
     this.touchCmd=null; this.modeActive=false;
-    if(this.connected) this.send("%S#");
+    if(this.connected){ this.send("%S#"); this.send("%W#"); }   // para el robot y apaga el radar (servo al centro)
     this.stopLoop();
   },
+  toggleRadarAuto(){ this.radarAuto=!this.radarAuto; const w=document.querySelector("#robotFs .rb-radar"); if(w) w.classList.toggle("auto",this.radarAuto); this.log(this.radarAuto?"📡 Radar: barrido AUTOMÁTICO":"📡 Radar: manual (R stick)"); },
 
   log(msg){
     const el=$("rbLog"); if(!el) return;
@@ -3964,6 +3981,7 @@ const Robot = {
               let parts=this._rxbuf.split("\n"); this._rxbuf=parts.pop();
               for(let line of parts){ line=line.trim(); if(!line) continue;
                 const mb=line.match(/BAT=(\d+),(\d+)/); if(mb){ this.updateBatt(+mb[1],(+mb[2])/100); continue; }   // batería (no se loguea, llega cada 2s)
+                const mr=line.match(/RAD=(\d+),(\d+)/); if(mr){ this._echoAng=+mr[1]; this._echoDist=+mr[2]; continue; }   // radar (ángulo,cm) — no se loguea
                 this.log("↩ "+line);
                 const m=line.match(/ENCENDIDO pin (\S+)/); if(m){ const el=$("rbMapPin"); if(el) el.textContent="🔦 PIN: "+m[1]; }
               }
@@ -4002,6 +4020,7 @@ const Robot = {
     if(!gp){ if(this._padId){ this._padId=null; this.log("🎮 Mando desconectado."); } this.padVec={x:0,y:0}; return null; }
     const dz=0.30;
     let x=gp.axes[0]||0, y=gp.axes[1]||0;
+    this._rx = gp.axes[2]||0;   // R stick horizontal -> radar (servo del ultrasonido)
     if(gp.buttons[12] && gp.buttons[12].pressed) y=-1;   // cruceta ↑
     if(gp.buttons[13] && gp.buttons[13].pressed) y=1;    // cruceta ↓
     if(gp.buttons[14] && gp.buttons[14].pressed) x=-1;   // cruceta ←
@@ -4062,6 +4081,49 @@ const Robot = {
     if(spd!==this._lastSpd){ this.drawRing("rgSpeed",spd,"speed"); const sv=$("rbSpeedVal"); if(sv) sv.textContent=spd+"%"; this._lastSpd=spd; }
     this.hud(cmd==="F"?"▲ adelante":cmd==="B"?"▼ atrás":cmd==="L"?"◀ izquierda":cmd==="R"?"▶ derecha":"— parado —");
     this.drawStick();
+
+    // ---- RADAR: R stick mueve el servo del ultrasonido (o barrido automático) ----
+    let ang;
+    if(this.radarAuto){
+      const period=4000, ph=(now%period)/period;                 // triángulo 0→180→0 en 4s
+      ang = Math.round((ph<0.5 ? ph*2 : (1-ph)*2)*180);
+    } else {
+      ang = Math.round(((this._rx||0)*0.5+0.5)*180);             // R stick -1..1 → 0..180
+    }
+    this.servoAngle=ang;
+    if(ang!==this._lastAng && now-(this._radAt||0)>=70){          // manda ángulo al robot (throttle)
+      if(this.connected) this.send("%V"+ang+"#");
+      this._lastAng=ang; this._radAt=now;
+    }
+    this.drawRadar();
+  },
+
+  drawRadar(){
+    const cv=$("rgRadar"); if(!cv||!cv.getContext) return;
+    const c=cv.getContext("2d"), W=cv.width, H=cv.height, cx=W/2, cy=H-6, R=Math.min(cx-6,H-12);
+    const MAXCM=120;                                             // alcance mostrado
+    c.clearRect(0,0,W,H);
+    // fondo + rejilla
+    c.strokeStyle="rgba(25,255,133,.25)"; c.lineWidth=1;
+    for(let k=1;k<=4;k++){ c.beginPath(); c.arc(cx,cy,R*k/4,Math.PI,2*Math.PI); c.stroke(); }
+    for(let a=0;a<=180;a+=30){ const rad=Math.PI+a*Math.PI/180; c.beginPath(); c.moveTo(cx,cy); c.lineTo(cx+R*Math.cos(rad),cy+R*Math.sin(rad)); c.stroke(); }
+    // aguja (ángulo actual del servo)
+    const sa=(this.servoAngle==null?90:this.servoAngle);
+    const nrad=Math.PI+(180-sa)*Math.PI/180;                    // 0°→derecha, 180°→izquierda (espejo natural)
+    c.strokeStyle="#19ff85"; c.lineWidth=3; c.shadowColor="#19ff85"; c.shadowBlur=10;
+    c.beginPath(); c.moveTo(cx,cy); c.lineTo(cx+R*Math.cos(nrad),cy+R*Math.sin(nrad)); c.stroke(); c.shadowBlur=0;
+    // eco (lo que reportó el robot: RAD=ang,cm)
+    const d=this._echoDist||0, ea=(this._echoAng==null?sa:this._echoAng);
+    if(d>0 && d<=MAXCM){
+      const erad=Math.PI+(180-ea)*Math.PI/180, rr=R*d/MAXCM;
+      const ex=cx+rr*Math.cos(erad), ey=cy+rr*Math.sin(erad);
+      c.fillStyle="#ff3b3b"; c.shadowColor="#ff3b3b"; c.shadowBlur=14;
+      c.beginPath(); c.arc(ex,ey,6,0,2*Math.PI); c.fill(); c.shadowBlur=0;
+    }
+    // texto: distancia + ángulo
+    const dv=$("rbRadDist"), av=$("rbRadAng");
+    if(dv) dv.textContent = (d>0 ? d+" cm" : "— libre —");
+    if(av) av.textContent = sa+"°";
   },
 
   drawStick(){
@@ -4159,6 +4221,7 @@ $("rbAllOff").onclick     = ()=>Robot.cmd("%X#");   // apagar todo
   b.addEventListener("pointerdown",on); b.addEventListener("pointerup",off); b.addEventListener("pointerleave",off); b.addEventListener("pointercancel",off);
 })();   // 🔥 NITRO = mantener presionado
 $("rbAvoid").onclick      = ()=>Robot.cmd("%A#");   // esquivar
+$("rbRadarAuto").onclick  = ()=>Robot.toggleRadarAuto();   // 📡 barrido automático on/off
 // D-pad en pantalla (toque/clic) → mismo camino que el mando
 document.querySelectorAll("#robotFs .rb-pad button").forEach(btn=>{
   const cmd=btn.getAttribute("data-cmd");
