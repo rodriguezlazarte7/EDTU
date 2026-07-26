@@ -361,7 +361,12 @@
   /* ===== Control del Robot (LAFVIN) ===== */
   #robotFs{position:fixed;inset:0;z-index:121;display:none;overflow:auto;color:#eafff5;background:radial-gradient(circle at 50% -10%,#07271c,#020a06 70%)}
   #robotFs.open{display:block}
-  #robotFs .rb-wrap{max-width:760px;margin:0 auto;padding:16px 16px 46px;display:flex;flex-direction:column;gap:14px}
+  #robotFs .rb-wrap{position:relative;max-width:980px;margin:0 auto;padding:20px 20px 46px;display:flex;flex-direction:column;gap:13px}
+  #robotFs .rb-corner{position:absolute;width:40px;height:40px;pointer-events:none;opacity:.6}
+  #robotFs .rb-corner.tl{top:6px;left:6px;border-top:2px solid #19ff85;border-left:2px solid #19ff85;border-top-left-radius:8px}
+  #robotFs .rb-corner.tr{top:6px;right:6px;border-top:2px solid #19ff85;border-right:2px solid #19ff85;border-top-right-radius:8px}
+  #robotFs .rb-corner.bl{bottom:6px;left:6px;border-bottom:2px solid #19ff85;border-left:2px solid #19ff85;border-bottom-left-radius:8px}
+  #robotFs .rb-corner.br{bottom:6px;right:6px;border-bottom:2px solid #19ff85;border-right:2px solid #19ff85;border-bottom-right-radius:8px}
   #robotFs .rb-top{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
   #robotFs h2{margin:0;font-size:18px;letter-spacing:.14em;color:#19ff85;flex:1;min-width:150px}
   #robotFs .rb-chip{font-size:11px;padding:4px 9px;border-radius:20px;border:1px solid rgba(255,255,255,.18);background:rgba(255,255,255,.05);white-space:nowrap}
@@ -383,14 +388,30 @@
   #robotFs .rb-pad button.stop:active,#robotFs .rb-pad button.stop.on{background:rgba(255,59,91,.35);box-shadow:0 0 16px rgba(255,59,91,.45)}
   #robotFs .rb-help{font-size:11.5px;color:#8fb9ab;text-align:center;line-height:1.55}
   #robotFs .rb-log{font-family:ui-monospace,Consolas,monospace;font-size:11px;color:#7fe9c0;background:#02120c;border:1px solid rgba(25,255,133,.15);border-radius:8px;padding:8px;height:88px;overflow:auto;white-space:pre-wrap}
-  #robotFs .rb-stickrow{display:flex;align-items:center;justify-content:center;gap:20px;flex-wrap:wrap;margin:4px auto}
-  #robotFs .vgauge{text-align:center}
-  #robotFs .vgauge .cap{width:26px;height:11px;margin:0 auto 2px;border-radius:5px 5px 3px 3px;background:linear-gradient(#eef,#99a);box-shadow:0 1px 2px rgba(0,0,0,.5)}
-  #robotFs .vgauge .body{position:relative;width:78px;height:180px;margin:0 auto;border:5px solid #c9d6e0;border-radius:18px;overflow:hidden;background:linear-gradient(90deg,rgba(255,255,255,.05),rgba(255,255,255,.16) 22%,rgba(0,0,0,.28) 60%,rgba(255,255,255,.08));box-shadow:inset 0 0 20px rgba(0,0,0,.55)}
-  #robotFs .vgauge .fill{position:absolute;left:0;right:0;bottom:0;height:0%;transition:height .45s ease,background .45s,box-shadow .45s}
-  #robotFs .vgauge .bolt{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font-size:56px;opacity:.20;pointer-events:none}
-  #robotFs .vgauge .val{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font-size:27px;font-weight:900;color:#fff;text-shadow:0 1px 4px #000,0 0 10px rgba(0,0,0,.9)}
-  #robotFs .vgauge .glbl{font-size:12px;color:#8fb9ab;letter-spacing:.08em;margin-top:6px}
+  #robotFs .rb-dash{display:flex;align-items:center;justify-content:center;gap:6px;flex-wrap:wrap;margin:2px auto}
+  #robotFs .rb-gauge{position:relative;width:min(340px,40vw);min-width:250px}
+  #robotFs .rb-gauge canvas{width:100%;height:auto;display:block}
+  #robotFs .rg-face{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px}
+  #robotFs .rg-title{font-size:clamp(13px,1.7vw,21px);font-weight:800;letter-spacing:.18em;color:#19ff85;text-shadow:0 0 12px rgba(25,255,133,.55)}
+  #robotFs .rg-title.spd,#robotFs .rg-pill.spd{color:#2fd0ff}
+  #robotFs .rg-title.spd{text-shadow:0 0 12px rgba(47,208,255,.55)}
+  #robotFs .rg-val{font-size:clamp(30px,5.2vw,60px);font-weight:900;color:#fff;line-height:1;text-shadow:0 2px 8px #000}
+  #robotFs .rg-pill{margin-top:5px;font-size:12px;font-weight:800;letter-spacing:.12em;padding:3px 14px;border-radius:20px;border:1px solid #19ff85;color:#19ff85;background:rgba(0,0,0,.4)}
+  #robotFs .rg-pill.spd{border-color:#2fd0ff}
+  #robotFs .glossbatt{display:flex;flex-direction:column;align-items:center;margin:2px 0}
+  #robotFs .gb-cap{width:26px;height:9px;border-radius:4px 4px 0 0;background:linear-gradient(#eef,#8aa);margin-bottom:1px}
+  #robotFs .gb-tube{position:relative;width:66px;height:108px;border-radius:13px;border:2px solid rgba(255,255,255,.55);overflow:hidden;background:linear-gradient(90deg,rgba(255,255,255,.06),rgba(255,255,255,.22) 30%,rgba(0,0,0,.22))}
+  #robotFs .gb-fill{position:absolute;left:0;right:0;bottom:0;height:0%;background:linear-gradient(180deg,#c9ffda,#19ff85);box-shadow:0 0 18px #19ff85;transition:height .4s ease,background .4s}
+  #robotFs .gb-shine{position:absolute;left:9%;top:5%;width:22%;height:88%;border-radius:8px;background:linear-gradient(rgba(255,255,255,.55),rgba(255,255,255,0));pointer-events:none}
+  #robotFs .gb-bolt{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font-size:34px;opacity:.9;text-shadow:0 0 8px rgba(0,0,0,.5)}
+  #robotFs .speedcar{font-size:clamp(38px,6vw,64px);filter:drop-shadow(0 0 12px rgba(47,208,255,.55))}
+  #robotFs .rb-center{display:flex;flex-direction:column;align-items:center;gap:8px;min-width:190px}
+  #robotFs .rb-stick.sm{width:66px;height:66px}
+  #robotFs .rb-sysrow{display:flex;justify-content:space-between;align-items:flex-end;font-size:11px;color:#8fb9ab;letter-spacing:.12em;margin-top:2px;padding:0 4px}
+  #robotFs .rb-sys b{color:#19ff85;font-size:12px}
+  #robotFs .perfbars{display:flex;align-items:flex-end;gap:2px;height:20px;margin-top:2px}
+  #robotFs .perfbars i{width:5px;background:#19ff85;box-shadow:0 0 5px rgba(25,255,133,.5);opacity:.8}
+  #robotFs .perfbars i:nth-child(1){height:35%}#robotFs .perfbars i:nth-child(2){height:55%}#robotFs .perfbars i:nth-child(3){height:45%}#robotFs .perfbars i:nth-child(4){height:70%}#robotFs .perfbars i:nth-child(5){height:60%}#robotFs .perfbars i:nth-child(6){height:85%}#robotFs .perfbars i:nth-child(7){height:75%}#robotFs .perfbars i:nth-child(8){height:100%}
   .game-top{position:absolute;top:0;left:0;right:0;display:flex;justify-content:space-between;align-items:flex-start;padding:max(10px,env(safe-area-inset-top)) 12px 0;z-index:5;pointer-events:none}
   .game-top .btn{pointer-events:auto;background:rgba(0,0,0,0.4)}
   #gameScores{display:flex;gap:14px;font-weight:900;font-size:17px;text-shadow:0 0 8px currentColor}
@@ -874,6 +895,7 @@
 <!-- ============ CONTROL DEL ROBOT (LAFVIN) ============ -->
 <div id="robotFs">
   <div class="rb-wrap">
+    <i class="rb-corner tl"></i><i class="rb-corner tr"></i><i class="rb-corner bl"></i><i class="rb-corner br"></i>
     <div class="rb-top">
       <h2>🚗 CONTROL DEL ROBOT</h2>
       <span class="rb-chip bad" id="rbConn">🔌 Desconectado</span>
@@ -887,44 +909,51 @@
       <button class="rb-btn" id="rbDisconnect" style="display:none">⛔ Desconectar</button>
     </div>
 
-    <div class="rb-stickrow">
-      <div class="rb-stick"><div class="dot" id="rbDot"></div></div>
-      <div class="vgauge">
-        <div class="cap"></div>
-        <div class="body"><div class="fill" id="rbBattFill"></div><div class="bolt">⚡</div><div class="val" id="rbBattPct">--%</div></div>
-        <div class="glbl">🔋 <span id="rbBattVolt">-- V</span></div>
+    <div class="rb-dash">
+      <div class="rb-gauge">
+        <canvas id="rgBatt" width="320" height="320"></canvas>
+        <div class="rg-face">
+          <div class="rg-title">BATERÍA</div>
+          <div class="glossbatt"><i class="gb-cap"></i><div class="gb-tube"><div class="gb-fill" id="rbBattFill"></div><div class="gb-shine"></div><div class="gb-bolt">⚡</div></div></div>
+          <div class="rg-val" id="rbBattPct">--%</div>
+          <div class="rg-pill" id="rbBattVolt">-- V</div>
+        </div>
       </div>
-      <div class="vgauge">
-        <div class="cap"></div>
-        <div class="body"><div class="fill" id="rbSpeedFill"></div><div class="bolt">🏎️</div><div class="val" id="rbSpeedVal">0%</div></div>
-        <div class="glbl">VELOCIDAD</div>
+      <div class="rb-center">
+        <div class="rb-cmd" id="rbCmd">— parado —</div>
+        <div class="rb-stick sm"><div class="dot" id="rbDot"></div></div>
+        <div class="rb-pad">
+          <span></span><button data-cmd="F" title="Adelante">▲</button><span></span>
+          <button data-cmd="L" title="Izquierda">◀</button><button class="stop" data-cmd="S" title="Parar">⏹</button><button data-cmd="R" title="Derecha">▶</button>
+          <span></span><button data-cmd="B" title="Atrás">▼</button><span></span>
+        </div>
+      </div>
+      <div class="rb-gauge">
+        <canvas id="rgSpeed" width="320" height="320"></canvas>
+        <div class="rg-face">
+          <div class="rg-title spd">VELOCIDAD</div>
+          <div class="speedcar">🏎️</div>
+          <div class="rg-val" id="rbSpeedVal">0%</div>
+          <div class="rg-pill spd">VELOCIDAD</div>
+        </div>
       </div>
     </div>
-    <div class="rb-cmd" id="rbCmd">— parado —</div>
 
-    <div class="rb-pad">
-      <span></span>
-      <button data-cmd="F" title="Adelante">▲</button>
-      <span></span>
-      <button data-cmd="L" title="Izquierda">◀</button>
-      <button class="stop" data-cmd="S" title="Parar">⏹</button>
-      <button data-cmd="R" title="Derecha">▶</button>
-      <span></span>
-      <button data-cmd="B" title="Atrás">▼</button>
-      <span></span>
-    </div>
-
-    <div class="rb-row">
+    <div class="rb-row rb-lights">
       <button class="rb-btn" id="rbFront">🔦 Faros del. <small>(X)</small></button>
       <button class="rb-btn" id="rbRear">🔴 Trasero <small>(B)</small></button>
       <button class="rb-btn" id="rbTurnL">⬅️ Int. izq <small>(LB)</small></button>
       <button class="rb-btn" id="rbTurnR">➡️ Int. der <small>(RB)</small></button>
     </div>
-    <div class="rb-row">
+    <div class="rb-row rb-lights">
       <button class="rb-btn primary" id="rbAllOn">🟢 TODO <small>(RT)</small></button>
       <button class="rb-btn" id="rbAllOff">⚫ APAGAR <small>(LT)</small></button>
       <button class="rb-btn warn" id="rbEmerg">🚨 Emergencia <small>(Y)</small></button>
       <button class="rb-btn" id="rbAvoid">🧭 Esquivar <small>(A)</small></button>
+    </div>
+    <div class="rb-sysrow">
+      <div class="rb-sys">SISTEMA<br><b>• ESTABLE</b></div>
+      <div class="rb-perf">RENDIMIENTO<div class="perfbars"><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i></div></div>
     </div>
     <div class="rb-row" style="align-items:center;opacity:.85">
       <button class="rb-btn" id="rbProbe">🔍 Probar mando</button>
@@ -3851,9 +3880,9 @@ const Robot = {
   port:null, writer:null, reader:null, connected:false,
   touchCmd:null, oneShot:null, modeActive:false,
   lastCmd:"", lastAt:0, padVec:{x:0,y:0},
-  _aPrev:false, _bPrev:false, _timer:null, _readAbort:false, _af:null, _run:false, _padId:null, _dbg:"", _frames:0, lightsOn:false, _yPrev:false, _rxbuf:"", speedPct:0,
+  _aPrev:false, _bPrev:false, _timer:null, _readAbort:false, _af:null, _run:false, _padId:null, _dbg:"", _frames:0, lightsOn:false, _yPrev:false, _rxbuf:"", speedPct:0, _lastSpd:-1,
 
-  open(){ $("robotFs").classList.add("open"); this.startLoop(); this.drawStick(); },
+  open(){ $("robotFs").classList.add("open"); this.startLoop(); this.drawStick(); this._lastSpd=-1; this.drawRing("rgBatt",0,"batt"); this.drawRing("rgSpeed",0,"speed"); },
   close(){
     $("robotFs").classList.remove("open");
     this.touchCmd=null; this.modeActive=false;
@@ -3991,7 +4020,7 @@ const Robot = {
       if(frame!==this.lastCmd && now-this.lastAt>=90){ this.send(frame); this.lastCmd=frame; this.lastAt=now; }
       else if(cmd!=="S" && now-this.lastAt>=300){ this.send(frame); this.lastAt=now; }   // sostener el movimiento (< watchdog del firmware)
     }
-    const spShown=(cmd==="S")?0:spd; this.setGauge($("rbSpeedFill"), spShown, this.speedColor(spShown)); const sv=$("rbSpeedVal"); if(sv) sv.textContent=spShown+"%";
+    const spShown=(cmd==="S")?0:spd; if(spShown!==this._lastSpd){ this.drawRing("rgSpeed",spShown,"speed"); const sv=$("rbSpeedVal"); if(sv) sv.textContent=spShown+"%"; this._lastSpd=spShown; }
     this.hud(cmd==="F"?"▲ adelante":cmd==="B"?"▼ atrás":cmd==="L"?"◀ izquierda":cmd==="R"?"▶ derecha":"— parado —");
     this.drawStick();
   },
@@ -4011,9 +4040,22 @@ const Robot = {
   cmd(frame){ if(!this.connected){ toast("Conecta el robot primero"); return; } this.send(frame); this.log("→ "+frame); },
   battColor(p){ return p>=80?"#19ff85": p>=60?"#8cff3a": p>=40?"#ffd23f": p>=20?"#ff8c1a":"#ff3b3b"; },
   speedColor(p){ return p>=66?"#19ff85": p>=33?"#2fd0ff":"#2f6bff"; },
-  setGauge(el,pct,color){ if(!el) return; el.style.height=Math.max(0,Math.min(100,pct))+"%"; el.style.background="linear-gradient(180deg, rgba(255,255,255,0.55), "+color+" 72%)"; el.style.boxShadow="0 0 22px "+color+", 0 0 10px "+color+" inset"; },
+  setGauge(el,pct,color){ if(!el) return; el.style.height=Math.max(0,Math.min(100,pct))+"%"; el.style.background="linear-gradient(180deg, rgba(255,255,255,0.55), "+color+" 72%)"; el.style.boxShadow="0 0 18px "+color; },
+  drawRing(id,pct,kind){
+    const cv=$(id); if(!cv||!cv.getContext) return; const c=cv.getContext("2d"),W=cv.width,H=cv.height;
+    c.clearRect(0,0,W,H);
+    const cx=W/2,cy=H/2,R=W*0.415,lw=W*0.05,N=54,start=135*Math.PI/180,sweep=270*Math.PI/180;
+    for(let i=0;i<N;i++){ const t=i/(N-1),a=start+t*sweep,on=(t*100)<=pct; let col;
+      if(kind==="speed"){ const red=t>=0.82; col= on?(red?"#ff3b3b":this.speedColor(t*100)):(red?"rgba(255,60,60,.16)":"rgba(70,150,210,.14)"); }
+      else col= on?this.battColor(t*100):"rgba(90,130,100,.16)";
+      c.beginPath(); c.arc(cx,cy,R,a,a+sweep/N*0.6); c.lineWidth=lw; c.lineCap="butt"; c.strokeStyle=col;
+      c.shadowColor=on?col:"transparent"; c.shadowBlur=on?11:0; c.stroke();
+    }
+    c.shadowBlur=0;
+  },
   updateBatt(pct,volts){
     const chip=$("rbBatt"); if(chip){ chip.textContent=(pct<15?"🪫":"🔋")+" "+pct+"%"; chip.className="rb-chip "+(pct>=30?"ok":"bad"); }
+    this.drawRing("rgBatt",pct,"batt");
     this.setGauge($("rbBattFill"), pct, this.battColor(pct));
     const num=$("rbBattPct"); if(num) num.textContent=pct+"%";
     const v=$("rbBattVolt"); if(v) v.textContent=volts.toFixed(2)+" V";
@@ -4033,7 +4075,7 @@ const Robot = {
     const b1=$("rbConnect"), b2=$("rbDisconnect");
     if(b1) b1.style.display=on?"none":"";
     if(b2) b2.style.display=on?"":"none";
-    if(!on){ const bt=$("rbBatt"); if(bt){ bt.textContent="🔋 --%"; bt.className="rb-chip"; } const n=$("rbBattPct"); if(n) n.textContent="--%"; const f=$("rbBattFill"); if(f) f.style.height="0%"; const v=$("rbBattVolt"); if(v) v.textContent="-- V"; const sf=$("rbSpeedFill"); if(sf) sf.style.height="0%"; const sv=$("rbSpeedVal"); if(sv) sv.textContent="0%"; }
+    if(!on){ const bt=$("rbBatt"); if(bt){ bt.textContent="🔋 --%"; bt.className="rb-chip"; } const n=$("rbBattPct"); if(n) n.textContent="--%"; const f=$("rbBattFill"); if(f) f.style.height="0%"; const v=$("rbBattVolt"); if(v) v.textContent="-- V"; this.drawRing("rgBatt",0,"batt"); this._lastSpd=-1; this.drawRing("rgSpeed",0,"speed"); const sv=$("rbSpeedVal"); if(sv) sv.textContent="0%"; }
   },
   setPad(on){ const p=$("rbPad"); if(p && p._on!==on){ p._on=on; p.textContent=on?"🎮 Mando OK":"🎮 Sin mando"; p.className="rb-chip "+(on?"ok":"bad"); } }
 };
