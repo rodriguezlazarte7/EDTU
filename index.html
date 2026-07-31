@@ -2857,8 +2857,8 @@ function fmtTime(ts){
   return sameDay ? hm : `${p(d.getDate())}/${p(d.getMonth()+1)} ${hm}`;
 }
 
-// Borra mensajes (y sus audios) con más de 1 día, local y en la nube.
-const CHAT_TTL = 24*60*60*1000; // 24 horas
+// Borra mensajes (y sus audios) con más de 4 semanas, local y en la nube.
+const CHAT_TTL = 28*24*60*60*1000; // 4 semanas (28 días)
 function purgeOldChat(){
   const cutoff = Date.now() - CHAT_TTL;
   const msgs = loadChat();
