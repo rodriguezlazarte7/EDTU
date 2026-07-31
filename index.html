@@ -1091,9 +1091,9 @@
     <div id="monResult" style="font-size:15px"></div>
     <button class="btn btn-primary" id="monStart" style="font-size:17px;padding:12px 28px">▶ JUGAR</button>
     <div style="font-size:12px;color:#cdd6ff;max-width:460px;line-height:1.6">
-      🪖 Eres un <b>soldado</b>. Muévete con <b>WASD</b> / <b>stick L</b> / <b>mouse</b>. Apuntas al mouse o al monstruo más cercano.<br>
+      🪖 Eres un <b>soldado</b> con <b>escuadrón</b>. Muévete con <b>flechas</b> / <b>WASD</b> / <b>stick L</b>. Apunta con el <b>mouse</b> o el <b>stick R</b>.<br>
       🔫 <b>Clic izq</b> o <b>RT</b> = disparar (mantén = cada 0.5s) · 🎯 <b>Clic der</b> o <b>LT</b> = <b>MIRA</b> (todo se oscurece menos el cono) + <b>disparo potente</b> que atraviesa (cada 2s).<br>
-      🕷️ Los <b>monstruos</b> te persiguen — no dejes que te muerdan · junta ⭐ para curarte y pegar más fuerte.<br>
+      👥 Tus <b>compañeros</b> te siguen y disparan solos · ¡ganas uno más cada 15 monstruos! · junta ⭐ para curarte y pegar más fuerte.<br>
       ❤️ vida · 🔫 fuerza · 💥 vencidos · 🎯 disparo potente
     </div>
   </div>
@@ -4401,7 +4401,7 @@ $("convFile").onchange=e=>{ Conv.run(e.target.files); e.target.value=""; };
 const Monster={
   cv:null,c:null,W:0,H:0,raf:null,running:false,
   worldW:3600,worldH:3600, cam:{x:0,y:0}, shake:0,
-  p:null, people:[], shots:[], blood:[], stars:[], parts:[],
+  p:null, people:[], shots:[], blood:[], stars:[], parts:[], mates:[],
   keys:{}, aim:null, pointer:false, _last:0, spawnT:0, starT:0,
   open(){
     $("monFs").classList.add("open");
@@ -4433,6 +4433,7 @@ const Monster={
     this.people=[]; this.shots=[]; this.blood=[]; this.stars=[]; this.parts=[];
     this.aim=null; this.pointer=false; this.spawnT=0; this.starT=5; this.shake=0; this.mb0=false; this.mb2=false; this.scope=false;
     for(let i=0;i<8;i++) this.spawnPerson();
+    this.mates=[]; this.addMate(); this.addMate();
     $("monOverlay").style.display="none";
     this.running=true; this._last=performance.now();
     if(!this.raf) this.raf=requestAnimationFrame(t=>this.loop(t));
@@ -4446,6 +4447,13 @@ const Monster={
     this.people.push({ x,y, vx:0,vy:0, r:big?20:13, hp:big?5:2, spd:big?70:115, hitT:0, legPhase:Math.random()*6, col:big?"#7a3fae":"#c83f52" });
   },
   getPad(){ const pads=navigator.getGamepads?navigator.getGamepads():[]; for(const g of pads){ if(!g) continue; const id=(g.id||"").toLowerCase(); if(/jabra|speak|headset|audio|micr|webcam|camera|receiver/.test(id)) continue; if((g.axes||[]).length>=2) return g; } return null; },
+  addMate(){ this.mates.push({x:this.p.x,y:this.p.y,fireT:Math.random()*0.6,aimAng:0,slot:0}); const n=this.mates.length; this.mates.forEach((mt,i)=>{ mt.slot=i/n*6.283; }); },
+  drawMate(c,x,y,mt){ const R=13, ang=mt.aimAng||0; c.save(); c.translate(x,y);
+    c.strokeStyle="#222"; c.lineWidth=5; c.lineCap="round"; c.beginPath(); c.moveTo(0,0); c.lineTo(Math.cos(ang)*R*1.6,Math.sin(ang)*R*1.6); c.stroke();
+    c.fillStyle="#4a7dc0"; c.beginPath(); c.arc(0,0,R,0,6.283); c.fill();
+    c.fillStyle="#38609a"; c.beginPath(); c.arc(0,0,R*0.66,0,6.283); c.fill();
+    c.fillStyle="#2f4d7a"; c.save(); c.rotate(ang); c.beginPath(); c.arc(R*0.1,0,R*0.5,-1.15,1.15); c.fill(); c.restore();
+    c.restore(); },
   padVec(){
     const pad=this.getPad(); if(!pad) return null;
     let x=pad.axes[0]||0,y=pad.axes[1]||0;
@@ -4478,11 +4486,21 @@ const Monster={
       if(dd<nd){ nd=dd; near=m; }
     }
     this.spawnT-=dt; if(this.spawnT<=0&&this.people.length<40){ this.spawnT=Math.max(0.35,1.2-this.p.kills*0.01); this.spawnPerson(); }
+    // compañeros: te siguen en formación y disparan al monstruo más cercano
+    for(const mt of this.mates){
+      const tx=p.x+Math.cos(mt.slot)*95, ty=p.y+Math.sin(mt.slot)*95, ax=tx-mt.x, ay=ty-mt.y, d=Math.hypot(ax,ay);
+      if(d>4){ mt.x+=ax/d*Math.min(230,d*4)*dt; mt.y+=ay/d*Math.min(230,d*4)*dt; }
+      let mn=null,mnd=1e9; for(const mo of this.people){ const dd=Math.hypot(mo.x-mt.x,mo.y-mt.y); if(dd<mnd){ mnd=dd; mn=mo; } }
+      mt.fireT-=dt;
+      if(mn&&mnd<520){ mt.aimAng=Math.atan2(mn.y-mt.y,mn.x-mt.x); if(mt.fireT<=0){ mt.fireT=0.6; this.shots.push({x:mt.x+Math.cos(mt.aimAng)*14,y:mt.y+Math.sin(mt.aimAng)*14,vx:Math.cos(mt.aimAng)*540,vy:Math.sin(mt.aimAng)*540,life:0.8,dmg:1}); } }
+    }
     // soldado: apunta (al mouse o al monstruo más cercano) y dispara solo
+    const gp=this.getPad();
+    const rx=gp?(gp.axes[2]||0):0, ry=gp?(gp.axes[3]||0):0, rstick=Math.hypot(rx,ry)>0.35;   // R stick = apuntar
     if(ptr){ const wx=this.cam.x+this.aim.x, wy=this.cam.y+this.aim.y; p.aimAng=Math.atan2(wy-p.y,wx-p.x); }
+    else if(rstick){ p.aimAng=Math.atan2(ry,rx); }
     else if(near){ p.aimAng=Math.atan2(near.y-p.y,near.x-p.x); }
     // gatillos: clic-izq/RT = disparo (cada 0.5s) · clic-der/LT = mira + disparo potente (cada 2s)
-    const gp=this.getPad();
     const rt=gp&&gp.buttons[7]&&(gp.buttons[7].pressed||gp.buttons[7].value>0.3);
     const lt=gp&&gp.buttons[6]&&(gp.buttons[6].pressed||gp.buttons[6].value>0.3);
     const fireHeld=this.mb0||rt, scopeHeld=this.mb2||lt;
@@ -4505,7 +4523,7 @@ const Monster={
   kill(m,i){ this.blood.push({x:m.x,y:m.y,r:9+Math.random()*10,col:"rgba(255,255,255,0.18)"}); if(this.blood.length>400) this.blood.shift();   // marca "poof" (polvo), sin sangre
     const cols=["#ffd23f","#38e1ff","#ff8cc6","#8cff6a","#c58cff","#ffa640"];
     for(let k=0;k<12;k++) this.parts.push({x:m.x,y:m.y,vx:(Math.random()-0.5)*240,vy:(Math.random()-0.5)*240,life:0.55,col:cols[k%cols.length]});   // confeti de colores
-    this.people.splice(i,1); this.p.kills++; this.shake=Math.max(this.shake,3); },
+    this.people.splice(i,1); this.p.kills++; if(this.p.kills%15===0 && this.mates.length<5) this.addMate(); this.shake=Math.max(this.shake,3); },
   updateHud(){ const p=this.p; const pw=p.powCd>0?("⏳ "+p.powCd.toFixed(1)+"s"):"🎯 LISTO"; $("monHud").innerHTML="❤️ "+Math.max(0,Math.ceil(p.hp))+" &nbsp; 🔫 "+p.dmg+" &nbsp; 💥 "+p.kills+" &nbsp; "+pw; },
   draw(){
     const c=this.c,W=this.W,H=this.H; let camx=this.cam.x,camy=this.cam.y;
@@ -4523,6 +4541,7 @@ const Monster={
     for(const b of this.blood){ const sx=b.x-camx,sy=b.y-camy; if(sx<-30||sx>W+30||sy<-30||sy>H+30) continue; c.fillStyle=b.col; c.beginPath(); c.arc(sx,sy,b.r,0,6.283); c.fill(); }
     for(const st of this.stars){ this.drawStar(c,st.x-camx,st.y-camy,14,Math.sin(st.ph*3)*0.3); }
     for(const m of this.people){ const sx=m.x-camx,sy=m.y-camy; if(sx<-20||sx>W+20||sy<-20||sy>H+20) continue; this.drawPerson(c,sx,sy,m); }
+    for(const mt of this.mates){ this.drawMate(c,mt.x-camx,mt.y-camy,mt); }
     for(const s of this.shots){ const sx=s.x-camx,sy=s.y-camy; c.save(); c.translate(sx,sy); c.rotate(Math.atan2(s.vy,s.vx)); if(s.pow){ c.fillStyle="#38e1ff"; c.shadowColor="#38e1ff"; c.shadowBlur=10; c.fillRect(-13,-4,26,8); c.shadowBlur=0; } else { c.fillStyle="#ffe14d"; c.fillRect(-7,-2.5,14,5); } c.restore(); }
     this.drawSoldier(c,this.p.x-camx,this.p.y-camy);
     for(const pa of this.parts){ c.globalAlpha=Math.max(0,pa.life*2); c.fillStyle=pa.col; c.fillRect(pa.x-camx-2,pa.y-camy-2,4,4); } c.globalAlpha=1;
