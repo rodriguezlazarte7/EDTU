@@ -1027,10 +1027,10 @@
       <button class="btn btn-ghost btn-sm" id="convClose">✕ Salir</button>
     </div>
     <label class="cv-drop" id="convDrop">
-      <input type="file" id="convFile" accept="audio/mpeg,.mp3" hidden>
+      <input type="file" id="convFile" accept="audio/mpeg,.mp3" multiple hidden>
       <div class="cv-ico">🎧⬇️💿</div>
-      <div class="cv-big">Arrastra tu <b>MP3</b> aquí</div>
-      <div class="cv-sub">o haz clic para elegirlo · se convierte a <b>WAV</b> y se descarga solo</div>
+      <div class="cv-big">Arrastra tus <b>MP3</b> aquí</div>
+      <div class="cv-sub">uno o <b>varios a la vez</b> · se convierten a <b>WAV</b> y se descargan solos</div>
     </label>
     <div class="cv-status" id="convStatus">Esperando un archivo…</div>
     <div class="cv-note">🔒 Todo pasa <b>en tu compu</b> — el archivo no se sube a ningún lado. El WAV pesa más que el MP3 (es sin comprimir, calidad total).</div>
@@ -4311,26 +4311,37 @@ window.addEventListener("gamepaddisconnected", ()=>{ Robot.setPad(false); Robot.
 
 /* ============ CONVERSOR MP3 → WAV (100% en el navegador) ============ */
 const Conv={
-  open(){ $("convFs").classList.add("open"); this.status("Esperando un archivo…"); },
+  open(){ $("convFs").classList.add("open"); this.status("Esperando archivos…"); },
   close(){ $("convFs").classList.remove("open"); },
-  status(m){ const el=$("convStatus"); if(el) el.textContent=m; },
-  async handle(file){
-    if(!file){ return; }
-    if(!/mp3|mpeg/i.test(file.type) && !/\.mp3$/i.test(file.name)){ this.status("⚠️ Eso no parece un MP3. Elige un archivo .mp3"); return; }
-    try{
-      this.status("🎧 Leyendo "+file.name+"…");
-      const buf=await file.arrayBuffer();
-      const AC=window.AudioContext||window.webkitAudioContext;
-      const ac=new AC();
-      this.status("⏳ Decodificando el MP3…");
-      const audio=await ac.decodeAudioData(buf);
-      this.status("💾 Escribiendo el WAV…");
-      const wav=this.toWav(audio);
-      const name=file.name.replace(/\.[^.]+$/,"")+".wav";
-      this.download(wav,name);
-      this.status("✅ ¡Listo! Se descargó "+name+" ("+(wav.size/1048576).toFixed(1)+" MB)");
-      if(ac.close) ac.close();
-    }catch(e){ this.status("✖ Error: "+((e&&e.message)?e.message:e)); }
+  status(m){ const el=$("convStatus"); if(el) el.innerHTML=m; },
+  _busy:false,
+  async run(fileList){
+    if(this._busy){ return; }
+    const files=Array.from(fileList||[]).filter(f=>/mp3|mpeg/i.test(f.type)||/\.mp3$/i.test(f.name));
+    if(!files.length){ this.status("⚠️ No hay MP3 válidos. Elige uno o varios archivos .mp3"); return; }
+    this._busy=true;
+    const N=files.length; let ok=0; const fails=[];
+    for(let i=0;i<N;i++){
+      const f=files[i];
+      this.status("🎧 Convirtiendo <b>"+(i+1)+" de "+N+"</b>: "+f.name+" …");
+      try{ await this.convertOne(f); ok++; }
+      catch(e){ fails.push(f.name); }
+    }
+    let msg = "✅ Listo: <b>"+ok+"</b> de "+N+" convertido"+(N>1?"s":"")+" y descargado"+(N>1?"s":"")+".";
+    if(fails.length) msg += " ⚠️ Fallaron: "+fails.join(", ");
+    this.status(msg);
+    this._busy=false;
+  },
+  async convertOne(file){
+    const buf=await file.arrayBuffer();
+    const AC=window.AudioContext||window.webkitAudioContext;
+    const ac=new AC();
+    const audio=await ac.decodeAudioData(buf);
+    const wav=this.toWav(audio);
+    const name=file.name.replace(/\.[^.]+$/,"")+".wav";
+    this.download(wav,name);
+    if(ac.close) ac.close();
+    await new Promise(r=>setTimeout(r,400));   // respiro entre descargas (el navegador las encola mejor)
   },
   toWav(audio){
     const nCh=audio.numberOfChannels, sr=audio.sampleRate, len=audio.length;
@@ -4350,11 +4361,11 @@ const Conv={
 };
 $("convBtn").onclick=()=>Conv.open();
 $("convClose").onclick=()=>Conv.close();
-$("convFile").onchange=e=>{ Conv.handle(e.target.files[0]); e.target.value=""; };
+$("convFile").onchange=e=>{ Conv.run(e.target.files); e.target.value=""; };
 (function(){ const d=$("convDrop"); if(!d) return;
   ["dragenter","dragover"].forEach(ev=>d.addEventListener(ev,e=>{ e.preventDefault(); d.classList.add("drag"); }));
   ["dragleave","drop"].forEach(ev=>d.addEventListener(ev,e=>{ e.preventDefault(); d.classList.remove("drag"); }));
-  d.addEventListener("drop",e=>{ const f=e.dataTransfer&&e.dataTransfer.files&&e.dataTransfer.files[0]; if(f) Conv.handle(f); });
+  d.addEventListener("drop",e=>{ const fs=e.dataTransfer&&e.dataTransfer.files; if(fs&&fs.length) Conv.run(fs); });
 })();
 </script>
 </body>
