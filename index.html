@@ -1091,9 +1091,10 @@
     <div id="monResult" style="font-size:15px"></div>
     <button class="btn btn-primary" id="monStart" style="font-size:17px;padding:12px 28px">▶ JUGAR</button>
     <div style="font-size:12px;color:#cdd6ff;max-width:460px;line-height:1.6">
-      🪖 Eres un <b>soldado</b>. Muévete con el <b>mouse</b> (o <b>WASD</b> / <b>stick L</b>) — ¡disparas <b>solo</b> al monstruo más cercano!<br>
-      🕷️ Los <b>monstruos</b> te persiguen: dispárales antes de que te muerdan 💥 · junta ⭐ para <b>disparar más rápido</b> y curarte.<br>
-      ❤️ vida · 🔫 fuerza · 💥 monstruos vencidos
+      🪖 Eres un <b>soldado</b>. Muévete con <b>WASD</b> / <b>stick L</b> / <b>mouse</b>. Apuntas al mouse o al monstruo más cercano.<br>
+      🔫 <b>Clic izq</b> o <b>RT</b> = disparar (mantén = cada 0.5s) · 🎯 <b>Clic der</b> o <b>LT</b> = <b>MIRA</b> (todo se oscurece menos el cono) + <b>disparo potente</b> que atraviesa (cada 2s).<br>
+      🕷️ Los <b>monstruos</b> te persiguen — no dejes que te muerdan · junta ⭐ para curarte y pegar más fuerte.<br>
+      ❤️ vida · 🔫 fuerza · 💥 vencidos · 🎯 disparo potente
     </div>
   </div>
 </div>
@@ -4415,17 +4416,22 @@ const Monster={
   bindInput(){
     this._kd=e=>{ this.keys[e.key.toLowerCase()]=true; };
     this._ku=e=>{ this.keys[e.key.toLowerCase()]=false; };
-    this._mm=e=>{ const r=this.cv.getBoundingClientRect(); this.aim={x:e.clientX-r.left,y:e.clientY-r.top}; this.pointer=true; this._aimAt=performance.now(); };
-    this._tm=e=>{ if(e.touches[0]){ const r=this.cv.getBoundingClientRect(); this.aim={x:e.touches[0].clientX-r.left,y:e.touches[0].clientY-r.top}; this.pointer=true; this._aimAt=performance.now(); e.preventDefault(); } };
-    window.addEventListener("keydown",this._kd); window.addEventListener("keyup",this._ku);
-    this.cv.addEventListener("mousemove",this._mm);
-    this.cv.addEventListener("touchstart",this._tm,{passive:false}); this.cv.addEventListener("touchmove",this._tm,{passive:false});
+    const setAim=(cx,cy)=>{ const r=this.cv.getBoundingClientRect(); this.aim={x:cx-r.left,y:cy-r.top}; this.pointer=true; this._aimAt=performance.now(); };
+    this._mm=e=>setAim(e.clientX,e.clientY);
+    this._md=e=>{ setAim(e.clientX,e.clientY); if(e.button===0) this.mb0=true; else if(e.button===2) this.mb2=true; };
+    this._mu=e=>{ if(e.button===0) this.mb0=false; else if(e.button===2) this.mb2=false; };
+    this._ctx=e=>e.preventDefault();
+    this._tm=e=>{ if(e.touches[0]){ setAim(e.touches[0].clientX,e.touches[0].clientY); this.mb0=true; e.preventDefault(); } };
+    this._te=e=>{ if(!e.touches||!e.touches.length) this.mb0=false; };
+    window.addEventListener("keydown",this._kd); window.addEventListener("keyup",this._ku); window.addEventListener("mouseup",this._mu);
+    this.cv.addEventListener("mousemove",this._mm); this.cv.addEventListener("mousedown",this._md); this.cv.addEventListener("contextmenu",this._ctx);
+    this.cv.addEventListener("touchstart",this._tm,{passive:false}); this.cv.addEventListener("touchmove",this._tm,{passive:false}); this.cv.addEventListener("touchend",this._te);
   },
-  unbindInput(){ window.removeEventListener("keydown",this._kd); window.removeEventListener("keyup",this._ku); if(this.cv){ this.cv.removeEventListener("mousemove",this._mm); this.cv.removeEventListener("touchstart",this._tm); this.cv.removeEventListener("touchmove",this._tm); } },
+  unbindInput(){ window.removeEventListener("keydown",this._kd); window.removeEventListener("keyup",this._ku); window.removeEventListener("mouseup",this._mu); if(this.cv){ this.cv.removeEventListener("mousemove",this._mm); this.cv.removeEventListener("mousedown",this._md); this.cv.removeEventListener("contextmenu",this._ctx); this.cv.removeEventListener("touchstart",this._tm); this.cv.removeEventListener("touchmove",this._tm); this.cv.removeEventListener("touchend",this._te); } },
   start(){
-    this.p={ x:this.worldW/2, y:this.worldH/2, vx:0,vy:0, r:16, hp:150, maxHp:150, fireRate:0.30, dmg:1, kills:0, fireT:0, aimAng:0, legPhase:0 };
+    this.p={ x:this.worldW/2, y:this.worldH/2, vx:0,vy:0, r:16, hp:150, maxHp:150, fireRate:0.30, dmg:1, kills:0, fireT:0, powCd:0, aimAng:0, legPhase:0 };
     this.people=[]; this.shots=[]; this.blood=[]; this.stars=[]; this.parts=[];
-    this.aim=null; this.pointer=false; this.spawnT=0; this.starT=5; this.shake=0;
+    this.aim=null; this.pointer=false; this.spawnT=0; this.starT=5; this.shake=0; this.mb0=false; this.mb2=false; this.scope=false;
     for(let i=0;i<8;i++) this.spawnPerson();
     $("monOverlay").style.display="none";
     this.running=true; this._last=performance.now();
@@ -4439,10 +4445,9 @@ const Monster={
     const big=Math.random()<0.22;
     this.people.push({ x,y, vx:0,vy:0, r:big?20:13, hp:big?5:2, spd:big?70:115, hitT:0, legPhase:Math.random()*6, col:big?"#7a3fae":"#c83f52" });
   },
+  getPad(){ const pads=navigator.getGamepads?navigator.getGamepads():[]; for(const g of pads){ if(!g) continue; const id=(g.id||"").toLowerCase(); if(/jabra|speak|headset|audio|micr|webcam|camera|receiver/.test(id)) continue; if((g.axes||[]).length>=2) return g; } return null; },
   padVec(){
-    const pads=navigator.getGamepads?navigator.getGamepads():[]; let pad=null;
-    for(const g of pads){ if(!g) continue; const id=(g.id||"").toLowerCase(); if(/jabra|speak|headset|audio|micr|webcam|camera|receiver/.test(id)) continue; if((g.axes||[]).length>=2){ pad=g; break; } }
-    if(!pad) return null;
+    const pad=this.getPad(); if(!pad) return null;
     let x=pad.axes[0]||0,y=pad.axes[1]||0;
     if(pad.buttons[14]&&pad.buttons[14].pressed) x=-1; if(pad.buttons[15]&&pad.buttons[15].pressed) x=1;
     if(pad.buttons[12]&&pad.buttons[12].pressed) y=-1; if(pad.buttons[13]&&pad.buttons[13].pressed) y=1;
@@ -4476,12 +4481,21 @@ const Monster={
     // soldado: apunta (al mouse o al monstruo más cercano) y dispara solo
     if(ptr){ const wx=this.cam.x+this.aim.x, wy=this.cam.y+this.aim.y; p.aimAng=Math.atan2(wy-p.y,wx-p.x); }
     else if(near){ p.aimAng=Math.atan2(near.y-p.y,near.x-p.x); }
-    p.fireT-=dt;
-    if(p.fireT<=0 && (near||ptr)){ p.fireT=p.fireRate; this.shots.push({x:p.x+Math.cos(p.aimAng)*p.r, y:p.y+Math.sin(p.aimAng)*p.r, vx:Math.cos(p.aimAng)*520, vy:Math.sin(p.aimAng)*520, life:0.85}); }
-    // balas del soldado vs monstruos
-    for(let i=this.shots.length-1;i>=0;i--){ const s=this.shots[i]; s.x+=s.vx*dt; s.y+=s.vy*dt; s.life-=dt; let hit=false;
-      for(let j=this.people.length-1;j>=0;j--){ const m=this.people[j]; if(Math.hypot(s.x-m.x,s.y-m.y)<m.r+4){ m.hp-=p.dmg; hit=true; if(m.hp<=0) this.kill(m,j); break; } }
-      if(hit||s.life<=0) this.shots.splice(i,1); }
+    // gatillos: clic-izq/RT = disparo (cada 0.5s) · clic-der/LT = mira + disparo potente (cada 2s)
+    const gp=this.getPad();
+    const rt=gp&&gp.buttons[7]&&(gp.buttons[7].pressed||gp.buttons[7].value>0.3);
+    const lt=gp&&gp.buttons[6]&&(gp.buttons[6].pressed||gp.buttons[6].value>0.3);
+    const fireHeld=this.mb0||rt, scopeHeld=this.mb2||lt;
+    p.fireT-=dt; if(p.powCd>0) p.powCd-=dt;
+    if(fireHeld && p.fireT<=0){ p.fireT=0.5; this.shots.push({x:p.x+Math.cos(p.aimAng)*p.r,y:p.y+Math.sin(p.aimAng)*p.r,vx:Math.cos(p.aimAng)*560,vy:Math.sin(p.aimAng)*560,life:0.85,dmg:p.dmg}); }
+    this.scope=!!scopeHeld;
+    if(scopeHeld && p.powCd<=0){ p.powCd=2; this.shake=Math.max(this.shake,8); this.shots.push({x:p.x+Math.cos(p.aimAng)*p.r,y:p.y+Math.sin(p.aimAng)*p.r,vx:Math.cos(p.aimAng)*780,vy:Math.sin(p.aimAng)*780,life:1.1,dmg:12,pow:true,hitObjs:new Set()}); }
+    // balas vs monstruos (las potentes atraviesan varios)
+    for(let i=this.shots.length-1;i>=0;i--){ const s=this.shots[i]; s.x+=s.vx*dt; s.y+=s.vy*dt; s.life-=dt; let remove=s.life<=0;
+      for(let j=this.people.length-1;j>=0;j--){ const m=this.people[j]; if(Math.hypot(s.x-m.x,s.y-m.y)<m.r+5){
+        if(s.pow){ if(!s.hitObjs.has(m)){ s.hitObjs.add(m); m.hp-=s.dmg; if(m.hp<=0) this.kill(m,j); } }
+        else { m.hp-=s.dmg; if(m.hp<=0) this.kill(m,j); remove=true; break; } } }
+      if(remove) this.shots.splice(i,1); }
     this.starT-=dt; if(this.starT<=0){ this.starT=8+Math.random()*6; if(this.stars.length<3){ const a=Math.random()*6.283,d=220+Math.random()*300; this.stars.push({x:p.x+Math.cos(a)*d,y:p.y+Math.sin(a)*d,ph:0}); } }
     for(let i=this.stars.length-1;i>=0;i--){ const st=this.stars[i]; st.ph+=dt; if(Math.hypot(st.x-p.x,st.y-p.y)<p.r+16){ this.stars.splice(i,1); p.fireRate=Math.max(0.08,p.fireRate-0.03); p.dmg+=1; p.maxHp+=15; p.hp=Math.min(p.maxHp,p.hp+40); for(let k=0;k<14;k++) this.parts.push({x:st.x,y:st.y,vx:(Math.random()-0.5)*200,vy:(Math.random()-0.5)*200,life:0.6,col:"#ffd23f"}); } }
     for(let i=this.parts.length-1;i>=0;i--){ const pa=this.parts[i]; pa.x+=pa.vx*dt; pa.y+=pa.vy*dt; pa.vx*=0.92; pa.vy*=0.92; pa.life-=dt; if(pa.life<=0) this.parts.splice(i,1); }
@@ -4492,7 +4506,7 @@ const Monster={
     const cols=["#ffd23f","#38e1ff","#ff8cc6","#8cff6a","#c58cff","#ffa640"];
     for(let k=0;k<12;k++) this.parts.push({x:m.x,y:m.y,vx:(Math.random()-0.5)*240,vy:(Math.random()-0.5)*240,life:0.55,col:cols[k%cols.length]});   // confeti de colores
     this.people.splice(i,1); this.p.kills++; this.shake=Math.max(this.shake,3); },
-  updateHud(){ const p=this.p; $("monHud").innerHTML="❤️ "+Math.max(0,Math.ceil(p.hp))+" &nbsp; 🔫 "+p.dmg+" &nbsp; 💥 "+p.kills; },
+  updateHud(){ const p=this.p; const pw=p.powCd>0?("⏳ "+p.powCd.toFixed(1)+"s"):"🎯 LISTO"; $("monHud").innerHTML="❤️ "+Math.max(0,Math.ceil(p.hp))+" &nbsp; 🔫 "+p.dmg+" &nbsp; 💥 "+p.kills+" &nbsp; "+pw; },
   draw(){
     const c=this.c,W=this.W,H=this.H; let camx=this.cam.x,camy=this.cam.y;
     if(this.shake>0){ camx+=(Math.random()-0.5)*this.shake; camy+=(Math.random()-0.5)*this.shake; }
@@ -4509,9 +4523,14 @@ const Monster={
     for(const b of this.blood){ const sx=b.x-camx,sy=b.y-camy; if(sx<-30||sx>W+30||sy<-30||sy>H+30) continue; c.fillStyle=b.col; c.beginPath(); c.arc(sx,sy,b.r,0,6.283); c.fill(); }
     for(const st of this.stars){ this.drawStar(c,st.x-camx,st.y-camy,14,Math.sin(st.ph*3)*0.3); }
     for(const m of this.people){ const sx=m.x-camx,sy=m.y-camy; if(sx<-20||sx>W+20||sy<-20||sy>H+20) continue; this.drawPerson(c,sx,sy,m); }
-    c.fillStyle="#ffe14d"; for(const s of this.shots){ const sx=s.x-camx,sy=s.y-camy; c.save(); c.translate(sx,sy); c.rotate(Math.atan2(s.vy,s.vx)); c.fillRect(-7,-2.5,14,5); c.restore(); }
+    for(const s of this.shots){ const sx=s.x-camx,sy=s.y-camy; c.save(); c.translate(sx,sy); c.rotate(Math.atan2(s.vy,s.vx)); if(s.pow){ c.fillStyle="#38e1ff"; c.shadowColor="#38e1ff"; c.shadowBlur=10; c.fillRect(-13,-4,26,8); c.shadowBlur=0; } else { c.fillStyle="#ffe14d"; c.fillRect(-7,-2.5,14,5); } c.restore(); }
     this.drawSoldier(c,this.p.x-camx,this.p.y-camy);
     for(const pa of this.parts){ c.globalAlpha=Math.max(0,pa.life*2); c.fillStyle=pa.col; c.fillRect(pa.x-camx-2,pa.y-camy-2,4,4); } c.globalAlpha=1;
+    if(this.scope){ const px=this.p.x-camx, py=this.p.y-camy, half=0.42, rad=Math.max(W,H)*1.35, a0=this.p.aimAng-half, a1=this.p.aimAng+half;
+      c.fillStyle="rgba(2,4,14,0.76)"; c.beginPath(); c.rect(0,0,W,H); c.moveTo(px,py); c.arc(px,py,rad,a0,a1); c.closePath(); c.fill("evenodd");   // oscurece todo menos el cono
+      c.strokeStyle="rgba(56,225,255,0.55)"; c.lineWidth=2; c.beginPath(); c.moveTo(px,py); c.arc(px,py,rad,a0,a1); c.closePath(); c.stroke();
+      c.strokeStyle="rgba(56,225,255,0.9)"; c.lineWidth=2; c.beginPath(); c.moveTo(px+Math.cos(this.p.aimAng)*20,py+Math.sin(this.p.aimAng)*20); c.lineTo(px+Math.cos(this.p.aimAng)*rad,py+Math.sin(this.p.aimAng)*rad); c.stroke();   // línea de mira
+    }
   },
   drawPerson(c,x,y,m){ c.save(); c.translate(x,y);   // enemigo = monstruo araña
     c.strokeStyle=m.col; c.lineWidth=Math.max(2,m.r*0.2); c.lineCap="round";
