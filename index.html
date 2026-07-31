@@ -462,6 +462,10 @@
   #footFs{position:fixed;inset:0;z-index:120;background:#0a3a15;display:none;--cyan:#ffffff}
   #footFs.open{display:block}
   #footFs #footCanvas{position:absolute;inset:0;width:100%;height:100%;display:block;touch-action:none}
+  #monFs{position:fixed;inset:0;z-index:120;background:#6b7396;display:none}
+  #monFs.open{display:block}
+  #monFs #monCanvas{position:absolute;inset:0;width:100%;height:100%;display:block;touch-action:none;cursor:crosshair}
+  #monHud{font-weight:900;font-size:clamp(15px,2.4vw,22px);color:#fff;text-shadow:0 2px 6px rgba(0,0,0,.6);line-height:1.35;pointer-events:none}
   #footScore{color:#fff;font-weight:900;font-size:19px;text-shadow:0 0 8px rgba(0,0,0,.9);letter-spacing:.04em}
   #footBanner{position:absolute;inset:0;z-index:4;display:none;align-items:center;justify-content:center;pointer-events:none}
   #footBanner.show{display:flex}
@@ -1047,6 +1051,7 @@
     <h2 style="margin:0 0 4px;letter-spacing:.12em;color:#19ff85">🎮 ELIGE UN JUEGO</h2>
     <button class="btn btn-primary" id="pickRush" style="font-size:17px;padding:14px 20px">🚀 EDTU RUSH</button>
     <button class="btn btn-primary" id="pickFoot" style="font-size:17px;padding:14px 20px">⚽ THE FOOTBALL RUSH</button>
+    <button class="btn btn-primary" id="pickMon" style="font-size:17px;padding:14px 20px">👾 EDTU MONSTER</button>
     <button class="btn btn-ghost btn-sm" id="pickClose">Cerrar</button>
   </div>
 </div>
@@ -1071,6 +1076,25 @@
     <button class="btn btn-primary" id="footStart" style="font-size:17px;padding:12px 28px">▶ JUGAR</button>
     <div style="font-size:11px;color:var(--muted);max-width:400px;line-height:1.55">⌨️ <b>J1:</b> WASD mover · clic-izq pase · clic-der tiro · Shift esprint · Espacio cambiar · E barrida<br>⌨️ <b>J2:</b> Flechas mover · , pase · . tiro · M esprint · N cambiar · B barrida<br>🎮 <b>Mando:</b> L mover · A pase · X tiro · RT esprint · LB cambiar · B barrida · 📱 arrastra + botones</div>
     <button class="btn btn-ghost btn-sm" id="footExit2">✕ Salir</button>
+  </div>
+</div>
+
+<!-- ============ JUEGO: EDTU MONSTER (copia de "You Monster!") ============ -->
+<div id="monFs">
+  <canvas id="monCanvas"></canvas>
+  <div class="game-top">
+    <div id="monHud"></div>
+    <button class="btn btn-ghost btn-sm" id="monClose">✕ Salir</button>
+  </div>
+  <div id="monOverlay" class="game-overlay">
+    <div id="monMsg">👾 EDTU MONSTER</div>
+    <div id="monResult" style="font-size:15px"></div>
+    <button class="btn btn-primary" id="monStart" style="font-size:17px;padding:12px 28px">▶ JUGAR</button>
+    <div style="font-size:12px;color:#cdd6ff;max-width:460px;line-height:1.6">
+      🖱️ Mueve el <b>mouse</b> (o <b>WASD</b> / <b>stick L</b>) para mover al monstruo 🕷️<br>
+      💥 Atrapa gente (¡hacen <b>poof</b> con confeti!) para curarte y sumar · esquiva a los <b>soldados</b> que te disparan · junta ⭐ para crecer y pegar más fuerte.<br>
+      ❤️ vida · 🗡️ fuerza · 💥 poofs
+    </div>
   </div>
 </div>
 
@@ -4372,6 +4396,133 @@ $("convFile").onchange=e=>{ Conv.run(e.target.files); e.target.value=""; };
   d.addEventListener("drop",e=>{ const fs=e.dataTransfer&&e.dataTransfer.files; if(fs&&fs.length) Conv.run(fs); });
 })();
 
+/* ============ JUEGO: EDTU MONSTER (copia top-down de "You Monster!") ============ */
+const Monster={
+  cv:null,c:null,W:0,H:0,raf:null,running:false,
+  worldW:3600,worldH:3600, cam:{x:0,y:0}, shake:0,
+  p:null, people:[], shots:[], blood:[], stars:[], parts:[],
+  keys:{}, aim:null, pointer:false, _last:0, spawnT:0, starT:0,
+  open(){
+    $("monFs").classList.add("open");
+    this.cv=$("monCanvas"); this.c=this.cv.getContext("2d");
+    this.resize(); this._onResize=()=>this.resize(); window.addEventListener("resize",this._onResize);
+    this.bindInput();
+    $("monOverlay").style.display="flex"; $("monMsg").textContent="👾 EDTU MONSTER"; $("monResult").textContent=""; $("monStart").textContent="▶ JUGAR";
+    $("monHud").innerHTML="";
+  },
+  close(){ this.running=false; if(this.raf){ cancelAnimationFrame(this.raf); this.raf=null; } window.removeEventListener("resize",this._onResize); this.unbindInput(); $("monFs").classList.remove("open"); },
+  resize(){ const d=Math.min(devicePixelRatio||1,2); this.W=innerWidth; this.H=innerHeight; this.cv.width=this.W*d; this.cv.height=this.H*d; this.cv.style.width=this.W+"px"; this.cv.style.height=this.H+"px"; this.c.setTransform(d,0,0,d,0,0); },
+  bindInput(){
+    this._kd=e=>{ this.keys[e.key.toLowerCase()]=true; };
+    this._ku=e=>{ this.keys[e.key.toLowerCase()]=false; };
+    this._mm=e=>{ const r=this.cv.getBoundingClientRect(); this.aim={x:e.clientX-r.left,y:e.clientY-r.top}; this.pointer=true; };
+    this._tm=e=>{ if(e.touches[0]){ const r=this.cv.getBoundingClientRect(); this.aim={x:e.touches[0].clientX-r.left,y:e.touches[0].clientY-r.top}; this.pointer=true; e.preventDefault(); } };
+    window.addEventListener("keydown",this._kd); window.addEventListener("keyup",this._ku);
+    this.cv.addEventListener("mousemove",this._mm);
+    this.cv.addEventListener("touchstart",this._tm,{passive:false}); this.cv.addEventListener("touchmove",this._tm,{passive:false});
+  },
+  unbindInput(){ window.removeEventListener("keydown",this._kd); window.removeEventListener("keyup",this._ku); if(this.cv){ this.cv.removeEventListener("mousemove",this._mm); this.cv.removeEventListener("touchstart",this._tm); this.cv.removeEventListener("touchmove",this._tm); } },
+  start(){
+    this.p={ x:this.worldW/2, y:this.worldH/2, vx:0,vy:0, r:26, hp:200, maxHp:200, atk:20, kills:0, size:1, legPhase:0 };
+    this.people=[]; this.shots=[]; this.blood=[]; this.stars=[]; this.parts=[];
+    this.aim=null; this.pointer=false; this.spawnT=0; this.starT=5; this.shake=0;
+    for(let i=0;i<40;i++) this.spawnPerson();
+    $("monOverlay").style.display="none";
+    this.running=true; this._last=performance.now();
+    if(!this.raf) this.raf=requestAnimationFrame(t=>this.loop(t));
+  },
+  gameOver(){ this.running=false; $("monOverlay").style.display="flex"; $("monMsg").textContent="💥 FIN DEL JUEGO"; $("monResult").innerHTML="Hiciste <b>"+this.p.kills+"</b> ¡poofs! 💥"; $("monStart").textContent="▶ OTRA VEZ"; },
+  spawnPerson(){
+    const ang=Math.random()*6.283, dist=Math.max(this.W,this.H)*0.6+Math.random()*300;
+    let x=this.p.x+Math.cos(ang)*dist, y=this.p.y+Math.sin(ang)*dist;
+    x=Math.max(20,Math.min(this.worldW-20,x)); y=Math.max(20,Math.min(this.worldH-20,y));
+    const soldier=Math.random() < Math.min(0.5, 0.12+this.p.kills*0.004);
+    this.people.push({ x,y, vx:0,vy:0, r:10, soldier, fireT:1+Math.random()*2, col:["#e8c0a0","#d8a0f0","#a0d0f0","#f0d060"][Math.floor(Math.random()*4)] });
+  },
+  padVec(){
+    const pads=navigator.getGamepads?navigator.getGamepads():[]; let pad=null;
+    for(const g of pads){ if(!g) continue; const id=(g.id||"").toLowerCase(); if(/jabra|speak|headset|audio|micr|webcam|camera|receiver/.test(id)) continue; if((g.axes||[]).length>=2){ pad=g; break; } }
+    if(!pad) return null;
+    let x=pad.axes[0]||0,y=pad.axes[1]||0;
+    if(pad.buttons[14]&&pad.buttons[14].pressed) x=-1; if(pad.buttons[15]&&pad.buttons[15].pressed) x=1;
+    if(pad.buttons[12]&&pad.buttons[12].pressed) y=-1; if(pad.buttons[13]&&pad.buttons[13].pressed) y=1;
+    if(Math.abs(x)<0.25&&Math.abs(y)<0.25) return null; return {x,y};
+  },
+  loop(t){ if(!this.running){ this.raf=null; return; } const dt=Math.min(0.05,(t-this._last)/1000); this._last=t; this.update(dt); this.draw(); this.raf=requestAnimationFrame(tt=>this.loop(tt)); },
+  update(dt){
+    const p=this.p;
+    let dx=0,dy=0;
+    if(this.keys["w"]||this.keys["arrowup"]) dy-=1; if(this.keys["s"]||this.keys["arrowdown"]) dy+=1;
+    if(this.keys["a"]||this.keys["arrowleft"]) dx-=1; if(this.keys["d"]||this.keys["arrowright"]) dx+=1;
+    const pv=this.padVec(); if(pv){ dx=pv.x; dy=pv.y; }
+    if(dx===0&&dy===0&&this.pointer&&this.aim){ const wx=this.cam.x+this.aim.x, wy=this.cam.y+this.aim.y, ax=wx-p.x, ay=wy-p.y, d=Math.hypot(ax,ay); if(d>6){ dx=ax/d; dy=ay/d; } }
+    const mag=Math.hypot(dx,dy); if(mag>0){ dx/=mag; dy/=mag; }
+    const sp=200;
+    p.vx+=(dx*sp-p.vx)*Math.min(1,dt*8); p.vy+=(dy*sp-p.vy)*Math.min(1,dt*8);
+    p.x=Math.max(p.r,Math.min(this.worldW-p.r,p.x+p.vx*dt)); p.y=Math.max(p.r,Math.min(this.worldH-p.r,p.y+p.vy*dt));
+    if(Math.hypot(p.vx,p.vy)>5) p.legPhase+=dt*12; p.r=26*p.size;
+    this.cam.x=Math.max(0,Math.min(this.worldW-this.W,p.x-this.W/2)); this.cam.y=Math.max(0,Math.min(this.worldH-this.H,p.y-this.H/2));
+    for(let i=this.people.length-1;i>=0;i--){ const m=this.people[i]; const ddx=p.x-m.x,ddy=p.y-m.y,dd=Math.hypot(ddx,ddy)||1;
+      if(m.soldier){ const want=220; if(dd<want-40){ m.vx=-ddx/dd*60; m.vy=-ddy/dd*60; } else if(dd>want+40){ m.vx=ddx/dd*45; m.vy=ddy/dd*45; } else { m.vx*=0.9; m.vy*=0.9; }
+        m.fireT-=dt; if(m.fireT<=0&&dd<540){ m.fireT=1.1+Math.random(); this.shots.push({x:m.x,y:m.y,vx:ddx/dd*270,vy:ddy/dd*270,life:3}); } }
+      else { if(dd<180){ m.vx=-ddx/dd*95; m.vy=-ddy/dd*95; } else if(Math.random()<0.02){ m.vx=(Math.random()-0.5)*60; m.vy=(Math.random()-0.5)*60; } }
+      m.x=Math.max(10,Math.min(this.worldW-10,m.x+m.vx*dt)); m.y=Math.max(10,Math.min(this.worldH-10,m.y+m.vy*dt));
+      if(dd<p.r+m.r) this.kill(m,i);
+    }
+    this.spawnT-=dt; if(this.spawnT<=0&&this.people.length<70){ this.spawnT=0.5; this.spawnPerson(); }
+    for(let i=this.shots.length-1;i>=0;i--){ const s=this.shots[i]; s.x+=s.vx*dt; s.y+=s.vy*dt; s.life-=dt;
+      if(Math.hypot(s.x-p.x,s.y-p.y)<p.r){ p.hp-=8; this.shots.splice(i,1); this.shake=6; if(p.hp<=0){ this.gameOver(); return; } continue; }
+      if(s.life<=0) this.shots.splice(i,1); }
+    this.starT-=dt; if(this.starT<=0){ this.starT=8+Math.random()*6; if(this.stars.length<3){ const a=Math.random()*6.283,d=220+Math.random()*300; this.stars.push({x:p.x+Math.cos(a)*d,y:p.y+Math.sin(a)*d,ph:0}); } }
+    for(let i=this.stars.length-1;i>=0;i--){ const st=this.stars[i]; st.ph+=dt; if(Math.hypot(st.x-p.x,st.y-p.y)<p.r+16){ this.stars.splice(i,1); p.atk+=6; p.size=Math.min(2.2,p.size+0.08); p.maxHp+=20; p.hp=Math.min(p.maxHp,p.hp+30); for(let k=0;k<14;k++) this.parts.push({x:st.x,y:st.y,vx:(Math.random()-0.5)*200,vy:(Math.random()-0.5)*200,life:0.6,col:"#ffd23f"}); } }
+    for(let i=this.parts.length-1;i>=0;i--){ const pa=this.parts[i]; pa.x+=pa.vx*dt; pa.y+=pa.vy*dt; pa.vx*=0.92; pa.vy*=0.92; pa.life-=dt; if(pa.life<=0) this.parts.splice(i,1); }
+    if(this.shake>0) this.shake-=dt*30;
+    this.updateHud();
+  },
+  kill(m,i){ this.blood.push({x:m.x,y:m.y,r:9+Math.random()*10,col:"rgba(255,255,255,0.18)"}); if(this.blood.length>400) this.blood.shift();   // marca "poof" (polvo), sin sangre
+    const cols=["#ffd23f","#38e1ff","#ff8cc6","#8cff6a","#c58cff","#ffa640"];
+    for(let k=0;k<12;k++) this.parts.push({x:m.x,y:m.y,vx:(Math.random()-0.5)*240,vy:(Math.random()-0.5)*240,life:0.55,col:cols[k%cols.length]});   // confeti de colores
+    this.people.splice(i,1); this.p.kills++; this.p.hp=Math.min(this.p.maxHp,this.p.hp+(m.soldier?6:2)); this.shake=Math.max(this.shake,3); },
+  updateHud(){ const p=this.p; $("monHud").innerHTML="❤️ "+Math.max(0,Math.ceil(p.hp))+" &nbsp; 🗡️ "+p.atk+" &nbsp; 💥 "+p.kills; },
+  draw(){
+    const c=this.c,W=this.W,H=this.H; let camx=this.cam.x,camy=this.cam.y;
+    if(this.shake>0){ camx+=(Math.random()-0.5)*this.shake; camy+=(Math.random()-0.5)*this.shake; }
+    c.fillStyle="#7a83a8"; c.fillRect(0,0,W,H);
+    const g=60; c.strokeStyle="rgba(255,255,255,0.06)"; c.lineWidth=1; c.beginPath();
+    for(let x=-(camx%g);x<W;x+=g){ c.moveTo(x,0); c.lineTo(x,H); } for(let y=-(camy%g);y<H;y+=g){ c.moveTo(0,y); c.lineTo(W,y); } c.stroke();
+    const road=600,rw=120; c.fillStyle="#5b6284";
+    for(let wx=Math.floor(camx/road)*road; wx<camx+W+road; wx+=road){ c.fillRect(wx-camx-rw/2,0,rw,H); }
+    for(let wy=Math.floor(camy/road)*road; wy<camy+H+road; wy+=road){ c.fillRect(0,wy-camy-rw/2,W,rw); }
+    c.strokeStyle="rgba(255,255,255,0.5)"; c.lineWidth=4; c.setLineDash([20,22]); c.beginPath();
+    for(let wx=Math.floor(camx/road)*road; wx<camx+W+road; wx+=road){ c.moveTo(wx-camx,0); c.lineTo(wx-camx,H); }
+    for(let wy=Math.floor(camy/road)*road; wy<camy+H+road; wy+=road){ c.moveTo(0,wy-camy); c.lineTo(W,wy-camy); }
+    c.stroke(); c.setLineDash([]);
+    for(const b of this.blood){ const sx=b.x-camx,sy=b.y-camy; if(sx<-30||sx>W+30||sy<-30||sy>H+30) continue; c.fillStyle=b.col; c.beginPath(); c.arc(sx,sy,b.r,0,6.283); c.fill(); }
+    for(const st of this.stars){ this.drawStar(c,st.x-camx,st.y-camy,14,Math.sin(st.ph*3)*0.3); }
+    for(const m of this.people){ const sx=m.x-camx,sy=m.y-camy; if(sx<-20||sx>W+20||sy<-20||sy>H+20) continue; this.drawPerson(c,sx,sy,m); }
+    c.fillStyle="#ff5b5b"; for(const s of this.shots){ const sx=s.x-camx,sy=s.y-camy; c.save(); c.translate(sx,sy); c.rotate(Math.atan2(s.vy,s.vx)); c.fillRect(-8,-3,16,6); c.restore(); }
+    this.drawMonster(c,this.p.x-camx,this.p.y-camy);
+    for(const pa of this.parts){ c.globalAlpha=Math.max(0,pa.life*2); c.fillStyle=pa.col; c.fillRect(pa.x-camx-2,pa.y-camy-2,4,4); } c.globalAlpha=1;
+  },
+  drawPerson(c,x,y,m){ c.save(); c.translate(x,y);
+    if(m.soldier){ c.fillStyle="#2f5d3a"; c.beginPath(); c.arc(0,0,m.r,0,6.283); c.fill(); c.fillStyle="#14301c"; c.fillRect(-3,-m.r-4,6,7); }
+    else { c.fillStyle=m.col; c.beginPath(); c.arc(0,0,m.r,0,6.283); c.fill(); c.fillStyle="#5a3d2a"; c.beginPath(); c.arc(0,-1,3.5,0,6.283); c.fill(); }
+    c.restore(); },
+  drawMonster(c,x,y){ const p=this.p,R=p.r; c.save(); c.translate(x,y); const ang=Math.atan2(p.vy,p.vx);
+    c.strokeStyle="#2f7d3f"; c.lineWidth=Math.max(3,R*0.16); c.lineCap="round";
+    for(let i=0;i<8;i++){ const a=i/8*6.283+Math.sin(p.legPhase+i)*0.14, l=R*1.5; c.beginPath(); c.moveTo(0,0); c.lineTo(Math.cos(a)*l,Math.sin(a)*l); c.stroke(); }
+    c.fillStyle="#3fae52"; c.beginPath(); c.arc(0,0,R,0,6.283); c.fill();
+    c.fillStyle="#2f8d42"; c.beginPath(); c.arc(0,0,R*0.62,0,6.283); c.fill();
+    c.save(); c.rotate(ang);
+    c.fillStyle="#fff"; c.beginPath(); c.arc(R*0.5,-R*0.28,R*0.2,0,6.283); c.arc(R*0.5,R*0.28,R*0.2,0,6.283); c.fill();
+    c.fillStyle="#c00"; c.beginPath(); c.arc(R*0.58,-R*0.28,R*0.1,0,6.283); c.arc(R*0.58,R*0.28,R*0.1,0,6.283); c.fill();
+    c.restore(); c.restore(); },
+  drawStar(c,x,y,r,rot){ c.save(); c.translate(x,y); c.rotate(rot); c.fillStyle="#ffd23f"; c.strokeStyle="#a97b00"; c.lineWidth=2; c.beginPath(); for(let i=0;i<10;i++){ const a=i/10*6.283-1.57, rr=i%2?r*0.45:r; c.lineTo(Math.cos(a)*rr,Math.sin(a)*rr); } c.closePath(); c.fill(); c.stroke(); c.restore(); }
+};
+$("pickMon").onclick=()=>{ $("gamePick").classList.remove("open"); Monster.open(); };
+$("monClose").onclick=()=>Monster.close();
+$("monStart").onclick=()=>Monster.start();
+
 /* ============ NAVEGACIÓN GLOBAL POR MANDO (toda EDTU con joystick) ============ */
 const Pad={
   cur:null, _af:null, _prev:{}, _ax:{x:0,y:0}, ring:null, _seen:false,
@@ -4385,7 +4536,7 @@ const Pad={
   },
   // La navegación NO actúa dentro de juegos/robot (ellos usan el mando a su manera)
   navOn(){ const o=id=>{ const e=document.getElementById(id); return e&&e.classList.contains("open"); };
-    return !(o("gameFs")||o("footFs")||o("robotFs")); },
+    return !(o("gameFs")||o("footFs")||o("robotFs")||o("monFs")); },
   isVis(el){ if(!el||el.disabled) return false; if(el.getAttribute&&el.getAttribute("aria-hidden")==="true") return false;
     const s=getComputedStyle(el); if(s.display==="none"||s.visibility==="hidden"||+s.opacity===0||s.pointerEvents==="none") return false;
     const r=el.getBoundingClientRect(); if(r.width<3||r.height<3) return false;
