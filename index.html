@@ -1173,6 +1173,9 @@
     <div class="game-cfg"><span>🌙 Noche</span>
       <button class="gc-opt sel" data-mnight="0">☀️ No</button>
       <button class="gc-opt" data-mnight="1">🌙🔦 Sí</button></div>
+    <div class="game-cfg"><span>🔊 Sonido</span>
+      <button class="gc-opt sel" data-msnd="1">🔊 Sí</button>
+      <button class="gc-opt" data-msnd="0">🔇 No</button></div>
     <button class="btn btn-ghost" id="monOnlineBtn" style="margin-top:2px">🌐 JUGAR ONLINE (con todos)</button>
     <div id="monOnline" style="display:none;width:min(380px,92vw)">
       <div id="monNetStatus" style="font-size:12.5px;color:#8fdcc0;line-height:1.5">Conectando…</div>
@@ -4524,8 +4527,20 @@ const PLANETS={
   agujero: {name:"🕳️ Agujero Negro", ground:"#0a0a16", road:"#161630", mateBonus:14, free:["canon_iones"],               weapons:[], hpMul:1, hole:true}
 };
 const BASE_W=["pistola","ametralladora","escopeta","lanzallamas","francotirador","laser"];
+const Sfx={
+  ctx:null, on:true,
+  ac(){ if(!this.ctx){ try{ this.ctx=new (window.AudioContext||window.webkitAudioContext)(); }catch(e){} } if(this.ctx&&this.ctx.state==="suspended"){ try{ this.ctx.resume(); }catch(e){} } return this.ctx; },
+  beep(freq,dur,type,vol,slideTo){ if(!this.on) return; const c=this.ac(); if(!c) return; const t=c.currentTime; const o=c.createOscillator(), g=c.createGain(); o.type=type||"square"; o.frequency.setValueAtTime(freq,t); if(slideTo) o.frequency.exponentialRampToValueAtTime(Math.max(40,slideTo),t+dur); g.gain.setValueAtTime(vol||0.12,t); g.gain.exponentialRampToValueAtTime(0.001,t+dur); o.connect(g); g.connect(c.destination); o.start(t); o.stop(t+dur+0.02); },
+  shoot(){ this.beep(880,0.03,"square",0.04,500); },
+  kill(){ this.beep(420,0.08,"square",0.11,170); },
+  boss(){ this.beep(150,0.5,"sawtooth",0.22,45); },
+  hurt(){ this.beep(110,0.18,"square",0.17,55); },
+  pick(){ this.beep(620,0.12,"sine",0.16,1150); },
+  level(){ this.beep(520,0.14,"triangle",0.16,880); setTimeout(()=>this.beep(820,0.2,"triangle",0.16,1250),110); }
+};
 const Monster={
   cv:null,c:null,W:0,H:0,raf:null,running:false, planet:"tierra", theme:null, _hpMul:1,
+  best:0, hearts:[], heartT:0, eshots:[], _sfxT:0,
   worldW:3600,worldH:3600, cam:{x:0,y:0}, shake:0,
   p:null, people:[], shots:[], blood:[], stars:[], parts:[], mates:[], houses:[],
   keys:{}, aim:null, pointer:false, _last:0, spawnT:0, starT:0, level:1, levelKills:0, flash:"", flashT:0,
@@ -4540,7 +4555,10 @@ const Monster={
     $("monHud").innerHTML="";
     this.allFree = !!currentUser;   // David logueado = todo desbloqueado
     const en=$("monEnd"); if(en) en.style.display="none";
+    try{ this.best=+(localStorage.getItem("swarm_best")||0)||0; }catch(e){ this.best=0; }
+    if(this.best>0) $("monResult").innerHTML="🏆 Récord: <b>"+this.best+"</b> vencidos";
   },
+  saveBest(){ if(this.p && this.p.kills>this.best){ this.best=this.p.kills; try{ localStorage.setItem("swarm_best",this.best); }catch(e){} } },
   close(){ this.running=false; if(this.raf){ cancelAnimationFrame(this.raf); this.raf=null; } window.removeEventListener("resize",this._onResize); this.unbindInput(); if(typeof MonNet!=="undefined") MonNet.leave(); $("monFs").classList.remove("open"); if(this._fromLanding){ this._fromLanding=false; if(!currentUser) $("landing").style.display="flex"; } },
   resize(){ const d=Math.min(devicePixelRatio||1,2); this.W=innerWidth; this.H=innerHeight; this.cv.width=this.W*d; this.cv.height=this.H*d; this.cv.style.width=this.W+"px"; this.cv.style.height=this.H+"px"; this.c.setTransform(d,0,0,d,0,0); },
   bindInput(){
@@ -4566,6 +4584,7 @@ const Monster={
     this.shopping=false; this._inBunker=false; this.bunker={x:1740,y:1140,w:120,h:120}; this._nid=1; this._prevMons=null; this.netShots=[]; this._shotBuf=[]; this._peerDisp={}; this.lab=null; this._inLab=false; this.labOpen=false; this.beam=null; this.heat=0; this.overheated=false;
     this.people=[]; this.shots=[]; this.blood=[]; this.stars=[]; this.parts=[];
     this.aim=null; this.pointer=false; this.spawnT=0; this.starT=5; this.shake=0; this.mb0=false; this.mb2=false; this.scope=false;
+    this.hearts=[]; this.heartT=12; this.eshots=[];
     this.level=this.cfg.startLevel||1; this.levelKills=0; this.flash=(this.level>=7?"👑 ¡NIVEL 7: PURAS JEFAS!":pl.name+" — ¡a salvarlo!"); this.flashT=2.6;
     this.genHouses();
     if(this.planet==="agujero"){ for(let i=0;i<20;i++) this.spawnSuprema(); this.holeTimer=60; this.flash="🕳️ AGUJERO NEGRO · 20 SUPREMAS"; }
@@ -4576,15 +4595,15 @@ const Monster={
     this.running=true; this._last=performance.now();
     if(!this.raf) this.raf=requestAnimationFrame(t=>this.loop(t));
   },
-  gameOver(){ this.running=false; $("monOverlay").style.display="flex"; $("monMsg").textContent="💥 FIN DEL JUEGO"; $("monResult").innerHTML="Derrotaste <b>"+this.p.kills+"</b> monstruos 🕷️"; $("monStart").textContent="▶ OTRA VEZ"; },
+  gameOver(){ this.saveBest(); this.running=false; $("monOverlay").style.display="flex"; $("monMsg").textContent="💥 FIN DEL JUEGO"; $("monResult").innerHTML="Derrotaste <b>"+this.p.kills+"</b> monstruos 🕷️ · 🏆 Récord: <b>"+this.best+"</b>"; $("monStart").textContent="▶ OTRA VEZ"; },
   spawnPerson(){
     const ang=Math.random()*6.283, dist=Math.max(this.W,this.H)*0.6+Math.random()*300;
     let x=this.p.x+Math.cos(ang)*dist, y=this.p.y+Math.sin(ang)*dist;
     x=Math.max(20,Math.min(this.worldW-20,x)); y=Math.max(20,Math.min(this.worldH-20,y));
     if(this.planet==="sol"){ const jh=80*this.cfg.monHpMul*this._hpMul; this.people.push({ nid:this._nid++, x,y, vx:0,vy:0, r:28, hp:jh, maxHp:jh, spd:80, hitT:0, legPhase:Math.random()*6, col:"#ff2a2a", boss:true }); return; }   // ☀️ Sol: ¡jefas ROJAS!
     if(this.level>=7){ const jh=60*this.cfg.monHpMul*this._hpMul; this.people.push({ nid:this._nid++, x,y, vx:0,vy:0, r:30, hp:jh, maxHp:jh, spd:74, hitT:0, legPhase:Math.random()*6, col:"#ff4db8", boss:true }); return; }   // nivel 7: ¡puras jefas!
-    const big=Math.random()<0.22;
-    this.people.push({ nid:this._nid++, x,y, vx:0,vy:0, r:big?20:13, hp:(big?5:2)*this.cfg.monHpMul*this._hpMul, spd:big?70:115, hitT:0, legPhase:Math.random()*6, col:big?"#7a3fae":"#c83f52" });
+    const big=Math.random()<0.22, shooter=!big && Math.random()<0.25;
+    this.people.push({ nid:this._nid++, x,y, vx:0,vy:0, r:big?20:13, hp:(big?5:2)*this.cfg.monHpMul*this._hpMul, spd:big?70:(shooter?90:115), hitT:0, fireT:1+Math.random()*2, legPhase:Math.random()*6, col:shooter?"#e0b030":(big?"#7a3fae":"#c83f52"), split:big, shooter:shooter });
   },
   getPad(){ const pads=navigator.getGamepads?navigator.getGamepads():[]; for(const g of pads){ if(!g) continue; const id=(g.id||"").toLowerCase(); if(/jabra|speak|headset|audio|micr|webcam|camera|receiver/.test(id)) continue; if((g.axes||[]).length>=2) return g; } return null; },
   addMate(){ this.mates.push({x:this.p.x,y:this.p.y,fireT:Math.random()*0.6,aimAng:0,slot:0}); const n=this.mates.length; this.mates.forEach((mt,i)=>{ mt.slot=i/n*6.283; }); },
@@ -4640,15 +4659,15 @@ const Monster={
   spawnBoss(){ if(this.people.some(m=>m.boss)) return; const ang=Math.random()*6.283, dist=Math.max(this.W,this.H)*0.7; let x=this.p.x+Math.cos(ang)*dist, y=this.p.y+Math.sin(ang)*dist; x=Math.max(50,Math.min(this.worldW-50,x)); y=Math.max(50,Math.min(this.worldH-50,y)); const bhp=this.cfg.bossHp*this.level*this._hpMul; this.people.push({ nid:this._nid++, x,y,vx:0,vy:0, r:52, hp:bhp, maxHp:bhp, spd:50, hitT:0, legPhase:0, col:"#b23a6a", boss:true }); },
   poof(x,y,boss){ const cols=["#ffd23f","#38e1ff","#ff8cc6","#8cff6a","#c58cff","#ffa640"], n=boss?26:12; for(let k=0;k<n;k++) this.parts.push({x,y,vx:(Math.random()-0.5)*(boss?320:240),vy:(Math.random()-0.5)*(boss?320:240),life:boss?0.8:0.55,col:cols[k%cols.length]}); },
   netBuf(x,y,vx,vy,col,ww,hh,life){ if(typeof MonNet!=="undefined"&&MonNet.online&&this._shotBuf.length<24) this._shotBuf.push({x:Math.round(x),y:Math.round(y),vx:Math.round(vx),vy:Math.round(vy),c:col,w:ww,h:hh,l:life}); },
-  levelUp(){ if(this.level>=7){ this.win(); return; } this.level++; this.levelKills=0; this.p.hp=this.p.maxHp; this.spawnBoss(); this.flash=(this.level>=7?"👑 ¡NIVEL 7: PURAS JEFAS!":"🎉 ¡NIVEL "+this.level+"!"); this.flashT=2.8; },
-  win(){ this.running=false; $("monOverlay").style.display="flex"; $("monMsg").innerHTML="🏆 ¡SALVASTE "+((PLANETS[this.planet]||PLANETS.tierra).name)+"!"; $("monResult").innerHTML="🚀 Tus monitos suben al cohete… <b>¡elige el próximo planeta</b> abajo 🌍🔴🔵🪐☀️ y despega! ("+this.p.kills+" 💥)"; $("monStart").textContent="🚀 DESPEGAR AL PLANETA"; },
-  holeWin(){ this.running=false; if(this.raf){ cancelAnimationFrame(this.raf); this.raf=null; } if(typeof MonNet!=="undefined") MonNet.leave();
+  levelUp(){ if(this.level>=7){ this.win(); return; } Sfx.level(); this.level++; this.levelKills=0; this.p.hp=this.p.maxHp; this.spawnBoss(); this.flash=(this.level>=7?"👑 ¡NIVEL 7: PURAS JEFAS!":"🎉 ¡NIVEL "+this.level+"!"); this.flashT=2.8; },
+  win(){ this.saveBest(); this.running=false; $("monOverlay").style.display="flex"; $("monMsg").innerHTML="🏆 ¡SALVASTE "+((PLANETS[this.planet]||PLANETS.tierra).name)+"!"; $("monResult").innerHTML="🚀 Tus monitos suben al cohete… <b>¡elige el próximo planeta</b> abajo 🌍🔴🔵🪐☀️ y despega! ("+this.p.kills+" 💥)"; $("monStart").textContent="🚀 DESPEGAR AL PLANETA"; },
+  holeWin(){ this.saveBest(); this.running=false; if(this.raf){ cancelAnimationFrame(this.raf); this.raf=null; } if(typeof MonNet!=="undefined") MonNet.leave();
     const el=$("monEnd"); if(!el) return; el.style.display="flex";
     el.innerHTML="<div class='end-in'><div class='end-title'>SWARM</div><div class='end-cred'>Un juego creado por <b>David</b> 🌌<br>EDTU · Espías De Tecnología Universal<br><span style='opacity:.7'>www.edtu.cl</span></div></div>";
     setTimeout(()=>{ el.innerHTML="<div class='end-in'><div class='end-honor'>UN HONOR PELEAR A TU LADO</div></div>"; }, 5000);
     setTimeout(()=>{ el.innerHTML="<div class='end-in'><div class='end-title'>🏆 JUEGO COMPLETADO</div><div class='end-cred'>Venciste al Agujero Negro 🕳️👑</div><button class='btn btn-primary' id='monEndClose' style='margin-top:22px;font-size:16px;padding:12px 26px'>▶ VOLVER</button></div>"; const b=$("monEndClose"); if(b) b.onclick=()=>{ el.style.display="none"; Monster.close(); }; }, 6100);
   },
-  gameComplete(){ this.running=false; $("monOverlay").style.display="flex"; $("monMsg").innerHTML="🎉 ¡JUEGO COMPLETADO! 🏆"; $("monResult").innerHTML="¡Venciste al ☀️ <b>Sol</b> y a sus <b>10.000</b> jefas rojas! 🔴 Eres una leyenda, "+(typeof currentUser!=="undefined"&&currentUser?"comandante":"héroe")+". 🌌"; $("monStart").textContent="▶ JUGAR OTRA VEZ"; },
+  gameComplete(){ this.saveBest(); this.running=false; $("monOverlay").style.display="flex"; $("monMsg").innerHTML="🎉 ¡JUEGO COMPLETADO! 🏆"; $("monResult").innerHTML="¡Venciste al ☀️ <b>Sol</b> y a sus <b>10.000</b> jefas rojas! 🔴 Eres una leyenda, "+(typeof currentUser!=="undefined"&&currentUser?"comandante":"héroe")+". 🌌"; $("monStart").textContent="▶ JUGAR OTRA VEZ"; },
   drawPeer(c,x,y,pe){ const R=16, ang=pe.aimAng||0; c.save(); c.translate(x,y);
     c.strokeStyle="#222"; c.lineWidth=5; c.lineCap="round"; c.beginPath(); c.moveTo(0,0); c.lineTo(Math.cos(ang)*R*1.6,Math.sin(ang)*R*1.6); c.stroke();
     c.fillStyle="#c0864a"; c.beginPath(); c.arc(0,0,R,0,6.283); c.fill();
@@ -4712,12 +4731,15 @@ const Monster={
         // perseguir al jugador MÁS CERCANO (tú o cualquier amigo conectado)
         let tx=p.x,ty=p.y,td=Math.hypot(p.x-m.x,p.y-m.y);
         if(net){ for(const k in MonNet.peers){ const pe=MonNet.peers[k]; const d=Math.hypot(pe.x-m.x,pe.y-m.y); if(d<td){ td=d; tx=pe.x; ty=pe.y; } } }
-        const mvx=tx-m.x,mvy=ty-m.y,md=Math.hypot(mvx,mvy)||1; m.vx=mvx/md*m.spd; m.vy=mvy/md*m.spd; m.legPhase+=dt*10;
+        const mvx=tx-m.x,mvy=ty-m.y,md=Math.hypot(mvx,mvy)||1;
+        if(m.shooter){ const want=320; if(md<want-40){ m.vx=-mvx/md*m.spd*0.8; m.vy=-mvy/md*m.spd*0.8; } else if(md>want+60){ m.vx=mvx/md*m.spd; m.vy=mvy/md*m.spd; } else { m.vx*=0.9; m.vy*=0.9; } m.fireT-=dt; if(m.fireT<=0&&md<560){ m.fireT=1.5+Math.random()*1.2; this.eshots.push({x:m.x,y:m.y,vx:mvx/md*300,vy:mvy/md*300,life:3}); } }
+        else { m.vx=mvx/md*m.spd; m.vy=mvy/md*m.spd; }
+        m.legPhase+=dt*10;
         m.x=Math.max(10,Math.min(this.worldW-10,m.x+m.vx*dt)); m.y=Math.max(10,Math.min(this.worldH-10,m.y+m.vy*dt));
         this.resolveHouses(m);
         const ddx=p.x-m.x,ddy=p.y-m.y,dd=Math.hypot(ddx,ddy)||1;
         if(m.hitT>0) m.hitT-=dt;
-        if(dd<p.r+m.r && m.hitT<=0){ p.hp-=(m.boss?22:10); m.hitT=0.7; this.shake=6; if(p.hp<=0){ this.gameOver(); return; } }
+        if(dd<p.r+m.r && m.hitT<=0){ p.hp-=(m.boss?22:10); m.hitT=0.7; this.shake=6; Sfx.hurt(); if(p.hp<=0){ this.gameOver(); return; } }
         if(dd<nd){ nd=dd; near=m; }
       }
       if(this.planet==="agujero"){ this.holeTimer-=dt; if(this.holeTimer<=0){ this.level++; for(let i=0;i<20;i++) this.spawnSuprema(); this.holeTimer=60; this.flash="🕳️ NIVEL "+this.level+" · +20 SUPREMAS 👑"; this.flashT=2.6; } if(!this.people.some(m=>m.suprema)){ this.holeWin(); return; } }
@@ -4760,7 +4782,7 @@ const Monster={
       this.heat=Math.max(0,this.heat-400*dt);
     } else {          // normal: dispara según el arma equipada
       this.heat=Math.max(0,this.heat-400*dt);
-      if(fireHeld && p.fireT<=0){ p.fireT=(WEAPONS[p.weapon]||WEAPONS.pistola).gap; this.fireWeapon(); }
+      if(fireHeld && p.fireT<=0){ p.fireT=(WEAPONS[p.weapon]||WEAPONS.pistola).gap; this.fireWeapon(); if(performance.now()-this._sfxT>90){ this._sfxT=performance.now(); Sfx.shoot(); } }
     }
     // balas vs monstruos (las potentes atraviesan varios)
     for(let i=this.shots.length-1;i>=0;i--){ const s=this.shots[i]; s.x+=s.vx*dt; s.y+=s.vy*dt; s.life-=dt; let remove=s.life<=0;
@@ -4770,6 +4792,9 @@ const Monster={
         else { m.hp-=s.dmg; if(m.hp<=0) this.kill(m,j); remove=true; break; } } }
       if(remove) this.shots.splice(i,1); }
     if(net && MonNet.host && MonNet._pendingHits.length){ const ph=MonNet._pendingHits; MonNet._pendingHits=[]; for(const h of ph){ for(let j=0;j<this.people.length;j++){ if(this.people[j].nid===h.i){ this.people[j].hp-=h.d; if(this.people[j].hp<=0) this.kill(this.people[j],j); break; } } } }
+    for(let i=this.eshots.length-1;i>=0;i--){ const s=this.eshots[i]; s.x+=s.vx*dt; s.y+=s.vy*dt; s.life-=dt; if(Math.hypot(s.x-p.x,s.y-p.y)<p.r){ p.hp-=8; this.eshots.splice(i,1); this.shake=Math.max(this.shake,4); Sfx.hurt(); if(p.hp<=0){ this.gameOver(); return; } continue; } if(s.life<=0) this.eshots.splice(i,1); }
+    this.heartT-=dt; if(this.heartT<=0){ this.heartT=10+Math.random()*6; if(this.hearts.length<3){ const a=Math.random()*6.283,d=180+Math.random()*280; this.hearts.push({x:p.x+Math.cos(a)*d,y:p.y+Math.sin(a)*d,ph:0}); } }
+    for(let i=this.hearts.length-1;i>=0;i--){ const h=this.hearts[i]; h.ph+=dt; if(Math.hypot(h.x-p.x,h.y-p.y)<p.r+16){ this.hearts.splice(i,1); p.hp=Math.min(p.maxHp,p.hp+40); Sfx.pick(); for(let k=0;k<10;k++) this.parts.push({x:p.x,y:p.y,vx:(Math.random()-0.5)*160,vy:(Math.random()-0.5)*160,life:0.5,col:"#4dff88"}); } }
     this.starT-=dt; if(this.starT<=0){ this.starT=8+Math.random()*6; if(this.stars.length<3){ const a=Math.random()*6.283,d=220+Math.random()*300; this.stars.push({x:p.x+Math.cos(a)*d,y:p.y+Math.sin(a)*d,ph:0}); } }
     for(let i=this.stars.length-1;i>=0;i--){ const st=this.stars[i]; st.ph+=dt; if(Math.hypot(st.x-p.x,st.y-p.y)<p.r+16){ this.stars.splice(i,1); p.fireRate=Math.max(0.08,p.fireRate-0.03); p.dmg+=1; p.maxHp+=15; p.hp=Math.min(p.maxHp,p.hp+40); for(let k=0;k<14;k++) this.parts.push({x:st.x,y:st.y,vx:(Math.random()-0.5)*200,vy:(Math.random()-0.5)*200,life:0.6,col:"#ffd23f"}); } }
     for(let i=this.parts.length-1;i>=0;i--){ const pa=this.parts[i]; pa.x+=pa.vx*dt; pa.y+=pa.vy*dt; pa.vx*=0.92; pa.vy*=0.92; pa.life-=dt; if(pa.life<=0) this.parts.splice(i,1); }
@@ -4787,6 +4812,8 @@ const Monster={
     const cols=["#ffd23f","#38e1ff","#ff8cc6","#8cff6a","#c58cff","#ffa640"];
     for(let k=0;k<12;k++) this.parts.push({x:m.x,y:m.y,vx:(Math.random()-0.5)*240,vy:(Math.random()-0.5)*240,life:0.55,col:cols[k%cols.length]});   // confeti de colores
     this.people.splice(i,1); this.p.kills++; this.levelKills++; this.coins+=(m.boss?25:1);
+    Sfx[m.boss?"boss":"kill"]();
+    if(m.split && !m.boss){ for(let s=0;s<2;s++) this.people.push({ nid:this._nid++, x:m.x+(Math.random()-0.5)*24, y:m.y+(Math.random()-0.5)*24, vx:0,vy:0, r:13, hp:2*this.cfg.monHpMul*this._hpMul, spd:120, hitT:0, fireT:1, legPhase:Math.random()*6, col:"#c83f52" }); }
     if(m.boss){ this.levelKills+=25; this.shake=Math.max(this.shake,12); for(let k=0;k<30;k++) this.parts.push({x:m.x,y:m.y,vx:(Math.random()-0.5)*320,vy:(Math.random()-0.5)*320,life:0.8,col:["#ffd23f","#38e1ff","#ff8cc6"][k%3]}); this.stars.push({x:m.x,y:m.y,ph:0}); }
     if(this.p.kills%15===0 && this.mates.length<5) this.addMate();
     if(this.planet==="sol"){ if(this.levelKills>=10000) this.gameComplete(); }
@@ -4829,6 +4856,8 @@ const Monster={
       const nb=Math.hypot(this.p.x-(b.x+b.w/2),this.p.y-(b.y+b.h/2))<b.w*1.7; if(nb){ c.fillStyle="#a0f0ff"; c.font="bold 12px system-ui"; c.fillText("▲ laboratorio de armas",sx+b.w/2,sy+b.h+16); } c.textAlign="left"; }
     for(const b of this.blood){ const sx=b.x-camx,sy=b.y-camy; if(sx<-30||sx>W+30||sy<-30||sy>H+30) continue; c.fillStyle=b.col; c.beginPath(); c.arc(sx,sy,b.r,0,6.283); c.fill(); }
     for(const st of this.stars){ this.drawStar(c,st.x-camx,st.y-camy,14,Math.sin(st.ph*3)*0.3); }
+    for(const h of this.hearts){ const sx=h.x-camx,sy=h.y-camy; if(sx<-20||sx>W+20||sy<-20||sy>H+20) continue; c.save(); c.translate(sx,sy); const s=1+Math.sin(h.ph*4)*0.12; c.scale(s,s); c.fillStyle="#0a2a16"; c.fillRect(-11,-11,22,22); c.fillStyle="#4dff88"; c.fillRect(-3,-8,6,16); c.fillRect(-8,-3,16,6); c.restore(); }
+    c.fillStyle="#ffb020"; for(const s of this.eshots){ const sx=s.x-camx,sy=s.y-camy; if(sx<-20||sx>W+20||sy<-20||sy>H+20) continue; c.beginPath(); c.arc(sx,sy,5,0,6.283); c.fill(); }
     for(const m of this.people){ const sx=m.x-camx,sy=m.y-camy; if(sx<-20||sx>W+20||sy<-20||sy>H+20) continue; this.drawPerson(c,sx,sy,m); }
     for(const mb of this.mateBeams){ this.drawBeam(c,mb.x-camx,mb.y-camy,mb.ex-camx,mb.ey-camy,"#c05bff"); }
     for(const mt of this.mates){ this.drawMate(c,mt.x-camx,mt.y-camy,mt); }
@@ -4931,6 +4960,7 @@ document.querySelectorAll("#monOverlay .gc-opt").forEach(b=>{ b.onclick=()=>{
   if(b.dataset.mplanet) Monster.planet=b.dataset.mplanet;
   if(b.dataset.mlevel)  Monster.cfg.startLevel=+b.dataset.mlevel;
   if(b.dataset.mnight!=null) Monster.cfg.night=(b.dataset.mnight==="1");
+  if(b.dataset.msnd!=null) Sfx.on=(b.dataset.msnd==="1");
 }; });
 // Portada: elegir jugar (público) o iniciar sesión
 $("lndPlay").onclick=()=>{ $("landing").style.display="none"; Monster._fromLanding=true; Monster.open(); };
