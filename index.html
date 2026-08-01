@@ -1140,7 +1140,7 @@
       <button class="gc-opt" data-mhp="600">600</button></div>
     <button class="btn btn-ghost" id="monOnlineBtn" style="margin-top:2px">🌐 JUGAR ONLINE</button>
     <div id="monOnline" style="display:none;width:min(360px,92vw)">
-      <div id="monNetStatus" style="font-size:12px;color:#8fdcc0;margin-bottom:4px">Sin conexión</div>
+      <div id="monNetStatus" style="font-size:12px;color:#8fdcc0;margin-bottom:4px">👇 Elige: 🎲 Al azar o 🔑 Crea una sala</div>
       <div class="game-cfg"><button class="gc-opt" id="monRandom">🎲 Al azar</button><button class="gc-opt" id="monCreate">🔑 Crear sala</button></div>
       <div class="game-cfg"><input id="monCodeInput" placeholder="CÓDIGO" maxlength="5" style="text-transform:uppercase;width:110px;text-align:center;font-weight:800;letter-spacing:.2em;border-radius:12px;border:1px solid rgba(25,255,133,.3);background:rgba(255,255,255,.06);color:#fff;padding:6px;font-family:inherit"><button class="gc-opt" id="monJoin">Unirse</button></div>
       <div id="monRoomInfo" style="font-size:12px;color:#cdd6ff;min-height:16px"></div>
@@ -4734,7 +4734,7 @@ const MonNet={
     try{ this.ch.send({type:"broadcast",event:"st",payload:{id:this.id,name:this.name,x:Math.round(p.x),y:Math.round(p.y),aimAng:+p.aimAng.toFixed(2),weapon:p.weapon,hp:Math.ceil(p.hp),kills:p.kills}}); }catch(_){} },
   prune(){ const now=performance.now(); for(const k in this.peers){ if(now-(this.peers[k].t||0)>3500) delete this.peers[k]; } }
 };
-$("monOnlineBtn").onclick=()=>{ const o=$("monOnline"); o.style.display=(o.style.display==="none"||!o.style.display)?"block":"none"; };
+$("monOnlineBtn").onclick=()=>{ const o=$("monOnline"); const show=(o.style.display==="none"||!o.style.display); o.style.display=show?"block":"none"; if(show && !Cloud.enabled) MonNet.status("⚠ Sin nube/internet aquí: el online no conectará (usa edtu.cl con internet)"); };
 $("monRandom").onclick=()=>MonNet.join("AZAR");
 $("monCreate").onclick=()=>{ const c=MonNet.code(); const inp=$("monCodeInput"); if(inp){ inp.value=c; try{ inp.select(); }catch(_){}}
   const ri=$("monRoomInfo"); if(ri) ri.innerHTML="🔑 CÓDIGO: <b style='font-size:22px;letter-spacing:.28em;color:#ffd23f'>"+c+"</b><br><span style='opacity:.75'>Conectando…</span>";
