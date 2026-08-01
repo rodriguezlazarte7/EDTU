@@ -570,7 +570,7 @@
   <div class="lnd-card">
     <div class="lnd-logo mono">⬡ EDTU ⬡</div>
     <h1 class="glow" style="margin:0;font-size:clamp(40px,9vw,72px);letter-spacing:.08em">EDTU</h1>
-    <p class="mono" style="margin:2px 0 22px;color:var(--cyan);font-size:11px;letter-spacing:.28em">ESPÍAS DE TECNOLOGÍA UNIVERSAL</p>
+    <p class="mono" style="margin:2px 0 22px;color:var(--cyan);font-size:11px;letter-spacing:.28em">JUGAR · CREAR · EXPLORAR</p>
     <button class="btn btn-primary lnd-btn" id="lndPlay">🎮 JUGAR EDTU MONSTER</button>
     <button class="btn btn-ghost lnd-btn" id="lndLogin">🔒 INICIAR SESIÓN</button>
     <div class="mono" style="font-size:10px;opacity:.45;margin-top:20px">www.edtu.cl</div>
@@ -1106,6 +1106,23 @@
   <div id="monOverlay" class="game-overlay">
     <div id="monMsg">👾 EDTU MONSTER</div>
     <div id="monResult" style="font-size:15px"></div>
+    <div class="game-cfg"><span>Vida MEGA</span>
+      <button class="gc-opt" data-mboss="1000">1.000</button>
+      <button class="gc-opt sel" data-mboss="10000">10.000</button>
+      <button class="gc-opt" data-mboss="100000">100.000</button>
+      <button class="gc-opt" data-mboss="1000000">SUPREMA</button></div>
+    <div class="game-cfg"><span>Monstruos</span>
+      <button class="gc-opt sel" data-mmon="1">Normal</button>
+      <button class="gc-opt" data-mmon="2">Duros ×2</button>
+      <button class="gc-opt" data-mmon="4">Bestias ×4</button></div>
+    <div class="game-cfg"><span>Por nivel</span>
+      <button class="gc-opt" data-mgoal="100">100</button>
+      <button class="gc-opt sel" data-mgoal="1000">1.000</button>
+      <button class="gc-opt" data-mgoal="5000">5.000</button></div>
+    <div class="game-cfg"><span>Tu vida</span>
+      <button class="gc-opt" data-mhp="150">150</button>
+      <button class="gc-opt sel" data-mhp="300">300</button>
+      <button class="gc-opt" data-mhp="600">600</button></div>
     <button class="btn btn-primary" id="monStart" style="font-size:17px;padding:12px 28px">▶ JUGAR</button>
     <div style="font-size:12px;color:#cdd6ff;max-width:460px;line-height:1.6">
       🪖 Eres un <b>soldado</b> con <b>escuadrón</b>. Muévete con <b>flechas</b> / <b>WASD</b> / <b>stick L</b>. Apunta con el <b>mouse</b> o el <b>stick R</b>.<br>
@@ -4421,6 +4438,7 @@ const Monster={
   worldW:3600,worldH:3600, cam:{x:0,y:0}, shake:0,
   p:null, people:[], shots:[], blood:[], stars:[], parts:[], mates:[], houses:[],
   keys:{}, aim:null, pointer:false, _last:0, spawnT:0, starT:0, level:1, levelKills:0, flash:"", flashT:0,
+  cfg:{bossHp:10000, monHpMul:1, goal:1000, playerHp:300},
   open(){
     $("monFs").classList.add("open");
     this.cv=$("monCanvas"); this.c=this.cv.getContext("2d");
@@ -4447,7 +4465,7 @@ const Monster={
   },
   unbindInput(){ window.removeEventListener("keydown",this._kd); window.removeEventListener("keyup",this._ku); window.removeEventListener("mouseup",this._mu); if(this.cv){ this.cv.removeEventListener("mousemove",this._mm); this.cv.removeEventListener("mousedown",this._md); this.cv.removeEventListener("contextmenu",this._ctx); this.cv.removeEventListener("touchstart",this._tm); this.cv.removeEventListener("touchmove",this._tm); this.cv.removeEventListener("touchend",this._te); } },
   start(){
-    this.p={ x:this.worldW/2, y:this.worldH/2, vx:0,vy:0, r:16, hp:150, maxHp:150, fireRate:0.30, dmg:1, kills:0, fireT:0, powCd:0, aimAng:0, legPhase:0 };
+    this.p={ x:this.worldW/2, y:this.worldH/2, vx:0,vy:0, r:16, hp:this.cfg.playerHp, maxHp:this.cfg.playerHp, fireRate:0.30, dmg:1, kills:0, fireT:0, powCd:0, aimAng:0, legPhase:0 };
     this.people=[]; this.shots=[]; this.blood=[]; this.stars=[]; this.parts=[];
     this.aim=null; this.pointer=false; this.spawnT=0; this.starT=5; this.shake=0; this.mb0=false; this.mb2=false; this.scope=false;
     this.level=1; this.levelKills=0; this.flash=""; this.flashT=0;
@@ -4465,7 +4483,7 @@ const Monster={
     let x=this.p.x+Math.cos(ang)*dist, y=this.p.y+Math.sin(ang)*dist;
     x=Math.max(20,Math.min(this.worldW-20,x)); y=Math.max(20,Math.min(this.worldH-20,y));
     const big=Math.random()<0.22;
-    this.people.push({ x,y, vx:0,vy:0, r:big?20:13, hp:big?5:2, spd:big?70:115, hitT:0, legPhase:Math.random()*6, col:big?"#7a3fae":"#c83f52" });
+    this.people.push({ x,y, vx:0,vy:0, r:big?20:13, hp:(big?5:2)*this.cfg.monHpMul, spd:big?70:115, hitT:0, legPhase:Math.random()*6, col:big?"#7a3fae":"#c83f52" });
   },
   getPad(){ const pads=navigator.getGamepads?navigator.getGamepads():[]; for(const g of pads){ if(!g) continue; const id=(g.id||"").toLowerCase(); if(/jabra|speak|headset|audio|micr|webcam|camera|receiver/.test(id)) continue; if((g.axes||[]).length>=2) return g; } return null; },
   addMate(){ this.mates.push({x:this.p.x,y:this.p.y,fireT:Math.random()*0.6,aimAng:0,slot:0}); const n=this.mates.length; this.mates.forEach((mt,i)=>{ mt.slot=i/n*6.283; }); },
@@ -4476,7 +4494,7 @@ const Monster={
       const c=pal[Math.floor(Math.random()*pal.length)]; this.houses.push({x,y,w,h,col:c[0],roof:c[1]});
     } } },
   resolveHouses(e){ for(const h of this.houses){ const cx=Math.max(h.x,Math.min(e.x,h.x+h.w)), cy=Math.max(h.y,Math.min(e.y,h.y+h.h)); const dx=e.x-cx, dy=e.y-cy, d2=dx*dx+dy*dy; if(d2<e.r*e.r){ const d=Math.sqrt(d2)||0.01, push=e.r-d; e.x+=dx/d*push; e.y+=dy/d*push; } } },
-  spawnBoss(){ if(this.people.some(m=>m.boss)) return; const ang=Math.random()*6.283, dist=Math.max(this.W,this.H)*0.7; let x=this.p.x+Math.cos(ang)*dist, y=this.p.y+Math.sin(ang)*dist; x=Math.max(50,Math.min(this.worldW-50,x)); y=Math.max(50,Math.min(this.worldH-50,y)); const bhp=10000*this.level; this.people.push({ x,y,vx:0,vy:0, r:52, hp:bhp, maxHp:bhp, spd:50, hitT:0, legPhase:0, col:"#b23a6a", boss:true }); },
+  spawnBoss(){ if(this.people.some(m=>m.boss)) return; const ang=Math.random()*6.283, dist=Math.max(this.W,this.H)*0.7; let x=this.p.x+Math.cos(ang)*dist, y=this.p.y+Math.sin(ang)*dist; x=Math.max(50,Math.min(this.worldW-50,x)); y=Math.max(50,Math.min(this.worldH-50,y)); const bhp=this.cfg.bossHp*this.level; this.people.push({ x,y,vx:0,vy:0, r:52, hp:bhp, maxHp:bhp, spd:50, hitT:0, legPhase:0, col:"#b23a6a", boss:true }); },
   levelUp(){ this.level++; this.levelKills=0; this.p.hp=this.p.maxHp; this.spawnBoss(); this.flash="🎉 ¡NIVEL "+this.level+"!"; this.flashT=2.6; },
   drawMate(c,x,y,mt){ const R=13, ang=mt.aimAng||0; c.save(); c.translate(x,y);
     c.strokeStyle="#222"; c.lineWidth=5; c.lineCap="round"; c.beginPath(); c.moveTo(0,0); c.lineTo(Math.cos(ang)*R*1.6,Math.sin(ang)*R*1.6); c.stroke();
@@ -4562,9 +4580,9 @@ const Monster={
     this.people.splice(i,1); this.p.kills++; this.levelKills++;
     if(m.boss){ this.levelKills+=25; this.shake=Math.max(this.shake,12); for(let k=0;k<30;k++) this.parts.push({x:m.x,y:m.y,vx:(Math.random()-0.5)*320,vy:(Math.random()-0.5)*320,life:0.8,col:["#ffd23f","#38e1ff","#ff8cc6"][k%3]}); this.stars.push({x:m.x,y:m.y,ph:0}); }
     if(this.p.kills%15===0 && this.mates.length<5) this.addMate();
-    if(this.levelKills>=this.level*1000) this.levelUp();
+    if(this.levelKills>=this.level*this.cfg.goal) this.levelUp();
     this.shake=Math.max(this.shake,3); },
-  updateHud(){ const p=this.p; const pw=p.powCd>0?("⏳"+p.powCd.toFixed(1)+"s"):"🎯"; $("monHud").innerHTML="🏅 NIVEL "+this.level+" · "+this.levelKills+" / "+(this.level*1000)+" 💥<br>❤️ "+Math.max(0,Math.ceil(p.hp))+" &nbsp; 🔫 "+p.dmg+" &nbsp; 👥 "+this.mates.length+" &nbsp; "+pw; },
+  updateHud(){ const p=this.p; const pw=p.powCd>0?("⏳"+p.powCd.toFixed(1)+"s"):"🎯"; $("monHud").innerHTML="🏅 NIVEL "+this.level+" · "+this.levelKills+" / "+(this.level*this.cfg.goal)+" 💥<br>❤️ "+Math.max(0,Math.ceil(p.hp))+" &nbsp; 🔫 "+p.dmg+" &nbsp; 👥 "+this.mates.length+" &nbsp; "+pw; },
   draw(){
     const c=this.c,W=this.W,H=this.H; let camx=this.cam.x,camy=this.cam.y;
     if(this.shake>0){ camx+=(Math.random()-0.5)*this.shake; camy+=(Math.random()-0.5)*this.shake; }
@@ -4619,6 +4637,13 @@ const Monster={
 $("pickMon").onclick=()=>{ $("gamePick").classList.remove("open"); Monster.open(); };
 $("monClose").onclick=()=>Monster.close();
 $("monStart").onclick=()=>Monster.start();
+document.querySelectorAll("#monOverlay .gc-opt").forEach(b=>{ b.onclick=()=>{
+  b.parentElement.querySelectorAll(".gc-opt").forEach(o=>o.classList.remove("sel")); b.classList.add("sel");
+  if(b.dataset.mboss) Monster.cfg.bossHp=+b.dataset.mboss;
+  if(b.dataset.mmon)  Monster.cfg.monHpMul=+b.dataset.mmon;
+  if(b.dataset.mgoal) Monster.cfg.goal=+b.dataset.mgoal;
+  if(b.dataset.mhp)   Monster.cfg.playerHp=+b.dataset.mhp;
+}; });
 // Portada: elegir jugar (público) o iniciar sesión
 $("lndPlay").onclick=()=>{ $("landing").style.display="none"; Monster._fromLanding=true; Monster.open(); };
 $("lndLogin").onclick=()=>{ $("landing").style.display="none"; const pi=$("pinInput"); if(pi) setTimeout(()=>pi.focus(),60); };
