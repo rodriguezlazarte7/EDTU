@@ -4627,7 +4627,7 @@ const Monster={
   netBuf(x,y,vx,vy,col,ww,hh,life){ if(typeof MonNet!=="undefined"&&MonNet.online&&this._shotBuf.length<24) this._shotBuf.push({x:Math.round(x),y:Math.round(y),vx:Math.round(vx),vy:Math.round(vy),c:col,w:ww,h:hh,l:life}); },
   levelUp(){ if(this.level>=7){ this.win(); return; } this.level++; this.levelKills=0; this.p.hp=this.p.maxHp; this.spawnBoss(); this.flash=(this.level>=7?"👑 ¡NIVEL 7: PURAS JEFAS!":"🎉 ¡NIVEL "+this.level+"!"); this.flashT=2.8; },
   win(){ this.running=false; $("monOverlay").style.display="flex"; $("monMsg").innerHTML="🏆 ¡SALVASTE "+((PLANETS[this.planet]||PLANETS.tierra).name)+"!"; $("monResult").innerHTML="🚀 Tus monitos suben al cohete… <b>¡elige el próximo planeta</b> abajo 🌍🔴🔵🪐☀️ y despega! ("+this.p.kills+" 💥)"; $("monStart").textContent="🚀 DESPEGAR AL PLANETA"; },
-  gameComplete(){ this.running=false; $("monOverlay").style.display="flex"; $("monMsg").innerHTML="🎉 ¡JUEGO COMPLETADO! 🏆"; $("monResult").innerHTML="¡Venciste al ☀️ <b>Sol</b> y a sus <b>1.000.000.000</b> de jefas rojas! 🔴 Eres una leyenda, "+(typeof currentUser!=="undefined"&&currentUser?"comandante":"héroe")+". 🌌"; $("monStart").textContent="▶ JUGAR OTRA VEZ"; },
+  gameComplete(){ this.running=false; $("monOverlay").style.display="flex"; $("monMsg").innerHTML="🎉 ¡JUEGO COMPLETADO! 🏆"; $("monResult").innerHTML="¡Venciste al ☀️ <b>Sol</b> y a sus <b>10.000</b> jefas rojas! 🔴 Eres una leyenda, "+(typeof currentUser!=="undefined"&&currentUser?"comandante":"héroe")+". 🌌"; $("monStart").textContent="▶ JUGAR OTRA VEZ"; },
   drawPeer(c,x,y,pe){ const R=16, ang=pe.aimAng||0; c.save(); c.translate(x,y);
     c.strokeStyle="#222"; c.lineWidth=5; c.lineCap="round"; c.beginPath(); c.moveTo(0,0); c.lineTo(Math.cos(ang)*R*1.6,Math.sin(ang)*R*1.6); c.stroke();
     c.fillStyle="#c0864a"; c.beginPath(); c.arc(0,0,R,0,6.283); c.fill();
@@ -4759,10 +4759,10 @@ const Monster={
     this.people.splice(i,1); this.p.kills++; this.levelKills++; this.coins+=(m.boss?25:1);
     if(m.boss){ this.levelKills+=25; this.shake=Math.max(this.shake,12); for(let k=0;k<30;k++) this.parts.push({x:m.x,y:m.y,vx:(Math.random()-0.5)*320,vy:(Math.random()-0.5)*320,life:0.8,col:["#ffd23f","#38e1ff","#ff8cc6"][k%3]}); this.stars.push({x:m.x,y:m.y,ph:0}); }
     if(this.p.kills%15===0 && this.mates.length<5) this.addMate();
-    if(this.planet==="sol"){ if(this.levelKills>=1000000000) this.gameComplete(); }
+    if(this.planet==="sol"){ if(this.levelKills>=10000) this.gameComplete(); }
     else if(this.levelKills>=this.level*this.cfg.goal) this.levelUp();
     this.shake=Math.max(this.shake,3); },
-  updateHud(){ const p=this.p; const hot=this.overheated?"🥵 SOBRECALENTADO":("🌡️ "+Math.round(this.heat)+"/1000"); const wn=(WEAPONS[p.weapon]||WEAPONS.pistola).name; const prog=this.planet==="sol"?("☀️ SOL · "+String(this.levelKills).replace(/\B(?=(\d{3})+(?!\d))/g,".")+" / 1.000.000.000 🔴"):("🏅 NIVEL "+this.level+"/7 · "+this.levelKills+" / "+(this.level*this.cfg.goal)+" 💥"); $("monHud").innerHTML=prog+"<br>❤️ "+Math.max(0,Math.ceil(p.hp))+" · "+wn+" · 🪙 "+(this.allFree?"∞":this.coins)+" · 👥 "+this.mates.length+" · "+hot; },
+  updateHud(){ const p=this.p; const hot=this.overheated?"🥵 SOBRECALENTADO":("🌡️ "+Math.round(this.heat)+"/1000"); const wn=(WEAPONS[p.weapon]||WEAPONS.pistola).name; const prog=this.planet==="sol"?("☀️ SOL · "+String(this.levelKills).replace(/\B(?=(\d{3})+(?!\d))/g,".")+" / 10.000 🔴"):("🏅 NIVEL "+this.level+"/7 · "+this.levelKills+" / "+(this.level*this.cfg.goal)+" 💥"); $("monHud").innerHTML=prog+"<br>❤️ "+Math.max(0,Math.ceil(p.hp))+" · "+wn+" · 🪙 "+(this.allFree?"∞":this.coins)+" · 👥 "+this.mates.length+" · "+hot; },
   draw(){
     const c=this.c,W=this.W,H=this.H; let camx=this.cam.x,camy=this.cam.y;
     if(this.shake>0){ camx+=(Math.random()-0.5)*this.shake; camy+=(Math.random()-0.5)*this.shake; }
