@@ -1138,6 +1138,11 @@
       <button class="gc-opt" data-mhp="150">150</button>
       <button class="gc-opt sel" data-mhp="300">300</button>
       <button class="gc-opt" data-mhp="600">600</button></div>
+    <div class="game-cfg"><span>🌍 Planeta</span>
+      <button class="gc-opt sel" data-mplanet="tierra">🌍 Tierra</button>
+      <button class="gc-opt" data-mplanet="marte">🔴 Marte</button>
+      <button class="gc-opt" data-mplanet="neptuno">🔵 Neptuno</button>
+      <button class="gc-opt" data-mplanet="saturno">🪐 Saturno</button></div>
     <button class="btn btn-ghost" id="monOnlineBtn" style="margin-top:2px">🌐 JUGAR ONLINE (con todos)</button>
     <div id="monOnline" style="display:none;width:min(380px,92vw)">
       <div id="monNetStatus" style="font-size:12.5px;color:#8fdcc0;line-height:1.5">Conectando…</div>
@@ -4460,8 +4465,14 @@ const WEAPONS={
   francotirador:{name:"🎯 Francotirador", price:300, gap:0.9,  dmg:12, fn:"sniper"},
   laser:        {name:"⚡ Láser",         price:500, gap:0.02, dmg:2,  fn:"laser"}
 };
+const PLANETS={
+  tierra:  {name:"🌍 Tierra",  ground:"#7a83a8", road:"#5b6284", mateBonus:0, free:[],                          hpMul:1},
+  marte:   {name:"🔴 Marte",   ground:"#9c6a52", road:"#7a4f3d", mateBonus:1, free:["escopeta"],                 hpMul:1.4},
+  neptuno: {name:"🔵 Neptuno", ground:"#3f6f9c", road:"#2f5476", mateBonus:2, free:["ametralladora","lanzallamas"], hpMul:1.9},
+  saturno: {name:"🪐 Saturno", ground:"#b8a06a", road:"#8f7a4a", mateBonus:3, free:["francotirador","laser"],    hpMul:2.6}
+};
 const Monster={
-  cv:null,c:null,W:0,H:0,raf:null,running:false,
+  cv:null,c:null,W:0,H:0,raf:null,running:false, planet:"tierra", theme:null, _hpMul:1,
   worldW:3600,worldH:3600, cam:{x:0,y:0}, shake:0,
   p:null, people:[], shots:[], blood:[], stars:[], parts:[], mates:[], houses:[],
   keys:{}, aim:null, pointer:false, _last:0, spawnT:0, starT:0, level:1, levelKills:0, flash:"", flashT:0,
@@ -4495,13 +4506,14 @@ const Monster={
   unbindInput(){ window.removeEventListener("keydown",this._kd); window.removeEventListener("keyup",this._ku); window.removeEventListener("mouseup",this._mu); if(this.cv){ this.cv.removeEventListener("mousemove",this._mm); this.cv.removeEventListener("mousedown",this._md); this.cv.removeEventListener("contextmenu",this._ctx); this.cv.removeEventListener("touchstart",this._tm); this.cv.removeEventListener("touchmove",this._tm); this.cv.removeEventListener("touchend",this._te); } },
   start(){
     this.p={ x:this.worldW/2, y:this.worldH/2, vx:0,vy:0, r:16, hp:this.cfg.playerHp, maxHp:this.cfg.playerHp, fireRate:0.30, dmg:1, kills:0, fireT:0, powCd:0, aimAng:0, legPhase:0, weapon:"pistola", dmgCd:0 };
-    this.coins=0; this.owned=new Set(["pistola"]); this.mateWeapon="pistola"; this.shopping=false; this._inBunker=false; this.bunker={x:1740,y:1140,w:120,h:120}; this._nid=1; this._prevMons=null; this.netShots=[]; this._shotBuf=[]; this._peerDisp={};
+    const pl=PLANETS[this.planet]||PLANETS.tierra; this.theme={ground:pl.ground,road:pl.road}; this._hpMul=pl.hpMul||1;
+    this.coins=0; this.owned=new Set(["pistola"].concat(pl.free||[])); this.mateWeapon="pistola"; this.shopping=false; this._inBunker=false; this.bunker={x:1740,y:1140,w:120,h:120}; this._nid=1; this._prevMons=null; this.netShots=[]; this._shotBuf=[]; this._peerDisp={};
     this.people=[]; this.shots=[]; this.blood=[]; this.stars=[]; this.parts=[];
     this.aim=null; this.pointer=false; this.spawnT=0; this.starT=5; this.shake=0; this.mb0=false; this.mb2=false; this.scope=false;
-    this.level=1; this.levelKills=0; this.flash=""; this.flashT=0;
+    this.level=1; this.levelKills=0; this.flash=pl.name+" — ¡a salvarlo!"; this.flashT=2.6;
     this.genHouses();
     for(let i=0;i<8;i++) this.spawnPerson();
-    this.mates=[]; this.addMate(); this.addMate();
+    this.mates=[]; const nm=2+(pl.mateBonus||0); for(let i=0;i<nm;i++) this.addMate();
     this.spawnBoss();
     $("monOverlay").style.display="none";
     this.running=true; this._last=performance.now();
@@ -4512,9 +4524,9 @@ const Monster={
     const ang=Math.random()*6.283, dist=Math.max(this.W,this.H)*0.6+Math.random()*300;
     let x=this.p.x+Math.cos(ang)*dist, y=this.p.y+Math.sin(ang)*dist;
     x=Math.max(20,Math.min(this.worldW-20,x)); y=Math.max(20,Math.min(this.worldH-20,y));
-    if(this.level>=7){ const jh=60*this.cfg.monHpMul; this.people.push({ nid:this._nid++, x,y, vx:0,vy:0, r:30, hp:jh, maxHp:jh, spd:74, hitT:0, legPhase:Math.random()*6, col:"#ff4db8", boss:true }); return; }   // nivel 7: ¡puras jefas!
+    if(this.level>=7){ const jh=60*this.cfg.monHpMul*this._hpMul; this.people.push({ nid:this._nid++, x,y, vx:0,vy:0, r:30, hp:jh, maxHp:jh, spd:74, hitT:0, legPhase:Math.random()*6, col:"#ff4db8", boss:true }); return; }   // nivel 7: ¡puras jefas!
     const big=Math.random()<0.22;
-    this.people.push({ nid:this._nid++, x,y, vx:0,vy:0, r:big?20:13, hp:(big?5:2)*this.cfg.monHpMul, spd:big?70:115, hitT:0, legPhase:Math.random()*6, col:big?"#7a3fae":"#c83f52" });
+    this.people.push({ nid:this._nid++, x,y, vx:0,vy:0, r:big?20:13, hp:(big?5:2)*this.cfg.monHpMul*this._hpMul, spd:big?70:115, hitT:0, legPhase:Math.random()*6, col:big?"#7a3fae":"#c83f52" });
   },
   getPad(){ const pads=navigator.getGamepads?navigator.getGamepads():[]; for(const g of pads){ if(!g) continue; const id=(g.id||"").toLowerCase(); if(/jabra|speak|headset|audio|micr|webcam|camera|receiver/.test(id)) continue; if((g.axes||[]).length>=2) return g; } return null; },
   addMate(){ this.mates.push({x:this.p.x,y:this.p.y,fireT:Math.random()*0.6,aimAng:0,slot:0}); const n=this.mates.length; this.mates.forEach((mt,i)=>{ mt.slot=i/n*6.283; }); },
@@ -4553,11 +4565,11 @@ const Monster={
       b.onclick=()=>{ if(!owned||eq) return; this.mateWeapon=k; this.renderShop(); };
       box.appendChild(b); }
   },
-  spawnBoss(){ if(this.people.some(m=>m.boss)) return; const ang=Math.random()*6.283, dist=Math.max(this.W,this.H)*0.7; let x=this.p.x+Math.cos(ang)*dist, y=this.p.y+Math.sin(ang)*dist; x=Math.max(50,Math.min(this.worldW-50,x)); y=Math.max(50,Math.min(this.worldH-50,y)); const bhp=this.cfg.bossHp*this.level; this.people.push({ nid:this._nid++, x,y,vx:0,vy:0, r:52, hp:bhp, maxHp:bhp, spd:50, hitT:0, legPhase:0, col:"#b23a6a", boss:true }); },
+  spawnBoss(){ if(this.people.some(m=>m.boss)) return; const ang=Math.random()*6.283, dist=Math.max(this.W,this.H)*0.7; let x=this.p.x+Math.cos(ang)*dist, y=this.p.y+Math.sin(ang)*dist; x=Math.max(50,Math.min(this.worldW-50,x)); y=Math.max(50,Math.min(this.worldH-50,y)); const bhp=this.cfg.bossHp*this.level*this._hpMul; this.people.push({ nid:this._nid++, x,y,vx:0,vy:0, r:52, hp:bhp, maxHp:bhp, spd:50, hitT:0, legPhase:0, col:"#b23a6a", boss:true }); },
   poof(x,y,boss){ const cols=["#ffd23f","#38e1ff","#ff8cc6","#8cff6a","#c58cff","#ffa640"], n=boss?26:12; for(let k=0;k<n;k++) this.parts.push({x,y,vx:(Math.random()-0.5)*(boss?320:240),vy:(Math.random()-0.5)*(boss?320:240),life:boss?0.8:0.55,col:cols[k%cols.length]}); },
   netBuf(x,y,vx,vy,col,ww,hh,life){ if(typeof MonNet!=="undefined"&&MonNet.online&&this._shotBuf.length<24) this._shotBuf.push({x:Math.round(x),y:Math.round(y),vx:Math.round(vx),vy:Math.round(vy),c:col,w:ww,h:hh,l:life}); },
   levelUp(){ if(this.level>=7){ this.win(); return; } this.level++; this.levelKills=0; this.p.hp=this.p.maxHp; this.spawnBoss(); this.flash=(this.level>=7?"👑 ¡NIVEL 7: PURAS JEFAS!":"🎉 ¡NIVEL "+this.level+"!"); this.flashT=2.8; },
-  win(){ this.running=false; $("monOverlay").style.display="flex"; $("monMsg").textContent="🏆 ¡GANASTE!"; $("monResult").innerHTML="Completaste los <b>7 niveles</b> · "+this.p.kills+" 💥 derrotados"; $("monStart").textContent="▶ JUGAR OTRA VEZ"; },
+  win(){ this.running=false; $("monOverlay").style.display="flex"; $("monMsg").innerHTML="🏆 ¡SALVASTE "+((PLANETS[this.planet]||PLANETS.tierra).name)+"!"; $("monResult").innerHTML="🚀 Tus monitos suben al cohete… <b>¡elige el próximo planeta</b> abajo 🌍🔴🔵🪐 y despega! ("+this.p.kills+" 💥)"; $("monStart").textContent="🚀 DESPEGAR AL PLANETA"; },
   drawPeer(c,x,y,pe){ const R=16, ang=pe.aimAng||0; c.save(); c.translate(x,y);
     c.strokeStyle="#222"; c.lineWidth=5; c.lineCap="round"; c.beginPath(); c.moveTo(0,0); c.lineTo(Math.cos(ang)*R*1.6,Math.sin(ang)*R*1.6); c.stroke();
     c.fillStyle="#c0864a"; c.beginPath(); c.arc(0,0,R,0,6.283); c.fill();
@@ -4686,10 +4698,10 @@ const Monster={
   draw(){
     const c=this.c,W=this.W,H=this.H; let camx=this.cam.x,camy=this.cam.y;
     if(this.shake>0){ camx+=(Math.random()-0.5)*this.shake; camy+=(Math.random()-0.5)*this.shake; }
-    c.fillStyle="#7a83a8"; c.fillRect(0,0,W,H);
+    c.fillStyle=(this.theme&&this.theme.ground)||"#7a83a8"; c.fillRect(0,0,W,H);
     const g=60; c.strokeStyle="rgba(255,255,255,0.06)"; c.lineWidth=1; c.beginPath();
     for(let x=-(camx%g);x<W;x+=g){ c.moveTo(x,0); c.lineTo(x,H); } for(let y=-(camy%g);y<H;y+=g){ c.moveTo(0,y); c.lineTo(W,y); } c.stroke();
-    const road=600,rw=120; c.fillStyle="#5b6284";
+    const road=600,rw=120; c.fillStyle=(this.theme&&this.theme.road)||"#5b6284";
     for(let wx=Math.floor(camx/road)*road; wx<camx+W+road; wx+=road){ c.fillRect(wx-camx-rw/2,0,rw,H); }
     for(let wy=Math.floor(camy/road)*road; wy<camy+H+road; wy+=road){ c.fillRect(0,wy-camy-rw/2,W,rw); }
     c.strokeStyle="rgba(255,255,255,0.5)"; c.lineWidth=4; c.setLineDash([20,22]); c.beginPath();
@@ -4794,6 +4806,7 @@ document.querySelectorAll("#monOverlay .gc-opt").forEach(b=>{ b.onclick=()=>{
   if(b.dataset.mmon)  Monster.cfg.monHpMul=+b.dataset.mmon;
   if(b.dataset.mgoal) Monster.cfg.goal=+b.dataset.mgoal;
   if(b.dataset.mhp)   Monster.cfg.playerHp=+b.dataset.mhp;
+  if(b.dataset.mplanet) Monster.planet=b.dataset.mplanet;
 }; });
 // Portada: elegir jugar (público) o iniciar sesión
 $("lndPlay").onclick=()=>{ $("landing").style.display="none"; Monster._fromLanding=true; Monster.open(); };
