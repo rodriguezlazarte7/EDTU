@@ -4495,7 +4495,7 @@ const Monster={
   unbindInput(){ window.removeEventListener("keydown",this._kd); window.removeEventListener("keyup",this._ku); window.removeEventListener("mouseup",this._mu); if(this.cv){ this.cv.removeEventListener("mousemove",this._mm); this.cv.removeEventListener("mousedown",this._md); this.cv.removeEventListener("contextmenu",this._ctx); this.cv.removeEventListener("touchstart",this._tm); this.cv.removeEventListener("touchmove",this._tm); this.cv.removeEventListener("touchend",this._te); } },
   start(){
     this.p={ x:this.worldW/2, y:this.worldH/2, vx:0,vy:0, r:16, hp:this.cfg.playerHp, maxHp:this.cfg.playerHp, fireRate:0.30, dmg:1, kills:0, fireT:0, powCd:0, aimAng:0, legPhase:0, weapon:"pistola", dmgCd:0 };
-    this.coins=0; this.owned=new Set(["pistola"]); this.shopping=false; this._inBunker=false; this.bunker={x:1740,y:1140,w:120,h:120}; this._nid=1; this._prevMons=null; this.netShots=[]; this._shotBuf=[]; this._peerDisp={};
+    this.coins=0; this.owned=new Set(["pistola"]); this.mateWeapon="pistola"; this.shopping=false; this._inBunker=false; this.bunker={x:1740,y:1140,w:120,h:120}; this._nid=1; this._prevMons=null; this.netShots=[]; this._shotBuf=[]; this._peerDisp={};
     this.people=[]; this.shots=[]; this.blood=[]; this.stars=[]; this.parts=[];
     this.aim=null; this.pointer=false; this.spawnT=0; this.starT=5; this.shake=0; this.mb0=false; this.mb2=false; this.scope=false;
     this.level=1; this.levelKills=0; this.flash=""; this.flashT=0;
@@ -4512,6 +4512,7 @@ const Monster={
     const ang=Math.random()*6.283, dist=Math.max(this.W,this.H)*0.6+Math.random()*300;
     let x=this.p.x+Math.cos(ang)*dist, y=this.p.y+Math.sin(ang)*dist;
     x=Math.max(20,Math.min(this.worldW-20,x)); y=Math.max(20,Math.min(this.worldH-20,y));
+    if(this.level>=7){ const jh=60*this.cfg.monHpMul; this.people.push({ nid:this._nid++, x,y, vx:0,vy:0, r:30, hp:jh, maxHp:jh, spd:74, hitT:0, legPhase:Math.random()*6, col:"#ff4db8", boss:true }); return; }   // nivel 7: ¡puras jefas!
     const big=Math.random()<0.22;
     this.people.push({ nid:this._nid++, x,y, vx:0,vy:0, r:big?20:13, hp:(big?5:2)*this.cfg.monHpMul, spd:big?70:115, hitT:0, legPhase:Math.random()*6, col:big?"#7a3fae":"#c83f52" });
   },
@@ -4525,28 +4526,38 @@ const Monster={
     } } },
   resolveRect(e,h){ const cx=Math.max(h.x,Math.min(e.x,h.x+h.w)), cy=Math.max(h.y,Math.min(e.y,h.y+h.h)); const dx=e.x-cx, dy=e.y-cy, d2=dx*dx+dy*dy; if(d2<e.r*e.r){ const d=Math.sqrt(d2)||0.01, push=e.r-d; e.x+=dx/d*push; e.y+=dy/d*push; } },
   resolveHouses(e){ for(const h of this.houses) this.resolveRect(e,h); if(this.bunker) this.resolveRect(e,this.bunker); },
-  fireWeapon(){ const p=this.p, w=WEAPONS[p.weapon]||WEAPONS.pistola, a=p.aimAng, ox=Math.cos(a)*p.r, oy=Math.sin(a)*p.r;
-    const push=(ang,spd,life,dmg,col,ww,hh,pierce,glow)=>{ const vx=Math.cos(ang)*spd,vy=Math.sin(ang)*spd; this.shots.push({x:p.x+ox,y:p.y+oy,vx,vy,life,dmg,col,w:ww,hh,pierce,glow,hitObjs:pierce?new Set():null}); this.netBuf(p.x+ox,p.y+oy,vx,vy,col,ww,hh,life); };
-    if(w.fn==="shotgun"){ for(let k=-2;k<=2;k++) push(a+k*0.13,480,0.45,w.dmg,"#ffb03b",10,4,false,false); }
-    else if(w.fn==="flame"){ for(let k=0;k<3;k++) push(a+(Math.random()-0.5)*0.5,300,0.28,w.dmg,"#ff7a1a",13,9,true,true); }
-    else if(w.fn==="sniper"){ push(a,950,1.4,w.dmg,"#38e1ff",26,4,true,true); }
-    else if(w.fn==="laser"){ push(a,1400,0.5,w.dmg,"#b06bff",30,3,true,true); }
-    else { push(a,560,0.85,w.dmg,"#ff3b3b",14,5,false,false); }
+  fireGun(x,y,ang,wkey){ const w=WEAPONS[wkey]||WEAPONS.pistola;
+    const push=(a2,spd,life,dmg,col,ww,hh,pierce,glow)=>{ const vx=Math.cos(a2)*spd,vy=Math.sin(a2)*spd; this.shots.push({x,y,vx,vy,life,dmg,col,w:ww,hh,pierce,glow,hitObjs:pierce?new Set():null}); this.netBuf(x,y,vx,vy,col,ww,hh,life); };
+    if(w.fn==="shotgun"){ for(let k=-2;k<=2;k++) push(ang+k*0.13,480,0.45,w.dmg,"#ffb03b",10,4,false,false); }
+    else if(w.fn==="flame"){ for(let k=0;k<3;k++) push(ang+(Math.random()-0.5)*0.5,300,0.28,w.dmg,"#ff7a1a",13,9,true,true); }
+    else if(w.fn==="sniper"){ push(ang,950,1.4,w.dmg,"#38e1ff",26,4,true,true); }
+    else if(w.fn==="laser"){ push(ang,1400,0.5,w.dmg,"#b06bff",30,3,true,true); }
+    else { push(ang,560,0.85,w.dmg,"#ff3b3b",14,5,false,false); }
   },
+  fireWeapon(){ const p=this.p; this.fireGun(p.x+Math.cos(p.aimAng)*p.r, p.y+Math.sin(p.aimAng)*p.r, p.aimAng, p.weapon); },
   openShop(){ this.shopping=true; this.renderShop(); $("monShop").style.display="flex"; },
   closeShop(){ this.shopping=false; $("monShop").style.display="none"; this._last=performance.now(); },
   renderShop(){ $("monCoins").innerHTML=this.allFree?"👑 Todo desbloqueado (David)":("🪙 <b>"+this.coins+"</b> puntos");
     const box=$("monWeapons"); box.innerHTML="";
+    const hdr=(t)=>{ const h=document.createElement("div"); h.style.cssText="margin:8px 2px 2px;font-size:12px;opacity:.75;text-align:left;font-weight:800"; h.textContent=t; box.appendChild(h); };
+    hdr("🪖 TU ARMA");
     for(const k in WEAPONS){ const w=WEAPONS[k], owned=this.allFree||this.owned.has(k), eq=this.p.weapon===k;
       const b=document.createElement("button"); b.className="shop-item"+(eq?" eq":"");
       b.innerHTML="<span>"+w.name+"</span><span>"+(eq?"✅ EQUIPADA":(owned?"EQUIPAR":("COMPRAR · "+w.price+"🪙")))+"</span>";
       b.onclick=()=>{ if(eq) return; if(owned){ this.p.weapon=k; } else if(this.coins>=w.price){ this.coins-=w.price; this.owned.add(k); this.p.weapon=k; } else { $("monCoins").innerHTML="🪙 <b>"+this.coins+"</b> — ¡te faltan puntos!"; return; } this.renderShop(); };
       box.appendChild(b); }
+    hdr("👥 ARMA DEL ESCUADRÓN");
+    for(const k in WEAPONS){ const w=WEAPONS[k], owned=this.allFree||this.owned.has(k), eq=this.mateWeapon===k;
+      const b=document.createElement("button"); b.className="shop-item"+(eq?" eq":"");
+      b.innerHTML="<span>"+w.name+"</span><span>"+(eq?"✅ EN USO":(owned?"USAR":"🔒 compra arriba"))+"</span>";
+      b.onclick=()=>{ if(!owned||eq) return; this.mateWeapon=k; this.renderShop(); };
+      box.appendChild(b); }
   },
   spawnBoss(){ if(this.people.some(m=>m.boss)) return; const ang=Math.random()*6.283, dist=Math.max(this.W,this.H)*0.7; let x=this.p.x+Math.cos(ang)*dist, y=this.p.y+Math.sin(ang)*dist; x=Math.max(50,Math.min(this.worldW-50,x)); y=Math.max(50,Math.min(this.worldH-50,y)); const bhp=this.cfg.bossHp*this.level; this.people.push({ nid:this._nid++, x,y,vx:0,vy:0, r:52, hp:bhp, maxHp:bhp, spd:50, hitT:0, legPhase:0, col:"#b23a6a", boss:true }); },
   poof(x,y,boss){ const cols=["#ffd23f","#38e1ff","#ff8cc6","#8cff6a","#c58cff","#ffa640"], n=boss?26:12; for(let k=0;k<n;k++) this.parts.push({x,y,vx:(Math.random()-0.5)*(boss?320:240),vy:(Math.random()-0.5)*(boss?320:240),life:boss?0.8:0.55,col:cols[k%cols.length]}); },
   netBuf(x,y,vx,vy,col,ww,hh,life){ if(typeof MonNet!=="undefined"&&MonNet.online&&this._shotBuf.length<24) this._shotBuf.push({x:Math.round(x),y:Math.round(y),vx:Math.round(vx),vy:Math.round(vy),c:col,w:ww,h:hh,l:life}); },
-  levelUp(){ this.level++; this.levelKills=0; this.p.hp=this.p.maxHp; this.spawnBoss(); this.flash="🎉 ¡NIVEL "+this.level+"!"; this.flashT=2.6; },
+  levelUp(){ if(this.level>=7){ this.win(); return; } this.level++; this.levelKills=0; this.p.hp=this.p.maxHp; this.spawnBoss(); this.flash=(this.level>=7?"👑 ¡NIVEL 7: PURAS JEFAS!":"🎉 ¡NIVEL "+this.level+"!"); this.flashT=2.8; },
+  win(){ this.running=false; $("monOverlay").style.display="flex"; $("monMsg").textContent="🏆 ¡GANASTE!"; $("monResult").innerHTML="Completaste los <b>7 niveles</b> · "+this.p.kills+" 💥 derrotados"; $("monStart").textContent="▶ JUGAR OTRA VEZ"; },
   drawPeer(c,x,y,pe){ const R=16, ang=pe.aimAng||0; c.save(); c.translate(x,y);
     c.strokeStyle="#222"; c.lineWidth=5; c.lineCap="round"; c.beginPath(); c.moveTo(0,0); c.lineTo(Math.cos(ang)*R*1.6,Math.sin(ang)*R*1.6); c.stroke();
     c.fillStyle="#c0864a"; c.beginPath(); c.arc(0,0,R,0,6.283); c.fill();
@@ -4623,7 +4634,7 @@ const Monster={
       if(d>4){ mt.x+=ax/d*Math.min(230,d*4)*dt; mt.y+=ay/d*Math.min(230,d*4)*dt; }
       let mn=null,mnd=1e9; for(const mo of this.people){ const dd=Math.hypot(mo.x-mt.x,mo.y-mt.y); if(dd<mnd){ mnd=dd; mn=mo; } }
       mt.fireT-=dt;
-      if(mn&&mnd<520){ mt.aimAng=Math.atan2(mn.y-mt.y,mn.x-mt.x); if(mt.fireT<=0){ mt.fireT=0.6; const sx=mt.x+Math.cos(mt.aimAng)*14,sy=mt.y+Math.sin(mt.aimAng)*14,svx=Math.cos(mt.aimAng)*540,svy=Math.sin(mt.aimAng)*540; this.shots.push({x:sx,y:sy,vx:svx,vy:svy,life:0.8,dmg:1,col:"#ff3b3b"}); this.netBuf(sx,sy,svx,svy,"#ff3b3b",14,5,0.8); } }
+      if(mn&&mnd<520){ mt.aimAng=Math.atan2(mn.y-mt.y,mn.x-mt.x); const w=WEAPONS[this.mateWeapon]||WEAPONS.pistola; if(mt.fireT<=0){ mt.fireT=Math.max(0.15,w.gap); this.fireGun(mt.x+Math.cos(mt.aimAng)*14,mt.y+Math.sin(mt.aimAng)*14,mt.aimAng,this.mateWeapon); } }
     }
     // soldado: apunta (al mouse o al monstruo más cercano) y dispara solo
     const gp=this.getPad();
@@ -4671,7 +4682,7 @@ const Monster={
     if(this.p.kills%15===0 && this.mates.length<5) this.addMate();
     if(this.levelKills>=this.level*this.cfg.goal) this.levelUp();
     this.shake=Math.max(this.shake,3); },
-  updateHud(){ const p=this.p; const pw=p.powCd>0?("⏳"+p.powCd.toFixed(1)+"s"):"🎯"; const wn=(WEAPONS[p.weapon]||WEAPONS.pistola).name; $("monHud").innerHTML="🏅 NIVEL "+this.level+" · "+this.levelKills+" / "+(this.level*this.cfg.goal)+" 💥<br>❤️ "+Math.max(0,Math.ceil(p.hp))+" · "+wn+" · 🪙 "+(this.allFree?"∞":this.coins)+" · 👥 "+this.mates.length+" "+pw; },
+  updateHud(){ const p=this.p; const pw=p.powCd>0?("⏳"+p.powCd.toFixed(1)+"s"):"🎯"; const wn=(WEAPONS[p.weapon]||WEAPONS.pistola).name; $("monHud").innerHTML="🏅 NIVEL "+this.level+"/7 · "+this.levelKills+" / "+(this.level*this.cfg.goal)+" 💥<br>❤️ "+Math.max(0,Math.ceil(p.hp))+" · "+wn+" · 🪙 "+(this.allFree?"∞":this.coins)+" · 👥 "+this.mates.length+" "+pw; },
   draw(){
     const c=this.c,W=this.W,H=this.H; let camx=this.cam.x,camy=this.cam.y;
     if(this.shake>0){ camx+=(Math.random()-0.5)*this.shake; camy+=(Math.random()-0.5)*this.shake; }
