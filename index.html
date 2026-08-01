@@ -4466,7 +4466,7 @@ const Monster={
   p:null, people:[], shots:[], blood:[], stars:[], parts:[], mates:[], houses:[],
   keys:{}, aim:null, pointer:false, _last:0, spawnT:0, starT:0, level:1, levelKills:0, flash:"", flashT:0,
   cfg:{bossHp:10000, monHpMul:1, goal:1000, playerHp:300},
-  coins:0, owned:null, shopping:false, _inBunker:false, allFree:false, bunker:null,
+  coins:0, owned:null, shopping:false, _inBunker:false, allFree:false, bunker:null, netShots:[], _shotBuf:[],
   open(){
     $("monFs").classList.add("open");
     this.cv=$("monCanvas"); this.c=this.cv.getContext("2d");
@@ -4495,7 +4495,7 @@ const Monster={
   unbindInput(){ window.removeEventListener("keydown",this._kd); window.removeEventListener("keyup",this._ku); window.removeEventListener("mouseup",this._mu); if(this.cv){ this.cv.removeEventListener("mousemove",this._mm); this.cv.removeEventListener("mousedown",this._md); this.cv.removeEventListener("contextmenu",this._ctx); this.cv.removeEventListener("touchstart",this._tm); this.cv.removeEventListener("touchmove",this._tm); this.cv.removeEventListener("touchend",this._te); } },
   start(){
     this.p={ x:this.worldW/2, y:this.worldH/2, vx:0,vy:0, r:16, hp:this.cfg.playerHp, maxHp:this.cfg.playerHp, fireRate:0.30, dmg:1, kills:0, fireT:0, powCd:0, aimAng:0, legPhase:0, weapon:"pistola", dmgCd:0 };
-    this.coins=0; this.owned=new Set(["pistola"]); this.shopping=false; this._inBunker=false; this.bunker={x:1740,y:1140,w:120,h:120}; this._nid=1; this._prevMons=null;
+    this.coins=0; this.owned=new Set(["pistola"]); this.shopping=false; this._inBunker=false; this.bunker={x:1740,y:1140,w:120,h:120}; this._nid=1; this._prevMons=null; this.netShots=[]; this._shotBuf=[];
     this.people=[]; this.shots=[]; this.blood=[]; this.stars=[]; this.parts=[];
     this.aim=null; this.pointer=false; this.spawnT=0; this.starT=5; this.shake=0; this.mb0=false; this.mb2=false; this.scope=false;
     this.level=1; this.levelKills=0; this.flash=""; this.flashT=0;
@@ -4526,7 +4526,7 @@ const Monster={
   resolveRect(e,h){ const cx=Math.max(h.x,Math.min(e.x,h.x+h.w)), cy=Math.max(h.y,Math.min(e.y,h.y+h.h)); const dx=e.x-cx, dy=e.y-cy, d2=dx*dx+dy*dy; if(d2<e.r*e.r){ const d=Math.sqrt(d2)||0.01, push=e.r-d; e.x+=dx/d*push; e.y+=dy/d*push; } },
   resolveHouses(e){ for(const h of this.houses) this.resolveRect(e,h); if(this.bunker) this.resolveRect(e,this.bunker); },
   fireWeapon(){ const p=this.p, w=WEAPONS[p.weapon]||WEAPONS.pistola, a=p.aimAng, ox=Math.cos(a)*p.r, oy=Math.sin(a)*p.r;
-    const push=(ang,spd,life,dmg,col,ww,hh,pierce,glow)=>this.shots.push({x:p.x+ox,y:p.y+oy,vx:Math.cos(ang)*spd,vy:Math.sin(ang)*spd,life,dmg,col,w:ww,hh,pierce,glow,hitObjs:pierce?new Set():null});
+    const push=(ang,spd,life,dmg,col,ww,hh,pierce,glow)=>{ const vx=Math.cos(ang)*spd,vy=Math.sin(ang)*spd; this.shots.push({x:p.x+ox,y:p.y+oy,vx,vy,life,dmg,col,w:ww,hh,pierce,glow,hitObjs:pierce?new Set():null}); this.netBuf(p.x+ox,p.y+oy,vx,vy,col,ww,hh,life); };
     if(w.fn==="shotgun"){ for(let k=-2;k<=2;k++) push(a+k*0.13,480,0.45,w.dmg,"#ffb03b",10,4,false,false); }
     else if(w.fn==="flame"){ for(let k=0;k<3;k++) push(a+(Math.random()-0.5)*0.5,300,0.28,w.dmg,"#ff7a1a",13,9,true,true); }
     else if(w.fn==="sniper"){ push(a,950,1.4,w.dmg,"#38e1ff",26,4,true,true); }
@@ -4545,6 +4545,7 @@ const Monster={
   },
   spawnBoss(){ if(this.people.some(m=>m.boss)) return; const ang=Math.random()*6.283, dist=Math.max(this.W,this.H)*0.7; let x=this.p.x+Math.cos(ang)*dist, y=this.p.y+Math.sin(ang)*dist; x=Math.max(50,Math.min(this.worldW-50,x)); y=Math.max(50,Math.min(this.worldH-50,y)); const bhp=this.cfg.bossHp*this.level; this.people.push({ nid:this._nid++, x,y,vx:0,vy:0, r:52, hp:bhp, maxHp:bhp, spd:50, hitT:0, legPhase:0, col:"#b23a6a", boss:true }); },
   poof(x,y,boss){ const cols=["#ffd23f","#38e1ff","#ff8cc6","#8cff6a","#c58cff","#ffa640"], n=boss?26:12; for(let k=0;k<n;k++) this.parts.push({x,y,vx:(Math.random()-0.5)*(boss?320:240),vy:(Math.random()-0.5)*(boss?320:240),life:boss?0.8:0.55,col:cols[k%cols.length]}); },
+  netBuf(x,y,vx,vy,col,ww,hh,life){ if(typeof MonNet!=="undefined"&&MonNet.online&&this._shotBuf.length<24) this._shotBuf.push({x:Math.round(x),y:Math.round(y),vx:Math.round(vx),vy:Math.round(vy),c:col,w:ww,h:hh,l:life}); },
   levelUp(){ this.level++; this.levelKills=0; this.p.hp=this.p.maxHp; this.spawnBoss(); this.flash="🎉 ¡NIVEL "+this.level+"!"; this.flashT=2.6; },
   drawPeer(c,x,y,pe){ const R=16, ang=pe.aimAng||0; c.save(); c.translate(x,y);
     c.strokeStyle="#222"; c.lineWidth=5; c.lineCap="round"; c.beginPath(); c.moveTo(0,0); c.lineTo(Math.cos(ang)*R*1.6,Math.sin(ang)*R*1.6); c.stroke();
@@ -4601,10 +4602,14 @@ const Monster={
       if(p.dmgCd>0) p.dmgCd-=dt;
       for(const m of this.people){ const dd=Math.hypot(p.x-m.x,p.y-m.y)||1; if(dd<nd){nd=dd;near=m;} if(dd<p.r+m.r && p.dmgCd<=0){ p.hp-=(m.boss?22:10); p.dmgCd=0.5; this.shake=6; if(p.hp<=0){ this.gameOver(); return; } } }
     } else {
-      for(let i=this.people.length-1;i>=0;i--){ const m=this.people[i]; const ddx=p.x-m.x,ddy=p.y-m.y,dd=Math.hypot(ddx,ddy)||1;
-        m.vx=ddx/dd*m.spd; m.vy=ddy/dd*m.spd; m.legPhase+=dt*10;
+      for(let i=this.people.length-1;i>=0;i--){ const m=this.people[i];
+        // perseguir al jugador MÁS CERCANO (tú o cualquier amigo conectado)
+        let tx=p.x,ty=p.y,td=Math.hypot(p.x-m.x,p.y-m.y);
+        if(net){ for(const k in MonNet.peers){ const pe=MonNet.peers[k]; const d=Math.hypot(pe.x-m.x,pe.y-m.y); if(d<td){ td=d; tx=pe.x; ty=pe.y; } } }
+        const mvx=tx-m.x,mvy=ty-m.y,md=Math.hypot(mvx,mvy)||1; m.vx=mvx/md*m.spd; m.vy=mvy/md*m.spd; m.legPhase+=dt*10;
         m.x=Math.max(10,Math.min(this.worldW-10,m.x+m.vx*dt)); m.y=Math.max(10,Math.min(this.worldH-10,m.y+m.vy*dt));
         this.resolveHouses(m);
+        const ddx=p.x-m.x,ddy=p.y-m.y,dd=Math.hypot(ddx,ddy)||1;
         if(m.hitT>0) m.hitT-=dt;
         if(dd<p.r+m.r && m.hitT<=0){ p.hp-=(m.boss?22:10); m.hitT=0.7; this.shake=6; if(p.hp<=0){ this.gameOver(); return; } }
         if(dd<nd){ nd=dd; near=m; }
@@ -4617,7 +4622,7 @@ const Monster={
       if(d>4){ mt.x+=ax/d*Math.min(230,d*4)*dt; mt.y+=ay/d*Math.min(230,d*4)*dt; }
       let mn=null,mnd=1e9; for(const mo of this.people){ const dd=Math.hypot(mo.x-mt.x,mo.y-mt.y); if(dd<mnd){ mnd=dd; mn=mo; } }
       mt.fireT-=dt;
-      if(mn&&mnd<520){ mt.aimAng=Math.atan2(mn.y-mt.y,mn.x-mt.x); if(mt.fireT<=0){ mt.fireT=0.6; this.shots.push({x:mt.x+Math.cos(mt.aimAng)*14,y:mt.y+Math.sin(mt.aimAng)*14,vx:Math.cos(mt.aimAng)*540,vy:Math.sin(mt.aimAng)*540,life:0.8,dmg:1}); } }
+      if(mn&&mnd<520){ mt.aimAng=Math.atan2(mn.y-mt.y,mn.x-mt.x); if(mt.fireT<=0){ mt.fireT=0.6; const sx=mt.x+Math.cos(mt.aimAng)*14,sy=mt.y+Math.sin(mt.aimAng)*14,svx=Math.cos(mt.aimAng)*540,svy=Math.sin(mt.aimAng)*540; this.shots.push({x:sx,y:sy,vx:svx,vy:svy,life:0.8,dmg:1,col:"#ff3b3b"}); this.netBuf(sx,sy,svx,svy,"#ff3b3b",14,5,0.8); } }
     }
     // soldado: apunta (al mouse o al monstruo más cercano) y dispara solo
     const gp=this.getPad();
@@ -4632,7 +4637,7 @@ const Monster={
     this.scope=!!scopeHeld;
     p.fireT-=dt; if(p.powCd>0) p.powCd-=dt;
     if(scopeHeld){   // en MIRA: con el gatillo sale el disparo POTENTE (cada 0.5s), atraviesa
-      if(fireHeld && p.powCd<=0){ p.powCd=0.5; this.shake=Math.max(this.shake,6); this.shots.push({x:p.x+Math.cos(p.aimAng)*p.r,y:p.y+Math.sin(p.aimAng)*p.r,vx:Math.cos(p.aimAng)*820,vy:Math.sin(p.aimAng)*820,life:1.1,dmg:14,pierce:true,col:"#38e1ff",w:26,hh:8,glow:true,hitObjs:new Set()}); }
+      if(fireHeld && p.powCd<=0){ p.powCd=0.5; this.shake=Math.max(this.shake,6); const bx=p.x+Math.cos(p.aimAng)*p.r,by=p.y+Math.sin(p.aimAng)*p.r,bvx=Math.cos(p.aimAng)*820,bvy=Math.sin(p.aimAng)*820; this.shots.push({x:bx,y:by,vx:bvx,vy:bvy,life:1.1,dmg:14,pierce:true,col:"#38e1ff",w:26,hh:8,glow:true,hitObjs:new Set()}); this.netBuf(bx,by,bvx,bvy,"#38e1ff",26,8,1.1); }
     } else {          // normal: dispara según el arma equipada
       if(fireHeld && p.fireT<=0){ p.fireT=(WEAPONS[p.weapon]||WEAPONS.pistola).gap; this.fireWeapon(); }
     }
@@ -4649,7 +4654,8 @@ const Monster={
     for(let i=this.parts.length-1;i>=0;i--){ const pa=this.parts[i]; pa.x+=pa.vx*dt; pa.y+=pa.vy*dt; pa.vx*=0.92; pa.vy*=0.92; pa.life-=dt; if(pa.life<=0) this.parts.splice(i,1); }
     if(this.shake>0) this.shake-=dt*30;
     if(this.flashT>0) this.flashT-=dt;
-    if(net){ MonNet.sendSt(p); MonNet.prune(); if(MonNet.host) MonNet.sendSnap(this.people,this.level,this.levelKills); }
+    if(net){ for(let i=this.netShots.length-1;i>=0;i--){ const s=this.netShots[i]; s.x+=s.vx*dt; s.y+=s.vy*dt; s.l-=dt; if(s.l<=0) this.netShots.splice(i,1); }
+      MonNet.sendSt(p,this.mates,this._shotBuf); this._shotBuf=[]; MonNet.prune(); if(MonNet.host) MonNet.sendSnap(this.people,this.level,this.levelKills); }
     this.updateHud();
   },
   kill(m,i){ this.blood.push({x:m.x,y:m.y,r:9+Math.random()*10,col:"rgba(255,255,255,0.18)"}); if(this.blood.length>400) this.blood.shift();   // marca "poof" (polvo), sin sangre
@@ -4692,7 +4698,12 @@ const Monster={
     for(const st of this.stars){ this.drawStar(c,st.x-camx,st.y-camy,14,Math.sin(st.ph*3)*0.3); }
     for(const m of this.people){ const sx=m.x-camx,sy=m.y-camy; if(sx<-20||sx>W+20||sy<-20||sy>H+20) continue; this.drawPerson(c,sx,sy,m); }
     for(const mt of this.mates){ this.drawMate(c,mt.x-camx,mt.y-camy,mt); }
-    if(typeof MonNet!=="undefined" && MonNet.online){ for(const k in MonNet.peers){ const pe=MonNet.peers[k]; const sx=pe.x-camx, sy=pe.y-camy; if(sx<-40||sx>W+40||sy<-40||sy>H+40) continue; this.drawPeer(c,sx,sy,pe); } }
+    if(typeof MonNet!=="undefined" && MonNet.online){
+      for(const s of this.netShots){ const sx=s.x-camx,sy=s.y-camy, ww=s.w||14, hh=s.h||5; if(sx<-30||sx>W+30||sy<-30||sy>H+30) continue; c.save(); c.translate(sx,sy); c.rotate(Math.atan2(s.vy,s.vx)); c.fillStyle=s.c||"#ff3b3b"; c.fillRect(-ww/2,-hh/2,ww,hh); c.restore(); }
+      for(const k in MonNet.peers){ const pe=MonNet.peers[k]; const sx=pe.x-camx, sy=pe.y-camy;
+        if(pe.mates) for(const mt of pe.mates){ const mx=mt.x-camx,my=mt.y-camy; if(mx<-30||mx>W+30||my<-30||my>H+30) continue; c.save(); c.translate(mx,my); c.fillStyle="#4a7dc0"; c.beginPath(); c.arc(0,0,12,0,6.283); c.fill(); c.fillStyle="#2f4d7a"; c.beginPath(); c.arc(0,0,8,0,6.283); c.fill(); c.restore(); }
+        if(sx<-40||sx>W+40||sy<-40||sy>H+40) continue; this.drawPeer(c,sx,sy,pe); }
+    }
     for(const s of this.shots){ const sx=s.x-camx,sy=s.y-camy, ww=s.w||14, hh=s.hh||5; c.save(); c.translate(sx,sy); c.rotate(Math.atan2(s.vy,s.vx)); c.fillStyle=s.col||"#ff3b3b"; if(s.glow){ c.shadowColor=s.col||"#fff"; c.shadowBlur=10; } c.fillRect(-ww/2,-hh/2,ww,hh); c.shadowBlur=0; c.restore(); }
     this.drawSoldier(c,this.p.x-camx,this.p.y-camy);
     for(const pa of this.parts){ c.globalAlpha=Math.max(0,pa.life*2); c.fillStyle=pa.col; c.fillRect(pa.x-camx-2,pa.y-camy-2,4,4); } c.globalAlpha=1;
@@ -4733,7 +4744,7 @@ const MonNet={
     this.leave(true); this.ensureId(); this.peers={}; this.snap=null; this._pendingHits=[];
     try{
       const ch=Cloud.sb.channel("mon:"+this.ROOM,{config:{broadcast:{self:false},presence:{key:this.id}}});
-      ch.on("broadcast",{event:"st"},({payload})=>{ if(payload&&payload.id!==this.id){ payload.t=performance.now(); this.peers[payload.id]=payload; } });
+      ch.on("broadcast",{event:"st"},({payload})=>{ if(payload&&payload.id!==this.id){ payload.t=performance.now(); this.peers[payload.id]=payload; if(payload.shots && typeof Monster!=="undefined"){ for(const s of payload.shots){ if(Monster.netShots.length<400) Monster.netShots.push({x:s.x,y:s.y,vx:s.vx,vy:s.vy,c:s.c,w:s.w,h:s.h,l:s.l}); } } } });
       ch.on("broadcast",{event:"snap"},({payload})=>{ if(!this.host && payload) this.snap=payload; });
       ch.on("broadcast",{event:"hit"},({payload})=>{ if(this.host && payload) this._pendingHits.push(payload); });
       ch.on("presence",{event:"sync"},()=>this.recalc());
@@ -4746,8 +4757,9 @@ const MonNet={
     if(!ids.length) ids=[this.id]; ids.sort(); this.host=(ids[0]===this.id);
     this.status("🟢 En línea · 👥 <b>"+ids.length+"</b> jugando juntos<br><span style='opacity:.8'>"+(this.host?"🕹️ Eres el anfitrión (tú generas los monstruos)":"🔗 Monstruos del anfitrión")+"</span>"); },
   leave(silent){ if(this.ch){ try{ Cloud.sb.removeChannel(this.ch); }catch(_){} this.ch=null; } this.online=false; this.host=false; this.peers={}; this.snap=null; this._pendingHits=[]; if(!silent){ const b=$("monOnlineBtn"); if(b) b.textContent="🌐 JUGAR ONLINE (con todos)"; this.status("👇 Toca para jugar con todos en la misma ciudad"); } },
-  sendSt(p){ if(!this.ch||!this.online) return; const now=performance.now(); if(now-this._lastSt<90) return; this._lastSt=now;
-    try{ this.ch.send({type:"broadcast",event:"st",payload:{id:this.id,name:this.name,x:Math.round(p.x),y:Math.round(p.y),aimAng:+p.aimAng.toFixed(2),weapon:p.weapon}}); }catch(_){} },
+  sendSt(p,mates,shots){ if(!this.ch||!this.online) return; const now=performance.now(); if(now-this._lastSt<90) return; this._lastSt=now;
+    const mt=(mates||[]).map(m=>({x:Math.round(m.x),y:Math.round(m.y),a:+ (m.aimAng||0).toFixed(2)}));
+    try{ this.ch.send({type:"broadcast",event:"st",payload:{id:this.id,name:this.name,x:Math.round(p.x),y:Math.round(p.y),aimAng:+p.aimAng.toFixed(2),weapon:p.weapon,mates:mt,shots:(shots&&shots.length?shots:undefined)}}); }catch(_){} },
   sendSnap(people,level,levelKills){ if(!this.ch||!this.online||!this.host) return; const now=performance.now(); if(now-this._lastSnap<130) return; this._lastSnap=now;
     const mons=[]; for(const m of people){ mons.push({i:m.nid,x:Math.round(m.x),y:Math.round(m.y),hp:Math.ceil(m.hp),r:m.r,b:m.boss?1:0,c:m.col}); }
     try{ this.ch.send({type:"broadcast",event:"snap",payload:{mons,level,levelKills}}); }catch(_){} },
