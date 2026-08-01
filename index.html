@@ -586,7 +586,7 @@
     <div class="lnd-logo mono">⬡ EDTU ⬡</div>
     <h1 class="glow" style="margin:0;font-size:clamp(40px,9vw,72px);letter-spacing:.08em">EDTU</h1>
     <p class="mono" style="margin:2px 0 22px;color:var(--cyan);font-size:11px;letter-spacing:.28em">JUGAR · CREAR · EXPLORAR</p>
-    <button class="btn btn-primary lnd-btn" id="lndPlay">🎮 JUGAR DESTINYTI SURVIVE</button>
+    <button class="btn btn-primary lnd-btn" id="lndPlay">🎮 JUGAR SWARM</button>
     <button class="btn btn-ghost lnd-btn" id="lndLogin">🔒 INICIAR SESIÓN</button>
     <div class="mono" style="font-size:10px;opacity:.45;margin-top:20px">www.edtu.cl</div>
   </div>
@@ -1083,7 +1083,7 @@
     <h2 style="margin:0 0 4px;letter-spacing:.12em;color:#19ff85">🎮 ELIGE UN JUEGO</h2>
     <button class="btn btn-primary" id="pickRush" style="font-size:17px;padding:14px 20px">🚀 EDTU RUSH</button>
     <button class="btn btn-primary" id="pickFoot" style="font-size:17px;padding:14px 20px">⚽ THE FOOTBALL RUSH</button>
-    <button class="btn btn-primary" id="pickMon" style="font-size:17px;padding:14px 20px">👾 DESTINYTI SURVIVE</button>
+    <button class="btn btn-primary" id="pickMon" style="font-size:17px;padding:14px 20px">👾 SWARM</button>
     <button class="btn btn-ghost btn-sm" id="pickClose">Cerrar</button>
   </div>
 </div>
@@ -1136,7 +1136,7 @@
   </div>
   <div id="monEnd"></div>
   <div id="monOverlay" class="game-overlay">
-    <div id="monMsg">👾 DESTINYTI SURVIVE</div>
+    <div id="monMsg">👾 SWARM</div>
     <div id="monResult" style="font-size:15px"></div>
     <div class="game-cfg"><span>Vida MEGA</span>
       <button class="gc-opt" data-mboss="1000">1.000</button>
@@ -4533,7 +4533,7 @@ const Monster={
     this.cv=$("monCanvas"); this.c=this.cv.getContext("2d");
     this.resize(); this._onResize=()=>this.resize(); window.addEventListener("resize",this._onResize);
     this.bindInput();
-    $("monOverlay").style.display="flex"; $("monMsg").textContent="👾 DESTINYTI SURVIVE"; $("monResult").textContent=""; $("monStart").textContent="▶ JUGAR";
+    $("monOverlay").style.display="flex"; $("monMsg").textContent="👾 SWARM"; $("monResult").textContent=""; $("monStart").textContent="▶ JUGAR";
     $("monHud").innerHTML="";
     this.allFree = !!currentUser;   // David logueado = todo desbloqueado
     const en=$("monEnd"); if(en) en.style.display="none";
@@ -4641,7 +4641,7 @@ const Monster={
   win(){ this.running=false; $("monOverlay").style.display="flex"; $("monMsg").innerHTML="🏆 ¡SALVASTE "+((PLANETS[this.planet]||PLANETS.tierra).name)+"!"; $("monResult").innerHTML="🚀 Tus monitos suben al cohete… <b>¡elige el próximo planeta</b> abajo 🌍🔴🔵🪐☀️ y despega! ("+this.p.kills+" 💥)"; $("monStart").textContent="🚀 DESPEGAR AL PLANETA"; },
   holeWin(){ this.running=false; if(this.raf){ cancelAnimationFrame(this.raf); this.raf=null; } if(typeof MonNet!=="undefined") MonNet.leave();
     const el=$("monEnd"); if(!el) return; el.style.display="flex";
-    el.innerHTML="<div class='end-in'><div class='end-title'>DESTINYTI SURVIVE</div><div class='end-cred'>Un juego creado por <b>David</b> 🌌<br>EDTU · Espías De Tecnología Universal<br><span style='opacity:.7'>www.edtu.cl</span></div></div>";
+    el.innerHTML="<div class='end-in'><div class='end-title'>SWARM</div><div class='end-cred'>Un juego creado por <b>David</b> 🌌<br>EDTU · Espías De Tecnología Universal<br><span style='opacity:.7'>www.edtu.cl</span></div></div>";
     setTimeout(()=>{ el.innerHTML="<div class='end-in'><div class='end-honor'>UN HONOR PELEAR A TU LADO</div></div>"; }, 5000);
     setTimeout(()=>{ el.innerHTML="<div class='end-in'><div class='end-title'>🏆 JUEGO COMPLETADO</div><div class='end-cred'>Venciste al Agujero Negro 🕳️👑</div><button class='btn btn-primary' id='monEndClose' style='margin-top:22px;font-size:16px;padding:12px 26px'>▶ VOLVER</button></div>"; const b=$("monEndClose"); if(b) b.onclick=()=>{ el.style.display="none"; Monster.close(); }; }, 6100);
   },
