@@ -4728,7 +4728,7 @@ const MonNet={
     }catch(e){ this.status("✖ "+((e&&e.message)?e.message:e)); }
   },
   updateInfo(){ const e=$("monRoomInfo"); if(!e||!this.room){ return; } let n=1; try{ n=Object.keys(this.ch.presenceState()).length; }catch(_){}
-    e.innerHTML="Sala <b>"+this.room+"</b> · 👥 "+n+" en línea<br><span style='opacity:.7'>Comparte el código y aprieten JUGAR</span>"; },
+    e.innerHTML="🔑 CÓDIGO: <b style='font-size:22px;letter-spacing:.28em;color:#ffd23f'>"+this.room+"</b> · 👥 "+n+"<br><span style='opacity:.75'>Compártelo con tu amigo · luego <b>ambos JUGAR</b></span>"; },
   leave(){ if(this.ch){ try{ this.ch.send({type:"broadcast",event:"bye",payload:{id:this.id}}); }catch(_){} try{ Cloud.sb.removeChannel(this.ch); }catch(_){} this.ch=null; } this.room=null; this.peers={}; const l=$("monLeave"); if(l) l.style.display="none"; const ri=$("monRoomInfo"); if(ri) ri.textContent=""; },
   send(p){ if(!this.ch||!this.room) return; const now=performance.now(); if(now-this._lastSend<90) return; this._lastSend=now;
     try{ this.ch.send({type:"broadcast",event:"st",payload:{id:this.id,name:this.name,x:Math.round(p.x),y:Math.round(p.y),aimAng:+p.aimAng.toFixed(2),weapon:p.weapon,hp:Math.ceil(p.hp),kills:p.kills}}); }catch(_){} },
@@ -4736,7 +4736,9 @@ const MonNet={
 };
 $("monOnlineBtn").onclick=()=>{ const o=$("monOnline"); o.style.display=(o.style.display==="none"||!o.style.display)?"block":"none"; };
 $("monRandom").onclick=()=>MonNet.join("AZAR");
-$("monCreate").onclick=()=>{ const c=MonNet.code(); const inp=$("monCodeInput"); if(inp) inp.value=c; MonNet.join(c); };
+$("monCreate").onclick=()=>{ const c=MonNet.code(); const inp=$("monCodeInput"); if(inp){ inp.value=c; try{ inp.select(); }catch(_){}}
+  const ri=$("monRoomInfo"); if(ri) ri.innerHTML="🔑 CÓDIGO: <b style='font-size:22px;letter-spacing:.28em;color:#ffd23f'>"+c+"</b><br><span style='opacity:.75'>Conectando…</span>";
+  MonNet.join(c); };
 $("monJoin").onclick=()=>{ const c=(($("monCodeInput").value)||"").toUpperCase().replace(/[^A-Z0-9]/g,""); if(c.length>=4) MonNet.join(c); else MonNet.status("Escribe un código válido (ej: ABC12)"); };
 $("monLeave").onclick=()=>{ MonNet.leave(); MonNet.status("Sin conexión"); };
 $("pickMon").onclick=()=>{ $("gamePick").classList.remove("open"); Monster.open(); };
