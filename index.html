@@ -4646,7 +4646,7 @@ const Monster={
     if(pad.buttons[12]&&pad.buttons[12].pressed) y=-1; if(pad.buttons[13]&&pad.buttons[13].pressed) y=1;
     if(Math.abs(x)<0.25&&Math.abs(y)<0.25) return null; return {x,y};
   },
-  loop(t){ if(!this.running){ this.raf=null; return; } const dt=Math.min(0.05,(t-this._last)/1000); this._last=t; this.update(dt); this.draw(); this.raf=requestAnimationFrame(tt=>this.loop(tt)); },
+  loop(t){ if(!this.running){ this.raf=null; return; } const dt=Math.min(0.05,(t-this._last)/1000); this._last=t; try{ this.update(dt); this.draw(); }catch(e){ try{ this.draw(); }catch(_){}} this.raf=requestAnimationFrame(tt=>this.loop(tt)); },
   update(dt){
     if(this.shopping||this.labOpen) return;   // congelado en la tienda / laboratorio
     const p=this.p;
@@ -4761,7 +4761,7 @@ const Monster={
     if(this.planet==="sol"){ if(this.levelKills>=1000000000) this.gameComplete(); }
     else if(this.levelKills>=this.level*this.cfg.goal) this.levelUp();
     this.shake=Math.max(this.shake,3); },
-  updateHud(){ const p=this.p; const hot=this.overheated?"🥵 SOBRECALENTADO":("🌡️ "+Math.round(this.heat)+"/1000"); const wn=(WEAPONS[p.weapon]||WEAPONS.pistola).name; const prog=this.planet==="sol"?("☀️ SOL · "+this.levelKills.toLocaleString("es")+" / 1.000.000.000 🔴"):("🏅 NIVEL "+this.level+"/7 · "+this.levelKills+" / "+(this.level*this.cfg.goal)+" 💥"); $("monHud").innerHTML=prog+"<br>❤️ "+Math.max(0,Math.ceil(p.hp))+" · "+wn+" · 🪙 "+(this.allFree?"∞":this.coins)+" · 👥 "+this.mates.length+" · "+hot; },
+  updateHud(){ const p=this.p; const hot=this.overheated?"🥵 SOBRECALENTADO":("🌡️ "+Math.round(this.heat)+"/1000"); const wn=(WEAPONS[p.weapon]||WEAPONS.pistola).name; const prog=this.planet==="sol"?("☀️ SOL · "+String(this.levelKills).replace(/\B(?=(\d{3})+(?!\d))/g,".")+" / 1.000.000.000 🔴"):("🏅 NIVEL "+this.level+"/7 · "+this.levelKills+" / "+(this.level*this.cfg.goal)+" 💥"); $("monHud").innerHTML=prog+"<br>❤️ "+Math.max(0,Math.ceil(p.hp))+" · "+wn+" · 🪙 "+(this.allFree?"∞":this.coins)+" · 👥 "+this.mates.length+" · "+hot; },
   draw(){
     const c=this.c,W=this.W,H=this.H; let camx=this.cam.x,camy=this.cam.y;
     if(this.shake>0){ camx+=(Math.random()-0.5)*this.shake; camy+=(Math.random()-0.5)*this.shake; }
