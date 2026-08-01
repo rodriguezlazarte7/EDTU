@@ -4505,7 +4505,7 @@ const Monster={
     const lt=gp&&gp.buttons[6]&&(gp.buttons[6].pressed||gp.buttons[6].value>0.3);
     const fireHeld=this.mb0||rt, scopeHeld=this.mb2||lt;
     p.fireT-=dt; if(p.powCd>0) p.powCd-=dt;
-    if(fireHeld && p.fireT<=0){ p.fireT=0.5; this.shots.push({x:p.x+Math.cos(p.aimAng)*p.r,y:p.y+Math.sin(p.aimAng)*p.r,vx:Math.cos(p.aimAng)*560,vy:Math.sin(p.aimAng)*560,life:0.85,dmg:p.dmg}); }
+    if(p.fireT<=0 && (fireHeld||near||ptr||rstick)){ p.fireT=0.5; this.shots.push({x:p.x+Math.cos(p.aimAng)*p.r,y:p.y+Math.sin(p.aimAng)*p.r,vx:Math.cos(p.aimAng)*560,vy:Math.sin(p.aimAng)*560,life:0.85,dmg:p.dmg}); }   // auto-dispara al que esté a tiro (como antes) + gatillos
     this.scope=!!scopeHeld;
     if(scopeHeld && p.powCd<=0){ p.powCd=2; this.shake=Math.max(this.shake,8); this.shots.push({x:p.x+Math.cos(p.aimAng)*p.r,y:p.y+Math.sin(p.aimAng)*p.r,vx:Math.cos(p.aimAng)*780,vy:Math.sin(p.aimAng)*780,life:1.1,dmg:12,pow:true,hitObjs:new Set()}); }
     // balas vs monstruos (las potentes atraviesan varios)
