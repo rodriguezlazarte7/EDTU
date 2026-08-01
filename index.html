@@ -4495,7 +4495,7 @@ const Monster={
   unbindInput(){ window.removeEventListener("keydown",this._kd); window.removeEventListener("keyup",this._ku); window.removeEventListener("mouseup",this._mu); if(this.cv){ this.cv.removeEventListener("mousemove",this._mm); this.cv.removeEventListener("mousedown",this._md); this.cv.removeEventListener("contextmenu",this._ctx); this.cv.removeEventListener("touchstart",this._tm); this.cv.removeEventListener("touchmove",this._tm); this.cv.removeEventListener("touchend",this._te); } },
   start(){
     this.p={ x:this.worldW/2, y:this.worldH/2, vx:0,vy:0, r:16, hp:this.cfg.playerHp, maxHp:this.cfg.playerHp, fireRate:0.30, dmg:1, kills:0, fireT:0, powCd:0, aimAng:0, legPhase:0, weapon:"pistola", dmgCd:0 };
-    this.coins=0; this.owned=new Set(["pistola"]); this.shopping=false; this._inBunker=false; this.bunker={x:1740,y:1140,w:120,h:120}; this._nid=1; this._prevMons=null; this.netShots=[]; this._shotBuf=[];
+    this.coins=0; this.owned=new Set(["pistola"]); this.shopping=false; this._inBunker=false; this.bunker={x:1740,y:1140,w:120,h:120}; this._nid=1; this._prevMons=null; this.netShots=[]; this._shotBuf=[]; this._peerDisp={};
     this.people=[]; this.shots=[]; this.blood=[]; this.stars=[]; this.parts=[];
     this.aim=null; this.pointer=false; this.spawnT=0; this.starT=5; this.shake=0; this.mb0=false; this.mb2=false; this.scope=false;
     this.level=1; this.levelKills=0; this.flash=""; this.flashT=0;
@@ -4595,7 +4595,8 @@ const Monster={
       const snap=MonNet.snap;
       if(snap){ this.level=snap.level; this.levelKills=snap.levelKills;
         const byId={}; for(const m of this.people) byId[m.nid]=m; const now=new Set(), arr=[];
-        for(const s of snap.mons){ now.add(s.i); let m=byId[s.i]; if(!m){ m={nid:s.i,legPhase:Math.random()*6}; } m.x=s.x; m.y=s.y; m.hp=s.hp; m.r=s.r; m.boss=!!s.b; m.col=s.c; if(!m.maxHp) m.maxHp=s.b?this.cfg.bossHp:10; m.legPhase+=dt*8; arr.push(m); }
+        const kk=Math.min(1,dt*10);
+        for(const s of snap.mons){ now.add(s.i); let m=byId[s.i]; if(!m){ m={nid:s.i,legPhase:Math.random()*6,x:s.x,y:s.y}; } m.x+=(s.x-m.x)*kk; m.y+=(s.y-m.y)*kk; m.hp=s.hp; m.r=s.r; m.boss=!!s.b; m.col=s.c; if(!m.maxHp) m.maxHp=s.b?this.cfg.bossHp:10; m.legPhase+=dt*8; arr.push(m); }
         if(this._prevMons){ for(const m of this._prevMons){ if(!now.has(m.nid)) this.poof(m.x,m.y,!!m.boss); } }
         this._prevMons=arr; this.people=arr;
       } else { this.people=[]; }
@@ -4655,6 +4656,10 @@ const Monster={
     if(this.shake>0) this.shake-=dt*30;
     if(this.flashT>0) this.flashT-=dt;
     if(net){ for(let i=this.netShots.length-1;i>=0;i--){ const s=this.netShots[i]; s.x+=s.vx*dt; s.y+=s.vy*dt; s.l-=dt; if(s.l<=0) this.netShots.splice(i,1); }
+      const kp=Math.min(1,dt*9);
+      for(const k in MonNet.peers){ const pe=MonNet.peers[k]; let d=this._peerDisp[k]; if(!d){ d=this._peerDisp[k]={x:pe.x,y:pe.y,mates:[]}; } d.x+=(pe.x-d.x)*kp; d.y+=(pe.y-d.y)*kp;
+        if(pe.mates){ for(let i=0;i<pe.mates.length;i++){ if(!d.mates[i]) d.mates[i]={x:pe.mates[i].x,y:pe.mates[i].y}; d.mates[i].x+=(pe.mates[i].x-d.mates[i].x)*kp; d.mates[i].y+=(pe.mates[i].y-d.mates[i].y)*kp; } d.mates.length=pe.mates.length; } }
+      for(const k in this._peerDisp){ if(!MonNet.peers[k]) delete this._peerDisp[k]; }
       MonNet.sendSt(p,this.mates,this._shotBuf); this._shotBuf=[]; MonNet.prune(); if(MonNet.host) MonNet.sendSnap(this.people,this.level,this.levelKills); }
     this.updateHud();
   },
@@ -4700,8 +4705,9 @@ const Monster={
     for(const mt of this.mates){ this.drawMate(c,mt.x-camx,mt.y-camy,mt); }
     if(typeof MonNet!=="undefined" && MonNet.online){
       for(const s of this.netShots){ const sx=s.x-camx,sy=s.y-camy, ww=s.w||14, hh=s.h||5; if(sx<-30||sx>W+30||sy<-30||sy>H+30) continue; c.save(); c.translate(sx,sy); c.rotate(Math.atan2(s.vy,s.vx)); c.fillStyle=s.c||"#ff3b3b"; c.fillRect(-ww/2,-hh/2,ww,hh); c.restore(); }
-      for(const k in MonNet.peers){ const pe=MonNet.peers[k]; const sx=pe.x-camx, sy=pe.y-camy;
-        if(pe.mates) for(const mt of pe.mates){ const mx=mt.x-camx,my=mt.y-camy; if(mx<-30||mx>W+30||my<-30||my>H+30) continue; c.save(); c.translate(mx,my); c.fillStyle="#4a7dc0"; c.beginPath(); c.arc(0,0,12,0,6.283); c.fill(); c.fillStyle="#2f4d7a"; c.beginPath(); c.arc(0,0,8,0,6.283); c.fill(); c.restore(); }
+      for(const k in MonNet.peers){ const pe=MonNet.peers[k]; const d=this._peerDisp[k]; const px=d?d.x:pe.x, py=d?d.y:pe.y; const sx=px-camx, sy=py-camy;
+        const mts=(d&&d.mates)?d.mates:pe.mates;
+        if(mts) for(const mt of mts){ const mx=mt.x-camx,my=mt.y-camy; if(mx<-30||mx>W+30||my<-30||my>H+30) continue; c.save(); c.translate(mx,my); c.fillStyle="#4a7dc0"; c.beginPath(); c.arc(0,0,12,0,6.283); c.fill(); c.fillStyle="#2f4d7a"; c.beginPath(); c.arc(0,0,8,0,6.283); c.fill(); c.restore(); }
         if(sx<-40||sx>W+40||sy<-40||sy>H+40) continue; this.drawPeer(c,sx,sy,pe); }
     }
     for(const s of this.shots){ const sx=s.x-camx,sy=s.y-camy, ww=s.w||14, hh=s.hh||5; c.save(); c.translate(sx,sy); c.rotate(Math.atan2(s.vy,s.vx)); c.fillStyle=s.col||"#ff3b3b"; if(s.glow){ c.shadowColor=s.col||"#fff"; c.shadowBlur=10; } c.fillRect(-ww/2,-hh/2,ww,hh); c.shadowBlur=0; c.restore(); }
