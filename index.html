@@ -4646,7 +4646,7 @@ const Monster={
     if(pad.buttons[12]&&pad.buttons[12].pressed) y=-1; if(pad.buttons[13]&&pad.buttons[13].pressed) y=1;
     if(Math.abs(x)<0.25&&Math.abs(y)<0.25) return null; return {x,y};
   },
-  loop(t){ if(!this.running){ this.raf=null; return; } const dt=Math.min(0.05,(t-this._last)/1000); this._last=t; try{ this.update(dt); this.draw(); }catch(e){ try{ this.draw(); }catch(_){}} this.raf=requestAnimationFrame(tt=>this.loop(tt)); },
+  loop(t){ if(!this.running){ this.raf=null; return; } const dt=Math.min(0.05,(t-this._last)/1000); this._last=t; try{ this.update(dt); }catch(e){ this._err=(e&&e.message)?e.message:(""+e); } try{ this.draw(); }catch(e2){ this._err="DRAW: "+((e2&&e2.message)?e2.message:e2); } this.raf=requestAnimationFrame(tt=>this.loop(tt)); },
   update(dt){
     if(this.shopping||this.labOpen) return;   // congelado en la tienda / laboratorio
     const p=this.p;
@@ -4818,6 +4818,7 @@ const Monster={
       c.strokeStyle="rgba(56,225,255,0.9)"; c.lineWidth=2; c.beginPath(); c.moveTo(px+Math.cos(this.p.aimAng)*20,py+Math.sin(this.p.aimAng)*20); c.lineTo(px+Math.cos(this.p.aimAng)*rad,py+Math.sin(this.p.aimAng)*rad); c.stroke();   // línea de mira
     }
     if(this.flashT>0){ c.save(); c.globalAlpha=Math.min(1,this.flashT); c.fillStyle="#ffd23f"; c.font="bold 48px system-ui,sans-serif"; c.textAlign="center"; c.shadowColor="#000"; c.shadowBlur=10; c.fillText(this.flash,W/2,H/2); c.restore(); }
+    if(this._err){ c.save(); c.fillStyle="rgba(0,0,0,.7)"; c.fillRect(8,54,Math.min(W-16,560),30); c.fillStyle="#ff6b6b"; c.font="bold 14px system-ui,sans-serif"; c.textAlign="left"; c.fillText("⚠ ERR: "+this._err, 16, 74); c.restore(); }
   },
   drawPerson(c,x,y,m){ c.save(); c.translate(x,y); const legs=m.boss?10:6, er=m.r*0.16;
     c.strokeStyle=m.col; c.lineWidth=Math.max(2,m.r*0.2); c.lineCap="round";
