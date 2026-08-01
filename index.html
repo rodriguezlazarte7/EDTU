@@ -1138,6 +1138,14 @@
       <button class="gc-opt" data-mhp="150">150</button>
       <button class="gc-opt sel" data-mhp="300">300</button>
       <button class="gc-opt" data-mhp="600">600</button></div>
+    <button class="btn btn-ghost" id="monOnlineBtn" style="margin-top:2px">🌐 JUGAR ONLINE</button>
+    <div id="monOnline" style="display:none;width:min(360px,92vw)">
+      <div id="monNetStatus" style="font-size:12px;color:#8fdcc0;margin-bottom:4px">Sin conexión</div>
+      <div class="game-cfg"><button class="gc-opt" id="monRandom">🎲 Al azar</button><button class="gc-opt" id="monCreate">🔑 Crear sala</button></div>
+      <div class="game-cfg"><input id="monCodeInput" placeholder="CÓDIGO" maxlength="5" style="text-transform:uppercase;width:110px;text-align:center;font-weight:800;letter-spacing:.2em;border-radius:12px;border:1px solid rgba(25,255,133,.3);background:rgba(255,255,255,.06);color:#fff;padding:6px;font-family:inherit"><button class="gc-opt" id="monJoin">Unirse</button></div>
+      <div id="monRoomInfo" style="font-size:12px;color:#cdd6ff;min-height:16px"></div>
+      <button class="gc-opt" id="monLeave" style="display:none">❌ Salir de la sala</button>
+    </div>
     <button class="btn btn-primary" id="monStart" style="font-size:17px;padding:12px 28px">▶ JUGAR</button>
     <div style="font-size:12px;color:#cdd6ff;max-width:460px;line-height:1.6">
       🪖 Eres un <b>soldado</b> con <b>escuadrón</b>. Muévete con <b>flechas</b> / <b>WASD</b> / <b>stick L</b>. Apunta con el <b>mouse</b> o el <b>stick R</b>.<br>
@@ -4472,7 +4480,7 @@ const Monster={
     $("monHud").innerHTML="";
     this.allFree = !!currentUser;   // David logueado = todo desbloqueado
   },
-  close(){ this.running=false; if(this.raf){ cancelAnimationFrame(this.raf); this.raf=null; } window.removeEventListener("resize",this._onResize); this.unbindInput(); $("monFs").classList.remove("open"); if(this._fromLanding){ this._fromLanding=false; if(!currentUser) $("landing").style.display="flex"; } },
+  close(){ this.running=false; if(this.raf){ cancelAnimationFrame(this.raf); this.raf=null; } window.removeEventListener("resize",this._onResize); this.unbindInput(); if(typeof MonNet!=="undefined") MonNet.leave(); $("monFs").classList.remove("open"); if(this._fromLanding){ this._fromLanding=false; if(!currentUser) $("landing").style.display="flex"; } },
   resize(){ const d=Math.min(devicePixelRatio||1,2); this.W=innerWidth; this.H=innerHeight; this.cv.width=this.W*d; this.cv.height=this.H*d; this.cv.style.width=this.W+"px"; this.cv.style.height=this.H+"px"; this.c.setTransform(d,0,0,d,0,0); },
   bindInput(){
     this._kd=e=>{ this.keys[e.key.toLowerCase()]=true; };
@@ -4541,6 +4549,12 @@ const Monster={
   },
   spawnBoss(){ if(this.people.some(m=>m.boss)) return; const ang=Math.random()*6.283, dist=Math.max(this.W,this.H)*0.7; let x=this.p.x+Math.cos(ang)*dist, y=this.p.y+Math.sin(ang)*dist; x=Math.max(50,Math.min(this.worldW-50,x)); y=Math.max(50,Math.min(this.worldH-50,y)); const bhp=this.cfg.bossHp*this.level; this.people.push({ x,y,vx:0,vy:0, r:52, hp:bhp, maxHp:bhp, spd:50, hitT:0, legPhase:0, col:"#b23a6a", boss:true }); },
   levelUp(){ this.level++; this.levelKills=0; this.p.hp=this.p.maxHp; this.spawnBoss(); this.flash="🎉 ¡NIVEL "+this.level+"!"; this.flashT=2.6; },
+  drawPeer(c,x,y,pe){ const R=16, ang=pe.aimAng||0; c.save(); c.translate(x,y);
+    c.strokeStyle="#222"; c.lineWidth=5; c.lineCap="round"; c.beginPath(); c.moveTo(0,0); c.lineTo(Math.cos(ang)*R*1.6,Math.sin(ang)*R*1.6); c.stroke();
+    c.fillStyle="#c0864a"; c.beginPath(); c.arc(0,0,R,0,6.283); c.fill();
+    c.fillStyle="#8a5f30"; c.beginPath(); c.arc(0,0,R*0.66,0,6.283); c.fill();
+    c.fillStyle="#ffd23f"; c.font="bold 11px system-ui,sans-serif"; c.textAlign="center"; c.fillText("🌐 "+(pe.name||"?"),0,-R-7); c.textAlign="left";
+    c.restore(); },
   drawMate(c,x,y,mt){ const R=13, ang=mt.aimAng||0; c.save(); c.translate(x,y);
     c.strokeStyle="#222"; c.lineWidth=5; c.lineCap="round"; c.beginPath(); c.moveTo(0,0); c.lineTo(Math.cos(ang)*R*1.6,Math.sin(ang)*R*1.6); c.stroke();
     c.fillStyle="#4a7dc0"; c.beginPath(); c.arc(0,0,R,0,6.283); c.fill();
@@ -4622,6 +4636,7 @@ const Monster={
     for(let i=this.parts.length-1;i>=0;i--){ const pa=this.parts[i]; pa.x+=pa.vx*dt; pa.y+=pa.vy*dt; pa.vx*=0.92; pa.vy*=0.92; pa.life-=dt; if(pa.life<=0) this.parts.splice(i,1); }
     if(this.shake>0) this.shake-=dt*30;
     if(this.flashT>0) this.flashT-=dt;
+    if(typeof MonNet!=="undefined" && MonNet.room){ MonNet.send(p); MonNet.prune(); }
     this.updateHud();
   },
   kill(m,i){ this.blood.push({x:m.x,y:m.y,r:9+Math.random()*10,col:"rgba(255,255,255,0.18)"}); if(this.blood.length>400) this.blood.shift();   // marca "poof" (polvo), sin sangre
@@ -4664,6 +4679,7 @@ const Monster={
     for(const st of this.stars){ this.drawStar(c,st.x-camx,st.y-camy,14,Math.sin(st.ph*3)*0.3); }
     for(const m of this.people){ const sx=m.x-camx,sy=m.y-camy; if(sx<-20||sx>W+20||sy<-20||sy>H+20) continue; this.drawPerson(c,sx,sy,m); }
     for(const mt of this.mates){ this.drawMate(c,mt.x-camx,mt.y-camy,mt); }
+    if(typeof MonNet!=="undefined" && MonNet.room){ for(const k in MonNet.peers){ const pe=MonNet.peers[k]; const sx=pe.x-camx, sy=pe.y-camy; if(sx<-40||sx>W+40||sy<-40||sy>H+40) continue; this.drawPeer(c,sx,sy,pe); } }
     for(const s of this.shots){ const sx=s.x-camx,sy=s.y-camy, ww=s.w||14, hh=s.hh||5; c.save(); c.translate(sx,sy); c.rotate(Math.atan2(s.vy,s.vx)); c.fillStyle=s.col||"#ff3b3b"; if(s.glow){ c.shadowColor=s.col||"#fff"; c.shadowBlur=10; } c.fillRect(-ww/2,-hh/2,ww,hh); c.shadowBlur=0; c.restore(); }
     this.drawSoldier(c,this.p.x-camx,this.p.y-camy);
     for(const pa of this.parts){ c.globalAlpha=Math.max(0,pa.life*2); c.fillStyle=pa.col; c.fillRect(pa.x-camx-2,pa.y-camy-2,4,4); } c.globalAlpha=1;
@@ -4691,6 +4707,38 @@ const Monster={
     c.restore(); },
   drawStar(c,x,y,r,rot){ c.save(); c.translate(x,y); c.rotate(rot); c.fillStyle="#ffd23f"; c.strokeStyle="#a97b00"; c.lineWidth=2; c.beginPath(); for(let i=0;i<10;i++){ const a=i/10*6.283-1.57, rr=i%2?r*0.45:r; c.lineTo(Math.cos(a)*rr,Math.sin(a)*rr); } c.closePath(); c.fill(); c.stroke(); c.restore(); }
 };
+/* ============ EDTU MONSTER · ONLINE (Supabase Realtime, beta) ============ */
+const MonNet={
+  room:null, ch:null, id:null, name:"Invitado", peers:{}, _lastSend:0,
+  code(){ const c="ABCDEFGHJKLMNPQRSTUVWXYZ23456789"; let s=""; for(let i=0;i<5;i++) s+=c[Math.floor(Math.random()*c.length)]; return s; },
+  ensureId(){ if(!this.id) this.id="p"+Math.floor(Math.random()*1e9).toString(36); this.name=(typeof currentUser!=="undefined"&&currentUser&&typeof currentDisplayName==="function")?currentDisplayName():"Invitado"; },
+  status(m){ const e=$("monNetStatus"); if(e) e.textContent=m; },
+  join(room){
+    if(!Cloud.enabled){ this.status("⚠ El online necesita conexión a la nube (Supabase)"); return; }
+    if(!room){ return; }
+    this.leave(); this.ensureId(); this.room=room; this.peers={};
+    try{
+      const ch=Cloud.sb.channel("mon:"+room,{config:{broadcast:{self:false},presence:{key:this.id}}});
+      ch.on("broadcast",{event:"st"},({payload})=>{ if(payload&&payload.id!==this.id){ payload.t=performance.now(); this.peers[payload.id]=payload; } });
+      ch.on("broadcast",{event:"bye"},({payload})=>{ if(payload&&payload.id) delete this.peers[payload.id]; });
+      ch.on("presence",{event:"sync"},()=>this.updateInfo());
+      ch.subscribe(async s=>{ if(s==="SUBSCRIBED"){ try{ await ch.track({name:this.name}); }catch(e){} this.status("🟢 En sala "+room); this.updateInfo(); } });
+      this.ch=ch; const l=$("monLeave"); if(l) l.style.display="";
+      this.updateInfo();
+    }catch(e){ this.status("✖ "+((e&&e.message)?e.message:e)); }
+  },
+  updateInfo(){ const e=$("monRoomInfo"); if(!e||!this.room){ return; } let n=1; try{ n=Object.keys(this.ch.presenceState()).length; }catch(_){}
+    e.innerHTML="Sala <b>"+this.room+"</b> · 👥 "+n+" en línea<br><span style='opacity:.7'>Comparte el código y aprieten JUGAR</span>"; },
+  leave(){ if(this.ch){ try{ this.ch.send({type:"broadcast",event:"bye",payload:{id:this.id}}); }catch(_){} try{ Cloud.sb.removeChannel(this.ch); }catch(_){} this.ch=null; } this.room=null; this.peers={}; const l=$("monLeave"); if(l) l.style.display="none"; const ri=$("monRoomInfo"); if(ri) ri.textContent=""; },
+  send(p){ if(!this.ch||!this.room) return; const now=performance.now(); if(now-this._lastSend<90) return; this._lastSend=now;
+    try{ this.ch.send({type:"broadcast",event:"st",payload:{id:this.id,name:this.name,x:Math.round(p.x),y:Math.round(p.y),aimAng:+p.aimAng.toFixed(2),weapon:p.weapon,hp:Math.ceil(p.hp),kills:p.kills}}); }catch(_){} },
+  prune(){ const now=performance.now(); for(const k in this.peers){ if(now-(this.peers[k].t||0)>3500) delete this.peers[k]; } }
+};
+$("monOnlineBtn").onclick=()=>{ const o=$("monOnline"); o.style.display=(o.style.display==="none"||!o.style.display)?"block":"none"; };
+$("monRandom").onclick=()=>MonNet.join("AZAR");
+$("monCreate").onclick=()=>{ const c=MonNet.code(); const inp=$("monCodeInput"); if(inp) inp.value=c; MonNet.join(c); };
+$("monJoin").onclick=()=>{ const c=(($("monCodeInput").value)||"").toUpperCase().replace(/[^A-Z0-9]/g,""); if(c.length>=4) MonNet.join(c); else MonNet.status("Escribe un código válido (ej: ABC12)"); };
+$("monLeave").onclick=()=>{ MonNet.leave(); MonNet.status("Sin conexión"); };
 $("pickMon").onclick=()=>{ $("gamePick").classList.remove("open"); Monster.open(); };
 $("monClose").onclick=()=>Monster.close();
 $("monStart").onclick=()=>Monster.start();
@@ -4719,6 +4767,7 @@ const Pad={
   },
   // La navegación NO actúa dentro de juegos/robot (ellos usan el mando a su manera)
   navOn(){ const o=id=>{ const e=document.getElementById(id); return e&&e.classList.contains("open"); };
+    if(o("monFs") && typeof Monster!=="undefined" && Monster.shopping) return true;   // navegar la tienda del búnker con el mando
     return !(o("gameFs")||o("footFs")||o("robotFs")||o("monFs")); },
   isVis(el){ if(!el||el.disabled) return false; if(el.getAttribute&&el.getAttribute("aria-hidden")==="true") return false;
     const s=getComputedStyle(el); if(s.display==="none"||s.visibility==="hidden"||+s.opacity===0||s.pointerEvents==="none") return false;
