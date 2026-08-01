@@ -1138,13 +1138,9 @@
       <button class="gc-opt" data-mhp="150">150</button>
       <button class="gc-opt sel" data-mhp="300">300</button>
       <button class="gc-opt" data-mhp="600">600</button></div>
-    <button class="btn btn-ghost" id="monOnlineBtn" style="margin-top:2px">🌐 JUGAR ONLINE</button>
-    <div id="monOnline" style="display:none;width:min(360px,92vw)">
-      <div id="monNetStatus" style="font-size:12px;color:#8fdcc0;margin-bottom:4px">👇 Elige: 🎲 Al azar o 🔑 Crea una sala</div>
-      <div class="game-cfg"><button class="gc-opt" id="monRandom">🎲 Al azar</button><button class="gc-opt" id="monCreate">🔑 Crear sala</button></div>
-      <div class="game-cfg"><input id="monCodeInput" placeholder="CÓDIGO" maxlength="5" style="text-transform:uppercase;width:110px;text-align:center;font-weight:800;letter-spacing:.2em;border-radius:12px;border:1px solid rgba(25,255,133,.3);background:rgba(255,255,255,.06);color:#fff;padding:6px;font-family:inherit"><button class="gc-opt" id="monJoin">Unirse</button></div>
-      <div id="monRoomInfo" style="font-size:12px;color:#cdd6ff;min-height:16px"></div>
-      <button class="gc-opt" id="monLeave" style="display:none">❌ Salir de la sala</button>
+    <button class="btn btn-ghost" id="monOnlineBtn" style="margin-top:2px">🌐 JUGAR ONLINE (con todos)</button>
+    <div id="monOnline" style="display:none;width:min(380px,92vw)">
+      <div id="monNetStatus" style="font-size:12.5px;color:#8fdcc0;line-height:1.5">Conectando…</div>
     </div>
     <button class="btn btn-primary" id="monStart" style="font-size:17px;padding:12px 28px">▶ JUGAR</button>
     <div style="font-size:12px;color:#cdd6ff;max-width:460px;line-height:1.6">
@@ -4498,8 +4494,8 @@ const Monster={
   },
   unbindInput(){ window.removeEventListener("keydown",this._kd); window.removeEventListener("keyup",this._ku); window.removeEventListener("mouseup",this._mu); if(this.cv){ this.cv.removeEventListener("mousemove",this._mm); this.cv.removeEventListener("mousedown",this._md); this.cv.removeEventListener("contextmenu",this._ctx); this.cv.removeEventListener("touchstart",this._tm); this.cv.removeEventListener("touchmove",this._tm); this.cv.removeEventListener("touchend",this._te); } },
   start(){
-    this.p={ x:this.worldW/2, y:this.worldH/2, vx:0,vy:0, r:16, hp:this.cfg.playerHp, maxHp:this.cfg.playerHp, fireRate:0.30, dmg:1, kills:0, fireT:0, powCd:0, aimAng:0, legPhase:0, weapon:"pistola" };
-    this.coins=0; this.owned=new Set(["pistola"]); this.shopping=false; this._inBunker=false; this.bunker={x:1740,y:1140,w:120,h:120};
+    this.p={ x:this.worldW/2, y:this.worldH/2, vx:0,vy:0, r:16, hp:this.cfg.playerHp, maxHp:this.cfg.playerHp, fireRate:0.30, dmg:1, kills:0, fireT:0, powCd:0, aimAng:0, legPhase:0, weapon:"pistola", dmgCd:0 };
+    this.coins=0; this.owned=new Set(["pistola"]); this.shopping=false; this._inBunker=false; this.bunker={x:1740,y:1140,w:120,h:120}; this._nid=1; this._prevMons=null;
     this.people=[]; this.shots=[]; this.blood=[]; this.stars=[]; this.parts=[];
     this.aim=null; this.pointer=false; this.spawnT=0; this.starT=5; this.shake=0; this.mb0=false; this.mb2=false; this.scope=false;
     this.level=1; this.levelKills=0; this.flash=""; this.flashT=0;
@@ -4517,7 +4513,7 @@ const Monster={
     let x=this.p.x+Math.cos(ang)*dist, y=this.p.y+Math.sin(ang)*dist;
     x=Math.max(20,Math.min(this.worldW-20,x)); y=Math.max(20,Math.min(this.worldH-20,y));
     const big=Math.random()<0.22;
-    this.people.push({ x,y, vx:0,vy:0, r:big?20:13, hp:(big?5:2)*this.cfg.monHpMul, spd:big?70:115, hitT:0, legPhase:Math.random()*6, col:big?"#7a3fae":"#c83f52" });
+    this.people.push({ nid:this._nid++, x,y, vx:0,vy:0, r:big?20:13, hp:(big?5:2)*this.cfg.monHpMul, spd:big?70:115, hitT:0, legPhase:Math.random()*6, col:big?"#7a3fae":"#c83f52" });
   },
   getPad(){ const pads=navigator.getGamepads?navigator.getGamepads():[]; for(const g of pads){ if(!g) continue; const id=(g.id||"").toLowerCase(); if(/jabra|speak|headset|audio|micr|webcam|camera|receiver/.test(id)) continue; if((g.axes||[]).length>=2) return g; } return null; },
   addMate(){ this.mates.push({x:this.p.x,y:this.p.y,fireT:Math.random()*0.6,aimAng:0,slot:0}); const n=this.mates.length; this.mates.forEach((mt,i)=>{ mt.slot=i/n*6.283; }); },
@@ -4547,7 +4543,8 @@ const Monster={
       b.onclick=()=>{ if(eq) return; if(owned){ this.p.weapon=k; } else if(this.coins>=w.price){ this.coins-=w.price; this.owned.add(k); this.p.weapon=k; } else { $("monCoins").innerHTML="🪙 <b>"+this.coins+"</b> — ¡te faltan puntos!"; return; } this.renderShop(); };
       box.appendChild(b); }
   },
-  spawnBoss(){ if(this.people.some(m=>m.boss)) return; const ang=Math.random()*6.283, dist=Math.max(this.W,this.H)*0.7; let x=this.p.x+Math.cos(ang)*dist, y=this.p.y+Math.sin(ang)*dist; x=Math.max(50,Math.min(this.worldW-50,x)); y=Math.max(50,Math.min(this.worldH-50,y)); const bhp=this.cfg.bossHp*this.level; this.people.push({ x,y,vx:0,vy:0, r:52, hp:bhp, maxHp:bhp, spd:50, hitT:0, legPhase:0, col:"#b23a6a", boss:true }); },
+  spawnBoss(){ if(this.people.some(m=>m.boss)) return; const ang=Math.random()*6.283, dist=Math.max(this.W,this.H)*0.7; let x=this.p.x+Math.cos(ang)*dist, y=this.p.y+Math.sin(ang)*dist; x=Math.max(50,Math.min(this.worldW-50,x)); y=Math.max(50,Math.min(this.worldH-50,y)); const bhp=this.cfg.bossHp*this.level; this.people.push({ nid:this._nid++, x,y,vx:0,vy:0, r:52, hp:bhp, maxHp:bhp, spd:50, hitT:0, legPhase:0, col:"#b23a6a", boss:true }); },
+  poof(x,y,boss){ const cols=["#ffd23f","#38e1ff","#ff8cc6","#8cff6a","#c58cff","#ffa640"], n=boss?26:12; for(let k=0;k<n;k++) this.parts.push({x,y,vx:(Math.random()-0.5)*(boss?320:240),vy:(Math.random()-0.5)*(boss?320:240),life:boss?0.8:0.55,col:cols[k%cols.length]}); },
   levelUp(){ this.level++; this.levelKills=0; this.p.hp=this.p.maxHp; this.spawnBoss(); this.flash="🎉 ¡NIVEL "+this.level+"!"; this.flashT=2.6; },
   drawPeer(c,x,y,pe){ const R=16, ang=pe.aimAng||0; c.save(); c.translate(x,y);
     c.strokeStyle="#222"; c.lineWidth=5; c.lineCap="round"; c.beginPath(); c.moveTo(0,0); c.lineTo(Math.cos(ang)*R*1.6,Math.sin(ang)*R*1.6); c.stroke();
@@ -4590,16 +4587,30 @@ const Monster={
     if(Math.hypot(p.vx,p.vy)>5) p.legPhase+=dt*12;
     this.cam.x=Math.max(0,Math.min(this.worldW-this.W,p.x-this.W/2)); this.cam.y=Math.max(0,Math.min(this.worldH-this.H,p.y-this.H/2));
     // monstruos: te persiguen y te muerden
+    const net=(typeof MonNet!=="undefined"&&MonNet.online), guest=net&&!MonNet.host;
     let near=null, nd=1e9;
-    for(let i=this.people.length-1;i>=0;i--){ const m=this.people[i]; const ddx=p.x-m.x,ddy=p.y-m.y,dd=Math.hypot(ddx,ddy)||1;
-      m.vx=ddx/dd*m.spd; m.vy=ddy/dd*m.spd; m.legPhase+=dt*10;
-      m.x=Math.max(10,Math.min(this.worldW-10,m.x+m.vx*dt)); m.y=Math.max(10,Math.min(this.worldH-10,m.y+m.vy*dt));
-      this.resolveHouses(m);
-      if(m.hitT>0) m.hitT-=dt;
-      if(dd<p.r+m.r && m.hitT<=0){ p.hp-=(m.boss?22:10); m.hitT=0.7; this.shake=6; if(p.hp<=0){ this.gameOver(); return; } }
-      if(dd<nd){ nd=dd; near=m; }
+    if(guest){
+      // INVITADO: los monstruos llegan del anfitrión (snapshot)
+      const snap=MonNet.snap;
+      if(snap){ this.level=snap.level; this.levelKills=snap.levelKills;
+        const byId={}; for(const m of this.people) byId[m.nid]=m; const now=new Set(), arr=[];
+        for(const s of snap.mons){ now.add(s.i); let m=byId[s.i]; if(!m){ m={nid:s.i,legPhase:Math.random()*6}; } m.x=s.x; m.y=s.y; m.hp=s.hp; m.r=s.r; m.boss=!!s.b; m.col=s.c; if(!m.maxHp) m.maxHp=s.b?this.cfg.bossHp:10; m.legPhase+=dt*8; arr.push(m); }
+        if(this._prevMons){ for(const m of this._prevMons){ if(!now.has(m.nid)) this.poof(m.x,m.y,!!m.boss); } }
+        this._prevMons=arr; this.people=arr;
+      } else { this.people=[]; }
+      if(p.dmgCd>0) p.dmgCd-=dt;
+      for(const m of this.people){ const dd=Math.hypot(p.x-m.x,p.y-m.y)||1; if(dd<nd){nd=dd;near=m;} if(dd<p.r+m.r && p.dmgCd<=0){ p.hp-=(m.boss?22:10); p.dmgCd=0.5; this.shake=6; if(p.hp<=0){ this.gameOver(); return; } } }
+    } else {
+      for(let i=this.people.length-1;i>=0;i--){ const m=this.people[i]; const ddx=p.x-m.x,ddy=p.y-m.y,dd=Math.hypot(ddx,ddy)||1;
+        m.vx=ddx/dd*m.spd; m.vy=ddy/dd*m.spd; m.legPhase+=dt*10;
+        m.x=Math.max(10,Math.min(this.worldW-10,m.x+m.vx*dt)); m.y=Math.max(10,Math.min(this.worldH-10,m.y+m.vy*dt));
+        this.resolveHouses(m);
+        if(m.hitT>0) m.hitT-=dt;
+        if(dd<p.r+m.r && m.hitT<=0){ p.hp-=(m.boss?22:10); m.hitT=0.7; this.shake=6; if(p.hp<=0){ this.gameOver(); return; } }
+        if(dd<nd){ nd=dd; near=m; }
+      }
+      this.spawnT-=dt; if(this.spawnT<=0&&this.people.length<40){ this.spawnT=Math.max(0.35,1.2-this.p.kills*0.01); this.spawnPerson(); }
     }
-    this.spawnT-=dt; if(this.spawnT<=0&&this.people.length<40){ this.spawnT=Math.max(0.35,1.2-this.p.kills*0.01); this.spawnPerson(); }
     // compañeros: te siguen en formación y disparan al monstruo más cercano
     for(const mt of this.mates){
       const tx=p.x+Math.cos(mt.slot)*95, ty=p.y+Math.sin(mt.slot)*95, ax=tx-mt.x, ay=ty-mt.y, d=Math.hypot(ax,ay);
@@ -4628,15 +4639,17 @@ const Monster={
     // balas vs monstruos (las potentes atraviesan varios)
     for(let i=this.shots.length-1;i>=0;i--){ const s=this.shots[i]; s.x+=s.vx*dt; s.y+=s.vy*dt; s.life-=dt; let remove=s.life<=0;
       for(let j=this.people.length-1;j>=0;j--){ const m=this.people[j]; if(Math.hypot(s.x-m.x,s.y-m.y)<m.r+5){
-        if(s.pierce){ if(!s.hitObjs.has(m)){ s.hitObjs.add(m); m.hp-=s.dmg; if(m.hp<=0) this.kill(m,j); } }
+        if(guest){ if(s.pierce){ if(!s.hitObjs.has(m)){ s.hitObjs.add(m); MonNet.sendHit(m.nid,s.dmg); m.hp-=s.dmg; } } else { MonNet.sendHit(m.nid,s.dmg); m.hp-=s.dmg; remove=true; break; } }
+        else if(s.pierce){ if(!s.hitObjs.has(m)){ s.hitObjs.add(m); m.hp-=s.dmg; if(m.hp<=0) this.kill(m,j); } }
         else { m.hp-=s.dmg; if(m.hp<=0) this.kill(m,j); remove=true; break; } } }
       if(remove) this.shots.splice(i,1); }
+    if(net && MonNet.host && MonNet._pendingHits.length){ const ph=MonNet._pendingHits; MonNet._pendingHits=[]; for(const h of ph){ for(let j=0;j<this.people.length;j++){ if(this.people[j].nid===h.i){ this.people[j].hp-=h.d; if(this.people[j].hp<=0) this.kill(this.people[j],j); break; } } } }
     this.starT-=dt; if(this.starT<=0){ this.starT=8+Math.random()*6; if(this.stars.length<3){ const a=Math.random()*6.283,d=220+Math.random()*300; this.stars.push({x:p.x+Math.cos(a)*d,y:p.y+Math.sin(a)*d,ph:0}); } }
     for(let i=this.stars.length-1;i>=0;i--){ const st=this.stars[i]; st.ph+=dt; if(Math.hypot(st.x-p.x,st.y-p.y)<p.r+16){ this.stars.splice(i,1); p.fireRate=Math.max(0.08,p.fireRate-0.03); p.dmg+=1; p.maxHp+=15; p.hp=Math.min(p.maxHp,p.hp+40); for(let k=0;k<14;k++) this.parts.push({x:st.x,y:st.y,vx:(Math.random()-0.5)*200,vy:(Math.random()-0.5)*200,life:0.6,col:"#ffd23f"}); } }
     for(let i=this.parts.length-1;i>=0;i--){ const pa=this.parts[i]; pa.x+=pa.vx*dt; pa.y+=pa.vy*dt; pa.vx*=0.92; pa.vy*=0.92; pa.life-=dt; if(pa.life<=0) this.parts.splice(i,1); }
     if(this.shake>0) this.shake-=dt*30;
     if(this.flashT>0) this.flashT-=dt;
-    if(typeof MonNet!=="undefined" && MonNet.room){ MonNet.send(p); MonNet.prune(); }
+    if(net){ MonNet.sendSt(p); MonNet.prune(); if(MonNet.host) MonNet.sendSnap(this.people,this.level,this.levelKills); }
     this.updateHud();
   },
   kill(m,i){ this.blood.push({x:m.x,y:m.y,r:9+Math.random()*10,col:"rgba(255,255,255,0.18)"}); if(this.blood.length>400) this.blood.shift();   // marca "poof" (polvo), sin sangre
@@ -4679,7 +4692,7 @@ const Monster={
     for(const st of this.stars){ this.drawStar(c,st.x-camx,st.y-camy,14,Math.sin(st.ph*3)*0.3); }
     for(const m of this.people){ const sx=m.x-camx,sy=m.y-camy; if(sx<-20||sx>W+20||sy<-20||sy>H+20) continue; this.drawPerson(c,sx,sy,m); }
     for(const mt of this.mates){ this.drawMate(c,mt.x-camx,mt.y-camy,mt); }
-    if(typeof MonNet!=="undefined" && MonNet.room){ for(const k in MonNet.peers){ const pe=MonNet.peers[k]; const sx=pe.x-camx, sy=pe.y-camy; if(sx<-40||sx>W+40||sy<-40||sy>H+40) continue; this.drawPeer(c,sx,sy,pe); } }
+    if(typeof MonNet!=="undefined" && MonNet.online){ for(const k in MonNet.peers){ const pe=MonNet.peers[k]; const sx=pe.x-camx, sy=pe.y-camy; if(sx<-40||sx>W+40||sy<-40||sy>H+40) continue; this.drawPeer(c,sx,sy,pe); } }
     for(const s of this.shots){ const sx=s.x-camx,sy=s.y-camy, ww=s.w||14, hh=s.hh||5; c.save(); c.translate(sx,sy); c.rotate(Math.atan2(s.vy,s.vx)); c.fillStyle=s.col||"#ff3b3b"; if(s.glow){ c.shadowColor=s.col||"#fff"; c.shadowBlur=10; } c.fillRect(-ww/2,-hh/2,ww,hh); c.shadowBlur=0; c.restore(); }
     this.drawSoldier(c,this.p.x-camx,this.p.y-camy);
     for(const pa of this.parts){ c.globalAlpha=Math.max(0,pa.life*2); c.fillStyle=pa.col; c.fillRect(pa.x-camx-2,pa.y-camy-2,4,4); } c.globalAlpha=1;
@@ -4707,40 +4720,41 @@ const Monster={
     c.restore(); },
   drawStar(c,x,y,r,rot){ c.save(); c.translate(x,y); c.rotate(rot); c.fillStyle="#ffd23f"; c.strokeStyle="#a97b00"; c.lineWidth=2; c.beginPath(); for(let i=0;i<10;i++){ const a=i/10*6.283-1.57, rr=i%2?r*0.45:r; c.lineTo(Math.cos(a)*rr,Math.sin(a)*rr); } c.closePath(); c.fill(); c.stroke(); c.restore(); }
 };
-/* ============ EDTU MONSTER · ONLINE (Supabase Realtime, beta) ============ */
+/* ============ EDTU MONSTER · ONLINE (sala única global + anfitrión, beta) ============ */
 const MonNet={
-  room:null, ch:null, id:null, name:"Invitado", peers:{}, _lastSend:0,
-  code(){ const c="ABCDEFGHJKLMNPQRSTUVWXYZ23456789"; let s=""; for(let i=0;i<5;i++) s+=c[Math.floor(Math.random()*c.length)]; return s; },
+  ROOM:"EDTU-MONSTER-GLOBAL",
+  online:false, ch:null, id:null, name:"Invitado", host:false,
+  peers:{}, snap:null, _pendingHits:[], _lastSt:0, _lastSnap:0,
   ensureId(){ if(!this.id) this.id="p"+Math.floor(Math.random()*1e9).toString(36); this.name=(typeof currentUser!=="undefined"&&currentUser&&typeof currentDisplayName==="function")?currentDisplayName():"Invitado"; },
-  status(m){ const e=$("monNetStatus"); if(e) e.textContent=m; },
-  join(room){
-    if(!Cloud.enabled){ this.status("⚠ El online necesita conexión a la nube (Supabase)"); return; }
-    if(!room){ return; }
-    this.leave(); this.ensureId(); this.room=room; this.peers={};
+  status(m){ const e=$("monNetStatus"); if(e) e.innerHTML=m; },
+  toggle(){ if(this.online) this.leave(); else this.join(); },
+  join(){
+    if(!Cloud.enabled){ this.status("⚠ Sin nube/internet: el online no funciona aquí. Prueba en <b>edtu.cl</b> con internet."); return; }
+    this.leave(true); this.ensureId(); this.peers={}; this.snap=null; this._pendingHits=[];
     try{
-      const ch=Cloud.sb.channel("mon:"+room,{config:{broadcast:{self:false},presence:{key:this.id}}});
+      const ch=Cloud.sb.channel("mon:"+this.ROOM,{config:{broadcast:{self:false},presence:{key:this.id}}});
       ch.on("broadcast",{event:"st"},({payload})=>{ if(payload&&payload.id!==this.id){ payload.t=performance.now(); this.peers[payload.id]=payload; } });
-      ch.on("broadcast",{event:"bye"},({payload})=>{ if(payload&&payload.id) delete this.peers[payload.id]; });
-      ch.on("presence",{event:"sync"},()=>this.updateInfo());
-      ch.subscribe(async s=>{ if(s==="SUBSCRIBED"){ try{ await ch.track({name:this.name}); }catch(e){} this.status("🟢 En sala "+room); this.updateInfo(); } });
-      this.ch=ch; const l=$("monLeave"); if(l) l.style.display="";
-      this.updateInfo();
+      ch.on("broadcast",{event:"snap"},({payload})=>{ if(!this.host && payload) this.snap=payload; });
+      ch.on("broadcast",{event:"hit"},({payload})=>{ if(this.host && payload) this._pendingHits.push(payload); });
+      ch.on("presence",{event:"sync"},()=>this.recalc());
+      ch.subscribe(async s=>{ if(s==="SUBSCRIBED"){ try{ await ch.track({name:this.name}); }catch(_){} this.online=true; this.recalc(); } });
+      this.ch=ch; this.online=true;
+      const b=$("monOnlineBtn"); if(b) b.textContent="🟢 EN LÍNEA — tocar para salir";
     }catch(e){ this.status("✖ "+((e&&e.message)?e.message:e)); }
   },
-  updateInfo(){ const e=$("monRoomInfo"); if(!e||!this.room){ return; } let n=1; try{ n=Object.keys(this.ch.presenceState()).length; }catch(_){}
-    e.innerHTML="🔑 CÓDIGO: <b style='font-size:22px;letter-spacing:.28em;color:#ffd23f'>"+this.room+"</b> · 👥 "+n+"<br><span style='opacity:.75'>Compártelo con tu amigo · luego <b>ambos JUGAR</b></span>"; },
-  leave(){ if(this.ch){ try{ this.ch.send({type:"broadcast",event:"bye",payload:{id:this.id}}); }catch(_){} try{ Cloud.sb.removeChannel(this.ch); }catch(_){} this.ch=null; } this.room=null; this.peers={}; const l=$("monLeave"); if(l) l.style.display="none"; const ri=$("monRoomInfo"); if(ri) ri.textContent=""; },
-  send(p){ if(!this.ch||!this.room) return; const now=performance.now(); if(now-this._lastSend<90) return; this._lastSend=now;
-    try{ this.ch.send({type:"broadcast",event:"st",payload:{id:this.id,name:this.name,x:Math.round(p.x),y:Math.round(p.y),aimAng:+p.aimAng.toFixed(2),weapon:p.weapon,hp:Math.ceil(p.hp),kills:p.kills}}); }catch(_){} },
+  recalc(){ let ids=[this.id]; try{ const st=this.ch.presenceState(); ids=Object.keys(st); }catch(_){}
+    if(!ids.length) ids=[this.id]; ids.sort(); this.host=(ids[0]===this.id);
+    this.status("🟢 En línea · 👥 <b>"+ids.length+"</b> jugando juntos<br><span style='opacity:.8'>"+(this.host?"🕹️ Eres el anfitrión (tú generas los monstruos)":"🔗 Monstruos del anfitrión")+"</span>"); },
+  leave(silent){ if(this.ch){ try{ Cloud.sb.removeChannel(this.ch); }catch(_){} this.ch=null; } this.online=false; this.host=false; this.peers={}; this.snap=null; this._pendingHits=[]; if(!silent){ const b=$("monOnlineBtn"); if(b) b.textContent="🌐 JUGAR ONLINE (con todos)"; this.status("👇 Toca para jugar con todos en la misma ciudad"); } },
+  sendSt(p){ if(!this.ch||!this.online) return; const now=performance.now(); if(now-this._lastSt<90) return; this._lastSt=now;
+    try{ this.ch.send({type:"broadcast",event:"st",payload:{id:this.id,name:this.name,x:Math.round(p.x),y:Math.round(p.y),aimAng:+p.aimAng.toFixed(2),weapon:p.weapon}}); }catch(_){} },
+  sendSnap(people,level,levelKills){ if(!this.ch||!this.online||!this.host) return; const now=performance.now(); if(now-this._lastSnap<130) return; this._lastSnap=now;
+    const mons=[]; for(const m of people){ mons.push({i:m.nid,x:Math.round(m.x),y:Math.round(m.y),hp:Math.ceil(m.hp),r:m.r,b:m.boss?1:0,c:m.col}); }
+    try{ this.ch.send({type:"broadcast",event:"snap",payload:{mons,level,levelKills}}); }catch(_){} },
+  sendHit(nid,dmg){ if(!this.ch||!this.online||nid==null) return; try{ this.ch.send({type:"broadcast",event:"hit",payload:{i:nid,d:dmg}}); }catch(_){} },
   prune(){ const now=performance.now(); for(const k in this.peers){ if(now-(this.peers[k].t||0)>3500) delete this.peers[k]; } }
 };
-$("monOnlineBtn").onclick=()=>{ const o=$("monOnline"); const show=(o.style.display==="none"||!o.style.display); o.style.display=show?"block":"none"; if(show && !Cloud.enabled) MonNet.status("⚠ Sin nube/internet aquí: el online no conectará (usa edtu.cl con internet)"); };
-$("monRandom").onclick=()=>MonNet.join("AZAR");
-$("monCreate").onclick=()=>{ const c=MonNet.code(); const inp=$("monCodeInput"); if(inp){ inp.value=c; try{ inp.select(); }catch(_){}}
-  const ri=$("monRoomInfo"); if(ri) ri.innerHTML="🔑 CÓDIGO: <b style='font-size:22px;letter-spacing:.28em;color:#ffd23f'>"+c+"</b><br><span style='opacity:.75'>Conectando…</span>";
-  MonNet.join(c); };
-$("monJoin").onclick=()=>{ const c=(($("monCodeInput").value)||"").toUpperCase().replace(/[^A-Z0-9]/g,""); if(c.length>=4) MonNet.join(c); else MonNet.status("Escribe un código válido (ej: ABC12)"); };
-$("monLeave").onclick=()=>{ MonNet.leave(); MonNet.status("Sin conexión"); };
+$("monOnlineBtn").onclick=()=>{ const o=$("monOnline"); if(o.style.display==="none"||!o.style.display) o.style.display="block"; MonNet.toggle(); };
 $("pickMon").onclick=()=>{ $("gamePick").classList.remove("open"); Monster.open(); };
 $("monClose").onclick=()=>Monster.close();
 $("monStart").onclick=()=>Monster.start();
