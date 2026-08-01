@@ -471,6 +471,13 @@
   #monFs.open{display:block}
   #monFs #monCanvas{position:absolute;inset:0;width:100%;height:100%;display:block;touch-action:none;cursor:crosshair}
   #monHud{font-weight:900;font-size:clamp(15px,2.4vw,22px);color:#fff;text-shadow:0 2px 6px rgba(0,0,0,.6);line-height:1.35;pointer-events:none}
+  #monShop{position:absolute;inset:0;z-index:6;display:none;align-items:center;justify-content:center;background:rgba(0,0,0,.72);padding:16px}
+  #monShop .shop-card{background:#0e140f;border:1px solid rgba(255,210,63,.4);border-radius:16px;padding:20px 18px;width:min(400px,94vw);text-align:center;box-shadow:0 0 40px rgba(255,210,63,.15)}
+  #monShop #monWeapons{display:flex;flex-direction:column;gap:8px}
+  #monShop .shop-item{display:flex;justify-content:space-between;align-items:center;gap:10px;padding:11px 14px;border-radius:12px;border:1px solid rgba(255,255,255,.15);background:rgba(255,255,255,.05);color:#eafff3;font-size:15px;font-weight:700;cursor:pointer;font-family:inherit}
+  #monShop .shop-item:hover{background:rgba(255,210,63,.12);border-color:rgba(255,210,63,.5)}
+  #monShop .shop-item.eq{border-color:#19ff85;background:rgba(25,255,133,.14);color:#19ff85}
+  #monShop .shop-item span:last-child{font-size:12px;opacity:.9}
   #footScore{color:#fff;font-weight:900;font-size:19px;text-shadow:0 0 8px rgba(0,0,0,.9);letter-spacing:.04em}
   #footBanner{position:absolute;inset:0;z-index:4;display:none;align-items:center;justify-content:center;pointer-events:none}
   #footBanner.show{display:flex}
@@ -1102,6 +1109,14 @@
   <div class="game-top">
     <div id="monHud"></div>
     <button class="btn btn-ghost btn-sm" id="monClose">✕ Salir</button>
+  </div>
+  <div id="monShop">
+    <div class="shop-card">
+      <h2 style="margin:0 0 2px;color:#ffd23f;letter-spacing:.1em">🪖 BÚNKER · ARMERÍA</h2>
+      <div id="monCoins" style="font-size:14px;margin-bottom:6px"></div>
+      <div id="monWeapons"></div>
+      <button class="btn btn-primary" id="monShopClose" style="margin-top:10px">▶ SEGUIR JUGANDO</button>
+    </div>
   </div>
   <div id="monOverlay" class="game-overlay">
     <div id="monMsg">👾 EDTU MONSTER</div>
@@ -4433,12 +4448,21 @@ $("convFile").onchange=e=>{ Conv.run(e.target.files); e.target.value=""; };
 })();
 
 /* ============ JUEGO: EDTU MONSTER (copia top-down de "You Monster!") ============ */
+const WEAPONS={
+  pistola:      {name:"🔫 Pistola",       price:0,   gap:0.12, dmg:1,  fn:"single"},
+  ametralladora:{name:"🔫 Ametralladora", price:60,  gap:0.05, dmg:1,  fn:"single"},
+  escopeta:     {name:"💥 Escopeta",      price:120, gap:0.6,  dmg:1,  fn:"shotgun"},
+  lanzallamas:  {name:"🔥 Lanzallamas",   price:200, gap:0.03, dmg:0.8,fn:"flame"},
+  francotirador:{name:"🎯 Francotirador", price:300, gap:0.9,  dmg:12, fn:"sniper"},
+  laser:        {name:"⚡ Láser",         price:500, gap:0.02, dmg:2,  fn:"laser"}
+};
 const Monster={
   cv:null,c:null,W:0,H:0,raf:null,running:false,
   worldW:3600,worldH:3600, cam:{x:0,y:0}, shake:0,
   p:null, people:[], shots:[], blood:[], stars:[], parts:[], mates:[], houses:[],
   keys:{}, aim:null, pointer:false, _last:0, spawnT:0, starT:0, level:1, levelKills:0, flash:"", flashT:0,
   cfg:{bossHp:10000, monHpMul:1, goal:1000, playerHp:300},
+  coins:0, owned:null, shopping:false, _inBunker:false, allFree:false, bunker:null,
   open(){
     $("monFs").classList.add("open");
     this.cv=$("monCanvas"); this.c=this.cv.getContext("2d");
@@ -4446,6 +4470,7 @@ const Monster={
     this.bindInput();
     $("monOverlay").style.display="flex"; $("monMsg").textContent="👾 EDTU MONSTER"; $("monResult").textContent=""; $("monStart").textContent="▶ JUGAR";
     $("monHud").innerHTML="";
+    this.allFree = !!currentUser;   // David logueado = todo desbloqueado
   },
   close(){ this.running=false; if(this.raf){ cancelAnimationFrame(this.raf); this.raf=null; } window.removeEventListener("resize",this._onResize); this.unbindInput(); $("monFs").classList.remove("open"); if(this._fromLanding){ this._fromLanding=false; if(!currentUser) $("landing").style.display="flex"; } },
   resize(){ const d=Math.min(devicePixelRatio||1,2); this.W=innerWidth; this.H=innerHeight; this.cv.width=this.W*d; this.cv.height=this.H*d; this.cv.style.width=this.W+"px"; this.cv.style.height=this.H+"px"; this.c.setTransform(d,0,0,d,0,0); },
@@ -4465,7 +4490,8 @@ const Monster={
   },
   unbindInput(){ window.removeEventListener("keydown",this._kd); window.removeEventListener("keyup",this._ku); window.removeEventListener("mouseup",this._mu); if(this.cv){ this.cv.removeEventListener("mousemove",this._mm); this.cv.removeEventListener("mousedown",this._md); this.cv.removeEventListener("contextmenu",this._ctx); this.cv.removeEventListener("touchstart",this._tm); this.cv.removeEventListener("touchmove",this._tm); this.cv.removeEventListener("touchend",this._te); } },
   start(){
-    this.p={ x:this.worldW/2, y:this.worldH/2, vx:0,vy:0, r:16, hp:this.cfg.playerHp, maxHp:this.cfg.playerHp, fireRate:0.30, dmg:1, kills:0, fireT:0, powCd:0, aimAng:0, legPhase:0 };
+    this.p={ x:this.worldW/2, y:this.worldH/2, vx:0,vy:0, r:16, hp:this.cfg.playerHp, maxHp:this.cfg.playerHp, fireRate:0.30, dmg:1, kills:0, fireT:0, powCd:0, aimAng:0, legPhase:0, weapon:"pistola" };
+    this.coins=0; this.owned=new Set(["pistola"]); this.shopping=false; this._inBunker=false; this.bunker={x:1740,y:1140,w:120,h:120};
     this.people=[]; this.shots=[]; this.blood=[]; this.stars=[]; this.parts=[];
     this.aim=null; this.pointer=false; this.spawnT=0; this.starT=5; this.shake=0; this.mb0=false; this.mb2=false; this.scope=false;
     this.level=1; this.levelKills=0; this.flash=""; this.flashT=0;
@@ -4493,7 +4519,26 @@ const Monster={
       const w=120+Math.random()*170, h=120+Math.random()*170, x=x0+Math.random()*(aw-w), y=y0+Math.random()*(ah-h);
       const c=pal[Math.floor(Math.random()*pal.length)]; this.houses.push({x,y,w,h,col:c[0],roof:c[1]});
     } } },
-  resolveHouses(e){ for(const h of this.houses){ const cx=Math.max(h.x,Math.min(e.x,h.x+h.w)), cy=Math.max(h.y,Math.min(e.y,h.y+h.h)); const dx=e.x-cx, dy=e.y-cy, d2=dx*dx+dy*dy; if(d2<e.r*e.r){ const d=Math.sqrt(d2)||0.01, push=e.r-d; e.x+=dx/d*push; e.y+=dy/d*push; } } },
+  resolveRect(e,h){ const cx=Math.max(h.x,Math.min(e.x,h.x+h.w)), cy=Math.max(h.y,Math.min(e.y,h.y+h.h)); const dx=e.x-cx, dy=e.y-cy, d2=dx*dx+dy*dy; if(d2<e.r*e.r){ const d=Math.sqrt(d2)||0.01, push=e.r-d; e.x+=dx/d*push; e.y+=dy/d*push; } },
+  resolveHouses(e){ for(const h of this.houses) this.resolveRect(e,h); if(this.bunker) this.resolveRect(e,this.bunker); },
+  fireWeapon(){ const p=this.p, w=WEAPONS[p.weapon]||WEAPONS.pistola, a=p.aimAng, ox=Math.cos(a)*p.r, oy=Math.sin(a)*p.r;
+    const push=(ang,spd,life,dmg,col,ww,hh,pierce,glow)=>this.shots.push({x:p.x+ox,y:p.y+oy,vx:Math.cos(ang)*spd,vy:Math.sin(ang)*spd,life,dmg,col,w:ww,hh,pierce,glow,hitObjs:pierce?new Set():null});
+    if(w.fn==="shotgun"){ for(let k=-2;k<=2;k++) push(a+k*0.13,480,0.45,w.dmg,"#ffb03b",10,4,false,false); }
+    else if(w.fn==="flame"){ for(let k=0;k<3;k++) push(a+(Math.random()-0.5)*0.5,300,0.28,w.dmg,"#ff7a1a",13,9,true,true); }
+    else if(w.fn==="sniper"){ push(a,950,1.4,w.dmg,"#38e1ff",26,4,true,true); }
+    else if(w.fn==="laser"){ push(a,1400,0.5,w.dmg,"#b06bff",30,3,true,true); }
+    else { push(a,560,0.85,w.dmg,"#ff3b3b",14,5,false,false); }
+  },
+  openShop(){ this.shopping=true; this.renderShop(); $("monShop").style.display="flex"; },
+  closeShop(){ this.shopping=false; $("monShop").style.display="none"; this._last=performance.now(); },
+  renderShop(){ $("monCoins").innerHTML=this.allFree?"👑 Todo desbloqueado (David)":("🪙 <b>"+this.coins+"</b> puntos");
+    const box=$("monWeapons"); box.innerHTML="";
+    for(const k in WEAPONS){ const w=WEAPONS[k], owned=this.allFree||this.owned.has(k), eq=this.p.weapon===k;
+      const b=document.createElement("button"); b.className="shop-item"+(eq?" eq":"");
+      b.innerHTML="<span>"+w.name+"</span><span>"+(eq?"✅ EQUIPADA":(owned?"EQUIPAR":("COMPRAR · "+w.price+"🪙")))+"</span>";
+      b.onclick=()=>{ if(eq) return; if(owned){ this.p.weapon=k; } else if(this.coins>=w.price){ this.coins-=w.price; this.owned.add(k); this.p.weapon=k; } else { $("monCoins").innerHTML="🪙 <b>"+this.coins+"</b> — ¡te faltan puntos!"; return; } this.renderShop(); };
+      box.appendChild(b); }
+  },
   spawnBoss(){ if(this.people.some(m=>m.boss)) return; const ang=Math.random()*6.283, dist=Math.max(this.W,this.H)*0.7; let x=this.p.x+Math.cos(ang)*dist, y=this.p.y+Math.sin(ang)*dist; x=Math.max(50,Math.min(this.worldW-50,x)); y=Math.max(50,Math.min(this.worldH-50,y)); const bhp=this.cfg.bossHp*this.level; this.people.push({ x,y,vx:0,vy:0, r:52, hp:bhp, maxHp:bhp, spd:50, hitT:0, legPhase:0, col:"#b23a6a", boss:true }); },
   levelUp(){ this.level++; this.levelKills=0; this.p.hp=this.p.maxHp; this.spawnBoss(); this.flash="🎉 ¡NIVEL "+this.level+"!"; this.flashT=2.6; },
   drawMate(c,x,y,mt){ const R=13, ang=mt.aimAng||0; c.save(); c.translate(x,y);
@@ -4511,6 +4556,7 @@ const Monster={
   },
   loop(t){ if(!this.running){ this.raf=null; return; } const dt=Math.min(0.05,(t-this._last)/1000); this._last=t; this.update(dt); this.draw(); this.raf=requestAnimationFrame(tt=>this.loop(tt)); },
   update(dt){
+    if(this.shopping) return;   // congelado en la tienda
     const p=this.p;
     let dx=0,dy=0;
     if(this.keys["w"]||this.keys["arrowup"]) dy-=1; if(this.keys["s"]||this.keys["arrowdown"]) dy+=1;
@@ -4523,6 +4569,10 @@ const Monster={
     p.vx+=(dx*sp-p.vx)*Math.min(1,dt*8); p.vy+=(dy*sp-p.vy)*Math.min(1,dt*8);
     p.x=Math.max(p.r,Math.min(this.worldW-p.r,p.x+p.vx*dt)); p.y=Math.max(p.r,Math.min(this.worldH-p.r,p.y+p.vy*dt));
     this.resolveHouses(p);
+    // entrar al búnker (armería)
+    const bcx=this.bunker.x+this.bunker.w/2, bcy=this.bunker.y+this.bunker.h/2, nearB=Math.hypot(p.x-bcx,p.y-bcy)<this.bunker.w;
+    if(nearB && !this._inBunker){ this._inBunker=true; this.openShop(); return; }
+    if(!nearB) this._inBunker=false;
     if(Math.hypot(p.vx,p.vy)>5) p.legPhase+=dt*12;
     this.cam.x=Math.max(0,Math.min(this.worldW-this.W,p.x-this.W/2)); this.cam.y=Math.max(0,Math.min(this.worldH-this.H,p.y-this.H/2));
     // monstruos: te persiguen y te muerden
@@ -4557,14 +4607,14 @@ const Monster={
     this.scope=!!scopeHeld;
     p.fireT-=dt; if(p.powCd>0) p.powCd-=dt;
     if(scopeHeld){   // en MIRA: con el gatillo sale el disparo POTENTE (cada 0.5s), atraviesa
-      if(fireHeld && p.powCd<=0){ p.powCd=0.5; this.shake=Math.max(this.shake,6); this.shots.push({x:p.x+Math.cos(p.aimAng)*p.r,y:p.y+Math.sin(p.aimAng)*p.r,vx:Math.cos(p.aimAng)*820,vy:Math.sin(p.aimAng)*820,life:1.1,dmg:14,pow:true,hitObjs:new Set()}); }
-    } else {          // normal: disparo rojo cada 0.05s con el gatillo
-      if(fireHeld && p.fireT<=0){ p.fireT=0.05; this.shots.push({x:p.x+Math.cos(p.aimAng)*p.r,y:p.y+Math.sin(p.aimAng)*p.r,vx:Math.cos(p.aimAng)*560,vy:Math.sin(p.aimAng)*560,life:0.85,dmg:p.dmg}); }
+      if(fireHeld && p.powCd<=0){ p.powCd=0.5; this.shake=Math.max(this.shake,6); this.shots.push({x:p.x+Math.cos(p.aimAng)*p.r,y:p.y+Math.sin(p.aimAng)*p.r,vx:Math.cos(p.aimAng)*820,vy:Math.sin(p.aimAng)*820,life:1.1,dmg:14,pierce:true,col:"#38e1ff",w:26,hh:8,glow:true,hitObjs:new Set()}); }
+    } else {          // normal: dispara según el arma equipada
+      if(fireHeld && p.fireT<=0){ p.fireT=(WEAPONS[p.weapon]||WEAPONS.pistola).gap; this.fireWeapon(); }
     }
     // balas vs monstruos (las potentes atraviesan varios)
     for(let i=this.shots.length-1;i>=0;i--){ const s=this.shots[i]; s.x+=s.vx*dt; s.y+=s.vy*dt; s.life-=dt; let remove=s.life<=0;
       for(let j=this.people.length-1;j>=0;j--){ const m=this.people[j]; if(Math.hypot(s.x-m.x,s.y-m.y)<m.r+5){
-        if(s.pow){ if(!s.hitObjs.has(m)){ s.hitObjs.add(m); m.hp-=s.dmg; if(m.hp<=0) this.kill(m,j); } }
+        if(s.pierce){ if(!s.hitObjs.has(m)){ s.hitObjs.add(m); m.hp-=s.dmg; if(m.hp<=0) this.kill(m,j); } }
         else { m.hp-=s.dmg; if(m.hp<=0) this.kill(m,j); remove=true; break; } } }
       if(remove) this.shots.splice(i,1); }
     this.starT-=dt; if(this.starT<=0){ this.starT=8+Math.random()*6; if(this.stars.length<3){ const a=Math.random()*6.283,d=220+Math.random()*300; this.stars.push({x:p.x+Math.cos(a)*d,y:p.y+Math.sin(a)*d,ph:0}); } }
@@ -4577,12 +4627,12 @@ const Monster={
   kill(m,i){ this.blood.push({x:m.x,y:m.y,r:9+Math.random()*10,col:"rgba(255,255,255,0.18)"}); if(this.blood.length>400) this.blood.shift();   // marca "poof" (polvo), sin sangre
     const cols=["#ffd23f","#38e1ff","#ff8cc6","#8cff6a","#c58cff","#ffa640"];
     for(let k=0;k<12;k++) this.parts.push({x:m.x,y:m.y,vx:(Math.random()-0.5)*240,vy:(Math.random()-0.5)*240,life:0.55,col:cols[k%cols.length]});   // confeti de colores
-    this.people.splice(i,1); this.p.kills++; this.levelKills++;
+    this.people.splice(i,1); this.p.kills++; this.levelKills++; this.coins+=(m.boss?25:1);
     if(m.boss){ this.levelKills+=25; this.shake=Math.max(this.shake,12); for(let k=0;k<30;k++) this.parts.push({x:m.x,y:m.y,vx:(Math.random()-0.5)*320,vy:(Math.random()-0.5)*320,life:0.8,col:["#ffd23f","#38e1ff","#ff8cc6"][k%3]}); this.stars.push({x:m.x,y:m.y,ph:0}); }
     if(this.p.kills%15===0 && this.mates.length<5) this.addMate();
     if(this.levelKills>=this.level*this.cfg.goal) this.levelUp();
     this.shake=Math.max(this.shake,3); },
-  updateHud(){ const p=this.p; const pw=p.powCd>0?("⏳"+p.powCd.toFixed(1)+"s"):"🎯"; $("monHud").innerHTML="🏅 NIVEL "+this.level+" · "+this.levelKills+" / "+(this.level*this.cfg.goal)+" 💥<br>❤️ "+Math.max(0,Math.ceil(p.hp))+" &nbsp; 🔫 "+p.dmg+" &nbsp; 👥 "+this.mates.length+" &nbsp; "+pw; },
+  updateHud(){ const p=this.p; const pw=p.powCd>0?("⏳"+p.powCd.toFixed(1)+"s"):"🎯"; const wn=(WEAPONS[p.weapon]||WEAPONS.pistola).name; $("monHud").innerHTML="🏅 NIVEL "+this.level+" · "+this.levelKills+" / "+(this.level*this.cfg.goal)+" 💥<br>❤️ "+Math.max(0,Math.ceil(p.hp))+" · "+wn+" · 🪙 "+(this.allFree?"∞":this.coins)+" · 👥 "+this.mates.length+" "+pw; },
   draw(){
     const c=this.c,W=this.W,H=this.H; let camx=this.cam.x,camy=this.cam.y;
     if(this.shake>0){ camx+=(Math.random()-0.5)*this.shake; camy+=(Math.random()-0.5)*this.shake; }
@@ -4603,11 +4653,18 @@ const Monster={
       c.fillStyle="rgba(180,220,255,0.45)"; for(let wx=sx+16; wx<sx+h.w-14; wx+=28){ for(let wy=sy+34; wy<sy+h.h-14; wy+=28){ c.fillRect(wx,wy,13,13); } }
       c.strokeStyle="rgba(0,0,0,0.35)"; c.lineWidth=2; c.strokeRect(sx,sy,h.w,h.h);
     }
+    if(this.bunker){ const b=this.bunker, sx=b.x-camx, sy=b.y-camy;
+      c.fillStyle="rgba(0,0,0,0.3)"; c.fillRect(sx+6,sy+8,b.w,b.h);
+      c.fillStyle="#3f4a3a"; c.fillRect(sx,sy,b.w,b.h);
+      c.fillStyle="#2b3327"; c.fillRect(sx,sy,b.w,26);
+      c.fillStyle="#caa24a"; c.fillRect(sx+b.w/2-16,sy+b.h-32,32,32);
+      c.fillStyle="#fff"; c.font="bold 13px system-ui,sans-serif"; c.textAlign="center"; c.fillText("🪖 BÚNKER",sx+b.w/2,sy+17);
+      const nb=Math.hypot(this.p.x-(b.x+b.w/2),this.p.y-(b.y+b.h/2))<b.w*1.7; if(nb){ c.fillStyle="#ffd23f"; c.font="bold 12px system-ui"; c.fillText("▲ entra a la armería",sx+b.w/2,sy+b.h+16); } c.textAlign="left"; }
     for(const b of this.blood){ const sx=b.x-camx,sy=b.y-camy; if(sx<-30||sx>W+30||sy<-30||sy>H+30) continue; c.fillStyle=b.col; c.beginPath(); c.arc(sx,sy,b.r,0,6.283); c.fill(); }
     for(const st of this.stars){ this.drawStar(c,st.x-camx,st.y-camy,14,Math.sin(st.ph*3)*0.3); }
     for(const m of this.people){ const sx=m.x-camx,sy=m.y-camy; if(sx<-20||sx>W+20||sy<-20||sy>H+20) continue; this.drawPerson(c,sx,sy,m); }
     for(const mt of this.mates){ this.drawMate(c,mt.x-camx,mt.y-camy,mt); }
-    for(const s of this.shots){ const sx=s.x-camx,sy=s.y-camy; c.save(); c.translate(sx,sy); c.rotate(Math.atan2(s.vy,s.vx)); if(s.pow){ c.fillStyle="#38e1ff"; c.shadowColor="#38e1ff"; c.shadowBlur=10; c.fillRect(-13,-4,26,8); c.shadowBlur=0; } else { c.fillStyle="#ff3b3b"; c.fillRect(-7,-2.5,14,5); } c.restore(); }
+    for(const s of this.shots){ const sx=s.x-camx,sy=s.y-camy, ww=s.w||14, hh=s.hh||5; c.save(); c.translate(sx,sy); c.rotate(Math.atan2(s.vy,s.vx)); c.fillStyle=s.col||"#ff3b3b"; if(s.glow){ c.shadowColor=s.col||"#fff"; c.shadowBlur=10; } c.fillRect(-ww/2,-hh/2,ww,hh); c.shadowBlur=0; c.restore(); }
     this.drawSoldier(c,this.p.x-camx,this.p.y-camy);
     for(const pa of this.parts){ c.globalAlpha=Math.max(0,pa.life*2); c.fillStyle=pa.col; c.fillRect(pa.x-camx-2,pa.y-camy-2,4,4); } c.globalAlpha=1;
     if(this.scope){ const px=this.p.x-camx, py=this.p.y-camy, half=0.42, rad=Math.max(W,H)*1.35, a0=this.p.aimAng-half, a1=this.p.aimAng+half;
@@ -4637,6 +4694,7 @@ const Monster={
 $("pickMon").onclick=()=>{ $("gamePick").classList.remove("open"); Monster.open(); };
 $("monClose").onclick=()=>Monster.close();
 $("monStart").onclick=()=>Monster.start();
+$("monShopClose").onclick=()=>Monster.closeShop();
 document.querySelectorAll("#monOverlay .gc-opt").forEach(b=>{ b.onclick=()=>{
   b.parentElement.querySelectorAll(".gc-opt").forEach(o=>o.classList.remove("sel")); b.classList.add("sel");
   if(b.dataset.mboss) Monster.cfg.bossHp=+b.dataset.mboss;
@@ -4646,7 +4704,7 @@ document.querySelectorAll("#monOverlay .gc-opt").forEach(b=>{ b.onclick=()=>{
 }; });
 // Portada: elegir jugar (público) o iniciar sesión
 $("lndPlay").onclick=()=>{ $("landing").style.display="none"; Monster._fromLanding=true; Monster.open(); };
-$("lndLogin").onclick=()=>{ $("landing").style.display="none"; const pi=$("pinInput"); if(pi) setTimeout(()=>pi.focus(),60); };
+$("lndLogin").onclick=()=>{ $("landing").style.display="none"; try{ Voice.expect=null; Voice.open(); }catch(e){ const pi=$("pinInput"); if(pi) setTimeout(()=>pi.focus(),60); } };   // el login pide reconocimiento de voz
 
 /* ============ NAVEGACIÓN GLOBAL POR MANDO (toda EDTU con joystick) ============ */
 const Pad={
