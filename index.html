@@ -4642,7 +4642,7 @@ const Monster={
   holeWin(){ this.running=false; if(this.raf){ cancelAnimationFrame(this.raf); this.raf=null; } if(typeof MonNet!=="undefined") MonNet.leave();
     const el=$("monEnd"); if(!el) return; el.style.display="flex";
     el.innerHTML="<div class='end-in'><div class='end-title'>EDTU MONSTER</div><div class='end-cred'>Un juego creado por <b>David</b> 🌌<br>EDTU · Espías De Tecnología Universal<br><span style='opacity:.7'>www.edtu.cl</span></div></div>";
-    setTimeout(()=>{ el.innerHTML="<div class='end-in'><div class='end-honor'>🫡 UN HONOR PELEAR A TU LADO</div></div>"; }, 5000);
+    setTimeout(()=>{ el.innerHTML="<div class='end-in'><div class='end-honor'>UN HONOR PELEAR A TU LADO</div></div>"; }, 5000);
     setTimeout(()=>{ el.innerHTML="<div class='end-in'><div class='end-title'>🏆 JUEGO COMPLETADO</div><div class='end-cred'>Venciste al Agujero Negro 🕳️👑</div><button class='btn btn-primary' id='monEndClose' style='margin-top:22px;font-size:16px;padding:12px 26px'>▶ VOLVER</button></div>"; const b=$("monEndClose"); if(b) b.onclick=()=>{ el.style.display="none"; Monster.close(); }; }, 6100);
   },
   gameComplete(){ this.running=false; $("monOverlay").style.display="flex"; $("monMsg").innerHTML="🎉 ¡JUEGO COMPLETADO! 🏆"; $("monResult").innerHTML="¡Venciste al ☀️ <b>Sol</b> y a sus <b>10.000</b> jefas rojas! 🔴 Eres una leyenda, "+(typeof currentUser!=="undefined"&&currentUser?"comandante":"héroe")+". 🌌"; $("monStart").textContent="▶ JUGAR OTRA VEZ"; },
