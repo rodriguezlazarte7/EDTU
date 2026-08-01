@@ -1152,7 +1152,8 @@
       <button class="gc-opt sel" data-mplanet="tierra">🌍 Tierra</button>
       <button class="gc-opt" data-mplanet="marte">🔴 Marte</button>
       <button class="gc-opt" data-mplanet="neptuno">🔵 Neptuno</button>
-      <button class="gc-opt" data-mplanet="saturno">🪐 Saturno</button></div>
+      <button class="gc-opt" data-mplanet="saturno">🪐 Saturno</button>
+      <button class="gc-opt" data-mplanet="sol">☀️ Sol</button></div>
     <div class="game-cfg"><span>🏅 Empezar en</span>
       <button class="gc-opt sel" data-mlevel="1">N1</button>
       <button class="gc-opt" data-mlevel="2">N2</button>
@@ -4507,7 +4508,8 @@ const PLANETS={
   tierra:  {name:"🌍 Tierra",  ground:"#7a83a8", road:"#5b6284", mateBonus:0, free:[],                          weapons:[], hpMul:1},
   marte:   {name:"🔴 Marte",   ground:"#9c6a52", road:"#7a4f3d", mateBonus:3, free:["escopeta"],                 weapons:["m_rifle","m_doble","m_plasma","m_triple","m_lava"], hpMul:1.4},
   neptuno: {name:"🔵 Neptuno", ground:"#3f6f9c", road:"#2f5476", mateBonus:6, free:["ametralladora","lanzallamas","canon_iones"], weapons:["n_hielo","n_ola","n_rayo","n_torpedo","n_burbuja"], hpMul:1.9},
-  saturno: {name:"🪐 Saturno", ground:"#b8a06a", road:"#8f7a4a", mateBonus:9, free:["francotirador","laser","canon_iones"],    weapons:["s_anillo","s_meteoro","s_estrella","s_rayox","s_gravedad"], hpMul:2.6}
+  saturno: {name:"🪐 Saturno", ground:"#b8a06a", road:"#8f7a4a", mateBonus:9, free:["francotirador","laser","canon_iones"],    weapons:["s_anillo","s_meteoro","s_estrella","s_rayox","s_gravedad"], hpMul:2.6},
+  sol:     {name:"☀️ Sol",     ground:"#d98a2a", road:"#b8641a", mateBonus:12, free:["canon_iones"],                        weapons:[], hpMul:3.5, sun:true}
 };
 const BASE_W=["pistola","ametralladora","escopeta","lanzallamas","francotirador","laser"];
 const Monster={
@@ -4564,6 +4566,7 @@ const Monster={
     const ang=Math.random()*6.283, dist=Math.max(this.W,this.H)*0.6+Math.random()*300;
     let x=this.p.x+Math.cos(ang)*dist, y=this.p.y+Math.sin(ang)*dist;
     x=Math.max(20,Math.min(this.worldW-20,x)); y=Math.max(20,Math.min(this.worldH-20,y));
+    if(this.planet==="sol"){ const jh=80*this.cfg.monHpMul*this._hpMul; this.people.push({ nid:this._nid++, x,y, vx:0,vy:0, r:28, hp:jh, maxHp:jh, spd:80, hitT:0, legPhase:Math.random()*6, col:"#ff2a2a", boss:true }); return; }   // ☀️ Sol: ¡jefas ROJAS!
     if(this.level>=7){ const jh=60*this.cfg.monHpMul*this._hpMul; this.people.push({ nid:this._nid++, x,y, vx:0,vy:0, r:30, hp:jh, maxHp:jh, spd:74, hitT:0, legPhase:Math.random()*6, col:"#ff4db8", boss:true }); return; }   // nivel 7: ¡puras jefas!
     const big=Math.random()<0.22;
     this.people.push({ nid:this._nid++, x,y, vx:0,vy:0, r:big?20:13, hp:(big?5:2)*this.cfg.monHpMul*this._hpMul, spd:big?70:115, hitT:0, legPhase:Math.random()*6, col:big?"#7a3fae":"#c83f52" });
@@ -4594,7 +4597,7 @@ const Monster={
     this.beam={x:p.x,y:p.y,ex:p.x+cs*range,ey:p.y+sn*range,col:col||"#a0f0ff"}; this.shake=Math.max(this.shake,2); },
   openShop(){ this.shopping=true; this.renderShop(); $("monShop").style.display="flex"; },
   closeShop(){ this.shopping=false; $("monShop").style.display="none"; this._last=performance.now(); },
-  availW(){ const pl=PLANETS[this.planet]||PLANETS.tierra; const list=BASE_W.concat(pl.weapons||[]); if(this.owned&&this.owned.has("canon_iones")) list.push("canon_iones"); return list.filter((v,i)=>list.indexOf(v)===i); },
+  availW(){ if(this.planet==="sol") return ["canon_iones"]; const pl=PLANETS[this.planet]||PLANETS.tierra; const list=BASE_W.concat(pl.weapons||[]); if(this.owned&&this.owned.has("canon_iones")) list.push("canon_iones"); return list.filter((v,i)=>list.indexOf(v)===i); },
   renderShop(){ $("monCoins").innerHTML=this.allFree?"👑 Todo desbloqueado (David)":("🪙 <b>"+this.coins+"</b> puntos");
     const box=$("monWeapons"); box.innerHTML=""; const av=this.availW();
     const hdr=(t)=>{ const h=document.createElement("div"); h.style.cssText="margin:8px 2px 2px;font-size:12px;opacity:.75;text-align:left;font-weight:800"; h.textContent=t; box.appendChild(h); };
@@ -4622,7 +4625,8 @@ const Monster={
   poof(x,y,boss){ const cols=["#ffd23f","#38e1ff","#ff8cc6","#8cff6a","#c58cff","#ffa640"], n=boss?26:12; for(let k=0;k<n;k++) this.parts.push({x,y,vx:(Math.random()-0.5)*(boss?320:240),vy:(Math.random()-0.5)*(boss?320:240),life:boss?0.8:0.55,col:cols[k%cols.length]}); },
   netBuf(x,y,vx,vy,col,ww,hh,life){ if(typeof MonNet!=="undefined"&&MonNet.online&&this._shotBuf.length<24) this._shotBuf.push({x:Math.round(x),y:Math.round(y),vx:Math.round(vx),vy:Math.round(vy),c:col,w:ww,h:hh,l:life}); },
   levelUp(){ if(this.level>=7){ this.win(); return; } this.level++; this.levelKills=0; this.p.hp=this.p.maxHp; this.spawnBoss(); this.flash=(this.level>=7?"👑 ¡NIVEL 7: PURAS JEFAS!":"🎉 ¡NIVEL "+this.level+"!"); this.flashT=2.8; },
-  win(){ this.running=false; $("monOverlay").style.display="flex"; $("monMsg").innerHTML="🏆 ¡SALVASTE "+((PLANETS[this.planet]||PLANETS.tierra).name)+"!"; $("monResult").innerHTML="🚀 Tus monitos suben al cohete… <b>¡elige el próximo planeta</b> abajo 🌍🔴🔵🪐 y despega! ("+this.p.kills+" 💥)"; $("monStart").textContent="🚀 DESPEGAR AL PLANETA"; },
+  win(){ this.running=false; $("monOverlay").style.display="flex"; $("monMsg").innerHTML="🏆 ¡SALVASTE "+((PLANETS[this.planet]||PLANETS.tierra).name)+"!"; $("monResult").innerHTML="🚀 Tus monitos suben al cohete… <b>¡elige el próximo planeta</b> abajo 🌍🔴🔵🪐☀️ y despega! ("+this.p.kills+" 💥)"; $("monStart").textContent="🚀 DESPEGAR AL PLANETA"; },
+  gameComplete(){ this.running=false; $("monOverlay").style.display="flex"; $("monMsg").innerHTML="🎉 ¡JUEGO COMPLETADO! 🏆"; $("monResult").innerHTML="¡Venciste al ☀️ <b>Sol</b> y a sus <b>1.000.000.000</b> de jefas rojas! 🔴 Eres una leyenda, "+(typeof currentUser!=="undefined"&&currentUser?"comandante":"héroe")+". 🌌"; $("monStart").textContent="▶ JUGAR OTRA VEZ"; },
   drawPeer(c,x,y,pe){ const R=16, ang=pe.aimAng||0; c.save(); c.translate(x,y);
     c.strokeStyle="#222"; c.lineWidth=5; c.lineCap="round"; c.beginPath(); c.moveTo(0,0); c.lineTo(Math.cos(ang)*R*1.6,Math.sin(ang)*R*1.6); c.stroke();
     c.fillStyle="#c0864a"; c.beginPath(); c.arc(0,0,R,0,6.283); c.fill();
@@ -4754,9 +4758,10 @@ const Monster={
     this.people.splice(i,1); this.p.kills++; this.levelKills++; this.coins+=(m.boss?25:1);
     if(m.boss){ this.levelKills+=25; this.shake=Math.max(this.shake,12); for(let k=0;k<30;k++) this.parts.push({x:m.x,y:m.y,vx:(Math.random()-0.5)*320,vy:(Math.random()-0.5)*320,life:0.8,col:["#ffd23f","#38e1ff","#ff8cc6"][k%3]}); this.stars.push({x:m.x,y:m.y,ph:0}); }
     if(this.p.kills%15===0 && this.mates.length<5) this.addMate();
-    if(this.levelKills>=this.level*this.cfg.goal) this.levelUp();
+    if(this.planet==="sol"){ if(this.levelKills>=1000000000) this.gameComplete(); }
+    else if(this.levelKills>=this.level*this.cfg.goal) this.levelUp();
     this.shake=Math.max(this.shake,3); },
-  updateHud(){ const p=this.p; const hot=this.overheated?"🥵 SOBRECALENTADO":("🌡️ "+Math.round(this.heat)+"/1000"); const wn=(WEAPONS[p.weapon]||WEAPONS.pistola).name; $("monHud").innerHTML="🏅 NIVEL "+this.level+"/7 · "+this.levelKills+" / "+(this.level*this.cfg.goal)+" 💥<br>❤️ "+Math.max(0,Math.ceil(p.hp))+" · "+wn+" · 🪙 "+(this.allFree?"∞":this.coins)+" · 👥 "+this.mates.length+" · "+hot; },
+  updateHud(){ const p=this.p; const hot=this.overheated?"🥵 SOBRECALENTADO":("🌡️ "+Math.round(this.heat)+"/1000"); const wn=(WEAPONS[p.weapon]||WEAPONS.pistola).name; const prog=this.planet==="sol"?("☀️ SOL · "+this.levelKills.toLocaleString("es")+" / 1.000.000.000 🔴"):("🏅 NIVEL "+this.level+"/7 · "+this.levelKills+" / "+(this.level*this.cfg.goal)+" 💥"); $("monHud").innerHTML=prog+"<br>❤️ "+Math.max(0,Math.ceil(p.hp))+" · "+wn+" · 🪙 "+(this.allFree?"∞":this.coins)+" · 👥 "+this.mates.length+" · "+hot; },
   draw(){
     const c=this.c,W=this.W,H=this.H; let camx=this.cam.x,camy=this.cam.y;
     if(this.shake>0){ camx+=(Math.random()-0.5)*this.shake; camy+=(Math.random()-0.5)*this.shake; }
