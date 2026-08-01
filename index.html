@@ -1160,7 +1160,7 @@
     <button class="btn btn-primary" id="monStart" style="font-size:17px;padding:12px 28px">▶ JUGAR</button>
     <div style="font-size:12px;color:#cdd6ff;max-width:460px;line-height:1.6">
       🪖 Eres un <b>soldado</b> con <b>escuadrón</b>. Muévete con <b>flechas</b> / <b>WASD</b> / <b>stick L</b>. Apunta con el <b>mouse</b> o el <b>stick R</b>.<br>
-      🔫 <b>Clic izq</b> o <b>RT</b> = disparar · 🔴 mantén <b>Clic der</b> o <b>LT</b> = <b>MIRA con RAYO ROJO</b> continuo (¡se sobrecalienta 🥵! suéltalo para que enfríe). ⚡ En Marte, crea el <b>Cañón de Iones</b> (rayo azul, 100 daño).<br>
+      🔫 <b>Clic izq</b> o <b>RT</b> = disparar · 🔴 mantén <b>Clic der</b>/<b>LT</b> = <b>RAYO ROJO</b> continuo (¡se sobrecalienta 🥵!) · 🟣 <b>LT+RT</b> juntos = <b>RAYO MORADO</b> (300 de daño, calienta más). ⚡ En Marte crea el <b>Cañón de Iones</b> (rayo azul).<br>
       🏅 <b>Nivel 1 = 1000 monstruos</b>, nivel 2 = 2000… ¡y un <b>MEGA monstruo</b> 🕷️ por nivel! · 👥 ganas un compañero cada 15 · junta ⭐ para curarte.<br>
       ❤️ vida · 🔫 fuerza · 👥 escuadrón · 🎯 cañonazo
     </div>
@@ -4708,9 +4708,9 @@ const Monster={
     this.scope=!!scopeHeld;
     p.fireT-=dt; if(p.powCd>0) p.powCd-=dt;
     this.beam=null;
-    if(scopeHeld){   // 🔴 MIRA: rayo ROJO continuo con SOBRECALENTAMIENTO (dispara solo al mantener)
+    if(scopeHeld){   // 🔴 MIRA rayo rojo · 🟣 LT+RT rayo MORADO (más daño, más calor)
       if(this.overheated){ this.heat=Math.max(0,this.heat-35*dt); if(this.heat<=30) this.overheated=false; }
-      else { this.beamRay(dt,guest,"#ff3b3b",260); this.heat=Math.min(100,this.heat+55*dt); if(this.heat>=100){ this.overheated=true; this.shake=Math.max(this.shake,7); } }
+      else { const combo=fireHeld; this.beamRay(dt,guest, combo?"#c05bff":"#ff3b3b", combo?600:260); this.heat=Math.min(100,this.heat+(combo?95:55)*dt); if(this.heat>=100){ this.overheated=true; this.shake=Math.max(this.shake,combo?10:7); } }
     } else if(p.weapon==="canon_iones"){   // ⚡ CAÑÓN DE IONES: rayo AZUL continuo (sin recalentar)
       if(fireHeld) this.beamRay(dt,guest,"#a0f0ff",320);
       this.heat=Math.max(0,this.heat-40*dt);
