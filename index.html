@@ -478,6 +478,8 @@
   #monShop .shop-item:hover{background:rgba(255,210,63,.12);border-color:rgba(255,210,63,.5)}
   #monShop .shop-item.eq{border-color:#19ff85;background:rgba(25,255,133,.14);color:#19ff85}
   #monShop .shop-item span:last-child{font-size:12px;opacity:.9}
+  #monLab{position:absolute;inset:0;z-index:6;display:none;align-items:center;justify-content:center;background:rgba(0,0,0,.75);padding:16px}
+  #monLab .shop-card{background:#0d0f1a;border:1px solid rgba(160,240,255,.5);border-radius:16px;padding:20px 18px;width:min(400px,94vw);text-align:center;box-shadow:0 0 40px rgba(160,240,255,.18)}
   #footScore{color:#fff;font-weight:900;font-size:19px;text-shadow:0 0 8px rgba(0,0,0,.9);letter-spacing:.04em}
   #footBanner{position:absolute;inset:0;z-index:4;display:none;align-items:center;justify-content:center;pointer-events:none}
   #footBanner.show{display:flex}
@@ -1116,6 +1118,14 @@
       <div id="monCoins" style="font-size:14px;margin-bottom:6px"></div>
       <div id="monWeapons"></div>
       <button class="btn btn-primary" id="monShopClose" style="margin-top:10px">▶ SEGUIR JUGANDO</button>
+    </div>
+  </div>
+  <div id="monLab">
+    <div class="shop-card" style="border-color:rgba(160,240,255,.5)">
+      <h2 style="margin:0 0 6px;color:#a0f0ff;letter-spacing:.1em">🔬 LABORATORIO</h2>
+      <div id="monLabInfo" style="font-size:13px;line-height:1.5;margin-bottom:10px"></div>
+      <button class="btn btn-primary" id="monLabCraft" style="width:100%">⚡ CREAR CAÑÓN DE IONES</button>
+      <button class="btn btn-ghost" id="monLabClose" style="margin-top:8px">▶ SEGUIR JUGANDO</button>
     </div>
   </div>
   <div id="monOverlay" class="game-overlay">
@@ -4458,26 +4468,47 @@ $("convFile").onchange=e=>{ Conv.run(e.target.files); e.target.value=""; };
 
 /* ============ JUEGO: EDTU MONSTER (copia top-down de "You Monster!") ============ */
 const WEAPONS={
-  pistola:      {name:"🔫 Pistola",       price:0,   gap:0.12, dmg:1,  fn:"single"},
-  ametralladora:{name:"🔫 Ametralladora", price:60,  gap:0.05, dmg:1,  fn:"single"},
-  escopeta:     {name:"💥 Escopeta",      price:120, gap:0.6,  dmg:1,  fn:"shotgun"},
-  lanzallamas:  {name:"🔥 Lanzallamas",   price:200, gap:0.03, dmg:0.8,fn:"flame"},
-  francotirador:{name:"🎯 Francotirador", price:300, gap:0.9,  dmg:12, fn:"sniper"},
-  laser:        {name:"⚡ Láser",         price:500, gap:0.02, dmg:2,  fn:"laser"}
+  pistola:      {name:"🔫 Pistola",       price:0,   gap:0.12, dmg:1,  col:"#ff3b3b"},
+  ametralladora:{name:"🔫 Ametralladora", price:60,  gap:0.05, dmg:1,  col:"#ff3b3b"},
+  escopeta:     {name:"💥 Escopeta",      price:120, gap:0.6,  dmg:1,  col:"#ffb03b", count:5, spread:0.5, spd:480, life:0.45, bw:10, bh:4},
+  lanzallamas:  {name:"🔥 Lanzallamas",   price:200, gap:0.03, dmg:0.8,col:"#ff7a1a", count:3, rand:0.5, spd:300, life:0.28, bw:13, bh:9, pierce:1, glow:1},
+  francotirador:{name:"🎯 Francotirador", price:300, gap:0.9,  dmg:12, col:"#38e1ff", spd:950, life:1.4, bw:26, bh:4, pierce:1, glow:1},
+  laser:        {name:"⚡ Láser",         price:500, gap:0.02, dmg:2,  col:"#b06bff", spd:1400, life:0.5, bw:30, bh:3, pierce:1, glow:1},
+  // 🔴 MARTE
+  m_rifle:  {name:"🔴 Rifle marciano",price:150, gap:0.08, dmg:2,  col:"#ff5a3c", spd:640},
+  m_doble:  {name:"🔴 Doble cañón",  price:220, gap:0.35, dmg:2,  col:"#ff7a4a", count:2, spread:0.12, spd:560, bw:12},
+  m_plasma: {name:"🔴 Plasma",       price:340, gap:0.14, dmg:4,  col:"#ff3bd0", spd:700, pierce:1, glow:1, bw:16, bh:8},
+  m_triple: {name:"🔴 Triple",       price:300, gap:0.30, dmg:2,  col:"#ffa03a", count:3, spread:0.3, spd:600},
+  m_lava:   {name:"🔴 Lanza-lava",   price:400, gap:0.02, dmg:1.2,col:"#ff9030", count:4, rand:0.6, spd:320, life:0.3, bw:14, bh:10, pierce:1, glow:1},
+  // 🔵 NEPTUNO
+  n_hielo:  {name:"🔵 Rifle de hielo",price:180, gap:0.09, dmg:2.5,col:"#7fe9ff", spd:660, glow:1},
+  n_ola:    {name:"🔵 Ola",          price:260, gap:0.70, dmg:1.5,col:"#3fd0ff", count:7, spread:0.8, spd:460, life:0.5, bw:11, bh:5},
+  n_rayo:   {name:"🔵 Rayo azul",    price:520, gap:0.02, dmg:2.5,col:"#38b0ff", spd:1500, life:0.5, bw:30, bh:3, pierce:1, glow:1},
+  n_torpedo:{name:"🔵 Torpedo",      price:420, gap:0.80, dmg:16, col:"#2f80ff", spd:600, bw:28, bh:12, pierce:1, glow:1},
+  n_burbuja:{name:"🔵 Burbujas",     price:300, gap:0.25, dmg:2,  col:"#9fe8ff", count:5, spread:0.5, spd:520, glow:1},
+  // 🪐 SATURNO
+  s_anillo:  {name:"🪐 Anillo",      price:300, gap:0.50, dmg:2,  col:"#ffe08a", count:9, spread:1.2, spd:520, bw:10, bh:5},
+  s_meteoro: {name:"🪐 Meteoro",     price:500, gap:0.90, dmg:22, col:"#ffb84a", spd:640, bw:30, bh:14, pierce:1, glow:1},
+  s_estrella:{name:"🪐 Estrella",    price:380, gap:0.30, dmg:3,  col:"#fff06a", count:4, spread:0.7, spd:620, glow:1},
+  s_rayox:   {name:"🪐 Rayo-X",      price:640, gap:0.015,dmg:3,  col:"#f0a0ff", spd:1600, life:0.5, bw:32, bh:3, pierce:1, glow:1},
+  s_gravedad:{name:"🪐 Gravedad",    price:560, gap:0.50, dmg:8,  col:"#c58cff", spd:500, pierce:1, glow:1, bw:20, bh:14},
+  // ⚡ ARMA SECRETA (laboratorio de Marte)
+  canon_iones:{name:"⚡ Cañón de Iones", price:0, gap:0.3, dmg:100, col:"#a0f0ff", spd:1200, life:0.9, bw:38, bh:13, pierce:1, glow:1}
 };
 const PLANETS={
-  tierra:  {name:"🌍 Tierra",  ground:"#7a83a8", road:"#5b6284", mateBonus:0, free:[],                          hpMul:1},
-  marte:   {name:"🔴 Marte",   ground:"#9c6a52", road:"#7a4f3d", mateBonus:1, free:["escopeta"],                 hpMul:1.4},
-  neptuno: {name:"🔵 Neptuno", ground:"#3f6f9c", road:"#2f5476", mateBonus:2, free:["ametralladora","lanzallamas"], hpMul:1.9},
-  saturno: {name:"🪐 Saturno", ground:"#b8a06a", road:"#8f7a4a", mateBonus:3, free:["francotirador","laser"],    hpMul:2.6}
+  tierra:  {name:"🌍 Tierra",  ground:"#7a83a8", road:"#5b6284", mateBonus:0, free:[],                          weapons:[], hpMul:1},
+  marte:   {name:"🔴 Marte",   ground:"#9c6a52", road:"#7a4f3d", mateBonus:3, free:["escopeta"],                 weapons:["m_rifle","m_doble","m_plasma","m_triple","m_lava"], hpMul:1.4},
+  neptuno: {name:"🔵 Neptuno", ground:"#3f6f9c", road:"#2f5476", mateBonus:6, free:["ametralladora","lanzallamas"], weapons:["n_hielo","n_ola","n_rayo","n_torpedo","n_burbuja"], hpMul:1.9},
+  saturno: {name:"🪐 Saturno", ground:"#b8a06a", road:"#8f7a4a", mateBonus:9, free:["francotirador","laser"],    weapons:["s_anillo","s_meteoro","s_estrella","s_rayox","s_gravedad"], hpMul:2.6}
 };
+const BASE_W=["pistola","ametralladora","escopeta","lanzallamas","francotirador","laser"];
 const Monster={
   cv:null,c:null,W:0,H:0,raf:null,running:false, planet:"tierra", theme:null, _hpMul:1,
   worldW:3600,worldH:3600, cam:{x:0,y:0}, shake:0,
   p:null, people:[], shots:[], blood:[], stars:[], parts:[], mates:[], houses:[],
   keys:{}, aim:null, pointer:false, _last:0, spawnT:0, starT:0, level:1, levelKills:0, flash:"", flashT:0,
   cfg:{bossHp:10000, monHpMul:1, goal:1000, playerHp:300},
-  coins:0, owned:null, shopping:false, _inBunker:false, allFree:false, bunker:null, netShots:[], _shotBuf:[],
+  coins:0, owned:null, shopping:false, _inBunker:false, allFree:false, bunker:null, netShots:[], _shotBuf:[], lab:null, _inLab:false, labOpen:false, mateWeapon:"pistola",
   open(){
     $("monFs").classList.add("open");
     this.cv=$("monCanvas"); this.c=this.cv.getContext("2d");
@@ -4507,7 +4538,7 @@ const Monster={
   start(){
     this.p={ x:this.worldW/2, y:this.worldH/2, vx:0,vy:0, r:16, hp:this.cfg.playerHp, maxHp:this.cfg.playerHp, fireRate:0.30, dmg:1, kills:0, fireT:0, powCd:0, aimAng:0, legPhase:0, weapon:"pistola", dmgCd:0 };
     const pl=PLANETS[this.planet]||PLANETS.tierra; this.theme={ground:pl.ground,road:pl.road}; this._hpMul=pl.hpMul||1;
-    this.coins=0; this.owned=new Set(["pistola"].concat(pl.free||[])); this.mateWeapon="pistola"; this.shopping=false; this._inBunker=false; this.bunker={x:1740,y:1140,w:120,h:120}; this._nid=1; this._prevMons=null; this.netShots=[]; this._shotBuf=[]; this._peerDisp={};
+    this.coins=0; this.owned=new Set(["pistola"].concat(pl.free||[])); this.mateWeapon="pistola"; this.shopping=false; this._inBunker=false; this.bunker={x:1740,y:1140,w:120,h:120}; this._nid=1; this._prevMons=null; this.netShots=[]; this._shotBuf=[]; this._peerDisp={}; this.lab=null; this._inLab=false; this.labOpen=false;
     this.people=[]; this.shots=[]; this.blood=[]; this.stars=[]; this.parts=[];
     this.aim=null; this.pointer=false; this.spawnT=0; this.starT=5; this.shake=0; this.mb0=false; this.mb2=false; this.scope=false;
     this.level=1; this.levelKills=0; this.flash=pl.name+" — ¡a salvarlo!"; this.flashT=2.6;
@@ -4537,34 +4568,41 @@ const Monster={
       const c=pal[Math.floor(Math.random()*pal.length)]; this.houses.push({x,y,w,h,col:c[0],roof:c[1]});
     } } },
   resolveRect(e,h){ const cx=Math.max(h.x,Math.min(e.x,h.x+h.w)), cy=Math.max(h.y,Math.min(e.y,h.y+h.h)); const dx=e.x-cx, dy=e.y-cy, d2=dx*dx+dy*dy; if(d2<e.r*e.r){ const d=Math.sqrt(d2)||0.01, push=e.r-d; e.x+=dx/d*push; e.y+=dy/d*push; } },
-  resolveHouses(e){ for(const h of this.houses) this.resolveRect(e,h); if(this.bunker) this.resolveRect(e,this.bunker); },
-  fireGun(x,y,ang,wkey){ const w=WEAPONS[wkey]||WEAPONS.pistola;
-    const push=(a2,spd,life,dmg,col,ww,hh,pierce,glow)=>{ const vx=Math.cos(a2)*spd,vy=Math.sin(a2)*spd; this.shots.push({x,y,vx,vy,life,dmg,col,w:ww,hh,pierce,glow,hitObjs:pierce?new Set():null}); this.netBuf(x,y,vx,vy,col,ww,hh,life); };
-    if(w.fn==="shotgun"){ for(let k=-2;k<=2;k++) push(ang+k*0.13,480,0.45,w.dmg,"#ffb03b",10,4,false,false); }
-    else if(w.fn==="flame"){ for(let k=0;k<3;k++) push(ang+(Math.random()-0.5)*0.5,300,0.28,w.dmg,"#ff7a1a",13,9,true,true); }
-    else if(w.fn==="sniper"){ push(ang,950,1.4,w.dmg,"#38e1ff",26,4,true,true); }
-    else if(w.fn==="laser"){ push(ang,1400,0.5,w.dmg,"#b06bff",30,3,true,true); }
-    else { push(ang,560,0.85,w.dmg,"#ff3b3b",14,5,false,false); }
+  resolveHouses(e){ for(const h of this.houses) this.resolveRect(e,h); if(this.bunker) this.resolveRect(e,this.bunker); if(this.lab) this.resolveRect(e,this.lab); },
+  fireGun(x,y,ang,wkey){ const w=WEAPONS[wkey]||WEAPONS.pistola, n=w.count||1, spread=w.spread||0, spd=w.spd||560, life=w.life||0.85, col=w.col||"#ff3b3b", bw=w.bw||14, bh=w.bh||5;
+    for(let k=0;k<n;k++){ let a2=ang; if(n>1) a2+=(k/(n-1)-0.5)*spread; if(w.rand) a2+=(Math.random()-0.5)*w.rand;
+      const vx=Math.cos(a2)*spd, vy=Math.sin(a2)*spd;
+      this.shots.push({x,y,vx,vy,life,dmg:w.dmg,col,w:bw,hh:bh,pierce:!!w.pierce,glow:!!w.glow,hitObjs:w.pierce?new Set():null});
+      this.netBuf(x,y,vx,vy,col,bw,bh,life);
+    }
   },
   fireWeapon(){ const p=this.p; this.fireGun(p.x+Math.cos(p.aimAng)*p.r, p.y+Math.sin(p.aimAng)*p.r, p.aimAng, p.weapon); },
   openShop(){ this.shopping=true; this.renderShop(); $("monShop").style.display="flex"; },
   closeShop(){ this.shopping=false; $("monShop").style.display="none"; this._last=performance.now(); },
+  availW(){ const pl=PLANETS[this.planet]||PLANETS.tierra; const list=BASE_W.concat(pl.weapons||[]); if(this.owned&&this.owned.has("canon_iones")) list.push("canon_iones"); return list.filter((v,i)=>list.indexOf(v)===i); },
   renderShop(){ $("monCoins").innerHTML=this.allFree?"👑 Todo desbloqueado (David)":("🪙 <b>"+this.coins+"</b> puntos");
-    const box=$("monWeapons"); box.innerHTML="";
+    const box=$("monWeapons"); box.innerHTML=""; const av=this.availW();
     const hdr=(t)=>{ const h=document.createElement("div"); h.style.cssText="margin:8px 2px 2px;font-size:12px;opacity:.75;text-align:left;font-weight:800"; h.textContent=t; box.appendChild(h); };
     hdr("🪖 TU ARMA");
-    for(const k in WEAPONS){ const w=WEAPONS[k], owned=this.allFree||this.owned.has(k), eq=this.p.weapon===k;
+    for(const k of av){ const w=WEAPONS[k], owned=this.allFree||this.owned.has(k), eq=this.p.weapon===k;
       const b=document.createElement("button"); b.className="shop-item"+(eq?" eq":"");
       b.innerHTML="<span>"+w.name+"</span><span>"+(eq?"✅ EQUIPADA":(owned?"EQUIPAR":("COMPRAR · "+w.price+"🪙")))+"</span>";
       b.onclick=()=>{ if(eq) return; if(owned){ this.p.weapon=k; } else if(this.coins>=w.price){ this.coins-=w.price; this.owned.add(k); this.p.weapon=k; } else { $("monCoins").innerHTML="🪙 <b>"+this.coins+"</b> — ¡te faltan puntos!"; return; } this.renderShop(); };
       box.appendChild(b); }
     hdr("👥 ARMA DEL ESCUADRÓN");
-    for(const k in WEAPONS){ const w=WEAPONS[k], owned=this.allFree||this.owned.has(k), eq=this.mateWeapon===k;
+    for(const k of av){ const w=WEAPONS[k], owned=this.allFree||this.owned.has(k), eq=this.mateWeapon===k;
       const b=document.createElement("button"); b.className="shop-item"+(eq?" eq":"");
       b.innerHTML="<span>"+w.name+"</span><span>"+(eq?"✅ EN USO":(owned?"USAR":"🔒 compra arriba"))+"</span>";
       b.onclick=()=>{ if(!owned||eq) return; this.mateWeapon=k; this.renderShop(); };
       box.appendChild(b); }
   },
+  openLab(){ this.labOpen=true; this.renderLab(); $("monLab").style.display="flex"; },
+  closeLab(){ this.labOpen=false; $("monLab").style.display="none"; this._last=performance.now(); },
+  renderLab(){ const pl=PLANETS[this.planet]||PLANETS.tierra; const need=BASE_W.concat(pl.weapons||[]);
+    const have=need.filter(k=>this.allFree||this.owned.has(k)).length, can=this.allFree||have>=need.length;
+    $("monLabInfo").innerHTML="🔬 Reúne <b>TODAS</b> las armas del planeta para fabricar el <b>⚡ Cañón de Iones</b> (rayo eléctrico, <b>100</b> de daño).<br>Llevas <b>"+have+" / "+need.length+"</b> armas.";
+    const btn=$("monLabCraft"); if(this.owned.has("canon_iones")){ btn.disabled=false; btn.textContent="⚡ EQUIPAR CAÑÓN DE IONES"; } else { btn.disabled=!can; btn.textContent=can?"⚡ CREAR CAÑÓN DE IONES":("🔒 te faltan "+(need.length-have)+" armas"); } },
+  craftIon(){ this.owned.add("canon_iones"); this.p.weapon="canon_iones"; this.flash="⚡ ¡CAÑÓN DE IONES CREADO!"; this.flashT=2.6; this.closeLab(); },
   spawnBoss(){ if(this.people.some(m=>m.boss)) return; const ang=Math.random()*6.283, dist=Math.max(this.W,this.H)*0.7; let x=this.p.x+Math.cos(ang)*dist, y=this.p.y+Math.sin(ang)*dist; x=Math.max(50,Math.min(this.worldW-50,x)); y=Math.max(50,Math.min(this.worldH-50,y)); const bhp=this.cfg.bossHp*this.level*this._hpMul; this.people.push({ nid:this._nid++, x,y,vx:0,vy:0, r:52, hp:bhp, maxHp:bhp, spd:50, hitT:0, legPhase:0, col:"#b23a6a", boss:true }); },
   poof(x,y,boss){ const cols=["#ffd23f","#38e1ff","#ff8cc6","#8cff6a","#c58cff","#ffa640"], n=boss?26:12; for(let k=0;k<n;k++) this.parts.push({x,y,vx:(Math.random()-0.5)*(boss?320:240),vy:(Math.random()-0.5)*(boss?320:240),life:boss?0.8:0.55,col:cols[k%cols.length]}); },
   netBuf(x,y,vx,vy,col,ww,hh,life){ if(typeof MonNet!=="undefined"&&MonNet.online&&this._shotBuf.length<24) this._shotBuf.push({x:Math.round(x),y:Math.round(y),vx:Math.round(vx),vy:Math.round(vy),c:col,w:ww,h:hh,l:life}); },
@@ -4591,7 +4629,7 @@ const Monster={
   },
   loop(t){ if(!this.running){ this.raf=null; return; } const dt=Math.min(0.05,(t-this._last)/1000); this._last=t; this.update(dt); this.draw(); this.raf=requestAnimationFrame(tt=>this.loop(tt)); },
   update(dt){
-    if(this.shopping) return;   // congelado en la tienda
+    if(this.shopping||this.labOpen) return;   // congelado en la tienda / laboratorio
     const p=this.p;
     let dx=0,dy=0;
     if(this.keys["w"]||this.keys["arrowup"]) dy-=1; if(this.keys["s"]||this.keys["arrowdown"]) dy+=1;
@@ -4608,6 +4646,9 @@ const Monster={
     const bcx=this.bunker.x+this.bunker.w/2, bcy=this.bunker.y+this.bunker.h/2, nearB=Math.hypot(p.x-bcx,p.y-bcy)<this.bunker.w;
     if(nearB && !this._inBunker){ this._inBunker=true; this.openShop(); return; }
     if(!nearB) this._inBunker=false;
+    // laboratorio (aparece en Marte nivel 3+)
+    if(this.planet==="marte" && this.level>=3 && !this.lab) this.lab={x:1980,y:1740,w:120,h:120};
+    if(this.lab){ const lcx=this.lab.x+this.lab.w/2, lcy=this.lab.y+this.lab.h/2, nearL=Math.hypot(p.x-lcx,p.y-lcy)<this.lab.w; if(nearL && !this._inLab){ this._inLab=true; this.openLab(); return; } if(!nearL) this._inLab=false; }
     if(Math.hypot(p.vx,p.vy)>5) p.legPhase+=dt*12;
     this.cam.x=Math.max(0,Math.min(this.worldW-this.W,p.x-this.W/2)); this.cam.y=Math.max(0,Math.min(this.worldH-this.H,p.y-this.H/2));
     // monstruos: te persiguen y te muerden
@@ -4722,6 +4763,13 @@ const Monster={
       c.fillStyle="#caa24a"; c.fillRect(sx+b.w/2-16,sy+b.h-32,32,32);
       c.fillStyle="#fff"; c.font="bold 13px system-ui,sans-serif"; c.textAlign="center"; c.fillText("🪖 BÚNKER",sx+b.w/2,sy+17);
       const nb=Math.hypot(this.p.x-(b.x+b.w/2),this.p.y-(b.y+b.h/2))<b.w*1.7; if(nb){ c.fillStyle="#ffd23f"; c.font="bold 12px system-ui"; c.fillText("▲ entra a la armería",sx+b.w/2,sy+b.h+16); } c.textAlign="left"; }
+    if(this.lab){ const b=this.lab, sx=b.x-camx, sy=b.y-camy;
+      c.fillStyle="rgba(0,0,0,0.3)"; c.fillRect(sx+6,sy+8,b.w,b.h);
+      c.fillStyle="#4a3a6a"; c.fillRect(sx,sy,b.w,b.h);
+      c.fillStyle="#33285a"; c.fillRect(sx,sy,b.w,26);
+      c.fillStyle="#a0f0ff"; c.fillRect(sx+b.w/2-16,sy+b.h-32,32,32);
+      c.fillStyle="#fff"; c.font="bold 13px system-ui,sans-serif"; c.textAlign="center"; c.fillText("🔬 LAB",sx+b.w/2,sy+17);
+      const nb=Math.hypot(this.p.x-(b.x+b.w/2),this.p.y-(b.y+b.h/2))<b.w*1.7; if(nb){ c.fillStyle="#a0f0ff"; c.font="bold 12px system-ui"; c.fillText("▲ laboratorio de armas",sx+b.w/2,sy+b.h+16); } c.textAlign="left"; }
     for(const b of this.blood){ const sx=b.x-camx,sy=b.y-camy; if(sx<-30||sx>W+30||sy<-30||sy>H+30) continue; c.fillStyle=b.col; c.beginPath(); c.arc(sx,sy,b.r,0,6.283); c.fill(); }
     for(const st of this.stars){ this.drawStar(c,st.x-camx,st.y-camy,14,Math.sin(st.ph*3)*0.3); }
     for(const m of this.people){ const sx=m.x-camx,sy=m.y-camy; if(sx<-20||sx>W+20||sy<-20||sy>H+20) continue; this.drawPerson(c,sx,sy,m); }
@@ -4800,6 +4848,8 @@ $("pickMon").onclick=()=>{ $("gamePick").classList.remove("open"); Monster.open(
 $("monClose").onclick=()=>Monster.close();
 $("monStart").onclick=()=>Monster.start();
 $("monShopClose").onclick=()=>Monster.closeShop();
+$("monLabCraft").onclick=()=>Monster.craftIon();
+$("monLabClose").onclick=()=>Monster.closeLab();
 document.querySelectorAll("#monOverlay .gc-opt").forEach(b=>{ b.onclick=()=>{
   b.parentElement.querySelectorAll(".gc-opt").forEach(o=>o.classList.remove("sel")); b.classList.add("sel");
   if(b.dataset.mboss) Monster.cfg.bossHp=+b.dataset.mboss;
@@ -4825,7 +4875,7 @@ const Pad={
   },
   // La navegación NO actúa dentro de juegos/robot (ellos usan el mando a su manera)
   navOn(){ const o=id=>{ const e=document.getElementById(id); return e&&e.classList.contains("open"); };
-    if(o("monFs") && typeof Monster!=="undefined" && Monster.shopping) return true;   // navegar la tienda del búnker con el mando
+    if(o("monFs") && typeof Monster!=="undefined" && (Monster.shopping||Monster.labOpen)) return true;   // navegar tienda/laboratorio con el mando
     return !(o("gameFs")||o("footFs")||o("robotFs")||o("monFs")); },
   isVis(el){ if(!el||el.disabled) return false; if(el.getAttribute&&el.getAttribute("aria-hidden")==="true") return false;
     const s=getComputedStyle(el); if(s.display==="none"||s.visibility==="hidden"||+s.opacity===0||s.pointerEvents==="none") return false;
