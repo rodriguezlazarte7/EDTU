@@ -4565,7 +4565,7 @@ const Monster={
     this.aim=null; this.pointer=false; this.spawnT=0; this.starT=5; this.shake=0; this.mb0=false; this.mb2=false; this.scope=false;
     this.level=this.cfg.startLevel||1; this.levelKills=0; this.flash=(this.level>=7?"👑 ¡NIVEL 7: PURAS JEFAS!":pl.name+" — ¡a salvarlo!"); this.flashT=2.6;
     this.genHouses();
-    if(this.planet==="agujero"){ for(let i=0;i<this.level;i++) this.spawnSuprema(); this.holeTimer=60; this.flash="🕳️ AGUJERO NEGRO · "+this.level+" SUPREMA"+(this.level>1?"S":""); }
+    if(this.planet==="agujero"){ for(let i=0;i<20;i++) this.spawnSuprema(); this.holeTimer=60; this.flash="🕳️ AGUJERO NEGRO · 20 SUPREMAS"; }
     else { for(let i=0;i<8;i++) this.spawnPerson(); }
     this.mates=[]; const nm=2+(pl.mateBonus||0); for(let i=0;i<nm;i++) this.addMate();
     if(this.planet!=="agujero") this.spawnBoss();
@@ -4717,7 +4717,7 @@ const Monster={
         if(dd<p.r+m.r && m.hitT<=0){ p.hp-=(m.boss?22:10); m.hitT=0.7; this.shake=6; if(p.hp<=0){ this.gameOver(); return; } }
         if(dd<nd){ nd=dd; near=m; }
       }
-      if(this.planet==="agujero"){ this.holeTimer-=dt; if(this.holeTimer<=0){ this.level++; for(let i=0;i<this.level;i++) this.spawnSuprema(); this.holeTimer=60; this.flash="🕳️ +"+this.level+" SUPREMAS 👑"; this.flashT=2.6; } if(!this.people.some(m=>m.suprema)){ this.holeWin(); return; } }
+      if(this.planet==="agujero"){ this.holeTimer-=dt; if(this.holeTimer<=0){ this.level++; for(let i=0;i<20;i++) this.spawnSuprema(); this.holeTimer=60; this.flash="🕳️ NIVEL "+this.level+" · +20 SUPREMAS 👑"; this.flashT=2.6; } if(!this.people.some(m=>m.suprema)){ this.holeWin(); return; } }
       else { this.spawnT-=dt; if(this.spawnT<=0&&this.people.length<40){ this.spawnT=Math.max(0.35,1.2-this.p.kills*0.01); this.spawnPerson(); } }
     }
     // compañeros: te siguen en formación y disparan al monstruo más cercano
