@@ -4506,8 +4506,8 @@ const WEAPONS={
 const PLANETS={
   tierra:  {name:"🌍 Tierra",  ground:"#7a83a8", road:"#5b6284", mateBonus:0, free:[],                          weapons:[], hpMul:1},
   marte:   {name:"🔴 Marte",   ground:"#9c6a52", road:"#7a4f3d", mateBonus:3, free:["escopeta"],                 weapons:["m_rifle","m_doble","m_plasma","m_triple","m_lava"], hpMul:1.4},
-  neptuno: {name:"🔵 Neptuno", ground:"#3f6f9c", road:"#2f5476", mateBonus:6, free:["ametralladora","lanzallamas"], weapons:["n_hielo","n_ola","n_rayo","n_torpedo","n_burbuja"], hpMul:1.9},
-  saturno: {name:"🪐 Saturno", ground:"#b8a06a", road:"#8f7a4a", mateBonus:9, free:["francotirador","laser"],    weapons:["s_anillo","s_meteoro","s_estrella","s_rayox","s_gravedad"], hpMul:2.6}
+  neptuno: {name:"🔵 Neptuno", ground:"#3f6f9c", road:"#2f5476", mateBonus:6, free:["ametralladora","lanzallamas","canon_iones"], weapons:["n_hielo","n_ola","n_rayo","n_torpedo","n_burbuja"], hpMul:1.9},
+  saturno: {name:"🪐 Saturno", ground:"#b8a06a", road:"#8f7a4a", mateBonus:9, free:["francotirador","laser","canon_iones"],    weapons:["s_anillo","s_meteoro","s_estrella","s_rayox","s_gravedad"], hpMul:2.6}
 };
 const BASE_W=["pistola","ametralladora","escopeta","lanzallamas","francotirador","laser"];
 const Monster={
@@ -4546,7 +4546,8 @@ const Monster={
   start(){
     this.p={ x:this.worldW/2, y:this.worldH/2, vx:0,vy:0, r:16, hp:this.cfg.playerHp, maxHp:this.cfg.playerHp, fireRate:0.30, dmg:1, kills:0, fireT:0, powCd:0, aimAng:0, legPhase:0, weapon:"pistola", dmgCd:0 };
     const pl=PLANETS[this.planet]||PLANETS.tierra; this.theme={ground:pl.ground,road:pl.road}; this._hpMul=pl.hpMul||1;
-    this.coins=0; this.owned=new Set(["pistola"].concat(pl.free||[])); this.mateWeapon="pistola"; this.shopping=false; this._inBunker=false; this.bunker={x:1740,y:1140,w:120,h:120}; this._nid=1; this._prevMons=null; this.netShots=[]; this._shotBuf=[]; this._peerDisp={}; this.lab=null; this._inLab=false; this.labOpen=false; this.beam=null; this.heat=0; this.overheated=false;
+    this.coins=0; this.owned=new Set(["pistola"].concat(pl.free||[])); this.mateWeapon="pistola";
+    if(this.owned.has("canon_iones")) this.p.weapon="canon_iones";   // Neptuno+ empiezan con el Cañón de Iones this.shopping=false; this._inBunker=false; this.bunker={x:1740,y:1140,w:120,h:120}; this._nid=1; this._prevMons=null; this.netShots=[]; this._shotBuf=[]; this._peerDisp={}; this.lab=null; this._inLab=false; this.labOpen=false; this.beam=null; this.heat=0; this.overheated=false;
     this.people=[]; this.shots=[]; this.blood=[]; this.stars=[]; this.parts=[];
     this.aim=null; this.pointer=false; this.spawnT=0; this.starT=5; this.shake=0; this.mb0=false; this.mb2=false; this.scope=false;
     this.level=this.cfg.startLevel||1; this.levelKills=0; this.flash=(this.level>=7?"👑 ¡NIVEL 7: PURAS JEFAS!":pl.name+" — ¡a salvarlo!"); this.flashT=2.6;
