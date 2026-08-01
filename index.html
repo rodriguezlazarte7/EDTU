@@ -4450,7 +4450,7 @@ const Monster={
   },
   getPad(){ const pads=navigator.getGamepads?navigator.getGamepads():[]; for(const g of pads){ if(!g) continue; const id=(g.id||"").toLowerCase(); if(/jabra|speak|headset|audio|micr|webcam|camera|receiver/.test(id)) continue; if((g.axes||[]).length>=2) return g; } return null; },
   addMate(){ this.mates.push({x:this.p.x,y:this.p.y,fireT:Math.random()*0.6,aimAng:0,slot:0}); const n=this.mates.length; this.mates.forEach((mt,i)=>{ mt.slot=i/n*6.283; }); },
-  spawnBoss(){ if(this.people.some(m=>m.boss)) return; const ang=Math.random()*6.283, dist=Math.max(this.W,this.H)*0.7; let x=this.p.x+Math.cos(ang)*dist, y=this.p.y+Math.sin(ang)*dist; x=Math.max(50,Math.min(this.worldW-50,x)); y=Math.max(50,Math.min(this.worldH-50,y)); this.people.push({ x,y,vx:0,vy:0, r:52, hp:120*this.level, maxHp:120*this.level, spd:50, hitT:0, legPhase:0, col:"#b23a6a", boss:true }); },
+  spawnBoss(){ if(this.people.some(m=>m.boss)) return; const ang=Math.random()*6.283, dist=Math.max(this.W,this.H)*0.7; let x=this.p.x+Math.cos(ang)*dist, y=this.p.y+Math.sin(ang)*dist; x=Math.max(50,Math.min(this.worldW-50,x)); y=Math.max(50,Math.min(this.worldH-50,y)); const bhp=10000*this.level; this.people.push({ x,y,vx:0,vy:0, r:52, hp:bhp, maxHp:bhp, spd:50, hitT:0, legPhase:0, col:"#b23a6a", boss:true }); },
   levelUp(){ this.level++; this.levelKills=0; this.p.hp=this.p.maxHp; this.spawnBoss(); this.flash="🎉 ¡NIVEL "+this.level+"!"; this.flashT=2.6; },
   drawMate(c,x,y,mt){ const R=13, ang=mt.aimAng||0; c.save(); c.translate(x,y);
     c.strokeStyle="#222"; c.lineWidth=5; c.lineCap="round"; c.beginPath(); c.moveTo(0,0); c.lineTo(Math.cos(ang)*R*1.6,Math.sin(ang)*R*1.6); c.stroke();
