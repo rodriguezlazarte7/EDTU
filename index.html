@@ -58,6 +58,11 @@
     position:fixed;inset:0;z-index:50;display:flex;align-items:center;justify-content:center;
     background:#000000;
   }
+  #landing{position:fixed;inset:0;z-index:140;display:flex;align-items:center;justify-content:center;text-align:center;
+    background:radial-gradient(circle at 50% 20%,#062617,#01060a 70%)}
+  #landing .lnd-card{display:flex;flex-direction:column;align-items:center;padding:34px 30px;max-width:92vw}
+  #landing .lnd-logo{font-size:12px;letter-spacing:.35em;color:var(--cyan);opacity:.8;margin-bottom:6px}
+  #landing .lnd-btn{width:min(340px,86vw);font-size:17px;padding:15px 20px;margin-top:12px}
   .lockcard{
     position:relative;width:min(420px,92vw);padding:38px 34px;border-radius:18px;
     background:var(--panel);backdrop-filter:blur(14px);
@@ -559,6 +564,18 @@
 </style>
 </head>
 <body>
+
+<!-- ============ PORTADA (elige: jugar o login) ============ -->
+<div id="landing">
+  <div class="lnd-card">
+    <div class="lnd-logo mono">⬡ EDTU ⬡</div>
+    <h1 class="glow" style="margin:0;font-size:clamp(40px,9vw,72px);letter-spacing:.08em">EDTU</h1>
+    <p class="mono" style="margin:2px 0 22px;color:var(--cyan);font-size:11px;letter-spacing:.28em">ESPÍAS DE TECNOLOGÍA UNIVERSAL</p>
+    <button class="btn btn-primary lnd-btn" id="lndPlay">🎮 JUGAR EDTU MONSTER</button>
+    <button class="btn btn-ghost lnd-btn" id="lndLogin">🔒 INICIAR SESIÓN</button>
+    <div class="mono" style="font-size:10px;opacity:.45;margin-top:20px">www.edtu.cl</div>
+  </div>
+</div>
 
 <!-- ============ PANTALLA DE ACCESO ============ -->
 <div id="lock">
@@ -1448,6 +1465,7 @@ function proceedLogin(user){
 }
 function unlock(user){
   currentUser = user || {type:"admin"};
+  const lnd=$("landing"); if(lnd) lnd.style.display="none";
   $("lock").style.display="none";
   $("app").style.display="block";
   $("pinInput").value=""; $("lockMsg").textContent="";
@@ -4401,7 +4419,7 @@ $("convFile").onchange=e=>{ Conv.run(e.target.files); e.target.value=""; };
 const Monster={
   cv:null,c:null,W:0,H:0,raf:null,running:false,
   worldW:3600,worldH:3600, cam:{x:0,y:0}, shake:0,
-  p:null, people:[], shots:[], blood:[], stars:[], parts:[], mates:[],
+  p:null, people:[], shots:[], blood:[], stars:[], parts:[], mates:[], houses:[],
   keys:{}, aim:null, pointer:false, _last:0, spawnT:0, starT:0, level:1, levelKills:0, flash:"", flashT:0,
   open(){
     $("monFs").classList.add("open");
@@ -4411,7 +4429,7 @@ const Monster={
     $("monOverlay").style.display="flex"; $("monMsg").textContent="👾 EDTU MONSTER"; $("monResult").textContent=""; $("monStart").textContent="▶ JUGAR";
     $("monHud").innerHTML="";
   },
-  close(){ this.running=false; if(this.raf){ cancelAnimationFrame(this.raf); this.raf=null; } window.removeEventListener("resize",this._onResize); this.unbindInput(); $("monFs").classList.remove("open"); },
+  close(){ this.running=false; if(this.raf){ cancelAnimationFrame(this.raf); this.raf=null; } window.removeEventListener("resize",this._onResize); this.unbindInput(); $("monFs").classList.remove("open"); if(this._fromLanding){ this._fromLanding=false; if(!currentUser) $("landing").style.display="flex"; } },
   resize(){ const d=Math.min(devicePixelRatio||1,2); this.W=innerWidth; this.H=innerHeight; this.cv.width=this.W*d; this.cv.height=this.H*d; this.cv.style.width=this.W+"px"; this.cv.style.height=this.H+"px"; this.c.setTransform(d,0,0,d,0,0); },
   bindInput(){
     this._kd=e=>{ this.keys[e.key.toLowerCase()]=true; };
@@ -4433,6 +4451,7 @@ const Monster={
     this.people=[]; this.shots=[]; this.blood=[]; this.stars=[]; this.parts=[];
     this.aim=null; this.pointer=false; this.spawnT=0; this.starT=5; this.shake=0; this.mb0=false; this.mb2=false; this.scope=false;
     this.level=1; this.levelKills=0; this.flash=""; this.flashT=0;
+    this.genHouses();
     for(let i=0;i<8;i++) this.spawnPerson();
     this.mates=[]; this.addMate(); this.addMate();
     this.spawnBoss();
@@ -4450,6 +4469,13 @@ const Monster={
   },
   getPad(){ const pads=navigator.getGamepads?navigator.getGamepads():[]; for(const g of pads){ if(!g) continue; const id=(g.id||"").toLowerCase(); if(/jabra|speak|headset|audio|micr|webcam|camera|receiver/.test(id)) continue; if((g.axes||[]).length>=2) return g; } return null; },
   addMate(){ this.mates.push({x:this.p.x,y:this.p.y,fireT:Math.random()*0.6,aimAng:0,slot:0}); const n=this.mates.length; this.mates.forEach((mt,i)=>{ mt.slot=i/n*6.283; }); },
+  genHouses(){ this.houses=[]; const road=600, m=70, pal=[["#8a8f9e","#5f6474"],["#9a8f7e","#6f6454"],["#7e8a9a","#5a6675"],["#98879e","#6c5c72"]];
+    for(let bx=0; bx*road<this.worldW; bx++){ for(let by=0; by*road<this.worldH; by++){
+      const x0=bx*road+m, y0=by*road+m, aw=road-2*m, ah=road-2*m; if(x0+aw>this.worldW||y0+ah>this.worldH) continue;
+      const w=120+Math.random()*170, h=120+Math.random()*170, x=x0+Math.random()*(aw-w), y=y0+Math.random()*(ah-h);
+      const c=pal[Math.floor(Math.random()*pal.length)]; this.houses.push({x,y,w,h,col:c[0],roof:c[1]});
+    } } },
+  resolveHouses(e){ for(const h of this.houses){ const cx=Math.max(h.x,Math.min(e.x,h.x+h.w)), cy=Math.max(h.y,Math.min(e.y,h.y+h.h)); const dx=e.x-cx, dy=e.y-cy, d2=dx*dx+dy*dy; if(d2<e.r*e.r){ const d=Math.sqrt(d2)||0.01, push=e.r-d; e.x+=dx/d*push; e.y+=dy/d*push; } } },
   spawnBoss(){ if(this.people.some(m=>m.boss)) return; const ang=Math.random()*6.283, dist=Math.max(this.W,this.H)*0.7; let x=this.p.x+Math.cos(ang)*dist, y=this.p.y+Math.sin(ang)*dist; x=Math.max(50,Math.min(this.worldW-50,x)); y=Math.max(50,Math.min(this.worldH-50,y)); const bhp=10000*this.level; this.people.push({ x,y,vx:0,vy:0, r:52, hp:bhp, maxHp:bhp, spd:50, hitT:0, legPhase:0, col:"#b23a6a", boss:true }); },
   levelUp(){ this.level++; this.levelKills=0; this.p.hp=this.p.maxHp; this.spawnBoss(); this.flash="🎉 ¡NIVEL "+this.level+"!"; this.flashT=2.6; },
   drawMate(c,x,y,mt){ const R=13, ang=mt.aimAng||0; c.save(); c.translate(x,y);
@@ -4478,6 +4504,7 @@ const Monster={
     const sp=200;
     p.vx+=(dx*sp-p.vx)*Math.min(1,dt*8); p.vy+=(dy*sp-p.vy)*Math.min(1,dt*8);
     p.x=Math.max(p.r,Math.min(this.worldW-p.r,p.x+p.vx*dt)); p.y=Math.max(p.r,Math.min(this.worldH-p.r,p.y+p.vy*dt));
+    this.resolveHouses(p);
     if(Math.hypot(p.vx,p.vy)>5) p.legPhase+=dt*12;
     this.cam.x=Math.max(0,Math.min(this.worldW-this.W,p.x-this.W/2)); this.cam.y=Math.max(0,Math.min(this.worldH-this.H,p.y-this.H/2));
     // monstruos: te persiguen y te muerden
@@ -4485,6 +4512,7 @@ const Monster={
     for(let i=this.people.length-1;i>=0;i--){ const m=this.people[i]; const ddx=p.x-m.x,ddy=p.y-m.y,dd=Math.hypot(ddx,ddy)||1;
       m.vx=ddx/dd*m.spd; m.vy=ddy/dd*m.spd; m.legPhase+=dt*10;
       m.x=Math.max(10,Math.min(this.worldW-10,m.x+m.vx*dt)); m.y=Math.max(10,Math.min(this.worldH-10,m.y+m.vy*dt));
+      this.resolveHouses(m);
       if(m.hitT>0) m.hitT-=dt;
       if(dd<p.r+m.r && m.hitT<=0){ p.hp-=(m.boss?22:10); m.hitT=0.7; this.shake=6; if(p.hp<=0){ this.gameOver(); return; } }
       if(dd<nd){ nd=dd; near=m; }
@@ -4550,6 +4578,13 @@ const Monster={
     for(let wx=Math.floor(camx/road)*road; wx<camx+W+road; wx+=road){ c.moveTo(wx-camx,0); c.lineTo(wx-camx,H); }
     for(let wy=Math.floor(camy/road)*road; wy<camy+H+road; wy+=road){ c.moveTo(0,wy-camy); c.lineTo(W,wy-camy); }
     c.stroke(); c.setLineDash([]);
+    for(const h of this.houses){ const sx=h.x-camx, sy=h.y-camy; if(sx>W||sy>H||sx+h.w<0||sy+h.h<0) continue;
+      c.fillStyle="rgba(0,0,0,0.28)"; c.fillRect(sx+6,sy+8,h.w,h.h);
+      c.fillStyle=h.col; c.fillRect(sx,sy,h.w,h.h);
+      c.fillStyle=h.roof; c.fillRect(sx,sy,h.w,Math.min(24,h.h*0.28));
+      c.fillStyle="rgba(180,220,255,0.45)"; for(let wx=sx+16; wx<sx+h.w-14; wx+=28){ for(let wy=sy+34; wy<sy+h.h-14; wy+=28){ c.fillRect(wx,wy,13,13); } }
+      c.strokeStyle="rgba(0,0,0,0.35)"; c.lineWidth=2; c.strokeRect(sx,sy,h.w,h.h);
+    }
     for(const b of this.blood){ const sx=b.x-camx,sy=b.y-camy; if(sx<-30||sx>W+30||sy<-30||sy>H+30) continue; c.fillStyle=b.col; c.beginPath(); c.arc(sx,sy,b.r,0,6.283); c.fill(); }
     for(const st of this.stars){ this.drawStar(c,st.x-camx,st.y-camy,14,Math.sin(st.ph*3)*0.3); }
     for(const m of this.people){ const sx=m.x-camx,sy=m.y-camy; if(sx<-20||sx>W+20||sy<-20||sy>H+20) continue; this.drawPerson(c,sx,sy,m); }
@@ -4584,6 +4619,9 @@ const Monster={
 $("pickMon").onclick=()=>{ $("gamePick").classList.remove("open"); Monster.open(); };
 $("monClose").onclick=()=>Monster.close();
 $("monStart").onclick=()=>Monster.start();
+// Portada: elegir jugar (público) o iniciar sesión
+$("lndPlay").onclick=()=>{ $("landing").style.display="none"; Monster._fromLanding=true; Monster.open(); };
+$("lndLogin").onclick=()=>{ $("landing").style.display="none"; const pi=$("pinInput"); if(pi) setTimeout(()=>pi.focus(),60); };
 
 /* ============ NAVEGACIÓN GLOBAL POR MANDO (toda EDTU con joystick) ============ */
 const Pad={
