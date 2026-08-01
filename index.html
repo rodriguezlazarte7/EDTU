@@ -1092,9 +1092,9 @@
     <button class="btn btn-primary" id="monStart" style="font-size:17px;padding:12px 28px">▶ JUGAR</button>
     <div style="font-size:12px;color:#cdd6ff;max-width:460px;line-height:1.6">
       🪖 Eres un <b>soldado</b> con <b>escuadrón</b>. Muévete con <b>flechas</b> / <b>WASD</b> / <b>stick L</b>. Apunta con el <b>mouse</b> o el <b>stick R</b>.<br>
-      🔫 <b>Clic izq</b> o <b>RT</b> = disparar (mantén = cada 0.5s) · 🎯 <b>Clic der</b> o <b>LT</b> = <b>MIRA</b> (todo se oscurece menos el cono) + <b>disparo potente</b> que atraviesa (cada 2s).<br>
-      👥 Tus <b>compañeros</b> te siguen y disparan solos · ¡ganas uno más cada 15 monstruos! · junta ⭐ para curarte y pegar más fuerte.<br>
-      ❤️ vida · 🔫 fuerza · 💥 vencidos · 🎯 disparo potente
+      🔫 <b>Clic izq</b> o <b>RT</b> = disparar (rápido) · 🎯 mantén <b>Clic der</b> o <b>LT</b> = <b>MIRA</b> (todo se oscurece menos el cono); estando en mira, dispara con RT/clic el <b>cañonazo</b> que atraviesa.<br>
+      🏅 <b>Nivel 1 = 1000 monstruos</b>, nivel 2 = 2000… ¡y un <b>MEGA monstruo</b> 🕷️ por nivel! · 👥 ganas un compañero cada 15 · junta ⭐ para curarte.<br>
+      ❤️ vida · 🔫 fuerza · 👥 escuadrón · 🎯 cañonazo
     </div>
   </div>
 </div>
@@ -4402,7 +4402,7 @@ const Monster={
   cv:null,c:null,W:0,H:0,raf:null,running:false,
   worldW:3600,worldH:3600, cam:{x:0,y:0}, shake:0,
   p:null, people:[], shots:[], blood:[], stars:[], parts:[], mates:[],
-  keys:{}, aim:null, pointer:false, _last:0, spawnT:0, starT:0,
+  keys:{}, aim:null, pointer:false, _last:0, spawnT:0, starT:0, level:1, levelKills:0, flash:"", flashT:0,
   open(){
     $("monFs").classList.add("open");
     this.cv=$("monCanvas"); this.c=this.cv.getContext("2d");
@@ -4432,8 +4432,10 @@ const Monster={
     this.p={ x:this.worldW/2, y:this.worldH/2, vx:0,vy:0, r:16, hp:150, maxHp:150, fireRate:0.30, dmg:1, kills:0, fireT:0, powCd:0, aimAng:0, legPhase:0 };
     this.people=[]; this.shots=[]; this.blood=[]; this.stars=[]; this.parts=[];
     this.aim=null; this.pointer=false; this.spawnT=0; this.starT=5; this.shake=0; this.mb0=false; this.mb2=false; this.scope=false;
+    this.level=1; this.levelKills=0; this.flash=""; this.flashT=0;
     for(let i=0;i<8;i++) this.spawnPerson();
     this.mates=[]; this.addMate(); this.addMate();
+    this.spawnBoss();
     $("monOverlay").style.display="none";
     this.running=true; this._last=performance.now();
     if(!this.raf) this.raf=requestAnimationFrame(t=>this.loop(t));
@@ -4448,6 +4450,8 @@ const Monster={
   },
   getPad(){ const pads=navigator.getGamepads?navigator.getGamepads():[]; for(const g of pads){ if(!g) continue; const id=(g.id||"").toLowerCase(); if(/jabra|speak|headset|audio|micr|webcam|camera|receiver/.test(id)) continue; if((g.axes||[]).length>=2) return g; } return null; },
   addMate(){ this.mates.push({x:this.p.x,y:this.p.y,fireT:Math.random()*0.6,aimAng:0,slot:0}); const n=this.mates.length; this.mates.forEach((mt,i)=>{ mt.slot=i/n*6.283; }); },
+  spawnBoss(){ if(this.people.some(m=>m.boss)) return; const ang=Math.random()*6.283, dist=Math.max(this.W,this.H)*0.7; let x=this.p.x+Math.cos(ang)*dist, y=this.p.y+Math.sin(ang)*dist; x=Math.max(50,Math.min(this.worldW-50,x)); y=Math.max(50,Math.min(this.worldH-50,y)); this.people.push({ x,y,vx:0,vy:0, r:52, hp:120*this.level, maxHp:120*this.level, spd:50, hitT:0, legPhase:0, col:"#b23a6a", boss:true }); },
+  levelUp(){ this.level++; this.levelKills=0; this.p.hp=this.p.maxHp; this.spawnBoss(); this.flash="🎉 ¡NIVEL "+this.level+"!"; this.flashT=2.6; },
   drawMate(c,x,y,mt){ const R=13, ang=mt.aimAng||0; c.save(); c.translate(x,y);
     c.strokeStyle="#222"; c.lineWidth=5; c.lineCap="round"; c.beginPath(); c.moveTo(0,0); c.lineTo(Math.cos(ang)*R*1.6,Math.sin(ang)*R*1.6); c.stroke();
     c.fillStyle="#4a7dc0"; c.beginPath(); c.arc(0,0,R,0,6.283); c.fill();
@@ -4482,7 +4486,7 @@ const Monster={
       m.vx=ddx/dd*m.spd; m.vy=ddy/dd*m.spd; m.legPhase+=dt*10;
       m.x=Math.max(10,Math.min(this.worldW-10,m.x+m.vx*dt)); m.y=Math.max(10,Math.min(this.worldH-10,m.y+m.vy*dt));
       if(m.hitT>0) m.hitT-=dt;
-      if(dd<p.r+m.r && m.hitT<=0){ p.hp-=10; m.hitT=0.7; this.shake=6; if(p.hp<=0){ this.gameOver(); return; } }
+      if(dd<p.r+m.r && m.hitT<=0){ p.hp-=(m.boss?22:10); m.hitT=0.7; this.shake=6; if(p.hp<=0){ this.gameOver(); return; } }
       if(dd<nd){ nd=dd; near=m; }
     }
     this.spawnT-=dt; if(this.spawnT<=0&&this.people.length<40){ this.spawnT=Math.max(0.35,1.2-this.p.kills*0.01); this.spawnPerson(); }
@@ -4503,11 +4507,14 @@ const Monster={
     // gatillos: clic-izq/RT = disparo (cada 0.5s) · clic-der/LT = mira + disparo potente (cada 2s)
     const rt=gp&&gp.buttons[7]&&(gp.buttons[7].pressed||gp.buttons[7].value>0.3);
     const lt=gp&&gp.buttons[6]&&(gp.buttons[6].pressed||gp.buttons[6].value>0.3);
-    const fireHeld=this.mb0||rt, scopeHeld=this.mb2||lt;
-    p.fireT-=dt; if(p.powCd>0) p.powCd-=dt;
-    if(p.fireT<=0 && (fireHeld||near||ptr||rstick)){ p.fireT=0.5; this.shots.push({x:p.x+Math.cos(p.aimAng)*p.r,y:p.y+Math.sin(p.aimAng)*p.r,vx:Math.cos(p.aimAng)*560,vy:Math.sin(p.aimAng)*560,life:0.85,dmg:p.dmg}); }   // auto-dispara al que esté a tiro (como antes) + gatillos
+    const fireHeld=this.mb0||rt||this.keys[" "], scopeHeld=this.mb2||lt||this.keys["shift"];
     this.scope=!!scopeHeld;
-    if(scopeHeld && p.powCd<=0){ p.powCd=2; this.shake=Math.max(this.shake,8); this.shots.push({x:p.x+Math.cos(p.aimAng)*p.r,y:p.y+Math.sin(p.aimAng)*p.r,vx:Math.cos(p.aimAng)*780,vy:Math.sin(p.aimAng)*780,life:1.1,dmg:12,pow:true,hitObjs:new Set()}); }
+    p.fireT-=dt; if(p.powCd>0) p.powCd-=dt;
+    if(scopeHeld){   // en MIRA: con el gatillo sale el disparo POTENTE (cada 0.5s), atraviesa
+      if(fireHeld && p.powCd<=0){ p.powCd=0.5; this.shake=Math.max(this.shake,6); this.shots.push({x:p.x+Math.cos(p.aimAng)*p.r,y:p.y+Math.sin(p.aimAng)*p.r,vx:Math.cos(p.aimAng)*820,vy:Math.sin(p.aimAng)*820,life:1.1,dmg:14,pow:true,hitObjs:new Set()}); }
+    } else {          // normal: disparo rojo cada 0.05s con el gatillo
+      if(fireHeld && p.fireT<=0){ p.fireT=0.05; this.shots.push({x:p.x+Math.cos(p.aimAng)*p.r,y:p.y+Math.sin(p.aimAng)*p.r,vx:Math.cos(p.aimAng)*560,vy:Math.sin(p.aimAng)*560,life:0.85,dmg:p.dmg}); }
+    }
     // balas vs monstruos (las potentes atraviesan varios)
     for(let i=this.shots.length-1;i>=0;i--){ const s=this.shots[i]; s.x+=s.vx*dt; s.y+=s.vy*dt; s.life-=dt; let remove=s.life<=0;
       for(let j=this.people.length-1;j>=0;j--){ const m=this.people[j]; if(Math.hypot(s.x-m.x,s.y-m.y)<m.r+5){
@@ -4518,13 +4525,18 @@ const Monster={
     for(let i=this.stars.length-1;i>=0;i--){ const st=this.stars[i]; st.ph+=dt; if(Math.hypot(st.x-p.x,st.y-p.y)<p.r+16){ this.stars.splice(i,1); p.fireRate=Math.max(0.08,p.fireRate-0.03); p.dmg+=1; p.maxHp+=15; p.hp=Math.min(p.maxHp,p.hp+40); for(let k=0;k<14;k++) this.parts.push({x:st.x,y:st.y,vx:(Math.random()-0.5)*200,vy:(Math.random()-0.5)*200,life:0.6,col:"#ffd23f"}); } }
     for(let i=this.parts.length-1;i>=0;i--){ const pa=this.parts[i]; pa.x+=pa.vx*dt; pa.y+=pa.vy*dt; pa.vx*=0.92; pa.vy*=0.92; pa.life-=dt; if(pa.life<=0) this.parts.splice(i,1); }
     if(this.shake>0) this.shake-=dt*30;
+    if(this.flashT>0) this.flashT-=dt;
     this.updateHud();
   },
   kill(m,i){ this.blood.push({x:m.x,y:m.y,r:9+Math.random()*10,col:"rgba(255,255,255,0.18)"}); if(this.blood.length>400) this.blood.shift();   // marca "poof" (polvo), sin sangre
     const cols=["#ffd23f","#38e1ff","#ff8cc6","#8cff6a","#c58cff","#ffa640"];
     for(let k=0;k<12;k++) this.parts.push({x:m.x,y:m.y,vx:(Math.random()-0.5)*240,vy:(Math.random()-0.5)*240,life:0.55,col:cols[k%cols.length]});   // confeti de colores
-    this.people.splice(i,1); this.p.kills++; if(this.p.kills%15===0 && this.mates.length<5) this.addMate(); this.shake=Math.max(this.shake,3); },
-  updateHud(){ const p=this.p; const pw=p.powCd>0?("⏳ "+p.powCd.toFixed(1)+"s"):"🎯 LISTO"; $("monHud").innerHTML="❤️ "+Math.max(0,Math.ceil(p.hp))+" &nbsp; 🔫 "+p.dmg+" &nbsp; 💥 "+p.kills+" &nbsp; "+pw; },
+    this.people.splice(i,1); this.p.kills++; this.levelKills++;
+    if(m.boss){ this.levelKills+=25; this.shake=Math.max(this.shake,12); for(let k=0;k<30;k++) this.parts.push({x:m.x,y:m.y,vx:(Math.random()-0.5)*320,vy:(Math.random()-0.5)*320,life:0.8,col:["#ffd23f","#38e1ff","#ff8cc6"][k%3]}); this.stars.push({x:m.x,y:m.y,ph:0}); }
+    if(this.p.kills%15===0 && this.mates.length<5) this.addMate();
+    if(this.levelKills>=this.level*1000) this.levelUp();
+    this.shake=Math.max(this.shake,3); },
+  updateHud(){ const p=this.p; const pw=p.powCd>0?("⏳"+p.powCd.toFixed(1)+"s"):"🎯"; $("monHud").innerHTML="🏅 NIVEL "+this.level+" · "+this.levelKills+" / "+(this.level*1000)+" 💥<br>❤️ "+Math.max(0,Math.ceil(p.hp))+" &nbsp; 🔫 "+p.dmg+" &nbsp; 👥 "+this.mates.length+" &nbsp; "+pw; },
   draw(){
     const c=this.c,W=this.W,H=this.H; let camx=this.cam.x,camy=this.cam.y;
     if(this.shake>0){ camx+=(Math.random()-0.5)*this.shake; camy+=(Math.random()-0.5)*this.shake; }
@@ -4542,7 +4554,7 @@ const Monster={
     for(const st of this.stars){ this.drawStar(c,st.x-camx,st.y-camy,14,Math.sin(st.ph*3)*0.3); }
     for(const m of this.people){ const sx=m.x-camx,sy=m.y-camy; if(sx<-20||sx>W+20||sy<-20||sy>H+20) continue; this.drawPerson(c,sx,sy,m); }
     for(const mt of this.mates){ this.drawMate(c,mt.x-camx,mt.y-camy,mt); }
-    for(const s of this.shots){ const sx=s.x-camx,sy=s.y-camy; c.save(); c.translate(sx,sy); c.rotate(Math.atan2(s.vy,s.vx)); if(s.pow){ c.fillStyle="#38e1ff"; c.shadowColor="#38e1ff"; c.shadowBlur=10; c.fillRect(-13,-4,26,8); c.shadowBlur=0; } else { c.fillStyle="#ffe14d"; c.fillRect(-7,-2.5,14,5); } c.restore(); }
+    for(const s of this.shots){ const sx=s.x-camx,sy=s.y-camy; c.save(); c.translate(sx,sy); c.rotate(Math.atan2(s.vy,s.vx)); if(s.pow){ c.fillStyle="#38e1ff"; c.shadowColor="#38e1ff"; c.shadowBlur=10; c.fillRect(-13,-4,26,8); c.shadowBlur=0; } else { c.fillStyle="#ff3b3b"; c.fillRect(-7,-2.5,14,5); } c.restore(); }
     this.drawSoldier(c,this.p.x-camx,this.p.y-camy);
     for(const pa of this.parts){ c.globalAlpha=Math.max(0,pa.life*2); c.fillStyle=pa.col; c.fillRect(pa.x-camx-2,pa.y-camy-2,4,4); } c.globalAlpha=1;
     if(this.scope){ const px=this.p.x-camx, py=this.p.y-camy, half=0.42, rad=Math.max(W,H)*1.35, a0=this.p.aimAng-half, a1=this.p.aimAng+half;
@@ -4550,12 +4562,16 @@ const Monster={
       c.strokeStyle="rgba(56,225,255,0.55)"; c.lineWidth=2; c.beginPath(); c.moveTo(px,py); c.arc(px,py,rad,a0,a1); c.closePath(); c.stroke();
       c.strokeStyle="rgba(56,225,255,0.9)"; c.lineWidth=2; c.beginPath(); c.moveTo(px+Math.cos(this.p.aimAng)*20,py+Math.sin(this.p.aimAng)*20); c.lineTo(px+Math.cos(this.p.aimAng)*rad,py+Math.sin(this.p.aimAng)*rad); c.stroke();   // línea de mira
     }
+    if(this.flashT>0){ c.save(); c.globalAlpha=Math.min(1,this.flashT); c.fillStyle="#ffd23f"; c.font="bold 48px system-ui,sans-serif"; c.textAlign="center"; c.shadowColor="#000"; c.shadowBlur=10; c.fillText(this.flash,W/2,H/2); c.restore(); }
   },
-  drawPerson(c,x,y,m){ c.save(); c.translate(x,y);   // enemigo = monstruo araña
+  drawPerson(c,x,y,m){ c.save(); c.translate(x,y); const legs=m.boss?10:6, er=m.r*0.16;
     c.strokeStyle=m.col; c.lineWidth=Math.max(2,m.r*0.2); c.lineCap="round";
-    for(let i=0;i<6;i++){ const a=i/6*6.283+Math.sin(m.legPhase+i)*0.25, l=m.r*1.4; c.beginPath(); c.moveTo(0,0); c.lineTo(Math.cos(a)*l,Math.sin(a)*l); c.stroke(); }
-    c.fillStyle=m.col; c.beginPath(); c.arc(0,0,m.r,0,6.283); c.fill();
-    c.fillStyle="#fff"; c.beginPath(); c.arc(-m.r*0.28,-m.r*0.15,m.r*0.16,0,6.283); c.arc(m.r*0.28,-m.r*0.15,m.r*0.16,0,6.283); c.fill();
+    for(let i=0;i<legs;i++){ const a=i/legs*6.283+Math.sin(m.legPhase+i)*0.25, l=m.r*1.4; c.beginPath(); c.moveTo(0,0); c.lineTo(Math.cos(a)*l,Math.sin(a)*l); c.stroke(); }
+    if(m.boss){ c.shadowColor=m.col; c.shadowBlur=22; }
+    c.fillStyle=m.col; c.beginPath(); c.arc(0,0,m.r,0,6.283); c.fill(); c.shadowBlur=0;
+    c.fillStyle="#fff"; c.beginPath(); c.arc(-m.r*0.28,-m.r*0.15,er,0,6.283); c.arc(m.r*0.28,-m.r*0.15,er,0,6.283); c.fill();
+    if(m.boss){ c.fillStyle="#c00"; c.beginPath(); c.arc(-m.r*0.28,-m.r*0.15,er*0.5,0,6.283); c.arc(m.r*0.28,-m.r*0.15,er*0.5,0,6.283); c.fill();
+      c.fillStyle="rgba(0,0,0,0.55)"; c.fillRect(-m.r,-m.r-15,m.r*2,8); c.fillStyle="#ff4d4d"; c.fillRect(-m.r,-m.r-15,m.r*2*Math.max(0,m.hp/(m.maxHp||1)),8); }
     c.restore(); },
   drawSoldier(c,x,y){ const p=this.p,R=p.r,ang=p.aimAng||0; c.save(); c.translate(x,y);
     c.strokeStyle="#2b2b2b"; c.lineWidth=6; c.lineCap="round"; c.beginPath(); c.moveTo(0,0); c.lineTo(Math.cos(ang)*R*1.75,Math.sin(ang)*R*1.75); c.stroke();   // arma
