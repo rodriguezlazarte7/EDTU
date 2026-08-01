@@ -4717,13 +4717,13 @@ const Monster={
     p.fireT-=dt; if(p.powCd>0) p.powCd-=dt;
     this.beam=null;
     if(scopeHeld){   // 🔴 MIRA rayo rojo · 🟣 LT+RT rayo MORADO (más daño, más calor)
-      if(this.overheated){ this.heat=Math.max(0,this.heat-55*dt); if(this.heat<=15) this.overheated=false; }
-      else { const combo=fireHeld; this.beamRay(dt,guest, combo?"#c05bff":"#ff3b3b", combo?100000:260); this.heat=Math.min(100,this.heat+(combo?60:34)*dt); if(this.heat>=100){ this.overheated=true; this.shake=Math.max(this.shake,combo?10:7); } }
+      if(this.overheated){ this.heat=Math.max(0,this.heat-550*dt); if(this.heat<=150) this.overheated=false; }
+      else { const combo=fireHeld; this.beamRay(dt,guest, combo?"#c05bff":"#ff3b3b", combo?100000:260); this.heat=Math.min(1000,this.heat+(combo?600:340)*dt); if(this.heat>=1000){ this.overheated=true; this.shake=Math.max(this.shake,combo?10:7); } }
     } else if(p.weapon==="canon_iones"){   // ⚡ CAÑÓN DE IONES: rayo AZUL continuo (sin recalentar)
       if(fireHeld) this.beamRay(dt,guest,"#a0f0ff",320);
-      this.heat=Math.max(0,this.heat-40*dt);
+      this.heat=Math.max(0,this.heat-400*dt);
     } else {          // normal: dispara según el arma equipada
-      this.heat=Math.max(0,this.heat-40*dt);
+      this.heat=Math.max(0,this.heat-400*dt);
       if(fireHeld && p.fireT<=0){ p.fireT=(WEAPONS[p.weapon]||WEAPONS.pistola).gap; this.fireWeapon(); }
     }
     // balas vs monstruos (las potentes atraviesan varios)
@@ -4755,7 +4755,7 @@ const Monster={
     if(this.p.kills%15===0 && this.mates.length<5) this.addMate();
     if(this.levelKills>=this.level*this.cfg.goal) this.levelUp();
     this.shake=Math.max(this.shake,3); },
-  updateHud(){ const p=this.p; const hot=this.overheated?"🥵 SOBRECALENTADO":("🌡️ "+Math.round(this.heat)+"%"); const wn=(WEAPONS[p.weapon]||WEAPONS.pistola).name; $("monHud").innerHTML="🏅 NIVEL "+this.level+"/7 · "+this.levelKills+" / "+(this.level*this.cfg.goal)+" 💥<br>❤️ "+Math.max(0,Math.ceil(p.hp))+" · "+wn+" · 🪙 "+(this.allFree?"∞":this.coins)+" · 👥 "+this.mates.length+" · "+hot; },
+  updateHud(){ const p=this.p; const hot=this.overheated?"🥵 SOBRECALENTADO":("🌡️ "+Math.round(this.heat)+"/1000"); const wn=(WEAPONS[p.weapon]||WEAPONS.pistola).name; $("monHud").innerHTML="🏅 NIVEL "+this.level+"/7 · "+this.levelKills+" / "+(this.level*this.cfg.goal)+" 💥<br>❤️ "+Math.max(0,Math.ceil(p.hp))+" · "+wn+" · 🪙 "+(this.allFree?"∞":this.coins)+" · 👥 "+this.mates.length+" · "+hot; },
   draw(){
     const c=this.c,W=this.W,H=this.H; let camx=this.cam.x,camy=this.cam.y;
     if(this.shake>0){ camx+=(Math.random()-0.5)*this.shake; camy+=(Math.random()-0.5)*this.shake; }
