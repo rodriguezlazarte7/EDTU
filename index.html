@@ -4721,14 +4721,19 @@ const Monster={
       else { this.spawnT-=dt; if(this.spawnT<=0&&this.people.length<40){ this.spawnT=Math.max(0.35,1.2-this.p.kills*0.01); this.spawnPerson(); } }
     }
     // compañeros: te siguen en formación y disparan al monstruo más cercano
-    this.mateBeams.length=0; const mR=760, mDps=15000;   // compañeros = rayo morado continuo
+    this.mateBeams.length=0; const agu=this.planet==="agujero", mR=760, mDps=15000;   // rayo morado del escuadrón SOLO en el Agujero
     for(const mt of this.mates){
       const tx=p.x+Math.cos(mt.slot)*95, ty=p.y+Math.sin(mt.slot)*95, ax=tx-mt.x, ay=ty-mt.y, d=Math.hypot(ax,ay);
       if(d>4){ mt.x+=ax/d*Math.min(230,d*4)*dt; mt.y+=ay/d*Math.min(230,d*4)*dt; }
       let mn=null,mnd=1e9; for(const mo of this.people){ const dd=Math.hypot(mo.x-mt.x,mo.y-mt.y); if(dd<mnd){ mnd=dd; mn=mo; } }
-      if(mn&&mnd<mR){ mt.aimAng=Math.atan2(mn.y-mt.y,mn.x-mt.x); const cs=Math.cos(mt.aimAng),sn=Math.sin(mt.aimAng);
-        for(let j=this.people.length-1;j>=0;j--){ const m=this.people[j]; const proj=Math.max(0,Math.min(mR,(m.x-mt.x)*cs+(m.y-mt.y)*sn)); const px=mt.x+cs*proj,py=mt.y+sn*proj; if(Math.hypot(m.x-px,m.y-py)<m.r+12){ const dd=mDps*dt; if(guest){ MonNet.sendHit(m.nid,dd); m.hp-=dd; } else { m.hp-=dd; if(m.hp<=0) this.kill(m,j); } } }
-        this.mateBeams.push({x:mt.x,y:mt.y,ex:mt.x+cs*mR,ey:mt.y+sn*mR});
+      if(agu){   // 🕳️ Agujero: rayo morado continuo
+        if(mn&&mnd<mR){ mt.aimAng=Math.atan2(mn.y-mt.y,mn.x-mt.x); const cs=Math.cos(mt.aimAng),sn=Math.sin(mt.aimAng);
+          for(let j=this.people.length-1;j>=0;j--){ const m=this.people[j]; const proj=Math.max(0,Math.min(mR,(m.x-mt.x)*cs+(m.y-mt.y)*sn)); const px=mt.x+cs*proj,py=mt.y+sn*proj; if(Math.hypot(m.x-px,m.y-py)<m.r+12){ const dd=mDps*dt; if(guest){ MonNet.sendHit(m.nid,dd); m.hp-=dd; } else { m.hp-=dd; if(m.hp<=0) this.kill(m,j); } } }
+          this.mateBeams.push({x:mt.x,y:mt.y,ex:mt.x+cs*mR,ey:mt.y+sn*mR});
+        }
+      } else {   // otros planetas: arma normal del escuadrón
+        mt.fireT=(mt.fireT||0)-dt;
+        if(mn&&mnd<520){ mt.aimAng=Math.atan2(mn.y-mt.y,mn.x-mt.x); const w=WEAPONS[this.mateWeapon]||WEAPONS.pistola; if(mt.fireT<=0){ mt.fireT=Math.max(0.15,w.gap); this.fireGun(mt.x+Math.cos(mt.aimAng)*14,mt.y+Math.sin(mt.aimAng)*14,mt.aimAng,this.mateWeapon); } }
       }
     }
     // soldado: apunta (al mouse o al monstruo más cercano) y dispara solo
