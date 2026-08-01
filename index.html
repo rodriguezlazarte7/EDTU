@@ -1153,6 +1153,14 @@
       <button class="gc-opt" data-mplanet="marte">🔴 Marte</button>
       <button class="gc-opt" data-mplanet="neptuno">🔵 Neptuno</button>
       <button class="gc-opt" data-mplanet="saturno">🪐 Saturno</button></div>
+    <div class="game-cfg"><span>🏅 Empezar en</span>
+      <button class="gc-opt sel" data-mlevel="1">N1</button>
+      <button class="gc-opt" data-mlevel="2">N2</button>
+      <button class="gc-opt" data-mlevel="3">N3</button>
+      <button class="gc-opt" data-mlevel="4">N4</button>
+      <button class="gc-opt" data-mlevel="5">N5</button>
+      <button class="gc-opt" data-mlevel="6">N6</button>
+      <button class="gc-opt" data-mlevel="7">N7 👑</button></div>
     <button class="btn btn-ghost" id="monOnlineBtn" style="margin-top:2px">🌐 JUGAR ONLINE (con todos)</button>
     <div id="monOnline" style="display:none;width:min(380px,92vw)">
       <div id="monNetStatus" style="font-size:12.5px;color:#8fdcc0;line-height:1.5">Conectando…</div>
@@ -4507,7 +4515,7 @@ const Monster={
   worldW:3600,worldH:3600, cam:{x:0,y:0}, shake:0,
   p:null, people:[], shots:[], blood:[], stars:[], parts:[], mates:[], houses:[],
   keys:{}, aim:null, pointer:false, _last:0, spawnT:0, starT:0, level:1, levelKills:0, flash:"", flashT:0,
-  cfg:{bossHp:10000, monHpMul:1, goal:1000, playerHp:300},
+  cfg:{bossHp:10000, monHpMul:1, goal:1000, playerHp:300, startLevel:1},
   coins:0, owned:null, shopping:false, _inBunker:false, allFree:false, bunker:null, netShots:[], _shotBuf:[], lab:null, _inLab:false, labOpen:false, mateWeapon:"pistola", beam:null, heat:0, overheated:false,
   open(){
     $("monFs").classList.add("open");
@@ -4541,7 +4549,7 @@ const Monster={
     this.coins=0; this.owned=new Set(["pistola"].concat(pl.free||[])); this.mateWeapon="pistola"; this.shopping=false; this._inBunker=false; this.bunker={x:1740,y:1140,w:120,h:120}; this._nid=1; this._prevMons=null; this.netShots=[]; this._shotBuf=[]; this._peerDisp={}; this.lab=null; this._inLab=false; this.labOpen=false; this.beam=null; this.heat=0; this.overheated=false;
     this.people=[]; this.shots=[]; this.blood=[]; this.stars=[]; this.parts=[];
     this.aim=null; this.pointer=false; this.spawnT=0; this.starT=5; this.shake=0; this.mb0=false; this.mb2=false; this.scope=false;
-    this.level=1; this.levelKills=0; this.flash=pl.name+" — ¡a salvarlo!"; this.flashT=2.6;
+    this.level=this.cfg.startLevel||1; this.levelKills=0; this.flash=(this.level>=7?"👑 ¡NIVEL 7: PURAS JEFAS!":pl.name+" — ¡a salvarlo!"); this.flashT=2.6;
     this.genHouses();
     for(let i=0;i<8;i++) this.spawnPerson();
     this.mates=[]; const nm=2+(pl.mateBonus||0); for(let i=0;i<nm;i++) this.addMate();
@@ -4878,6 +4886,7 @@ document.querySelectorAll("#monOverlay .gc-opt").forEach(b=>{ b.onclick=()=>{
   if(b.dataset.mgoal) Monster.cfg.goal=+b.dataset.mgoal;
   if(b.dataset.mhp)   Monster.cfg.playerHp=+b.dataset.mhp;
   if(b.dataset.mplanet) Monster.planet=b.dataset.mplanet;
+  if(b.dataset.mlevel)  Monster.cfg.startLevel=+b.dataset.mlevel;
 }; });
 // Portada: elegir jugar (público) o iniciar sesión
 $("lndPlay").onclick=()=>{ $("landing").style.display="none"; Monster._fromLanding=true; Monster.open(); };
