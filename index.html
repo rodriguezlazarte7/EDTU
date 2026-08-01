@@ -1170,6 +1170,9 @@
       <button class="gc-opt" data-mlevel="5">N5</button>
       <button class="gc-opt" data-mlevel="6">N6</button>
       <button class="gc-opt" data-mlevel="7">N7 👑</button></div>
+    <div class="game-cfg"><span>🌙 Noche</span>
+      <button class="gc-opt sel" data-mnight="0">☀️ No</button>
+      <button class="gc-opt" data-mnight="1">🌙🔦 Sí</button></div>
     <button class="btn btn-ghost" id="monOnlineBtn" style="margin-top:2px">🌐 JUGAR ONLINE (con todos)</button>
     <div id="monOnline" style="display:none;width:min(380px,92vw)">
       <div id="monNetStatus" style="font-size:12.5px;color:#8fdcc0;line-height:1.5">Conectando…</div>
@@ -4526,7 +4529,7 @@ const Monster={
   worldW:3600,worldH:3600, cam:{x:0,y:0}, shake:0,
   p:null, people:[], shots:[], blood:[], stars:[], parts:[], mates:[], houses:[],
   keys:{}, aim:null, pointer:false, _last:0, spawnT:0, starT:0, level:1, levelKills:0, flash:"", flashT:0,
-  cfg:{bossHp:10000, monHpMul:1, goal:1000, playerHp:300, startLevel:1},
+  cfg:{bossHp:10000, monHpMul:1, goal:1000, playerHp:300, startLevel:1, night:false},
   coins:0, owned:null, shopping:false, _inBunker:false, allFree:false, bunker:null, netShots:[], _shotBuf:[], lab:null, _inLab:false, labOpen:false, mateWeapon:"pistola", beam:null, heat:0, overheated:false, holeTimer:0, mateBeams:[],
   open(){
     $("monFs").classList.add("open");
@@ -4841,6 +4844,10 @@ const Monster={
     if(this.beam){ this.drawBeam(c, this.beam.x-camx, this.beam.y-camy, this.beam.ex-camx, this.beam.ey-camy, this.beam.col); }
     this.drawSoldier(c,this.p.x-camx,this.p.y-camy);
     for(const pa of this.parts){ c.globalAlpha=Math.max(0,pa.life*2); c.fillStyle=pa.col; c.fillRect(pa.x-camx-2,pa.y-camy-2,4,4); } c.globalAlpha=1;
+    if(this.cfg.night){ const px=this.p.x-camx, py=this.p.y-camy, half=0.55, rad=Math.max(W,H)*1.25, a0=this.p.aimAng-half, a1=this.p.aimAng+half;
+      c.save(); c.fillStyle="rgba(2,2,14,0.9)"; c.beginPath(); c.rect(0,0,W,H); c.moveTo(px,py); c.arc(px,py,rad,a0,a1); c.closePath(); c.fill("evenodd"); c.restore();
+      c.save(); c.strokeStyle="rgba(255,240,170,0.18)"; c.lineWidth=2; c.beginPath(); c.moveTo(px,py); c.arc(px,py,rad,a0,a1); c.closePath(); c.stroke(); c.restore();
+    }
     if(this.scope){ const px=this.p.x-camx, py=this.p.y-camy, half=0.42, rad=Math.max(W,H)*1.35, a0=this.p.aimAng-half, a1=this.p.aimAng+half;
       c.fillStyle="rgba(2,4,14,0.76)"; c.beginPath(); c.rect(0,0,W,H); c.moveTo(px,py); c.arc(px,py,rad,a0,a1); c.closePath(); c.fill("evenodd");   // oscurece todo menos el cono
       c.strokeStyle="rgba(56,225,255,0.55)"; c.lineWidth=2; c.beginPath(); c.moveTo(px,py); c.arc(px,py,rad,a0,a1); c.closePath(); c.stroke();
@@ -4923,6 +4930,7 @@ document.querySelectorAll("#monOverlay .gc-opt").forEach(b=>{ b.onclick=()=>{
   if(b.dataset.mhp)   Monster.cfg.playerHp=+b.dataset.mhp;
   if(b.dataset.mplanet) Monster.planet=b.dataset.mplanet;
   if(b.dataset.mlevel)  Monster.cfg.startLevel=+b.dataset.mlevel;
+  if(b.dataset.mnight!=null) Monster.cfg.night=(b.dataset.mnight==="1");
 }; });
 // Portada: elegir jugar (público) o iniciar sesión
 $("lndPlay").onclick=()=>{ $("landing").style.display="none"; Monster._fromLanding=true; Monster.open(); };
