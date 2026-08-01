@@ -480,6 +480,12 @@
   #monShop .shop-item span:last-child{font-size:12px;opacity:.9}
   #monLab{position:absolute;inset:0;z-index:6;display:none;align-items:center;justify-content:center;background:rgba(0,0,0,.75);padding:16px}
   #monLab .shop-card{background:#0d0f1a;border:1px solid rgba(160,240,255,.5);border-radius:16px;padding:18px 16px;width:min(400px,94vw);max-height:90vh;overflow-y:auto;text-align:center;box-shadow:0 0 40px rgba(160,240,255,.18)}
+  #monEnd{position:absolute;inset:0;z-index:10;display:none;align-items:center;justify-content:center;background:#000;text-align:center;padding:20px}
+  #monEnd .end-in{animation:endFade 1s ease}
+  #monEnd .end-title{font-size:clamp(32px,7vw,60px);font-weight:900;letter-spacing:.1em;color:#b46bff;text-shadow:0 0 24px rgba(180,107,255,.8)}
+  #monEnd .end-cred{margin-top:16px;font-size:15px;line-height:1.7;color:#d8c8ff}
+  #monEnd .end-honor{font-size:clamp(22px,4.5vw,40px);font-weight:800;color:#c58cff;text-shadow:0 0 20px rgba(197,140,255,.7);letter-spacing:.06em}
+  @keyframes endFade{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:none}}
   #footScore{color:#fff;font-weight:900;font-size:19px;text-shadow:0 0 8px rgba(0,0,0,.9);letter-spacing:.04em}
   #footBanner{position:absolute;inset:0;z-index:4;display:none;align-items:center;justify-content:center;pointer-events:none}
   #footBanner.show{display:flex}
@@ -1128,6 +1134,7 @@
       <button class="btn btn-ghost" id="monLabClose" style="margin-top:8px">▶ SEGUIR JUGANDO</button>
     </div>
   </div>
+  <div id="monEnd"></div>
   <div id="monOverlay" class="game-overlay">
     <div id="monMsg">👾 EDTU MONSTER</div>
     <div id="monResult" style="font-size:15px"></div>
@@ -4529,6 +4536,7 @@ const Monster={
     $("monOverlay").style.display="flex"; $("monMsg").textContent="👾 EDTU MONSTER"; $("monResult").textContent=""; $("monStart").textContent="▶ JUGAR";
     $("monHud").innerHTML="";
     this.allFree = !!currentUser;   // David logueado = todo desbloqueado
+    const en=$("monEnd"); if(en) en.style.display="none";
   },
   close(){ this.running=false; if(this.raf){ cancelAnimationFrame(this.raf); this.raf=null; } window.removeEventListener("resize",this._onResize); this.unbindInput(); if(typeof MonNet!=="undefined") MonNet.leave(); $("monFs").classList.remove("open"); if(this._fromLanding){ this._fromLanding=false; if(!currentUser) $("landing").style.display="flex"; } },
   resize(){ const d=Math.min(devicePixelRatio||1,2); this.W=innerWidth; this.H=innerHeight; this.cv.width=this.W*d; this.cv.height=this.H*d; this.cv.style.width=this.W+"px"; this.cv.style.height=this.H+"px"; this.c.setTransform(d,0,0,d,0,0); },
@@ -4557,7 +4565,7 @@ const Monster={
     this.aim=null; this.pointer=false; this.spawnT=0; this.starT=5; this.shake=0; this.mb0=false; this.mb2=false; this.scope=false;
     this.level=this.cfg.startLevel||1; this.levelKills=0; this.flash=(this.level>=7?"👑 ¡NIVEL 7: PURAS JEFAS!":pl.name+" — ¡a salvarlo!"); this.flashT=2.6;
     this.genHouses();
-    if(this.planet==="agujero"){ for(let i=0;i<this.level;i++) this.spawnSuprema(); this.holeTimer=this.level*60; this.flash="🕳️ AGUJERO NEGRO · "+this.level+" SUPREMA"+(this.level>1?"S":""); }
+    if(this.planet==="agujero"){ for(let i=0;i<this.level;i++) this.spawnSuprema(); this.holeTimer=30; this.flash="🕳️ AGUJERO NEGRO · "+this.level+" SUPREMA"+(this.level>1?"S":""); }
     else { for(let i=0;i<8;i++) this.spawnPerson(); }
     this.mates=[]; const nm=2+(pl.mateBonus||0); for(let i=0;i<nm;i++) this.addMate();
     if(this.planet!=="agujero") this.spawnBoss();
@@ -4631,6 +4639,12 @@ const Monster={
   netBuf(x,y,vx,vy,col,ww,hh,life){ if(typeof MonNet!=="undefined"&&MonNet.online&&this._shotBuf.length<24) this._shotBuf.push({x:Math.round(x),y:Math.round(y),vx:Math.round(vx),vy:Math.round(vy),c:col,w:ww,h:hh,l:life}); },
   levelUp(){ if(this.level>=7){ this.win(); return; } this.level++; this.levelKills=0; this.p.hp=this.p.maxHp; this.spawnBoss(); this.flash=(this.level>=7?"👑 ¡NIVEL 7: PURAS JEFAS!":"🎉 ¡NIVEL "+this.level+"!"); this.flashT=2.8; },
   win(){ this.running=false; $("monOverlay").style.display="flex"; $("monMsg").innerHTML="🏆 ¡SALVASTE "+((PLANETS[this.planet]||PLANETS.tierra).name)+"!"; $("monResult").innerHTML="🚀 Tus monitos suben al cohete… <b>¡elige el próximo planeta</b> abajo 🌍🔴🔵🪐☀️ y despega! ("+this.p.kills+" 💥)"; $("monStart").textContent="🚀 DESPEGAR AL PLANETA"; },
+  holeWin(){ this.running=false; if(this.raf){ cancelAnimationFrame(this.raf); this.raf=null; } if(typeof MonNet!=="undefined") MonNet.leave();
+    const el=$("monEnd"); if(!el) return; el.style.display="flex";
+    el.innerHTML="<div class='end-in'><div class='end-title'>EDTU MONSTER</div><div class='end-cred'>Un juego creado por <b>David</b> 🌌<br>EDTU · Espías De Tecnología Universal<br><span style='opacity:.7'>www.edtu.cl</span></div></div>";
+    setTimeout(()=>{ el.innerHTML="<div class='end-in'><div class='end-honor'>🫡 UN HONOR PELEAR A TU LADO</div></div>"; }, 5000);
+    setTimeout(()=>{ el.innerHTML="<div class='end-in'><div class='end-title'>🏆 JUEGO COMPLETADO</div><div class='end-cred'>Venciste al Agujero Negro 🕳️👑</div><button class='btn btn-primary' id='monEndClose' style='margin-top:22px;font-size:16px;padding:12px 26px'>▶ VOLVER</button></div>"; const b=$("monEndClose"); if(b) b.onclick=()=>{ el.style.display="none"; Monster.close(); }; }, 6100);
+  },
   gameComplete(){ this.running=false; $("monOverlay").style.display="flex"; $("monMsg").innerHTML="🎉 ¡JUEGO COMPLETADO! 🏆"; $("monResult").innerHTML="¡Venciste al ☀️ <b>Sol</b> y a sus <b>10.000</b> jefas rojas! 🔴 Eres una leyenda, "+(typeof currentUser!=="undefined"&&currentUser?"comandante":"héroe")+". 🌌"; $("monStart").textContent="▶ JUGAR OTRA VEZ"; },
   drawPeer(c,x,y,pe){ const R=16, ang=pe.aimAng||0; c.save(); c.translate(x,y);
     c.strokeStyle="#222"; c.lineWidth=5; c.lineCap="round"; c.beginPath(); c.moveTo(0,0); c.lineTo(Math.cos(ang)*R*1.6,Math.sin(ang)*R*1.6); c.stroke();
@@ -4703,7 +4717,7 @@ const Monster={
         if(dd<p.r+m.r && m.hitT<=0){ p.hp-=(m.boss?22:10); m.hitT=0.7; this.shake=6; if(p.hp<=0){ this.gameOver(); return; } }
         if(dd<nd){ nd=dd; near=m; }
       }
-      if(this.planet==="agujero"){ this.holeTimer-=dt; if(this.holeTimer<=0){ this.level++; for(let i=0;i<this.level;i++) this.spawnSuprema(); this.holeTimer=this.level*60; this.flash="🕳️ NIVEL "+this.level+" · +"+this.level+" SUPREMAS 👑"; this.flashT=3; } }
+      if(this.planet==="agujero"){ this.holeTimer-=dt; if(this.holeTimer<=0){ this.level++; for(let i=0;i<this.level;i++) this.spawnSuprema(); this.holeTimer=30; this.flash="🕳️ +"+this.level+" SUPREMAS 👑"; this.flashT=2.6; } if(!this.people.some(m=>m.suprema)){ this.holeWin(); return; } }
       else { this.spawnT-=dt; if(this.spawnT<=0&&this.people.length<40){ this.spawnT=Math.max(0.35,1.2-this.p.kills*0.01); this.spawnPerson(); } }
     }
     // compañeros: te siguen en formación y disparan al monstruo más cercano
