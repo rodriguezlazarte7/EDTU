@@ -4780,16 +4780,17 @@ const Monster={
     const lt=gp&&gp.buttons[6]&&(gp.buttons[6].pressed||gp.buttons[6].value>0.3);
     if(gp){ const A=!!(gp.buttons[0]&&gp.buttons[0].pressed), B=!!(gp.buttons[1]&&gp.buttons[1].pressed); if(A&&!this._gA) this.throwGrenade(); if(B&&!this._gB) this.doSlow(); this._gA=A; this._gB=B; }
     const fireHeld=this.mb0||rt||this.keys[" "], scopeHeld=this.mb2||lt||this.keys["shift"];
-    this.scope=!!scopeHeld;
+    const hasIon=(p.weapon==="canon_iones");   // los rayos SOLO con el Cañón de Iones equipado
+    this.scope=scopeHeld && hasIon;
     p.fireT-=dt; if(p.powCd>0) p.powCd-=dt;
     this.beam=null;
-    if(scopeHeld){   // 🔴 MIRA rayo rojo · 🟣 LT+RT rayo MORADO (más daño, más calor)
+    if(this.scope){   // 🔴 MIRA rayo rojo · 🟣 LT+RT rayo MORADO (solo con Cañón de Iones)
       if(this.overheated){ this.heat=Math.max(0,this.heat-550*dt); if(this.heat<=150) this.overheated=false; }
       else { const combo=fireHeld; this.beamRay(dt,guest, combo?"#c05bff":"#ff3b3b", combo?100000:260); this.heat=Math.min(1000,this.heat+(combo?20:10)*dt); if(this.heat>=1000){ this.overheated=true; this.shake=Math.max(this.shake,combo?10:7); } }
-    } else if(p.weapon==="canon_iones"){   // ⚡ CAÑÓN DE IONES: rayo AZUL continuo (sin recalentar)
+    } else if(hasIon){   // ⚡ CAÑÓN DE IONES: rayo AZUL continuo (sin recalentar)
       if(fireHeld) this.beamRay(dt,guest,"#a0f0ff",320);
       this.heat=Math.max(0,this.heat-400*dt);
-    } else {          // normal: dispara según el arma equipada
+    } else {          // normal: dispara según el arma equipada (la mira LT no hace nada)
       this.heat=Math.max(0,this.heat-400*dt);
       if(fireHeld && p.fireT<=0){ p.fireT=(WEAPONS[p.weapon]||WEAPONS.pistola).gap; this.fireWeapon(); if(performance.now()-this._sfxT>90){ this._sfxT=performance.now(); Sfx.shoot(); } }
     }
