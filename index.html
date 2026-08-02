@@ -604,7 +604,6 @@
     <div class="lockmsg mono" id="lockMsg"></div>
     <button class="btn btn-primary" id="lockBtn" style="width:100%;margin-top:18px">ACCEDER</button>
     <button class="btn btn-ghost" id="voiceLoginBtn" style="width:100%;margin-top:10px">🎙️ RECONOCIMIENTO DE VOZ</button>
-    <div class="mono" id="lockReset" style="margin-top:16px;font-size:11px;color:var(--muted);cursor:pointer;display:none">¿Olvidaste el PIN? Reiniciar sistema</div>
   </div>
 </div>
 
@@ -1494,7 +1493,6 @@ function initLock(){
   $("lockSub").textContent = hasPin ? "CENTRO DE MANDO DE OPERACIONES" : "PRIMER ACCESO · DEFINE TU PIN DE SUPERADMIN";
   $("lockBtn").textContent = hasPin ? "ACCEDER" : "CREAR PIN";
   $("pinInput").placeholder = hasPin ? "••••" : "Nuevo PIN (mín. 4)";
-  $("lockReset").style.display = hasPin ? "block" : "none";
   $("pinInput").focus();
 }
 function lockError(msg){
@@ -1581,11 +1579,6 @@ function renderUserBox(){
 }
 $("lockBtn").onclick = attemptLogin;
 $("pinInput").addEventListener("keydown", e=>{ if(e.key==="Enter") attemptLogin(); });
-$("lockReset").onclick = ()=>{
-  if(confirm("⚠ Esto borrará el PIN. Las misiones se conservan. ¿Continuar?")){
-    localStorage.removeItem(LS_PIN); initLock(); toast("PIN reiniciado");
-  }
-};
 $("lockNow").onclick = lockNow;
 
 /* ============ PERFIL ============ */
