@@ -4539,7 +4539,7 @@ const Sfx={
 const Monster={
   cv:null,c:null,W:0,H:0,raf:null,running:false, planet:"tierra", theme:null, _hpMul:1,
   best:0, hearts:[], heartT:0, eshots:[], _sfxT:0,
-  grenades:[], drone:null, pows:[], powT:0, buffSpeed:0, buffShield:0, buffDmg:0, grenCd:0, slowCd:0, slowT:0, rain:null, _ach:null, _achMsg:"", _achT:0, _gA:false, _gB:false, wave:1, zoneR:0,
+  grenades:[], drone:null, pows:[], powT:0, buffSpeed:0, buffShield:0, buffDmg:0, grenCd:0, slowCd:0, slowT:0, rain:null, _ach:null, _achMsg:"", _achT:0, _gA:false, _gB:false, wave:1, zoneR:0, bshots:[],
   worldW:3600,worldH:3600, cam:{x:0,y:0}, shake:0,
   p:null, people:[], shots:[], blood:[], stars:[], parts:[], mates:[], houses:[],
   keys:{}, aim:null, pointer:false, _last:0, spawnT:0, starT:0, level:1, levelKills:0, flash:"", flashT:0,
@@ -4558,8 +4558,8 @@ const Monster={
     if(this.best>0) $("monResult").innerHTML="🏆 Récord: <b>"+this.best+"</b> vencidos";
   },
   saveBest(){ if(this.p && this.p.kills>this.best){ this.best=this.p.kills; try{ localStorage.setItem("swarm_best",this.best); }catch(e){} } },
-  takeHit(d,from){ const p=this.p; if(!p||this.buffShield>0) return; p.hp-=d; this._lastHitter=from; this.shake=Math.max(this.shake,5); Sfx.hurt(); if(p.hp<=0) this.ffaDie(); },
-  ffaDie(){ const p=this.p; if(typeof MonNet!=="undefined") MonNet.sendFkill(this._lastHitter); this._deaths=(this._deaths||0)+1; p.x=200+Math.random()*(this.worldW-400); p.y=200+Math.random()*(this.worldH-400); p.hp=p.maxHp; this.flash="💀 ¡Te eliminaron! Reapareces…"; this.flashT=1.8; },
+  takeHit(d,from){ const p=this.p; if(!p||this.buffShield>0) return; p.hp-=d; this._lastHitter=from; this.shake=Math.max(this.shake,5); Sfx.hurt(); if(p.hp<=0){ if(typeof MonNet!=="undefined") MonNet.sendFkill(this._lastHitter); this.gameOver(); } },
+  ffaWin(){ this.saveBest(); this.ach("ffa","¡Último en pie!"); this.running=false; $("monOverlay").style.display="flex"; $("monMsg").textContent="🏆 ¡ÚLTIMO EN PIE!"; $("monResult").innerHTML="Ganaste el Todos vs Todos ⚔️ · <b>"+this.p.kills+"</b> eliminaciones · 🏆 Récord: <b>"+this.best+"</b>"; $("monStart").textContent="▶ JUGAR OTRA VEZ"; },
   throwGrenade(){ if(!this.running||this.shopping||this.labOpen||this.grenCd>0) return; this.grenCd=3; const p=this.p,a=p.aimAng; this.grenades.push({x:p.x+Math.cos(a)*p.r,y:p.y+Math.sin(a)*p.r,vx:Math.cos(a)*520,vy:Math.sin(a)*520,t:0.55}); Sfx.shoot(); },
   doSlow(){ if(!this.running||this.slowCd>0) return; this.slowCd=9; this.slowT=4; Sfx.level(); },
   ach(id,txt){ if(!this._ach){ let s=""; try{ s=localStorage.getItem("swarm_ach")||""; }catch(e){} this._ach=new Set(s.split(",").filter(Boolean)); } if(this._ach.has(id)) return; this._ach.add(id); try{ localStorage.setItem("swarm_ach",Array.from(this._ach).join(",")); }catch(e){} this._achMsg="🎖️ "+txt; this._achT=3.5; Sfx.level(); },
@@ -4595,7 +4595,7 @@ const Monster={
     this.genHouses();
     if(this.planet==="agujero"){ for(let i=0;i<20;i++) this.spawnSuprema(); this.holeTimer=60; this.flash="🕳️ AGUJERO NEGRO · 20 SUPREMAS"; }
     else if(this.planet==="arena"){ this.wave=1; this.zoneR=1500; this.spawnArenaWave(); this.flash="🌀 ARENA · OLEADA 1"; }
-    else if(this.planet==="ffa"){ this._deaths=0; this.flash="⚔️ ¡TODOS CONTRA TODOS!"; }
+    else if(this.planet==="ffa"){ this._deaths=0; this.bshots=[]; const peerN=(typeof MonNet!=="undefined"&&MonNet.online)?Object.keys(MonNet.peers).length:0, want=Math.min(99,Math.max(0,100-1-peerN)); for(let i=0;i<want;i++) this.spawnBot(); this.flash="⚔️ ¡TODOS CONTRA TODOS! ("+want+" rivales)"; }
     else { for(let i=0;i<8;i++) this.spawnPerson(); }
     this.mates=[]; const nm=this.planet==="ffa"?0:2+(pl.mateBonus||0); for(let i=0;i<nm;i++) this.addMate();
     if(this.planet==="ffa") this.drone=null;
@@ -4604,7 +4604,7 @@ const Monster={
     this.running=true; this._last=performance.now();
     if(!this.raf) this.raf=requestAnimationFrame(t=>this.loop(t));
   },
-  gameOver(){ this.saveBest(); this.running=false; $("monOverlay").style.display="flex"; $("monMsg").textContent="💥 FIN DEL JUEGO"; $("monResult").innerHTML="Derrotaste <b>"+this.p.kills+"</b> monstruos 🕷️ · 🏆 Récord: <b>"+this.best+"</b>"; $("monStart").textContent="▶ OTRA VEZ"; },
+  gameOver(){ this.saveBest(); this.running=false; $("monOverlay").style.display="flex"; const ffa=this.planet==="ffa"; $("monMsg").textContent=ffa?"💀 ¡ELIMINADO!":"💥 FIN DEL JUEGO"; $("monResult").innerHTML=(ffa?"Eliminaste <b>"+this.p.kills+"</b> rivales ⚔️":"Derrotaste <b>"+this.p.kills+"</b> monstruos 🕷️")+" · 🏆 Récord: <b>"+this.best+"</b>"; $("monStart").textContent="▶ OTRA VEZ"; },
   spawnPerson(){
     const ang=Math.random()*6.283, dist=Math.max(this.W,this.H)*0.6+Math.random()*300;
     let x=this.p.x+Math.cos(ang)*dist, y=this.p.y+Math.sin(ang)*dist;
@@ -4746,6 +4746,13 @@ const Monster={
       for(const m of this.people){ const dd=Math.hypot(p.x-m.x,p.y-m.y)||1; if(dd<nd){nd=dd;near=m;} if(dd<p.r+m.r && p.dmgCd<=0){ if(this.buffShield<=0) p.hp-=(m.boss?22:10); p.dmgCd=0.5; this.shake=6; if(p.hp<=0){ this.gameOver(); return; } } }
     } else {
       for(let i=this.people.length-1;i>=0;i--){ const m=this.people[i];
+        if(m.bot){   // 🤖 bot PvP: apunta al enemigo más cercano (tú u otro bot) y le dispara
+          let tx=p.x,ty=p.y,td=Math.hypot(p.x-m.x,p.y-m.y); for(const o of this.people){ if(o===m||!o.bot) continue; const d=Math.hypot(o.x-m.x,o.y-m.y); if(d<td){ td=d; tx=o.x; ty=o.y; } }
+          const vx=tx-m.x,vy=ty-m.y,md=Math.hypot(vx,vy)||1, want=280; if(md<want-40){ m.vx=-vx/md*m.spd; m.vy=-vy/md*m.spd; } else if(md>want+60){ m.vx=vx/md*m.spd; m.vy=vy/md*m.spd; } else { m.vx*=0.9; m.vy*=0.9; }
+          m.x=Math.max(10,Math.min(this.worldW-10,m.x+m.vx*dt*sf)); m.y=Math.max(10,Math.min(this.worldH-10,m.y+m.vy*dt*sf)); this.resolveHouses(m); m.legPhase+=dt*10;
+          m.fireT-=dt; if(m.fireT<=0&&md<600){ m.fireT=1.2+Math.random(); this.bshots.push({x:m.x,y:m.y,vx:vx/md*320,vy:vy/md*320,life:3,owner:m}); }
+          continue;
+        }
         // perseguir al jugador MÁS CERCANO (tú o cualquier amigo conectado)
         let tx=p.x,ty=p.y,td=Math.hypot(p.x-m.x,p.y-m.y);
         if(net){ for(const k in MonNet.peers){ const pe=MonNet.peers[k]; const d=Math.hypot(pe.x-m.x,pe.y-m.y); if(d<td){ td=d; tx=pe.x; ty=pe.y; } } }
@@ -4762,7 +4769,7 @@ const Monster={
       }
       if(this.planet==="agujero"){ this.holeTimer-=dt; if(this.holeTimer<=0){ this.level++; for(let i=0;i<20;i++) this.spawnSuprema(); this.holeTimer=60; this.flash="🕳️ NIVEL "+this.level+" · +20 SUPREMAS 👑"; this.flashT=2.6; } if(!this.people.some(m=>m.suprema)){ this.holeWin(); return; } }
       else if(this.planet==="arena"){ this.zoneR=Math.max(1150,this.zoneR-1.5*dt); const cx=1800,cy=1800; if(Math.hypot(p.x-cx,p.y-cy)>this.zoneR && this.buffShield<=0){ p.hp-=18*dt; if(p.hp<=0){ this.gameOver(); return; } } if(!this.people.length){ this.wave++; this.zoneR=Math.max(1150,this.zoneR-25); this.spawnArenaWave(); this.flash="🌀 OLEADA "+this.wave; this.flashT=2.6; Sfx.level(); } }
-      else if(this.planet==="ffa"){ const peerN=(typeof MonNet!=="undefined"&&MonNet.online)?Object.keys(MonNet.peers).length:0; const want=Math.max(0,100-1-peerN); let bots=0; for(const m of this.people) if(m.bot) bots++; this._botT=(this._botT||0)-dt; if(bots<want && this._botT<=0){ this._botT=0.05; this.spawnBot(); } }
+      else if(this.planet==="ffa"){ if(!this.people.some(m=>m.bot) && (typeof MonNet==="undefined"||!MonNet.online||!Object.keys(MonNet.peers).length)){ this.ffaWin(); return; } }
       else { this.spawnT-=dt; if(this.spawnT<=0&&this.people.length<40){ this.spawnT=Math.max(0.35,1.2-this.p.kills*0.01); this.spawnPerson(); } }
     }
     // compañeros: te siguen en formación y disparan al monstruo más cercano
@@ -4829,6 +4836,10 @@ const Monster={
     for(let i=this.pows.length-1;i>=0;i--){ const pw=this.pows[i]; pw.ph+=dt; if(Math.hypot(pw.x-p.x,pw.y-p.y)<p.r+16){ this.pows.splice(i,1); Sfx.pick(); if(pw.type==="speed") this.buffSpeed=8; else if(pw.type==="shield") this.buffShield=8; else this.buffDmg=8; } }
     if(this.grenCd>0) this.grenCd-=dt; if(this.slowCd>0) this.slowCd-=dt; if(this.slowT>0) this.slowT-=dt;
     if(this.buffSpeed>0) this.buffSpeed-=dt; if(this.buffShield>0) this.buffShield-=dt; if(this.buffDmg>0) this.buffDmg-=dt; if(this._achT>0) this._achT-=dt;
+    for(let i=this.bshots.length-1;i>=0;i--){ const s=this.bshots[i]; s.x+=s.vx*dt*sf; s.y+=s.vy*dt*sf; s.life-=dt; let rm=s.life<=0; if(!rm&&this.inWall(s.x,s.y)) rm=true;
+      if(!rm){ if(Math.hypot(s.x-p.x,s.y-p.y)<p.r){ if(this.buffShield<=0){ p.hp-=6; if(p.hp<=0){ this.gameOver(); return; } } rm=true; }
+        else { for(let j=this.people.length-1;j>=0;j--){ const b=this.people[j]; if(b===s.owner||!b.bot) continue; if(Math.hypot(s.x-b.x,s.y-b.y)<b.r){ b.hp-=8; if(b.hp<=0){ this.poof(b.x,b.y,false); this.people.splice(j,1); } rm=true; break; } } } }
+      if(rm) this.bshots.splice(i,1); }
     this.heartT-=dt; if(this.heartT<=0){ this.heartT=10+Math.random()*6; if(this.hearts.length<3){ const a=Math.random()*6.283,d=180+Math.random()*280; this.hearts.push({x:p.x+Math.cos(a)*d,y:p.y+Math.sin(a)*d,ph:0}); } }
     for(let i=this.hearts.length-1;i>=0;i--){ const h=this.hearts[i]; h.ph+=dt; if(Math.hypot(h.x-p.x,h.y-p.y)<p.r+16){ this.hearts.splice(i,1); p.hp=Math.min(p.maxHp,p.hp+40); Sfx.pick(); for(let k=0;k<10;k++) this.parts.push({x:p.x,y:p.y,vx:(Math.random()-0.5)*160,vy:(Math.random()-0.5)*160,life:0.5,col:"#4dff88"}); } }
     this.starT-=dt; if(this.starT<=0){ this.starT=8+Math.random()*6; if(this.stars.length<3){ const a=Math.random()*6.283,d=220+Math.random()*300; this.stars.push({x:p.x+Math.cos(a)*d,y:p.y+Math.sin(a)*d,ph:0}); } }
@@ -4895,6 +4906,7 @@ const Monster={
     for(const st of this.stars){ this.drawStar(c,st.x-camx,st.y-camy,14,Math.sin(st.ph*3)*0.3); }
     for(const h of this.hearts){ const sx=h.x-camx,sy=h.y-camy; if(sx<-20||sx>W+20||sy<-20||sy>H+20) continue; c.save(); c.translate(sx,sy); const s=1+Math.sin(h.ph*4)*0.12; c.scale(s,s); c.fillStyle="#0a2a16"; c.fillRect(-11,-11,22,22); c.fillStyle="#4dff88"; c.fillRect(-3,-8,6,16); c.fillRect(-8,-3,16,6); c.restore(); }
     c.fillStyle="#ffb020"; for(const s of this.eshots){ const sx=s.x-camx,sy=s.y-camy; if(sx<-20||sx>W+20||sy<-20||sy>H+20) continue; c.beginPath(); c.arc(sx,sy,5,0,6.283); c.fill(); }
+    c.fillStyle="#ff7a30"; for(const s of this.bshots){ const sx=s.x-camx,sy=s.y-camy; if(sx<-20||sx>W+20||sy<-20||sy>H+20) continue; c.beginPath(); c.arc(sx,sy,4,0,6.283); c.fill(); }
     for(const pw of this.pows){ const sx=pw.x-camx,sy=pw.y-camy; if(sx<-20||sx>W+20||sy<-20||sy>H+20) continue; const col=pw.type==="speed"?"#ffd23f":pw.type==="shield"?"#38e1ff":"#ff5b5b"; c.save(); c.translate(sx,sy); const s=1+Math.sin(pw.ph*4)*0.12; c.scale(s,s); c.fillStyle=col; c.shadowColor=col; c.shadowBlur=12; c.beginPath(); c.arc(0,0,12,0,6.283); c.fill(); c.shadowBlur=0; c.font="12px system-ui"; c.textAlign="center"; c.fillStyle="#000"; c.fillText(pw.type==="speed"?"⚡":pw.type==="shield"?"🛡":"×2",0,4); c.textAlign="left"; c.restore(); }
     for(const g of this.grenades){ const sx=g.x-camx,sy=g.y-camy; c.fillStyle="#2b7a3a"; c.beginPath(); c.arc(sx,sy,7,0,6.283); c.fill(); c.fillStyle="#163"; c.fillRect(sx-2,sy-10,4,4); }
     { const dr=this.drone; if(dr){ const sx=dr.x-camx,sy=dr.y-camy; c.save(); c.translate(sx,sy); c.fillStyle="#8aa"; c.beginPath(); c.arc(0,0,9,0,6.283); c.fill(); c.strokeStyle="#ccd"; c.lineWidth=2; c.beginPath(); c.moveTo(-13,-6); c.lineTo(13,-6); c.stroke(); c.fillStyle="#38e1ff"; c.beginPath(); c.arc(0,0,3,0,6.283); c.fill(); c.restore(); } }
