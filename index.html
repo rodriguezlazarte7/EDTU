@@ -4914,7 +4914,6 @@ const Monster={
     if(this.scope){ const px=this.p.x-camx, py=this.p.y-camy, half=0.42, rad=Math.max(W,H)*1.35, a0=this.p.aimAng-half, a1=this.p.aimAng+half;
       c.fillStyle="rgba(2,4,14,0.76)"; c.beginPath(); c.rect(0,0,W,H); c.moveTo(px,py); c.arc(px,py,rad,a0,a1); c.closePath(); c.fill("evenodd");   // oscurece todo menos el cono
       c.strokeStyle="rgba(56,225,255,0.55)"; c.lineWidth=2; c.beginPath(); c.moveTo(px,py); c.arc(px,py,rad,a0,a1); c.closePath(); c.stroke();
-      c.strokeStyle="rgba(56,225,255,0.9)"; c.lineWidth=2; c.beginPath(); c.moveTo(px+Math.cos(this.p.aimAng)*20,py+Math.sin(this.p.aimAng)*20); c.lineTo(px+Math.cos(this.p.aimAng)*rad,py+Math.sin(this.p.aimAng)*rad); c.stroke();   // línea de mira
     }
     if(this.slowT>0){ c.save(); c.fillStyle="rgba(80,120,255,0.12)"; c.fillRect(0,0,W,H); c.restore(); }
     if(this._achT>0){ c.save(); c.globalAlpha=Math.min(1,this._achT); c.fillStyle="rgba(20,16,40,.92)"; const w2=Math.min(W-40,360); c.fillRect(W/2-w2/2,88,w2,34); c.strokeStyle="#ffd23f"; c.strokeRect(W/2-w2/2,88,w2,34); c.fillStyle="#ffd23f"; c.font="bold 15px system-ui,sans-serif"; c.textAlign="center"; c.fillText(this._achMsg,W/2,110); c.textAlign="left"; c.restore(); }
