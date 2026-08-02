@@ -1160,7 +1160,8 @@
       <button class="gc-opt" data-mplanet="neptuno">🔵 Neptuno</button>
       <button class="gc-opt" data-mplanet="saturno">🪐 Saturno</button>
       <button class="gc-opt" data-mplanet="sol">☀️ Sol</button>
-      <button class="gc-opt" data-mplanet="agujero">🕳️ Agujero</button></div>
+      <button class="gc-opt" data-mplanet="agujero">🕳️ Agujero</button>
+      <button class="gc-opt" data-mplanet="arena">🌀 Arena</button></div>
     <div class="game-cfg"><span>🏅 Empezar en</span>
       <button class="gc-opt sel" data-mlevel="1">N1</button>
       <button class="gc-opt" data-mlevel="2">N2</button>
@@ -4518,7 +4519,8 @@ const PLANETS={
   neptuno: {name:"🔵 Neptuno", ground:"#3f6f9c", road:"#2f5476", mateBonus:6, free:["ametralladora","lanzallamas","canon_iones"], weapons:["n_hielo","n_ola","n_rayo","n_torpedo","n_burbuja"], hpMul:1.9},
   saturno: {name:"🪐 Saturno", ground:"#b8a06a", road:"#8f7a4a", mateBonus:9, free:["francotirador","laser","canon_iones"],    weapons:["s_anillo","s_meteoro","s_estrella","s_rayox","s_gravedad"], hpMul:2.6},
   sol:     {name:"☀️ Sol",     ground:"#d98a2a", road:"#b8641a", mateBonus:12, free:["canon_iones"],                        weapons:[], hpMul:3.5, sun:true},
-  agujero: {name:"🕳️ Agujero Negro", ground:"#0a0a16", road:"#161630", mateBonus:14, free:["canon_iones"],               weapons:[], hpMul:1, hole:true}
+  agujero: {name:"🕳️ Agujero Negro", ground:"#0a0a16", road:"#161630", mateBonus:14, free:["canon_iones"],               weapons:[], hpMul:1, hole:true},
+  arena:   {name:"🌀 Arena", ground:"#6a5a48", road:"#4a3e30", mateBonus:2, free:[], weapons:[], hpMul:1, arena:true}
 };
 const BASE_W=["pistola","ametralladora","escopeta","lanzallamas","francotirador","laser"];
 const Sfx={
@@ -4535,7 +4537,7 @@ const Sfx={
 const Monster={
   cv:null,c:null,W:0,H:0,raf:null,running:false, planet:"tierra", theme:null, _hpMul:1,
   best:0, hearts:[], heartT:0, eshots:[], _sfxT:0,
-  grenades:[], drone:null, pows:[], powT:0, buffSpeed:0, buffShield:0, buffDmg:0, grenCd:0, slowCd:0, slowT:0, rain:null, _ach:null, _achMsg:"", _achT:0, _gA:false, _gB:false,
+  grenades:[], drone:null, pows:[], powT:0, buffSpeed:0, buffShield:0, buffDmg:0, grenCd:0, slowCd:0, slowT:0, rain:null, _ach:null, _achMsg:"", _achT:0, _gA:false, _gB:false, wave:1, zoneR:0,
   worldW:3600,worldH:3600, cam:{x:0,y:0}, shake:0,
   p:null, people:[], shots:[], blood:[], stars:[], parts:[], mates:[], houses:[],
   keys:{}, aim:null, pointer:false, _last:0, spawnT:0, starT:0, level:1, levelKills:0, flash:"", flashT:0,
@@ -4587,9 +4589,10 @@ const Monster={
     this.level=this.cfg.startLevel||1; this.levelKills=0; this.flash=(this.level>=7?"👑 ¡NIVEL 7: PURAS JEFAS!":pl.name+" — ¡a salvarlo!"); this.flashT=2.6;
     this.genHouses();
     if(this.planet==="agujero"){ for(let i=0;i<20;i++) this.spawnSuprema(); this.holeTimer=60; this.flash="🕳️ AGUJERO NEGRO · 20 SUPREMAS"; }
+    else if(this.planet==="arena"){ this.wave=1; this.zoneR=1500; this.spawnArenaWave(); this.flash="🌀 ARENA · OLEADA 1"; }
     else { for(let i=0;i<8;i++) this.spawnPerson(); }
     this.mates=[]; const nm=2+(pl.mateBonus||0); for(let i=0;i<nm;i++) this.addMate();
-    if(this.planet!=="agujero") this.spawnBoss();
+    if(this.planet!=="agujero" && this.planet!=="arena") this.spawnBoss();
     $("monOverlay").style.display="none";
     this.running=true; this._last=performance.now();
     if(!this.raf) this.raf=requestAnimationFrame(t=>this.loop(t));
@@ -4654,6 +4657,10 @@ const Monster={
     $("monLabInfo").innerHTML="🔬 Reúne <b>TODAS</b> las armas del planeta para fabricar el <b>⚡ Cañón de Iones</b> (rayo eléctrico, <b>100</b> de daño).<br>Llevas <b>"+have+" / "+need.length+"</b> armas.";
     const btn=$("monLabCraft"); if(this.owned.has("canon_iones")){ btn.disabled=false; btn.textContent="⚡ EQUIPAR CAÑÓN DE IONES"; } else { btn.disabled=!can; btn.textContent=can?"⚡ CREAR CAÑÓN DE IONES":("🔒 te faltan "+(need.length-have)+" armas"); } },
   craftIon(){ this.owned.add("canon_iones"); this.p.weapon="canon_iones"; this.flash="⚡ ¡CAÑÓN DE IONES CREADO!"; this.flashT=2.6; this.closeLab(); },
+  spawnArenaWave(){ const n=5+this.wave*2; for(let i=0;i<n;i++) this.spawnArenaMon(); },
+  spawnArenaMon(){ const cx=1800,cy=1800, ang=Math.random()*6.283, r=Math.max(120,this.zoneR)*(0.45+Math.random()*0.5), x=cx+Math.cos(ang)*r, y=cy+Math.sin(ang)*r;
+    const big=Math.random()<0.3, shooter=!big&&Math.random()<0.22, hp=(big?8:4)*this.cfg.monHpMul*(2+this.wave*0.5);   // resistentes y suben por oleada
+    this.people.push({ nid:this._nid++, x,y, vx:0,vy:0, r:big?21:14, hp, maxHp:hp, spd:big?68:(shooter?90:108), hitT:0, fireT:1+Math.random()*2, legPhase:Math.random()*6, col:shooter?"#e0b030":(big?"#8a3a3a":"#b04a4a"), split:big, shooter:shooter }); },
   spawnSuprema(){ const ang=Math.random()*6.283, dist=Math.max(this.W,this.H)*0.75; let x=this.p.x+Math.cos(ang)*dist, y=this.p.y+Math.sin(ang)*dist; x=Math.max(70,Math.min(this.worldW-70,x)); y=Math.max(70,Math.min(this.worldH-70,y)); const hp=1000000; this.people.push({ nid:this._nid++, x,y,vx:0,vy:0, r:60, hp, maxHp:hp, spd:44, hitT:0, legPhase:Math.random()*6, col:"#8a2be2", boss:true, suprema:true }); },
   spawnBoss(){ if(this.people.some(m=>m.boss)) return; const ang=Math.random()*6.283, dist=Math.max(this.W,this.H)*0.7; let x=this.p.x+Math.cos(ang)*dist, y=this.p.y+Math.sin(ang)*dist; x=Math.max(50,Math.min(this.worldW-50,x)); y=Math.max(50,Math.min(this.worldH-50,y)); const bhp=this.cfg.bossHp*this.level*this._hpMul; this.people.push({ nid:this._nid++, x,y,vx:0,vy:0, r:52, hp:bhp, maxHp:bhp, spd:50, hitT:0, legPhase:0, col:"#b23a6a", boss:true }); },
   poof(x,y,boss){ const cols=["#ffd23f","#38e1ff","#ff8cc6","#8cff6a","#c58cff","#ffa640"], n=boss?26:12; for(let k=0;k<n;k++) this.parts.push({x,y,vx:(Math.random()-0.5)*(boss?320:240),vy:(Math.random()-0.5)*(boss?320:240),life:boss?0.8:0.55,col:cols[k%cols.length]}); },
@@ -4743,6 +4750,7 @@ const Monster={
         if(dd<nd){ nd=dd; near=m; }
       }
       if(this.planet==="agujero"){ this.holeTimer-=dt; if(this.holeTimer<=0){ this.level++; for(let i=0;i<20;i++) this.spawnSuprema(); this.holeTimer=60; this.flash="🕳️ NIVEL "+this.level+" · +20 SUPREMAS 👑"; this.flashT=2.6; } if(!this.people.some(m=>m.suprema)){ this.holeWin(); return; } }
+      else if(this.planet==="arena"){ this.zoneR=Math.max(280,this.zoneR-9*dt); const cx=1800,cy=1800; if(Math.hypot(p.x-cx,p.y-cy)>this.zoneR && this.buffShield<=0){ p.hp-=18*dt; if(p.hp<=0){ this.gameOver(); return; } } if(!this.people.length){ this.wave++; this.zoneR=Math.max(280,this.zoneR-140); this.spawnArenaWave(); this.flash="🌀 OLEADA "+this.wave; this.flashT=2.6; Sfx.level(); } }
       else { this.spawnT-=dt; if(this.spawnT<=0&&this.people.length<40){ this.spawnT=Math.max(0.35,1.2-this.p.kills*0.01); this.spawnPerson(); } }
     }
     // compañeros: te siguen en formación y disparan al monstruo más cercano
@@ -4832,9 +4840,9 @@ const Monster={
     if(m.boss){ this.levelKills+=25; this.shake=Math.max(this.shake,12); for(let k=0;k<30;k++) this.parts.push({x:m.x,y:m.y,vx:(Math.random()-0.5)*320,vy:(Math.random()-0.5)*320,life:0.8,col:["#ffd23f","#38e1ff","#ff8cc6"][k%3]}); this.stars.push({x:m.x,y:m.y,ph:0}); }
     if(this.p.kills%15===0 && this.mates.length<5) this.addMate();
     if(this.planet==="sol"){ if(this.levelKills>=10000) this.gameComplete(); }
-    else if(this.planet!=="agujero" && this.levelKills>=this.level*this.cfg.goal) this.levelUp();
+    else if(this.planet!=="agujero" && this.planet!=="arena" && this.levelKills>=this.level*this.cfg.goal) this.levelUp();
     this.shake=Math.max(this.shake,3); },
-  updateHud(){ const p=this.p; const hot=this.overheated?"🥵 SOBRECALENTADO":("🌡️ "+Math.round(this.heat)+"/1000"); const wn=(WEAPONS[p.weapon]||WEAPONS.pistola).name; const prog=this.planet==="agujero"?("🕳️ AGUJERO · Nv "+this.level+" · 👑 "+this.people.filter(m=>m.suprema).length+" supremas · ⏱️ "+Math.floor(Math.max(0,this.holeTimer)/60)+":"+("0"+Math.floor(Math.max(0,this.holeTimer)%60)).slice(-2)):this.planet==="sol"?("☀️ SOL · "+String(this.levelKills).replace(/\B(?=(\d{3})+(?!\d))/g,".")+" / 10.000 🔴"):("🏅 NIVEL "+this.level+"/7 · "+this.levelKills+" / "+(this.level*this.cfg.goal)+" 💥"); let bf=""; if(this.buffSpeed>0)bf+=" ⚡"+Math.ceil(this.buffSpeed); if(this.buffShield>0)bf+=" 🛡"+Math.ceil(this.buffShield); if(this.buffDmg>0)bf+=" ×2·"+Math.ceil(this.buffDmg); $("monHud").innerHTML=prog+"<br>❤️ "+Math.max(0,Math.ceil(p.hp))+" · "+wn+" · 🪙 "+(this.allFree?"∞":this.coins)+" · 👥 "+this.mates.length+" · "+hot+"<br>💣 "+(this.grenCd>0?Math.ceil(this.grenCd)+"s":"¡listo!")+" · ⏱️ "+(this.slowCd>0?Math.ceil(this.slowCd)+"s":"¡listo!")+bf; },
+  updateHud(){ const p=this.p; const hot=this.overheated?"🥵 SOBRECALENTADO":("🌡️ "+Math.round(this.heat)+"/1000"); const wn=(WEAPONS[p.weapon]||WEAPONS.pistola).name; const prog=this.planet==="arena"?("🌀 ARENA · Oleada "+this.wave+" · 👾 "+this.people.length+" · 🔴 zona "+Math.round(this.zoneR)):this.planet==="agujero"?("🕳️ AGUJERO · Nv "+this.level+" · 👑 "+this.people.filter(m=>m.suprema).length+" supremas · ⏱️ "+Math.floor(Math.max(0,this.holeTimer)/60)+":"+("0"+Math.floor(Math.max(0,this.holeTimer)%60)).slice(-2)):this.planet==="sol"?("☀️ SOL · "+String(this.levelKills).replace(/\B(?=(\d{3})+(?!\d))/g,".")+" / 10.000 🔴"):("🏅 NIVEL "+this.level+"/7 · "+this.levelKills+" / "+(this.level*this.cfg.goal)+" 💥"); let bf=""; if(this.buffSpeed>0)bf+=" ⚡"+Math.ceil(this.buffSpeed); if(this.buffShield>0)bf+=" 🛡"+Math.ceil(this.buffShield); if(this.buffDmg>0)bf+=" ×2·"+Math.ceil(this.buffDmg); $("monHud").innerHTML=prog+"<br>❤️ "+Math.max(0,Math.ceil(p.hp))+" · "+wn+" · 🪙 "+(this.allFree?"∞":this.coins)+" · 👥 "+this.mates.length+" · "+hot+"<br>💣 "+(this.grenCd>0?Math.ceil(this.grenCd)+"s":"¡listo!")+" · ⏱️ "+(this.slowCd>0?Math.ceil(this.slowCd)+"s":"¡listo!")+bf; },
   draw(){
     const c=this.c,W=this.W,H=this.H; let camx=this.cam.x,camy=this.cam.y;
     if(this.shake>0){ camx+=(Math.random()-0.5)*this.shake; camy+=(Math.random()-0.5)*this.shake; }
@@ -4891,6 +4899,9 @@ const Monster={
     if(this.beam){ this.drawBeam(c, this.beam.x-camx, this.beam.y-camy, this.beam.ex-camx, this.beam.ey-camy, this.beam.col); }
     this.drawSoldier(c,this.p.x-camx,this.p.y-camy);
     for(const pa of this.parts){ c.globalAlpha=Math.max(0,pa.life*2); c.fillStyle=pa.col; c.fillRect(pa.x-camx-2,pa.y-camy-2,4,4); } c.globalAlpha=1;
+    if(this.planet==="arena"){ const cx=1800-camx, cy=1800-camy, R=this.zoneR;
+      c.save(); c.fillStyle="rgba(150,20,20,0.3)"; c.beginPath(); c.rect(0,0,W,H); c.moveTo(cx+R,cy); c.arc(cx,cy,R,0,6.283); c.fill("evenodd");
+      c.strokeStyle="rgba(255,70,70,0.95)"; c.lineWidth=4; c.beginPath(); c.arc(cx,cy,R,0,6.283); c.stroke(); c.restore(); }
     if(this.cfg.night){ const px=this.p.x-camx, py=this.p.y-camy, half=0.55, rad=Math.max(W,H)*1.25, a0=this.p.aimAng-half, a1=this.p.aimAng+half;
       const now=performance.now(), rdt=Math.min(0.05,(now-(this._rainLast||now))/1000); this._rainLast=now;
       if(!this.rain) this.rain=[]; while(this.rain.length<150) this.rain.push({x:Math.random()*(W+60)-30,y:Math.random()*(H+60)-30,l:9+Math.random()*9,s:560+Math.random()*320});
