@@ -4539,7 +4539,7 @@ const Sfx={
   pick(){ this.beep(620,0.12,"sine",0.16,1150); },
   level(){ this.beep(520,0.14,"triangle",0.16,880); setTimeout(()=>this.beep(820,0.2,"triangle",0.16,1250),110); }
 };
-const Music={
+const MonMusic={
   on:true, timer:null, step:0, notes:[220,277,330,277,196,247,294,247,175,220,262,220,147,185,220,185],
   start(){ if(this.timer||!this.on) return; try{ Sfx.ac(); }catch(e){} this.step=0; this.timer=setInterval(()=>{ try{ this.tick(); }catch(e){} },300); },
   stop(){ if(this.timer){ clearInterval(this.timer); this.timer=null; } },
@@ -4573,7 +4573,7 @@ const Monster={
   throwGrenade(){ if(!this.running||this.shopping||this.labOpen||this.grenCd>0) return; this.grenCd=3; const p=this.p,a=p.aimAng; this.grenades.push({x:p.x+Math.cos(a)*p.r,y:p.y+Math.sin(a)*p.r,vx:Math.cos(a)*520,vy:Math.sin(a)*520,t:0.55}); Sfx.shoot(); },
   doSlow(){ if(!this.running||this.slowCd>0) return; this.slowCd=9; this.slowT=4; Sfx.level(); },
   ach(id,txt){ if(!this._ach){ let s=""; try{ s=localStorage.getItem("swarm_ach")||""; }catch(e){} this._ach=new Set(s.split(",").filter(Boolean)); } if(this._ach.has(id)) return; this._ach.add(id); try{ localStorage.setItem("swarm_ach",Array.from(this._ach).join(",")); }catch(e){} this._achMsg="🎖️ "+txt; this._achT=3.5; Sfx.level(); },
-  close(){ this.running=false; if(this.raf){ cancelAnimationFrame(this.raf); this.raf=null; } try{ Music.stop(); }catch(e){} window.removeEventListener("resize",this._onResize); this.unbindInput(); if(typeof MonNet!=="undefined") MonNet.leave(); $("monFs").classList.remove("open"); if(this._fromLanding){ this._fromLanding=false; if(!currentUser) $("landing").style.display="flex"; } },
+  close(){ this.running=false; if(this.raf){ cancelAnimationFrame(this.raf); this.raf=null; } try{ MonMusic.stop(); }catch(e){} window.removeEventListener("resize",this._onResize); this.unbindInput(); if(typeof MonNet!=="undefined") MonNet.leave(); $("monFs").classList.remove("open"); if(this._fromLanding){ this._fromLanding=false; if(!currentUser) $("landing").style.display="flex"; } },
   resize(){ const d=Math.min(devicePixelRatio||1,2); this.W=innerWidth; this.H=innerHeight; this.cv.width=this.W*d; this.cv.height=this.H*d; this.cv.style.width=this.W+"px"; this.cv.style.height=this.H+"px"; this.c.setTransform(d,0,0,d,0,0); },
   bindInput(){
     this._kd=e=>{ const k=e.key.toLowerCase(); this.keys[k]=true; if(k==="e"&&!e.repeat) this.throwGrenade(); if(k==="q"&&!e.repeat) this.doSlow(); };
@@ -4612,7 +4612,7 @@ const Monster={
     if(this.planet==="ffa") this.drone=null;
     if(this.planet!=="agujero" && this.planet!=="arena" && this.planet!=="ffa") this.spawnBoss();
     $("monOverlay").style.display="none";
-    try{ Music.start(); }catch(e){}
+    try{ MonMusic.start(); }catch(e){}
     this.running=true; this._last=performance.now();
     if(!this.raf) this.raf=requestAnimationFrame(t=>this.loop(t));
   },
@@ -5065,7 +5065,7 @@ document.querySelectorAll("#monOverlay .gc-opt").forEach(b=>{ b.onclick=()=>{
   if(b.dataset.mlevel)  Monster.cfg.startLevel=+b.dataset.mlevel;
   if(b.dataset.mnight!=null) Monster.cfg.night=(b.dataset.mnight==="1");
   if(b.dataset.msnd!=null) Sfx.on=(b.dataset.msnd==="1");
-  if(b.dataset.mmus!=null){ Music.on=(b.dataset.mmus==="1"); if(!Music.on) Music.stop(); }
+  if(b.dataset.mmus!=null){ MonMusic.on=(b.dataset.mmus==="1"); if(!MonMusic.on) MonMusic.stop(); }
 }; });
 // Portada: elegir jugar (público) o iniciar sesión
 $("lndPlay").onclick=()=>{ $("landing").style.display="none"; Monster._fromLanding=true; Monster.open(); };
