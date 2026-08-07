@@ -1174,6 +1174,12 @@
     <div class="game-cfg"><span>🌙 Noche</span>
       <button class="gc-opt sel" data-mnight="0">☀️ No</button>
       <button class="gc-opt" data-mnight="1">🌙🔦 Sí</button></div>
+    <div class="game-cfg"><span>🎽 Color</span>
+      <button class="gc-opt sel" data-mskin="#4a8d57">🟢</button>
+      <button class="gc-opt" data-mskin="#4a7dc0">🔵</button>
+      <button class="gc-opt" data-mskin="#c04a4a">🔴</button>
+      <button class="gc-opt" data-mskin="#9a5ac0">🟣</button>
+      <button class="gc-opt" data-mskin="#c0863a">🟠</button></div>
     <div class="game-cfg"><span>🔊 Sonido</span>
       <button class="gc-opt sel" data-msnd="1">🔊 Sí</button>
       <button class="gc-opt" data-msnd="0">🔇 No</button></div>
@@ -1189,7 +1195,7 @@
       🪖 Eres un <b>soldado</b> con <b>escuadrón</b>. Muévete con <b>flechas</b> / <b>WASD</b> / <b>stick L</b>. Apunta con el <b>mouse</b> o el <b>stick R</b>.<br>
       🔫 <b>Clic izq</b> o <b>RT</b> = disparar · 🔴 mantén <b>Clic der</b>/<b>LT</b> = <b>RAYO ROJO</b> continuo (¡se sobrecalienta 🥵!) · 🟣 <b>LT+RT</b> juntos = <b>RAYO MORADO</b> (300 de daño, calienta más). ⚡ En Marte crea el <b>Cañón de Iones</b> (rayo azul).<br>
       🏅 <b>Nivel 1 = 1000 monstruos</b>, nivel 2 = 2000… ¡y un <b>MEGA monstruo</b> 🕷️ por nivel! · 👥 ganas un compañero cada 15 · junta ⭐ para curarte.<br>
-      💣 <b>E</b> o <b>A</b> = granada · ⏱️ <b>Q</b> o <b>B</b> = cámara lenta · 🎁 recoge power-ups (⚡ velocidad, 🛡 escudo, ×2 daño) y ❤️ botiquines · 🛰️ tu dron dispara solo.<br>
+      💣 <b>E</b>/<b>A</b> = granada · ⏱️ <b>Q</b>/<b>B</b> = cámara lenta · 🏗️ <b>T</b>/<b>X</b> = torreta · 🎁 power-ups · ❤️ botiquines · 🛰️ dron · 🚗 tanque (búnker).<br>
       ❤️ vida · 🔫 fuerza · 👥 escuadrón · 🎯 cañonazo
     </div>
   </div>
@@ -4553,7 +4559,8 @@ const Monster={
   worldW:3600,worldH:3600, cam:{x:0,y:0}, shake:0,
   p:null, people:[], shots:[], blood:[], stars:[], parts:[], mates:[], houses:[],
   keys:{}, aim:null, pointer:false, _last:0, spawnT:0, starT:0, level:1, levelKills:0, flash:"", flashT:0,
-  cfg:{bossHp:10000, monHpMul:1, goal:1000, playerHp:300, startLevel:1, night:false},
+  cfg:{bossHp:10000, monHpMul:1, goal:1000, playerHp:300, startLevel:1, night:false, skin:"#4a8d57"},
+  turrets:[], turretCd:0, _gX:false,
   coins:0, owned:null, shopping:false, _inBunker:false, allFree:false, bunker:null, netShots:[], _shotBuf:[], lab:null, _inLab:false, labOpen:false, mateWeapon:"pistola", beam:null, heat:0, overheated:false, holeTimer:0, mateBeams:[],
   open(){
     $("monFs").classList.add("open");
@@ -4572,11 +4579,13 @@ const Monster={
   ffaWin(){ this.saveBest(); this.ach("ffa","¡Último en pie!"); this.running=false; $("monOverlay").style.display="flex"; $("monMsg").textContent="🏆 ¡ÚLTIMO EN PIE!"; $("monResult").innerHTML="Ganaste el Todos vs Todos ⚔️ · <b>"+this.p.kills+"</b> eliminaciones · 🏆 Récord: <b>"+this.best+"</b>"; $("monStart").textContent="▶ JUGAR OTRA VEZ"; },
   throwGrenade(){ if(!this.running||this.shopping||this.labOpen||this.grenCd>0) return; this.grenCd=3; const p=this.p,a=p.aimAng; this.grenades.push({x:p.x+Math.cos(a)*p.r,y:p.y+Math.sin(a)*p.r,vx:Math.cos(a)*520,vy:Math.sin(a)*520,t:0.55}); Sfx.shoot(); },
   doSlow(){ if(!this.running||this.slowCd>0) return; this.slowCd=9; this.slowT=4; Sfx.level(); },
+  placeTurret(){ if(!this.running||this.shopping||this.labOpen||this.turretCd>0||this.turrets.length>=4) return; this.turretCd=5; this.turrets.push({x:this.p.x,y:this.p.y,aimAng:0,fireT:0}); Sfx.pick(); },
+  drawTurret(c,x,y,tt){ c.save(); c.translate(x,y); c.fillStyle="#556"; c.beginPath(); c.arc(0,0,13,0,6.283); c.fill(); c.fillStyle="#334"; c.beginPath(); c.arc(0,0,8,0,6.283); c.fill(); c.save(); c.rotate(tt.aimAng||0); c.fillStyle="#223"; c.fillRect(0,-3,22,6); c.restore(); c.restore(); },
   ach(id,txt){ if(!this._ach){ let s=""; try{ s=localStorage.getItem("swarm_ach")||""; }catch(e){} this._ach=new Set(s.split(",").filter(Boolean)); } if(this._ach.has(id)) return; this._ach.add(id); try{ localStorage.setItem("swarm_ach",Array.from(this._ach).join(",")); }catch(e){} this._achMsg="🎖️ "+txt; this._achT=3.5; Sfx.level(); },
   close(){ this.running=false; if(this.raf){ cancelAnimationFrame(this.raf); this.raf=null; } try{ MonMusic.stop(); }catch(e){} window.removeEventListener("resize",this._onResize); this.unbindInput(); if(typeof MonNet!=="undefined") MonNet.leave(); $("monFs").classList.remove("open"); if(this._fromLanding){ this._fromLanding=false; if(!currentUser) $("landing").style.display="flex"; } },
   resize(){ const d=Math.min(devicePixelRatio||1,2); this.W=innerWidth; this.H=innerHeight; this.cv.width=this.W*d; this.cv.height=this.H*d; this.cv.style.width=this.W+"px"; this.cv.style.height=this.H+"px"; this.c.setTransform(d,0,0,d,0,0); },
   bindInput(){
-    this._kd=e=>{ const k=e.key.toLowerCase(); this.keys[k]=true; if(k==="e"&&!e.repeat) this.throwGrenade(); if(k==="q"&&!e.repeat) this.doSlow(); };
+    this._kd=e=>{ const k=e.key.toLowerCase(); this.keys[k]=true; if(k==="e"&&!e.repeat) this.throwGrenade(); if(k==="q"&&!e.repeat) this.doSlow(); if(k==="t"&&!e.repeat) this.placeTurret(); };
     this._ku=e=>{ this.keys[e.key.toLowerCase()]=false; };
     const setAim=(cx,cy)=>{ const r=this.cv.getBoundingClientRect(); this.aim={x:cx-r.left,y:cy-r.top}; this.pointer=true; this._aimAt=performance.now(); };
     this._mm=e=>setAim(e.clientX,e.clientY);
@@ -4601,7 +4610,7 @@ const Monster={
     this.aim=null; this.pointer=false; this.spawnT=0; this.starT=5; this.shake=0; this.mb0=false; this.mb2=false; this.scope=false;
     this.hearts=[]; this.heartT=12; this.eshots=[];
     this.grenades=[]; this.pows=[]; this.powT=14; this.buffSpeed=0; this.buffShield=0; this.buffDmg=0; this.grenCd=0; this.slowCd=0; this.slowT=0; this.rain=null; this.drone={ang:0,x:this.p.x,y:this.p.y,aimAng:0,fireT:0};
-    this.hasTank=false; this.tank=false; this.dmgNums=[]; this.feed=[];
+    this.hasTank=false; this.tank=false; this.dmgNums=[]; this.feed=[]; this.turrets=[]; this.turretCd=0;
     this.level=this.cfg.startLevel||1; this.levelKills=0; this.flash=(this.level>=7?"👑 ¡NIVEL 7: PURAS JEFAS!":pl.name+" — ¡a salvarlo!"); this.flashT=2.6;
     this.genHouses();
     if(this.planet==="agujero"){ for(let i=0;i<20;i++) this.spawnSuprema(); this.holeTimer=60; this.flash="🕳️ AGUJERO NEGRO · 20 SUPREMAS"; }
@@ -4823,7 +4832,7 @@ const Monster={
     // gatillos: clic-izq/RT = disparo (cada 0.5s) · clic-der/LT = mira + disparo potente (cada 2s)
     const rt=gp&&gp.buttons[7]&&(gp.buttons[7].pressed||gp.buttons[7].value>0.3);
     const lt=gp&&gp.buttons[6]&&(gp.buttons[6].pressed||gp.buttons[6].value>0.3);
-    if(gp){ const A=!!(gp.buttons[0]&&gp.buttons[0].pressed), B=!!(gp.buttons[1]&&gp.buttons[1].pressed); if(A&&!this._gA) this.throwGrenade(); if(B&&!this._gB) this.doSlow(); this._gA=A; this._gB=B; }
+    if(gp){ const A=!!(gp.buttons[0]&&gp.buttons[0].pressed), B=!!(gp.buttons[1]&&gp.buttons[1].pressed), X=!!(gp.buttons[2]&&gp.buttons[2].pressed); if(A&&!this._gA) this.throwGrenade(); if(B&&!this._gB) this.doSlow(); if(X&&!this._gX) this.placeTurret(); this._gA=A; this._gB=B; this._gX=X; }
     const fireHeld=this.mb0||rt||this.keys[" "], scopeHeld=this.mb2||lt||this.keys["shift"];
     const hasIon=(p.weapon==="canon_iones");   // los rayos SOLO con el Cañón de Iones equipado
     this.scope=scopeHeld && hasIon;
@@ -4857,6 +4866,9 @@ const Monster={
     const dr=this.drone; if(dr){ dr.ang+=dt*1.6; const orx=p.x+Math.cos(dr.ang)*64, ory=p.y+Math.sin(dr.ang)*64; dr.x+=(orx-dr.x)*Math.min(1,dt*8); dr.y+=(ory-dr.y)*Math.min(1,dt*8);
       let dn=null,dnd=1e9; for(const mo of this.people){ const dd=Math.hypot(mo.x-dr.x,mo.y-dr.y); if(dd<dnd){ dnd=dd; dn=mo; } }
       dr.fireT-=dt; if(dn&&dnd<620){ dr.aimAng=Math.atan2(dn.y-dr.y,dn.x-dr.x); if(dr.fireT<=0){ dr.fireT=0.16; this.fireGun(dr.x,dr.y,dr.aimAng,"ametralladora"); } } }
+    // 🏗️ torretas
+    if(this.turretCd>0) this.turretCd-=dt;
+    for(const tt of this.turrets){ let tn=null,tnd=1e9; for(const m of this.people){ const d=Math.hypot(m.x-tt.x,m.y-tt.y); if(d<tnd){ tnd=d; tn=m; } } tt.fireT-=dt; if(tn&&tnd<600){ tt.aimAng=Math.atan2(tn.y-tt.y,tn.x-tt.x); if(tt.fireT<=0){ tt.fireT=0.3; this.fireGun(tt.x,tt.y,tt.aimAng,"ametralladora"); } } }
     // 🎁 power-ups (velocidad, escudo, doble daño)
     this.powT-=dt; if(this.powT<=0){ this.powT=13+Math.random()*8; if(this.pows.length<2){ const ts=["speed","shield","dmg"], t=ts[Math.floor(Math.random()*3)], a=Math.random()*6.283,d=200+Math.random()*300; this.pows.push({x:p.x+Math.cos(a)*d,y:p.y+Math.sin(a)*d,type:t,ph:0}); } }
     for(let i=this.pows.length-1;i>=0;i--){ const pw=this.pows[i]; pw.ph+=dt; if(Math.hypot(pw.x-p.x,pw.y-p.y)<p.r+16){ this.pows.splice(i,1); Sfx.pick(); if(pw.type==="speed") this.buffSpeed=8; else if(pw.type==="shield") this.buffShield=8; else this.buffDmg=8; } }
@@ -4938,6 +4950,7 @@ const Monster={
     c.fillStyle="#ff7a30"; for(const s of this.bshots){ const sx=s.x-camx,sy=s.y-camy; if(sx<-20||sx>W+20||sy<-20||sy>H+20) continue; c.beginPath(); c.arc(sx,sy,4,0,6.283); c.fill(); }
     for(const pw of this.pows){ const sx=pw.x-camx,sy=pw.y-camy; if(sx<-20||sx>W+20||sy<-20||sy>H+20) continue; const col=pw.type==="speed"?"#ffd23f":pw.type==="shield"?"#38e1ff":"#ff5b5b"; c.save(); c.translate(sx,sy); const s=1+Math.sin(pw.ph*4)*0.12; c.scale(s,s); c.fillStyle=col; c.shadowColor=col; c.shadowBlur=12; c.beginPath(); c.arc(0,0,12,0,6.283); c.fill(); c.shadowBlur=0; c.font="12px system-ui"; c.textAlign="center"; c.fillStyle="#000"; c.fillText(pw.type==="speed"?"⚡":pw.type==="shield"?"🛡":"×2",0,4); c.textAlign="left"; c.restore(); }
     for(const g of this.grenades){ const sx=g.x-camx,sy=g.y-camy; c.fillStyle="#2b7a3a"; c.beginPath(); c.arc(sx,sy,7,0,6.283); c.fill(); c.fillStyle="#163"; c.fillRect(sx-2,sy-10,4,4); }
+    for(const tt of this.turrets){ this.drawTurret(c,tt.x-camx,tt.y-camy,tt); }
     { const dr=this.drone; if(dr){ const sx=dr.x-camx,sy=dr.y-camy; c.save(); c.translate(sx,sy); c.fillStyle="#8aa"; c.beginPath(); c.arc(0,0,9,0,6.283); c.fill(); c.strokeStyle="#ccd"; c.lineWidth=2; c.beginPath(); c.moveTo(-13,-6); c.lineTo(13,-6); c.stroke(); c.fillStyle="#38e1ff"; c.beginPath(); c.arc(0,0,3,0,6.283); c.fill(); c.restore(); } }
     for(const m of this.people){ const sx=m.x-camx,sy=m.y-camy; if(sx<-30||sx>W+30||sy<-30||sy>H+30) continue; if(m.bot) this.drawBot(c,sx,sy,m); else this.drawPerson(c,sx,sy,m); }
     for(const mb of this.mateBeams){ this.drawBeam(c,mb.x-camx,mb.y-camy,mb.ex-camx,mb.ey-camy,"#c05bff"); }
@@ -5002,8 +5015,8 @@ const Monster={
     c.restore(); },
   drawSoldier(c,x,y){ const p=this.p,R=p.r,ang=p.aimAng||0; c.save(); c.translate(x,y);
     c.strokeStyle="#2b2b2b"; c.lineWidth=6; c.lineCap="round"; c.beginPath(); c.moveTo(0,0); c.lineTo(Math.cos(ang)*R*1.75,Math.sin(ang)*R*1.75); c.stroke();   // arma
-    c.fillStyle="#4a8d57"; c.beginPath(); c.arc(0,0,R,0,6.283); c.fill();
-    c.fillStyle="#39704a"; c.beginPath(); c.arc(0,0,R*0.66,0,6.283); c.fill();
+    c.fillStyle=this.cfg.skin||"#4a8d57"; c.beginPath(); c.arc(0,0,R,0,6.283); c.fill();
+    c.fillStyle="rgba(0,0,0,0.28)"; c.beginPath(); c.arc(0,0,R*0.66,0,6.283); c.fill();
     c.fillStyle="#2f5d3a"; c.save(); c.rotate(ang); c.beginPath(); c.arc(R*0.1,0,R*0.55,-1.15,1.15); c.fill(); c.restore();   // casco hacia donde apunta
     c.restore(); },
   drawStar(c,x,y,r,rot){ c.save(); c.translate(x,y); c.rotate(rot); c.fillStyle="#ffd23f"; c.strokeStyle="#a97b00"; c.lineWidth=2; c.beginPath(); for(let i=0;i<10;i++){ const a=i/10*6.283-1.57, rr=i%2?r*0.45:r; c.lineTo(Math.cos(a)*rr,Math.sin(a)*rr); } c.closePath(); c.fill(); c.stroke(); c.restore(); }
@@ -5066,6 +5079,7 @@ document.querySelectorAll("#monOverlay .gc-opt").forEach(b=>{ b.onclick=()=>{
   if(b.dataset.mnight!=null) Monster.cfg.night=(b.dataset.mnight==="1");
   if(b.dataset.msnd!=null) Sfx.on=(b.dataset.msnd==="1");
   if(b.dataset.mmus!=null){ MonMusic.on=(b.dataset.mmus==="1"); if(!MonMusic.on) MonMusic.stop(); }
+  if(b.dataset.mskin) Monster.cfg.skin=b.dataset.mskin;
 }; });
 // Portada: elegir jugar (público) o iniciar sesión
 $("lndPlay").onclick=()=>{ $("landing").style.display="none"; Monster._fromLanding=true; Monster.open(); };
