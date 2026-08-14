@@ -5349,6 +5349,7 @@ const Secret={
         await faceapi.nets.tinyFaceDetector.loadFromUri(M);
         await faceapi.nets.faceLandmark68TinyNet.loadFromUri(M);
         await faceapi.nets.faceRecognitionNet.loadFromUri(M);
+        await faceapi.nets.faceExpressionNet.loadFromUri(M);   // detector de SONRISA (prueba de vida)
         this._fa=true; }catch(e){ this._fa=false; } res(this._fa); };
       if(window.faceapi){ done(); return; }
       const s=document.createElement("script"); s.src=BASE+"/dist/face-api.js";
@@ -5367,13 +5368,6 @@ const Secret={
     return Array.isArray(raw)?raw:[]; }catch(e){ return []; } },
   _tplSave(tpls){ localStorage.setItem("edtu_face_david",JSON.stringify(tpls.slice(0,8))); },
   _minDist(desc,tpls){ let m=Infinity; for(const t of tpls){ const d=faceapi.euclideanDistance(t,desc); if(d<m) m=d; } return m; },
-  // apertura de los ojos (EAR): baja cuando los cierras -> así se detecta el PARPADEO (prueba de vida)
-  _ear(lm){ try{
-    const P=lm.positions, d=(a,b)=>Math.hypot(P[a].x-P[b].x,P[a].y-P[b].y);
-    const L=(d(37,41)+d(38,40))/(2*d(36,39));
-    const R=(d(43,47)+d(44,46))/(2*d(42,45));
-    return (L+R)/2;
-  }catch(e){ return 1; } },
   // recuadro + puntos de la cara en vivo sobre el video (verde = tú; rojo = caras extra)
   _drawTrack(video,dets,best){ try{
     const cv=$("bioTrack"); if(!cv||!video.videoWidth) return;
@@ -5390,12 +5384,19 @@ const Secret={
       c.moveTo(x+w,y+h-L); c.lineTo(x+w,y+h); c.lineTo(x+w-L,y+h);
       c.moveTo(x+L,y+h); c.lineTo(x,y+h); c.lineTo(x,y+h-L);
       c.stroke();
-      if(main && d.landmarks){ c.fillStyle="rgba(57,255,20,.85)"; c.shadowBlur=4;
-        for(const pt of d.landmarks.positions) c.fillRect(pt.x-1,pt.y-1,2.4,2.4);
-        // contorno de los OJOS (se enciende rojo mientras parpadeas)
-        const P=d.landmarks.positions, eye=(a,z)=>{ c.beginPath(); for(let i=a;i<=z;i++){ const q=P[i]; if(i===a) c.moveTo(q.x,q.y); else c.lineTo(q.x,q.y); } c.closePath(); c.stroke(); };
-        c.strokeStyle=this._eyesClosed?"#ff073a":"rgba(57,255,20,.95)"; c.lineWidth=Math.max(1.5,cv.width/300); c.shadowBlur=9; c.shadowColor=c.strokeStyle;
-        eye(36,41); eye(42,47);
+      if(main && d.landmarks){
+        // malla de 777 PUNTOS: nube densa alrededor de los 68 puntos base (estable, sin parpadeo)
+        const P=d.landmarks.positions;
+        c.fillStyle="rgba(57,255,20,.75)"; c.shadowBlur=3; c.shadowColor="#39ff14";
+        const sx=b.width*0.05, sy=b.height*0.05, dot=Math.max(1.4,cv.width/560);
+        for(let n=0;n<777;n++){
+          const q=P[n%68], px=q.x+Math.sin(n*7.13)*sx, py=q.y+Math.cos(n*9.71)*sy;
+          c.fillRect(px,py,dot,dot);
+        }
+        // contorno de la BOCA (se enciende dorado cuando SONRÍES)
+        const mouth=()=>{ c.beginPath(); for(let i=48;i<=59;i++){ const q=P[i]; if(i===48) c.moveTo(q.x,q.y); else c.lineTo(q.x,q.y); } c.closePath(); c.stroke(); };
+        c.strokeStyle=this._smiling?"#ffe14b":"rgba(57,255,20,.95)"; c.lineWidth=Math.max(1.6,cv.width/280); c.shadowBlur=this._smiling?14:8; c.shadowColor=c.strokeStyle;
+        mouth();
       }
     }
   }catch(e){} },
@@ -5410,7 +5411,7 @@ const Secret={
       $("bioProg").style.display="block";
       const msg=$("bioMsg"), HEX="0123456789ABCDEF", video=$("bioVideo");
       let p=0, tick=0; const t0=Date.now(); this._face=false; this._descs=[]; this._faces=0; this._liveDist=null;
-      this._blinked=false; this._eyesClosed=false; this._tooFar=false;
+      this._smiled=false; this._smiling=false; this._sawNeutral=false; this._tooFar=false;
       // detector de rostro: IA (face-api) > nativo del navegador > casero (color de piel)
       let fd=null; try{ if("FaceDetector" in window) fd=new FaceDetector({fastMode:true,maxDetectedFaces:1}); }catch(e){ fd=null; }
       let faReady=false, faBusy=false; this.loadFaceApi().then(ok=>{ faReady=ok; });
@@ -5419,7 +5420,7 @@ const Secret={
         if(faReady && window.faceapi){   // IA: detecta TODAS las caras y mide la huella de la principal
           if(faBusy) return; faBusy=true;
           try{
-            const dets=await faceapi.detectAllFaces(video,new faceapi.TinyFaceDetectorOptions({inputSize:320,scoreThreshold:.4})).withFaceLandmarks(true).withFaceDescriptors();
+            const dets=await faceapi.detectAllFaces(video,new faceapi.TinyFaceDetectorOptions({inputSize:320,scoreThreshold:.4})).withFaceLandmarks(true).withFaceExpressions().withFaceDescriptors();
             this._faces=dets.length;
             if(dets.length){
               const best=dets.reduce((a,b)=> (b.detection.box.area>a.detection.box.area?b:a));   // la cara más grande = la principal
@@ -5430,11 +5431,11 @@ const Secret={
                 const tpls=this._tplLoad();
                 this._liveDist = tpls.length ? this._minDist(best.descriptor,tpls) : null;
               }
-              // PRUEBA DE VIDA: una foto no parpadea — mide la apertura de los ojos
-              const ear=this._ear(best.landmarks);
-              if(ear<0.20) this._eyesClosed=true;
-              else if(this._eyesClosed && ear>0.26){ this._eyesClosed=false;
-                if(!this._blinked){ this._blinked=true; this.scanBeep(1250); } }
+              // PRUEBA DE VIDA: cara seria -> SONRISA (una foto no cambia de expresión)
+              const hap=best.expressions ? (best.expressions.happy||0) : 0;
+              this._smiling = hap>0.75;
+              if(hap<0.35) this._sawNeutral=true;
+              if(this._sawNeutral && hap>0.75 && !this._smiled){ this._smiled=true; this.scanBeep(1250); }
               this._drawTrack(video,dets,best);
             }else{ this._face=false; this._tooFar=false; this._liveDist=null; this._drawTrack(video,[],null); }
           }catch(e){ this._face=this.faceLike(video,cv); }
@@ -5451,20 +5452,20 @@ const Secret={
         const ok1=this._face && !multi && !this._tooFar;
         if(ok1){ frame.classList.remove("noface");
           if(p<LIVE_AT) p=Math.min(LIVE_AT,p+3.4);                                   // fase 1: identificación
-          else if(this._blinked || !faReady) p=Math.min(100,p+4.5);                  // fase 2: exige parpadeo (con IA)
+          else if(this._smiled || !faReady) p=Math.min(100,p+4.5);                   // fase 2: exige SONRISA (con IA)
         } else frame.classList.add("noface");
         const pi=Math.round(p);
         $("bioProgBar").style.width=pi+"%";
         msg.textContent = multi ? "☝ SOLO UNA PERSONA A LA VEZ"
           : !this._face ? "🔍 BUSCANDO ROSTRO... PONTE FRENTE A LA CÁMARA"
           : this._tooFar ? "🔎 ACÉRCATE UN POCO A LA CÁMARA"
-          : (pi>=LIVE_AT && !this._blinked && faReady) ? "😉 PARPADEA — PRUEBA DE VIDA"
+          : (pi>=LIVE_AT && !this._smiled && faReady) ? (this._sawNeutral ? "😁 SONRÍE — PRUEBA DE VIDA" : "😐 CARA SERIA PRIMERO...")
           : "ESCANEANDO ROSTRO · "+pi+"%";
         let hx=""; for(let i=0;i<6;i++) hx+=HEX[Math.floor(Math.random()*16)];
-        $("bioDataL").textContent="SCAN>> 0x"+hx+"\nPUNTOS "+(this._face?1200+Math.floor(Math.random()*8000):0)+"\nMALLA "+Math.min(100,pi+Math.floor(Math.random()*5))+"%";
+        $("bioDataL").textContent="SCAN>> 0x"+hx+"\nPUNTOS "+(this._face?777:0)+"\nMALLA "+Math.min(100,pi+Math.floor(Math.random()*5))+"%";
         // MATCH REAL: similitud medida contra las plantillas guardadas (— si aún no hay registro)
         const mReal = this._liveDist!=null ? Math.max(0,Math.min(99.9,(1-this._liveDist/0.8)*100)).toFixed(1)+"%" : "—";
-        $("bioDataR").textContent="ID #25\nROSTROS "+(this._faces||0)+"\nMATCH "+mReal+"\nVIDA "+(this._blinked?"✔":"…")+"\nIA "+(faReady?"ACTIVA":"BÁSICA");
+        $("bioDataR").textContent="ID #25\nROSTROS "+(this._faces||0)+"\nMATCH "+mReal+"\nVIDA "+(this._smiled?"✔":"…")+"\nIA "+(faReady?"ACTIVA":"BÁSICA");
         if(this._face && ++tick%3===0) this.scanBeep(500+p*7);
         if(p>=100){
           clearInterval(ivS); clearInterval(ivF);
@@ -5500,7 +5501,7 @@ const Secret={
         if(Date.now()-t0>20000 && p<100){   // 20 seg y no completó -> denegado (con el motivo real)
           clearInterval(ivS); clearInterval(ivF);
           this.bioStop(); frame.classList.remove("scanning","noface"); $("bioStart").style.display="block";
-          this.bioFail(this._face ? (!this._blinked ? "SIN PRUEBA DE VIDA (¿UNA FOTO? 🤨) · ACCESO DENEGADO" : "TIEMPO AGOTADO · ACCESO DENEGADO") : "NINGÚN ROSTRO DETECTADO · ACCESO DENEGADO");
+          this.bioFail(this._face ? (!this._smiled ? "SIN SONRISA REAL (¿UNA FOTO? 🤨) · ACCESO DENEGADO" : "TIEMPO AGOTADO · ACCESO DENEGADO") : "NINGÚN ROSTRO DETECTADO · ACCESO DENEGADO");
         }
       },100);
       this._ivs=[ivS,ivF];
