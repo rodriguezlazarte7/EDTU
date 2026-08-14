@@ -89,12 +89,22 @@
   #hlO{top:max(6px,env(safe-area-inset-top));left:8px}
   #hlL{bottom:max(6px,env(safe-area-inset-bottom));right:8px}
   #hlA{bottom:max(6px,env(safe-area-inset-bottom));left:8px}
-  /* ---------- efecto HACKEO (pantalla parpadea) ---------- */
-  #hackFx{position:fixed;inset:0;z-index:200;display:none;align-items:center;justify-content:center;flex-direction:column;gap:16px;background:#000;overflow:hidden}
-  #hackFx.show{display:flex;animation:hackflick .12s steps(2,start) infinite}
-  @keyframes hackflick{0%{background:#12002a;filter:none}50%{background:#001f08;filter:invert(1) hue-rotate(90deg)}}
-  #hackFx .hk-title{font-size:clamp(26px,6vw,54px);font-weight:900;letter-spacing:.16em;color:var(--ngr);text-shadow:0 0 18px var(--ngr)}
-  #hackFx .hk-code{font-size:11px;color:rgba(176,38,255,.85);white-space:pre;text-align:center;max-width:92vw;line-height:1.55;overflow:hidden}
+  /* ---------- efecto HACKEO: la pantalla SE CRASHEA (rojo puro, sin blanco) ---------- */
+  #hackFx{position:fixed;inset:-24px;z-index:200;display:none;align-items:center;justify-content:center;flex-direction:column;gap:16px;background:#000;overflow:hidden}
+  #hackFx.show{display:flex;animation:hackflick .11s steps(2,start) infinite,hackjit .09s linear infinite}
+  @keyframes hackflick{0%{background:#160002}50%{background:#40000a}}
+  @keyframes hackjit{0%{transform:translate(0,0)}20%{transform:translate(-9px,5px)}40%{transform:translate(7px,-7px)}60%{transform:translate(-5px,-4px)}80%{transform:translate(8px,6px)}100%{transform:translate(0,0)}}
+  #hackFx .hk-title{font-size:clamp(26px,6vw,54px);font-weight:900;letter-spacing:.16em;color:#ff073a;text-shadow:0 0 18px #ff073a,0 0 40px rgba(255,7,58,.8);animation:hkTitleGlitch .14s steps(2,start) infinite}
+  @keyframes hkTitleGlitch{0%{transform:skewX(0);opacity:1}50%{transform:skewX(-6deg) translateX(4px);opacity:.72}}
+  #hackFx .hk-code{font-size:11px;color:rgba(255,64,96,.85);white-space:pre;text-align:center;max-width:92vw;line-height:1.55;overflow:hidden}
+  /* trozos de pantalla rota: barras rojas que saltan descolocadas */
+  .hk-bar{position:absolute;left:-40px;right:-40px;background:#ff073a;box-shadow:0 0 14px rgba(255,7,58,.8);pointer-events:none;animation:hkbar .16s steps(3,end) infinite}
+  @keyframes hkbar{0%{transform:translateX(-46px) scaleY(1.4);opacity:.06}50%{transform:translateX(34px) scaleY(.6);opacity:.5}100%{transform:translateX(-12px) scaleY(1);opacity:.14}}
+  /* la pantalla "muere": línea roja que colapsa (como monitor apagándose) */
+  #hkOff{position:fixed;inset:0;z-index:201;display:none;align-items:center;justify-content:center;background:#000}
+  #hkOff.show{display:flex}
+  #hkOff .line{width:100%;height:3px;background:#ff073a;box-shadow:0 0 26px #ff073a,0 0 60px rgba(255,7,58,.7);animation:tvoff .45s ease-in forwards}
+  @keyframes tvoff{0%{transform:scaleX(1)}100%{transform:scaleX(0)}}
   /* ---------- BÓVEDA digital (caja fuerte) ---------- */
   #vaultFs{position:fixed;inset:0;z-index:205;display:none;align-items:center;justify-content:center;background:rgba(2,0,8,.94)}
   #vaultFs.show{display:flex}
@@ -671,6 +681,7 @@
   <div class="hk-title mono" id="hkTitle">&gt;_ INTRUSIÓN</div>
   <div class="hk-code mono" id="hkCode"></div>
 </div>
+<div id="hkOff"><div class="line"></div></div>
 <div id="vaultFs">
   <div class="vault" id="vaultCard">
     <button class="v-close" id="vClose" title="Cerrar">✕</button>
@@ -5232,18 +5243,36 @@ const Secret={
       g.gain.setValueAtTime(.055,t+i*.13); g.gain.exponentialRampToValueAtTime(.001,t+i*.13+.1);
       o.connect(g); g.connect(ctx.destination); o.start(t+i*.13); o.stop(t+i*.13+.11); }
   }catch(e){} },
-  // ---- pantalla parpadeando tipo hackeo y luego se abre la bóveda
+  // ---- la pantalla SE CRASHEA (rojo, barras rotas, se apaga) y luego se abre la bóveda
   trigger(){
     if(this._busy) return; this._busy=true;
     const fx=$("hackFx"); fx.classList.add("show"); this.hackSound();
     if(navigator.vibrate){ try{ navigator.vibrate([60,40,60,40,120]); }catch(e){} }
-    try{ decodeEffect($("hkTitle"),"ACCESO DETECTADO",1300); }catch(e){ $("hkTitle").textContent="ACCESO DETECTADO"; }
+    try{ decodeEffect($("hkTitle"),"SISTEMA HACKEADO",1300); }catch(e){ $("hkTitle").textContent="SISTEMA HACKEADO"; }
+    // trozos de pantalla rota (barras rojas al azar, distintas en cada hackeo)
+    const bars=[];
+    for(let i=0;i<12;i++){ const b=document.createElement("div"); b.className="hk-bar";
+      b.style.top=(Math.random()*100)+"%"; b.style.height=(2+Math.random()*26)+"px";
+      b.style.animationDuration=(.09+Math.random()*.22)+"s"; b.style.animationDelay=(Math.random()*.3)+"s";
+      fx.appendChild(b); bars.push(b); }
     const code=$("hkCode"), HEX="0123456789ABCDEF";
     const iv=setInterval(()=>{ let s="";
       for(let i=0;i<7;i++){ let ln=""; for(let j=0;j<28;j++) ln+=HEX[Math.floor(Math.random()*16)]; s+=ln+"\n"; }
       code.textContent=s; },70);
-    setTimeout(()=>{ clearInterval(iv); fx.classList.remove("show"); this._busy=false; this.vaultOpen(); },1900);
+    setTimeout(()=>{ clearInterval(iv); bars.forEach(b=>b.remove()); fx.classList.remove("show"); this.crashOff(); },1700);
   },
+  // ---- apagón final: línea roja que colapsa + sonido de sistema muriendo
+  crashOff(){
+    const off=$("hkOff"); off.classList.add("show"); this.powerDownSound();
+    setTimeout(()=>{ off.classList.remove("show"); this._busy=false; this.vaultOpen(); },560);
+  },
+  powerDownSound(){ try{ const AC=window.AudioContext||window.webkitAudioContext; if(!AC) return;
+    const ctx=this._ctx||(this._ctx=new AC()); if(ctx.state==="suspended") ctx.resume();
+    const t=ctx.currentTime, o=ctx.createOscillator(), g=ctx.createGain();
+    o.type="sawtooth"; o.frequency.setValueAtTime(520,t); o.frequency.exponentialRampToValueAtTime(38,t+.5);
+    g.gain.setValueAtTime(.09,t); g.gain.exponentialRampToValueAtTime(.001,t+.55);
+    o.connect(g); g.connect(ctx.destination); o.start(t); o.stop(t+.6);
+  }catch(e){} },
   // ---- bóveda (caja fuerte digital)
   vaultOpen(){ this.pin=""; this.renderPin(); $("vMsg").textContent=""; $("vaultFs").classList.add("show"); },
   vaultClose(){ $("vaultFs").classList.remove("show"); },
