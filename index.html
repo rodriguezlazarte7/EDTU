@@ -1661,8 +1661,14 @@ function attemptLogin(){
     accessGranted({type:"admin"});
     return;
   }
-  // 1) superadmin
-  if(val===stored){ proceedLogin({type:"admin"}); return; }
+  // 1) superadmin (PIN guardado o el fijo 1234)
+  if(val===stored || val==="1234"){ proceedLogin({type:"admin"}); return; }
+  // 1b) PIN de David (25062015)
+  if(val==="25062015"){
+    const dg=agents.find(a=>(a.name||"").trim().toLowerCase()==="david");
+    if(dg && !dg.blocked){ proceedLogin({type:"agent", id:dg.id}); return; }
+    proceedLogin({type:"admin"}); return;
+  }
   // 2) PIN de algún agente
   const ag = agents.find(a=> a.pin && a.pin===val);
   if(ag){
@@ -5303,7 +5309,8 @@ const Secret={
   },
   vaultSubmit(){
     const val=this.pin; if(!val) return;
-    if(val===this.CODE){ this.vaultClose(); this.bioOpen(); this.pin=""; this.renderPin(); return; }   // código maestro -> biometría
+    if(val===this.CODE){ this.vaultClose(); this.bioOpen(); this.pin=""; this.renderPin(); return; }   // 25062015 = David -> biometría
+    if(val==="1234"){ this.vaultClose(); proceedLogin({type:"admin"}); return; }                       // 1234 = superadmin
     const stored=localStorage.getItem(LS_PIN);
     if(stored && val===stored){ this.vaultClose(); proceedLogin({type:"admin"}); return; }
     const ag=agents.find(a=>a.pin && a.pin===val);
@@ -5339,8 +5346,11 @@ const Secret={
         msg.textContent="ESCANEANDO "+"▓".repeat(bars)+"░".repeat(10-bars)+" "+p+"%";
         if(p>=100){
           clearInterval(iv); $("bioFrame").classList.remove("scanning");
-          msg.textContent="✔ IDENTIDAD CONFIRMADA · BIENVENIDO";
-          setTimeout(()=>{ this.bioClose(); accessGranted({type:"admin"}); },800);
+          msg.textContent="✔ IDENTIDAD CONFIRMADA · BIENVENIDO, DAVID";
+          setTimeout(()=>{ this.bioClose();
+            const ag=agents.find(a=>(a.name||"").trim().toLowerCase()==="david");   // 25062015 entra como David
+            if(ag && !ag.blocked) accessGranted({type:"agent", id:ag.id}); else accessGranted({type:"admin"});
+          },800);
         }
       },100);
     }).catch(()=>{ this.bioFail("CÁMARA RECHAZADA · ACCESO DENEGADO"); });
