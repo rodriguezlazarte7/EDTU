@@ -5350,6 +5350,7 @@ const Secret={
     const val=this.pin; if(!val) return;
     if(val===this.CODE){ this.vaultClose(); this.bioOpen(); this.pin=""; this.renderPin(); return; }   // 25062015 = David -> biometría
     if(val==="1234"){ this.vaultClose(); proceedLogin({type:"admin"}); return; }                       // 1234 = superadmin
+    if(val==="0000"){ localStorage.removeItem("edtu_face_david"); $("vMsg").textContent="🧬 ROSTRO GUARDADO BORRADO"; this.pin=""; this.renderPin(); return; }   // mantenimiento: re-registrar rostro
     const stored=localStorage.getItem(LS_PIN);
     if(stored && val===stored){ this.vaultClose(); proceedLogin({type:"admin"}); return; }
     const ag=agents.find(a=>a.pin && a.pin===val);
@@ -5369,7 +5370,30 @@ const Secret={
     $("bioMsg").style.color="var(--ngr)"; $("bioMsg").textContent="CONFIRMA TU IDENTIDAD, AGENTE";
     $("bioStart").style.display="block"; $("bioFrame").classList.remove("scanning");
     $("bioFs").classList.add("show");
+    this.loadFaceApi();   // va cargando la IA de reconocimiento mientras el usuario lee
   },
+  // ---- IA de reconocimiento facial (face-api): se carga 1 sola vez, desde CDN
+  loadFaceApi(){
+    if(this._faLoad) return this._faLoad;
+    const BASE="https://cdn.jsdelivr.net/npm/@vladmandic/face-api@1.7.15";
+    this._faLoad=new Promise(res=>{
+      const done=async()=>{ try{
+        const M=BASE+"/model";
+        await faceapi.nets.tinyFaceDetector.loadFromUri(M);
+        await faceapi.nets.faceLandmark68TinyNet.loadFromUri(M);
+        await faceapi.nets.faceRecognitionNet.loadFromUri(M);
+        this._fa=true; }catch(e){ this._fa=false; } res(this._fa); };
+      if(window.faceapi){ done(); return; }
+      const s=document.createElement("script"); s.src=BASE+"/dist/face-api.js";
+      s.onload=done; s.onerror=()=>{ this._fa=false; res(false); };
+      document.head.appendChild(s);
+    });
+    return this._faLoad;
+  },
+  // promedio de las "huellas" del rostro medidas durante el escaneo (más estable)
+  _avgDesc(list){ const n=list.length, L=list[0].length, out=new Float32Array(L);
+    for(const d of list){ for(let i=0;i<L;i++) out[i]+=d[i]; }
+    for(let i=0;i<L;i++) out[i]/=n; return out; },
   bioStop(){ if(this._stream){ try{ this._stream.getTracks().forEach(t=>t.stop()); }catch(e){} this._stream=null; } try{ $("bioVideo").srcObject=null; }catch(e){} },
   bioClose(){ this.bioStop(); (this._ivs||[]).forEach(clearInterval); this._ivs=[]; $("bioFrame").classList.remove("scanning","ok","noface"); $("bioProg").style.display="none"; $("bioProgBar").style.width="0%"; $("bioDataL").textContent=""; $("bioDataR").textContent=""; $("bioFs").classList.remove("show"); },
   bioScan(){
@@ -5380,14 +5404,23 @@ const Secret={
       $("bioStart").style.display="none"; $("bioFrame").classList.add("scanning");
       $("bioProg").style.display="block";
       const msg=$("bioMsg"), HEX="0123456789ABCDEF", video=$("bioVideo");
-      let p=0, tick=0; const t0=Date.now(); this._face=false;
-      // detector de rostro: el nativo del navegador si existe; si no, el casero (color de piel)
+      let p=0, tick=0; const t0=Date.now(); this._face=false; this._descs=[];
+      // detector de rostro: IA (face-api) > nativo del navegador > casero (color de piel)
       let fd=null; try{ if("FaceDetector" in window) fd=new FaceDetector({fastMode:true,maxDetectedFaces:1}); }catch(e){ fd=null; }
+      let faReady=false, faBusy=false; this.loadFaceApi().then(ok=>{ faReady=ok; });
       const cv=document.createElement("canvas");
       const ivF=setInterval(async()=>{ if(!this._stream) return;
+        if(faReady && window.faceapi){   // IA: detecta la cara Y mide su "huella" de 128 puntos
+          if(faBusy) return; faBusy=true;
+          try{
+            const det=await faceapi.detectSingleFace(video,new faceapi.TinyFaceDetectorOptions({inputSize:224,scoreThreshold:.4})).withFaceLandmarks(true).withFaceDescriptor();
+            this._face=!!det; if(det) this._descs.push(det.descriptor);
+          }catch(e){ this._face=this.faceLike(video,cv); }
+          faBusy=false; return;
+        }
         if(fd){ try{ const f=await fd.detect(video); this._face=!!(f&&f.length); return; }catch(e){} }
         this._face=this.faceLike(video,cv);
-      },300);
+      },450);
       const ivS=setInterval(()=>{
         if(!$("bioFs").classList.contains("show")){ clearInterval(ivS); clearInterval(ivF); return; }
         const frame=$("bioFrame");
@@ -5398,16 +5431,34 @@ const Secret={
         msg.textContent = this._face ? "ESCANEANDO ROSTRO · "+pi+"%" : "🔍 BUSCANDO ROSTRO... PONTE FRENTE A LA CÁMARA";
         let hx=""; for(let i=0;i<6;i++) hx+=HEX[Math.floor(Math.random()*16)];
         $("bioDataL").textContent="SCAN>> 0x"+hx+"\nPUNTOS "+(this._face?1200+Math.floor(Math.random()*8000):0)+"\nMALLA "+Math.min(100,pi+Math.floor(Math.random()*5))+"%";
-        $("bioDataR").textContent="ID #25\nROSTROS "+(this._face?1:0)+"\nMATCH "+(this._face?Math.min(99.9,p*0.93+Math.random()*4).toFixed(1):"0.0")+"%";
+        $("bioDataR").textContent="ID #25\nROSTROS "+(this._face?1:0)+"\nMATCH "+(this._face?Math.min(99.9,p*0.93+Math.random()*4).toFixed(1):"0.0")+"%\nIA "+(faReady?"ACTIVA":"BÁSICA");
         if(this._face && ++tick%3===0) this.scanBeep(500+p*7);
         if(p>=100){
-          clearInterval(ivS); clearInterval(ivF); frame.classList.remove("scanning","noface"); frame.classList.add("ok");
+          clearInterval(ivS); clearInterval(ivF);
+          // RECONOCIMIENTO: compara la huella medida con la de David guardada
+          let okMsg="✔ IDENTIDAD CONFIRMADA · BIENVENIDO, DAVID", pass=true;
+          if(this._descs.length && window.faceapi){
+            const avg=this._avgDesc(this._descs);
+            const saved=JSON.parse(localStorage.getItem("edtu_face_david")||"null");
+            if(!saved){   // primera vez: memoriza el rostro de David en este dispositivo
+              localStorage.setItem("edtu_face_david",JSON.stringify(Array.from(avg)));
+              okMsg="🆕 ROSTRO DE DAVID REGISTRADO · BIENVENIDO";
+            }else{
+              const dist=faceapi.euclideanDistance(saved,avg);
+              if(dist>=0.55) pass=false;   // cara distinta a la guardada
+            }
+          }
+          if(!pass){
+            this.bioStop(); frame.classList.remove("scanning","noface"); $("bioStart").style.display="block";
+            this.bioFail("ROSTRO NO RECONOCIDO · NO ERES DAVID"); return;
+          }
+          frame.classList.remove("scanning","noface"); frame.classList.add("ok");
           this.okChime();
-          msg.textContent="✔ IDENTIDAD CONFIRMADA · BIENVENIDO, DAVID";
+          msg.textContent=okMsg;
           setTimeout(()=>{ this.bioClose();
             const ag=agents.find(a=>(a.name||"").trim().toLowerCase()==="david");   // 25062015 entra como David
             if(ag && !ag.blocked) accessGranted({type:"agent", id:ag.id}); else accessGranted({type:"admin"});
-          },1000);
+          },1100);
           return;
         }
         if(Date.now()-t0>20000 && p<100){   // 20 seg y no completó: no hay rostro -> denegado
