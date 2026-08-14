@@ -4198,9 +4198,9 @@ const Robot = {
   port:null, writer:null, reader:null, connected:false,
   touchCmd:null, oneShot:null, modeActive:false,
   lastCmd:"", lastAt:0, padVec:{x:0,y:0},
-  _aPrev:false, _bPrev:false, _timer:null, _readAbort:false, _af:null, _run:false, _padId:null, _dbg:"", _frames:0, lightsOn:false, _yPrev:false, _rxbuf:"", speedPct:0, _lastSpd:-1, dispSpeed:0, _lastTickMs:0, nitro:false, temp:0, overheat:false, overheatUntil:0, _t100:0, _padNitro:false, _btnNitro:false, radarAuto:false, servoAngle:90, _rx:0, _echoDist:0, _echoAng:90, _lastAng:-1, _radAt:0, radarMap:{},
+  _aPrev:false, _bPrev:false, _timer:null, _readAbort:false, _af:null, _run:false, _padId:null, _dbg:"", _frames:0, lightsOn:false, _yPrev:false, _rxbuf:"", speedPct:0, _lastSpd:-1, dispSpeed:0, _lastTickMs:0, nitro:false, temp:0, overheat:false, overheatUntil:0, _t100:0, _padNitro:false, _btnNitro:false, race:false, _l3Prev:false, radarAuto:false, servoAngle:90, _rx:0, _echoDist:0, _echoAng:90, _lastAng:-1, _radAt:0, radarMap:{},
 
-  open(){ $("robotFs").classList.add("open"); this.startLoop(); this.drawStick(); this._lastSpd=-1; this.temp=0; this.overheat=false; this._t100=0; this._padNitro=false; this._btnNitro=false; this.setNitro(false); this.updateTemp(performance.now()); this._echoDist=0; this._lastAng=-1; this.radarMap={}; this.drawRadar(); this.drawRing("rgBatt",0,"batt"); this.drawRing("rgSpeed",0,"speed"); },
+  open(){ $("robotFs").classList.add("open"); this.startLoop(); this.drawStick(); this._lastSpd=-1; this.temp=0; this.overheat=false; this._t100=0; this._padNitro=false; this._btnNitro=false; this.race=false; this._l3Prev=false; this.setNitro(false); this.updateTemp(performance.now()); this._echoDist=0; this._lastAng=-1; this.radarMap={}; this.drawRadar(); this.drawRing("rgBatt",0,"batt"); this.drawRing("rgSpeed",0,"speed"); },
   close(){
     $("robotFs").classList.remove("open");
     this.touchCmd=null; this.modeActive=false;
@@ -4323,6 +4323,10 @@ const Robot = {
       }
       this._btnPrev[bi]=pr;
     }
+    // 🏁 clic del L STICK (L3, botón 10) = MODO CARRERA on/off (100% constante, sin temperatura)
+    const l3=!!(gp.buttons[10] && gp.buttons[10].pressed);
+    if(l3 && !this._l3Prev) this.toggleRace();
+    this._l3Prev=l3;
     this.padVec={ x:Math.abs(x)<dz?0:x, y:Math.abs(y)<dz?0:y };
     this.speedPct = Math.round(Math.min(1, Math.hypot(this.padVec.x, this.padVec.y))*100);   // velocidad = magnitud del stick
     if(Math.abs(x)<dz && Math.abs(y)<dz) return null;
@@ -4341,17 +4345,24 @@ const Robot = {
     let cmd=this.touchCmd || pad || "S";       // teclado/pantalla mandan sobre el stick
     const dts=Math.min(0.1,(now-(this._lastTickMs||now))/1000); this._lastTickMs=now;
 
-    // ---- NITRO por mantener Y + TEMPERATURA (simulada en la app) ----
-    const wantNitro=(this._padNitro || this._btnNitro) && !this.overheat;
-    if(wantNitro!==this.nitro) this.setNitro(wantNitro);
-    if(this.nitro) this.temp=Math.min(100, this.temp + 26*dts);      // usando nitro -> se calienta (~4s a 100%)
-    else           this.temp=Math.max(0,   this.temp - 15*dts);      // soltando -> se enfría
-    if(this.temp>=100 && !this.overheat){                            // 1s al 100% -> paro 5s
-      if(!this._t100) this._t100=now;
-      if(now-this._t100>=1000){ this.overheat=true; this.overheatUntil=now+5000; this.setNitro(false); this.log("🥵 SOBRECALENTADO — robot detenido 5s"); }
-    } else if(this.temp<100) this._t100=0;
-    if(this.overheat && now>=this.overheatUntil){ this.overheat=false; this._t100=0; this.log("✅ Temperatura normal"); }
-    if(this.overheat) cmd="S";                                       // bloqueo: robot parado durante el enfriado
+    if(this.race){
+      // ---- 🏁 MODO CARRERA (clic L stick): 100% constante, SIN temperatura ni paro ----
+      if(!this.nitro) this.setNitro(true,true);                      // reactiva por si algo lo apagó
+      this.temp=Math.max(0, this.temp - 15*dts);                     // se enfría aunque vaya a fondo
+      this.overheat=false; this._t100=0;
+    }else{
+      // ---- NITRO por mantener Y + TEMPERATURA (simulada en la app) ----
+      const wantNitro=(this._padNitro || this._btnNitro) && !this.overheat;
+      if(wantNitro!==this.nitro) this.setNitro(wantNitro);
+      if(this.nitro) this.temp=Math.min(100, this.temp + 26*dts);      // usando nitro -> se calienta (~4s a 100%)
+      else           this.temp=Math.max(0,   this.temp - 15*dts);      // soltando -> se enfría
+      if(this.temp>=100 && !this.overheat){                            // 1s al 100% -> paro 5s
+        if(!this._t100) this._t100=now;
+        if(now-this._t100>=1000){ this.overheat=true; this.overheatUntil=now+5000; this.setNitro(false); this.log("🥵 SOBRECALENTADO — robot detenido 5s"); }
+      } else if(this.temp<100) this._t100=0;
+      if(this.overheat && now>=this.overheatUntil){ this.overheat=false; this._t100=0; this.log("✅ Temperatura normal"); }
+      if(this.overheat) cmd="S";                                       // bloqueo: robot parado durante el enfriado
+    }
     this.updateTemp(now);
 
     const realSpd=(cmd==="S")?0:(this.touchCmd?100:this.speedPct);   // AL ROBOT: instantáneo (ágil, sin rampa)
@@ -4453,19 +4464,26 @@ const Robot = {
     c.clearRect(0,0,W,H);
     const cx=W/2,cy=H/2,R=W*0.415,lw=W*0.05,N=54,start=135*Math.PI/180,sweep=270*Math.PI/180;
     for(let i=0;i<N;i++){ const t=i/(N-1),a=start+t*sweep,on=(t*100)<=pct; let col;
-      if(kind==="speed"){ if(this.nitro){ col= on?"#ff8c1a":"rgba(255,140,26,.16)"; } else { const red=t>=0.82; col= on?(red?"#ff3b3b":this.speedColor(t*100)):(red?"rgba(255,60,60,.16)":"rgba(70,150,210,.14)"); } }
+      if(kind==="speed"){ if(this.race){ col= on?"#39ff14":"rgba(57,255,20,.16)"; } else if(this.nitro){ col= on?"#ff8c1a":"rgba(255,140,26,.16)"; } else { const red=t>=0.82; col= on?(red?"#ff3b3b":this.speedColor(t*100)):(red?"rgba(255,60,60,.16)":"rgba(70,150,210,.14)"); } }
       else col= on?this.battColor(t*100):"rgba(90,130,100,.16)";
       c.beginPath(); c.arc(cx,cy,R,a,a+sweep/N*0.6); c.lineWidth=lw; c.lineCap="butt"; c.strokeStyle=col;
       c.shadowColor=on?col:"transparent"; c.shadowBlur=on?11:0; c.stroke();
     }
     c.shadowBlur=0;
   },
-  setNitro(v){
+  setNitro(v,quiet){
     if(this.nitro===v) return;
     this.nitro=v;
     this.send(v?"%N1#":"%N0#");                           // ON sube tope a 100%, OFF vuelve a 70%
     this.updateNitro();
-    this.log(v?"🔥 NITRO ON (100%)":"NITRO OFF (tope 70%)");
+    if(!quiet) this.log(v?"🔥 NITRO ON (100%)":"NITRO OFF (tope 70%)");
+  },
+  // 🏁 MODO CARRERA: clic del L stick -> 100% constante sin temperatura; otro clic -> modo normal
+  toggleRace(){
+    this.race=!this.race;
+    if(this.race){ this.overheat=false; this._t100=0; this.setNitro(true,true); this.log("🏁 MODO CARRERA ON — 100% constante, sin temperatura. ¡A ganarle a los mBots!"); }
+    else { this.setNitro(false,true); this.log("🏁 MODO CARRERA OFF — modo normal (tope 70%, NITRO con Y)"); }
+    this.updateNitro();
   },
   updateTemp(now){
     const wrap=$("rbTempWrap"), fill=$("rbTempFill"), pct=$("rbTempPct"), sec=$("rbOverSec");
@@ -4477,11 +4495,14 @@ const Robot = {
   },
   updateNitro(){
     const pill=$("rbSpPill"), title=$("rbSpTitle"), car=$("rbCar"), btn=$("rbEmerg");
-    if(pill){ pill.textContent=this.nitro?"🔥 NITRO":"VELOCIDAD"; pill.style.borderColor=this.nitro?"#ff8c1a":""; pill.style.color=this.nitro?"#ff8c1a":""; }
-    if(title){ title.textContent=this.nitro?"🔥 NITRO":"VELOCIDAD"; title.style.color=this.nitro?"#ff8c1a":""; title.style.textShadow=this.nitro?"0 0 14px rgba(255,140,26,.7)":""; }
-    if(car){ car.style.filter=this.nitro?"drop-shadow(0 0 12px #ff8c1a)":""; }
-    if(btn){ btn.classList.toggle("on",this.nitro); }
-    this._lastSpd=-1;                                    // fuerza redibujar el anillo con color nitro
+    const rc="#39ff14";   // verde carrera
+    const label=this.race?"🏁 CARRERA":(this.nitro?"🔥 NITRO":"VELOCIDAD");
+    const col=this.race?rc:(this.nitro?"#ff8c1a":"");
+    if(pill){ pill.textContent=label; pill.style.borderColor=col; pill.style.color=col; }
+    if(title){ title.textContent=label; title.style.color=col; title.style.textShadow=this.race?"0 0 14px rgba(57,255,20,.7)":(this.nitro?"0 0 14px rgba(255,140,26,.7)":""); }
+    if(car){ car.style.filter=this.race?"drop-shadow(0 0 12px "+rc+")":(this.nitro?"drop-shadow(0 0 12px #ff8c1a)":""); }
+    if(btn){ btn.classList.toggle("on",this.nitro&&!this.race); btn.disabled=this.race; btn.style.opacity=this.race?".4":""; }
+    this._lastSpd=-1;                                    // fuerza redibujar el anillo con color nitro/carrera
   },
   updateBatt(pct,volts){
     const chip=$("rbBatt"); if(chip){ chip.textContent=(pct<15?"🪫":"🔋")+" "+pct+"%"; chip.className="rb-chip "+(pct>=30?"ok":"bad"); }
