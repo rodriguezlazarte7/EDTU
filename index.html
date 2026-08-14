@@ -171,6 +171,9 @@
   .bio-ret i:nth-child(2){top:0;right:0;border-left:none;border-bottom:none;border-top-right-radius:9px}
   .bio-ret i:nth-child(3){bottom:0;left:0;border-right:none;border-top:none;border-bottom-left-radius:9px}
   .bio-ret i:nth-child(4){bottom:0;right:0;border-left:none;border-top:none;border-bottom-right-radius:9px}
+  /* sin rostro a la vista: la mira y la banda se ponen ROJAS */
+  .bio-frame.noface .bio-ret i{border-color:#ff073a;filter:drop-shadow(0 0 7px #ff073a)}
+  .bio-frame.noface .bio-scanline{background:linear-gradient(to bottom,transparent,rgba(255,7,58,.30) 72%,#ff073a);box-shadow:0 3px 26px rgba(255,7,58,.85)}
   /* lecturas de datos en vivo a los costados */
   .bio-data{position:absolute;left:8px;top:8px;text-align:left;font-size:9px;line-height:1.75;display:none;pointer-events:none;white-space:pre;
     color:rgba(57,255,20,.95);text-shadow:0 0 7px rgba(57,255,20,.8)}
@@ -5368,7 +5371,7 @@ const Secret={
     $("bioFs").classList.add("show");
   },
   bioStop(){ if(this._stream){ try{ this._stream.getTracks().forEach(t=>t.stop()); }catch(e){} this._stream=null; } try{ $("bioVideo").srcObject=null; }catch(e){} },
-  bioClose(){ this.bioStop(); $("bioFrame").classList.remove("scanning","ok"); $("bioProg").style.display="none"; $("bioProgBar").style.width="0%"; $("bioDataL").textContent=""; $("bioDataR").textContent=""; $("bioFs").classList.remove("show"); },
+  bioClose(){ this.bioStop(); (this._ivs||[]).forEach(clearInterval); this._ivs=[]; $("bioFrame").classList.remove("scanning","ok","noface"); $("bioProg").style.display="none"; $("bioProgBar").style.width="0%"; $("bioDataL").textContent=""; $("bioDataR").textContent=""; $("bioFs").classList.remove("show"); },
   bioScan(){
     const md=navigator.mediaDevices;
     if(!md || !md.getUserMedia){ this.bioFail("SIN CÁMARA · ACCESO DENEGADO"); return; }
@@ -5376,28 +5379,59 @@ const Secret={
       this._stream=stream; $("bioVideo").srcObject=stream;
       $("bioStart").style.display="none"; $("bioFrame").classList.add("scanning");
       $("bioProg").style.display="block";
-      const t0=Date.now(), DUR=3000, msg=$("bioMsg"), HEX="0123456789ABCDEF";
-      let tick=0;
-      const iv=setInterval(()=>{
-        const p=Math.min(100,Math.round((Date.now()-t0)/DUR*100));
-        $("bioProgBar").style.width=p+"%";
-        msg.textContent="ESCANEANDO ROSTRO · "+p+"%";
+      const msg=$("bioMsg"), HEX="0123456789ABCDEF", video=$("bioVideo");
+      let p=0, tick=0; const t0=Date.now(); this._face=false;
+      // detector de rostro: el nativo del navegador si existe; si no, el casero (color de piel)
+      let fd=null; try{ if("FaceDetector" in window) fd=new FaceDetector({fastMode:true,maxDetectedFaces:1}); }catch(e){ fd=null; }
+      const cv=document.createElement("canvas");
+      const ivF=setInterval(async()=>{ if(!this._stream) return;
+        if(fd){ try{ const f=await fd.detect(video); this._face=!!(f&&f.length); return; }catch(e){} }
+        this._face=this.faceLike(video,cv);
+      },300);
+      const ivS=setInterval(()=>{
+        if(!$("bioFs").classList.contains("show")){ clearInterval(ivS); clearInterval(ivF); return; }
+        const frame=$("bioFrame");
+        if(this._face){ frame.classList.remove("noface"); p=Math.min(100,p+3.4); }   // SOLO avanza si hay un rostro
+        else frame.classList.add("noface");
+        const pi=Math.round(p);
+        $("bioProgBar").style.width=pi+"%";
+        msg.textContent = this._face ? "ESCANEANDO ROSTRO · "+pi+"%" : "🔍 BUSCANDO ROSTRO... PONTE FRENTE A LA CÁMARA";
         let hx=""; for(let i=0;i<6;i++) hx+=HEX[Math.floor(Math.random()*16)];
-        $("bioDataL").textContent="SCAN>> 0x"+hx+"\nPUNTOS "+(1200+Math.floor(Math.random()*8000))+"\nMALLA "+Math.min(100,p+Math.floor(Math.random()*5))+"%";
-        $("bioDataR").textContent="ID #25\nMATCH "+Math.min(99.9,p*0.93+Math.random()*4).toFixed(1)+"%\n30 FPS";
-        if(++tick%3===0) this.scanBeep(500+p*7);   // bips que suben de tono con el avance
+        $("bioDataL").textContent="SCAN>> 0x"+hx+"\nPUNTOS "+(this._face?1200+Math.floor(Math.random()*8000):0)+"\nMALLA "+Math.min(100,pi+Math.floor(Math.random()*5))+"%";
+        $("bioDataR").textContent="ID #25\nROSTROS "+(this._face?1:0)+"\nMATCH "+(this._face?Math.min(99.9,p*0.93+Math.random()*4).toFixed(1):"0.0")+"%";
+        if(this._face && ++tick%3===0) this.scanBeep(500+p*7);
         if(p>=100){
-          clearInterval(iv); $("bioFrame").classList.remove("scanning"); $("bioFrame").classList.add("ok");
+          clearInterval(ivS); clearInterval(ivF); frame.classList.remove("scanning","noface"); frame.classList.add("ok");
           this.okChime();
           msg.textContent="✔ IDENTIDAD CONFIRMADA · BIENVENIDO, DAVID";
           setTimeout(()=>{ this.bioClose();
             const ag=agents.find(a=>(a.name||"").trim().toLowerCase()==="david");   // 25062015 entra como David
             if(ag && !ag.blocked) accessGranted({type:"agent", id:ag.id}); else accessGranted({type:"admin"});
           },1000);
+          return;
+        }
+        if(Date.now()-t0>20000 && p<100){   // 20 seg y no completó: no hay rostro -> denegado
+          clearInterval(ivS); clearInterval(ivF);
+          this.bioStop(); frame.classList.remove("scanning","noface"); $("bioStart").style.display="block";
+          this.bioFail("NINGÚN ROSTRO DETECTADO · ACCESO DENEGADO");
         }
       },100);
+      this._ivs=[ivS,ivF];
     }).catch(()=>{ this.bioFail("CÁMARA RECHAZADA · ACCESO DENEGADO"); });
   },
+  // detector casero: cuenta píxeles color piel en la zona central (donde estaría la cara)
+  faceLike(video,cv){ try{
+    if(!video.videoWidth) return false;
+    const W=64,H=48; cv.width=W; cv.height=H;
+    const c=cv.getContext("2d",{willReadFrequently:true});
+    c.drawImage(video,0,0,W,H);
+    const d=c.getImageData(16,6,32,36).data;
+    let skin=0,tot=0;
+    for(let i=0;i<d.length;i+=4){ const r=d[i],g=d[i+1],b=d[i+2]; tot++;
+      const mx=Math.max(r,g,b),mn=Math.min(r,g,b);
+      if(r>60 && g>30 && b>15 && r>g && r>b && (mx-mn)>12 && (r-g)>8) skin++; }
+    return skin/tot>0.14;
+  }catch(e){ return false; } },
   scanBeep(f){ try{ const AC=window.AudioContext||window.webkitAudioContext; if(!AC) return;
     const ctx=this._ctx||(this._ctx=new AC()); if(ctx.state==="suspended") ctx.resume();
     const t=ctx.currentTime,o=ctx.createOscillator(),g=ctx.createGain();
