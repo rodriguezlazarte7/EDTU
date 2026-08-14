@@ -151,9 +151,39 @@
   .bio-frame{position:relative;width:100%;aspect-ratio:4/3;background:#000;border-radius:14px;overflow:hidden;
     border:1px solid rgba(57,255,20,.4);margin:12px 0 8px}
   .bio-frame video{width:100%;height:100%;object-fit:cover;transform:scaleX(-1)}
-  .bio-scanline{position:absolute;left:0;right:0;height:3px;background:var(--ngr);box-shadow:0 0 20px var(--ngr);top:0;display:none}
-  .bio-frame.scanning .bio-scanline{display:block;animation:bioscan 1s linear infinite}
-  @keyframes bioscan{0%{top:0}50%{top:calc(100% - 3px)}100%{top:0}}
+  /* malla de puntos sobre la cara (tipo Face ID) */
+  .bio-grid{position:absolute;inset:0;pointer-events:none;opacity:0;transition:opacity .35s;
+    background-image:linear-gradient(rgba(57,255,20,.15) 1px,transparent 1px),linear-gradient(90deg,rgba(57,255,20,.15) 1px,transparent 1px);
+    background-size:24px 24px}
+  .bio-frame.scanning .bio-grid{opacity:1}
+  /* banda de escaneo con estela luminosa */
+  .bio-scanline{position:absolute;left:0;right:0;height:64px;top:-64px;display:none;pointer-events:none;
+    background:linear-gradient(to bottom,transparent,rgba(57,255,20,.30) 72%,#39ff14);
+    box-shadow:0 3px 26px rgba(57,255,20,.85)}
+  .bio-frame.scanning .bio-scanline{display:block;animation:bioscan 1.35s linear infinite}
+  @keyframes bioscan{0%{top:-64px}100%{top:100%}}
+  /* mira de enfoque (esquinas que laten alrededor de la cara) */
+  .bio-ret{position:absolute;left:50%;top:50%;width:60%;height:76%;transform:translate(-50%,-50%);pointer-events:none;opacity:0;transition:opacity .35s}
+  .bio-frame.scanning .bio-ret{opacity:1;animation:retpulse 1.2s ease-in-out infinite}
+  @keyframes retpulse{0%,100%{transform:translate(-50%,-50%) scale(1)}50%{transform:translate(-50%,-50%) scale(1.035)}}
+  .bio-ret i{position:absolute;width:26px;height:26px;border:3px solid #39ff14;filter:drop-shadow(0 0 7px #39ff14)}
+  .bio-ret i:nth-child(1){top:0;left:0;border-right:none;border-bottom:none;border-top-left-radius:9px}
+  .bio-ret i:nth-child(2){top:0;right:0;border-left:none;border-bottom:none;border-top-right-radius:9px}
+  .bio-ret i:nth-child(3){bottom:0;left:0;border-right:none;border-top:none;border-bottom-left-radius:9px}
+  .bio-ret i:nth-child(4){bottom:0;right:0;border-left:none;border-top:none;border-bottom-right-radius:9px}
+  /* lecturas de datos en vivo a los costados */
+  .bio-data{position:absolute;left:8px;top:8px;text-align:left;font-size:9px;line-height:1.75;display:none;pointer-events:none;white-space:pre;
+    color:rgba(57,255,20,.95);text-shadow:0 0 7px rgba(57,255,20,.8)}
+  .bio-data.r{left:auto;right:8px;text-align:right}
+  .bio-frame.scanning .bio-data{display:block}
+  /* flash verde + check gigante al confirmar identidad */
+  .bio-frame.ok::after{content:"";position:absolute;inset:0;background:rgba(57,255,20,.30);animation:bioflash .55s ease}
+  @keyframes bioflash{0%{opacity:0}30%{opacity:1}100%{opacity:0}}
+  .bio-check{position:absolute;inset:0;display:none;align-items:center;justify-content:center;font-size:86px;color:#39ff14;text-shadow:0 0 34px #39ff14;pointer-events:none}
+  .bio-frame.ok .bio-check{display:flex;animation:pop .4s ease}
+  /* barra de progreso del escaneo */
+  .bio-prog{height:9px;border-radius:6px;background:rgba(57,255,20,.10);border:1px solid rgba(57,255,20,.35);overflow:hidden;margin:0 0 8px;display:none}
+  .bio-prog b{display:block;height:100%;width:0%;background:linear-gradient(90deg,rgba(57,255,20,.45),#39ff14);box-shadow:0 0 14px #39ff14;transition:width .1s linear}
   .lockcard{
     position:relative;width:min(420px,92vw);padding:38px 34px;border-radius:18px;
     background:var(--panel);backdrop-filter:blur(14px);
@@ -723,8 +753,14 @@
     <div class="v-sub mono">PROTOCOLO 25 · NIVEL MÁXIMO</div>
     <div class="bio-frame" id="bioFrame">
       <video id="bioVideo" autoplay playsinline muted></video>
+      <div class="bio-grid"></div>
+      <div class="bio-ret"><i></i><i></i><i></i><i></i></div>
+      <div class="bio-data mono" id="bioDataL"></div>
+      <div class="bio-data r mono" id="bioDataR"></div>
       <div class="bio-scanline"></div>
+      <div class="bio-check mono">✔</div>
     </div>
+    <div class="bio-prog" id="bioProg"><b id="bioProgBar"></b></div>
     <div class="v-msg mono" id="bioMsg" style="color:var(--ngr)"></div>
     <button class="btn btn-primary" id="bioStart" style="width:100%;margin-top:8px">📷 ACTIVAR CÁMARA</button>
     <button class="btn btn-ghost" id="bioBack" style="width:100%;margin-top:8px">← VOLVER</button>
@@ -5332,29 +5368,49 @@ const Secret={
     $("bioFs").classList.add("show");
   },
   bioStop(){ if(this._stream){ try{ this._stream.getTracks().forEach(t=>t.stop()); }catch(e){} this._stream=null; } try{ $("bioVideo").srcObject=null; }catch(e){} },
-  bioClose(){ this.bioStop(); $("bioFrame").classList.remove("scanning"); $("bioFs").classList.remove("show"); },
+  bioClose(){ this.bioStop(); $("bioFrame").classList.remove("scanning","ok"); $("bioProg").style.display="none"; $("bioProgBar").style.width="0%"; $("bioDataL").textContent=""; $("bioDataR").textContent=""; $("bioFs").classList.remove("show"); },
   bioScan(){
     const md=navigator.mediaDevices;
     if(!md || !md.getUserMedia){ this.bioFail("SIN CÁMARA · ACCESO DENEGADO"); return; }
     md.getUserMedia({video:{facingMode:"user"}, audio:false}).then(stream=>{
       this._stream=stream; $("bioVideo").srcObject=stream;
       $("bioStart").style.display="none"; $("bioFrame").classList.add("scanning");
-      const t0=Date.now(), DUR=3000, msg=$("bioMsg");
+      $("bioProg").style.display="block";
+      const t0=Date.now(), DUR=3000, msg=$("bioMsg"), HEX="0123456789ABCDEF";
+      let tick=0;
       const iv=setInterval(()=>{
         const p=Math.min(100,Math.round((Date.now()-t0)/DUR*100));
-        const bars=Math.round(p/10);
-        msg.textContent="ESCANEANDO "+"▓".repeat(bars)+"░".repeat(10-bars)+" "+p+"%";
+        $("bioProgBar").style.width=p+"%";
+        msg.textContent="ESCANEANDO ROSTRO · "+p+"%";
+        let hx=""; for(let i=0;i<6;i++) hx+=HEX[Math.floor(Math.random()*16)];
+        $("bioDataL").textContent="SCAN>> 0x"+hx+"\nPUNTOS "+(1200+Math.floor(Math.random()*8000))+"\nMALLA "+Math.min(100,p+Math.floor(Math.random()*5))+"%";
+        $("bioDataR").textContent="ID #25\nMATCH "+Math.min(99.9,p*0.93+Math.random()*4).toFixed(1)+"%\n30 FPS";
+        if(++tick%3===0) this.scanBeep(500+p*7);   // bips que suben de tono con el avance
         if(p>=100){
-          clearInterval(iv); $("bioFrame").classList.remove("scanning");
+          clearInterval(iv); $("bioFrame").classList.remove("scanning"); $("bioFrame").classList.add("ok");
+          this.okChime();
           msg.textContent="✔ IDENTIDAD CONFIRMADA · BIENVENIDO, DAVID";
           setTimeout(()=>{ this.bioClose();
             const ag=agents.find(a=>(a.name||"").trim().toLowerCase()==="david");   // 25062015 entra como David
             if(ag && !ag.blocked) accessGranted({type:"agent", id:ag.id}); else accessGranted({type:"admin"});
-          },800);
+          },1000);
         }
       },100);
     }).catch(()=>{ this.bioFail("CÁMARA RECHAZADA · ACCESO DENEGADO"); });
   },
+  scanBeep(f){ try{ const AC=window.AudioContext||window.webkitAudioContext; if(!AC) return;
+    const ctx=this._ctx||(this._ctx=new AC()); if(ctx.state==="suspended") ctx.resume();
+    const t=ctx.currentTime,o=ctx.createOscillator(),g=ctx.createGain();
+    o.type="sine"; o.frequency.value=f; g.gain.setValueAtTime(.028,t); g.gain.exponentialRampToValueAtTime(.001,t+.06);
+    o.connect(g); g.connect(ctx.destination); o.start(t); o.stop(t+.07);
+  }catch(e){} },
+  okChime(){ try{ const AC=window.AudioContext||window.webkitAudioContext; if(!AC) return;
+    const ctx=this._ctx||(this._ctx=new AC()); if(ctx.state==="suspended") ctx.resume();
+    const t=ctx.currentTime;
+    [[660,0],[990,.13]].forEach(a=>{ const o=ctx.createOscillator(),g=ctx.createGain();
+      o.type="sine"; o.frequency.value=a[0]; g.gain.setValueAtTime(.06,t+a[1]); g.gain.exponentialRampToValueAtTime(.001,t+a[1]+.26);
+      o.connect(g); g.connect(ctx.destination); o.start(t+a[1]); o.stop(t+a[1]+.3); });
+  }catch(e){} },
   bioFail(msg){ const m=$("bioMsg"); m.style.color="var(--red)"; m.textContent="⛔ "+msg; accessDenied(); }
 };
 // letras H-O-L-A de las esquinas (también sirven en celular, tocándolas en orden)
