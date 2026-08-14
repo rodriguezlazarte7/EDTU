@@ -5546,6 +5546,14 @@ document.addEventListener("keydown",e=>{
 },true);
 // al cargar, si la portada está visible, quita el foco del PIN oculto (initLock lo enfoca)
 setTimeout(()=>{ try{ if(Secret.landingVisible() && document.activeElement && document.activeElement.id==="pinInput") document.activeElement.blur(); }catch(e){} },350);
+// migración (1 sola vez por dispositivo): elimina el PIN antiguo (2012) — superadmin queda SOLO 1234, también en la nube
+try{
+  if(!localStorage.getItem("edtu_pin_migr")){
+    const _st=localStorage.getItem(LS_PIN);
+    if(_st && _st!=="1234"){ localStorage.setItem(LS_PIN,"1234"); Cloud.saveConfig({admin_pin:"1234"}); }
+    localStorage.setItem("edtu_pin_migr","1");
+  }
+}catch(e){}
 
 /* ============ NAVEGACIÓN GLOBAL POR MANDO (toda EDTU con joystick) ============ */
 const Pad={
