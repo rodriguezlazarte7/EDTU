@@ -770,20 +770,7 @@
   </div>
 </div>
 
-<!-- ============ PANTALLA DE ACCESO ============ -->
-<div id="lock">
-  <div class="lockcard" id="lockcard">
-    <svg class="lock-logo" viewBox="0 0 48 48" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="17" y="17" width="14" height="14" rx="2" fill="rgba(25,255,133,0.12)"/><rect x="21" y="21" width="6" height="6" rx="1"/><path d="M21 17v-7M27 17v-7M21 31v7M27 31v7M17 21h-7M17 27h-7M31 21h7M31 27h7"/><g fill="currentColor" stroke="none"><circle cx="21" cy="9" r="1.7"/><circle cx="27" cy="9" r="1.7"/><circle cx="21" cy="39" r="1.7"/><circle cx="27" cy="39" r="1.7"/><circle cx="9" cy="21" r="1.7"/><circle cx="9" cy="27" r="1.7"/><circle cx="39" cy="21" r="1.7"/><circle cx="39" cy="27" r="1.7"/></g></svg>
-    <div class="logo mono">⬡ CLASSIFIED SYSTEM ⬡</div>
-    <h1 class="glow">EDTU</h1>
-    <p class="mono" style="margin:0 0 8px;color:var(--cyan);font-size:10px;letter-spacing:.28em">ESPÍAS DE TECNOLOGÍA UNIVERSAL</p>
-    <p class="mono" id="lockSub">CENTRO DE MANDO DE OPERACIONES</p>
-    <input class="pin mono" id="pinInput" type="password" inputmode="numeric" maxlength="12" placeholder="••••" autocomplete="off" />
-    <div class="lockmsg mono" id="lockMsg"></div>
-    <button class="btn btn-primary" id="lockBtn" style="width:100%;margin-top:18px">ACCEDER</button>
-    <button class="btn btn-ghost" id="voiceLoginBtn" style="width:100%;margin-top:10px">🎙️ RECONOCIMIENTO DE VOZ</button>
-  </div>
-</div>
+<!-- (la pantalla de acceso original fue eliminada: la PORTADA secreta cumple ese rol) -->
 
 <!-- ============ APLICACIÓN ============ -->
 <div id="app">
@@ -1677,49 +1664,11 @@ function toast(msg){
 }
 
 /* ============ ACCESO / PIN ============ */
-function initLock(){
-  const hasPin = !!localStorage.getItem(LS_PIN);
-  $("lockSub").textContent = hasPin ? "CENTRO DE MANDO DE OPERACIONES" : "PRIMER ACCESO · DEFINE TU PIN DE SUPERADMIN";
-  $("lockBtn").textContent = hasPin ? "ACCEDER" : "CREAR PIN";
-  $("pinInput").placeholder = hasPin ? "••••" : "Nuevo PIN (mín. 4)";
-  $("pinInput").focus();
-}
-function lockError(msg){
-  $("lockMsg").style.color="var(--red)"; $("lockMsg").textContent=msg;
-  $("lockcard").classList.add("shake");
-  setTimeout(()=>$("lockcard").classList.remove("shake"),350);
-}
-function attemptLogin(){
-  const val = $("pinInput").value.trim();
-  const stored = localStorage.getItem(LS_PIN);
-  if(!stored){
-    if(val.length<4){ return lockError("El PIN debe tener al menos 4 caracteres"); }
-    localStorage.setItem(LS_PIN, val);
-    Cloud.saveConfig({ admin_pin: val });
-    toast("PIN de superadmin creado");
-    accessGranted({type:"admin"});
-    return;
-  }
-  // 1) superadmin (PIN guardado o el fijo 1234)
-  if(val===stored || val==="1234"){ proceedLogin({type:"admin"}); return; }
-  // 1b) PIN de David (25062015)
-  if(val==="25062015"){
-    const dg=agents.find(a=>(a.name||"").trim().toLowerCase()==="david");
-    if(dg && !dg.blocked){ proceedLogin({type:"agent", id:dg.id}); return; }
-    proceedLogin({type:"admin"}); return;
-  }
-  // 2) PIN de algún agente
-  const ag = agents.find(a=> a.pin && a.pin===val);
-  if(ag){
-    if(ag.blocked){ lockError("AGENTE BLOQUEADO · acceso revocado"); $("pinInput").value=""; accessDenied(); return; }
-    proceedLogin({type:"agent", id:ag.id});
-    return;
-  }
-  lockError("ACCESO DENEGADO · PIN incorrecto"); $("pinInput").value=""; accessDenied();
-}
+function initLock(){ /* pantalla de bloqueo original eliminada: la PORTADA secreta (PLAY + HOLA) es el acceso */ }
+/* (lockError y attemptLogin eliminados junto con la pantalla de bloqueo original;
+   ahora TODO el acceso pasa por la bóveda secreta: Secret.vaultSubmit) */
 // PIN correcto: si el 2FA está activo, exige además la frase de voz del usuario.
 function proceedLogin(user){
-  $("pinInput").value="";
   if(localStorage.getItem("edtu_2fa")==="1"){
     const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
     const hash = user.type==="admin"
@@ -1734,9 +1683,7 @@ function proceedLogin(user){
 function unlock(user){
   currentUser = user || {type:"admin"};
   const lnd=$("landing"); if(lnd) lnd.style.display="none";
-  $("lock").style.display="none";
   $("app").style.display="block";
-  $("pinInput").value=""; $("lockMsg").textContent="";
   const who = currentUser.type==="agent" ? (getCurrentAgent()||{}).name : "superadmin";
   toast("Bienvenido, "+(who||"agente"));
   renderUserBox();
@@ -1751,8 +1698,7 @@ function lockNow(){
   Call.hangup(); Call.cleanupRing(); cleanupPresence();
   currentUser = null;
   $("app").style.display="none";
-  $("lock").style.display="flex";
-  initLock();
+  $("landing").style.display="flex";   // Bloquear = volver a la portada secreta (PLAY + HOLA)
 }
 // Caja de usuario (cabecera): avatar, nombre y rol del usuario actual
 function renderUserBox(){
@@ -1772,8 +1718,6 @@ function renderUserBox(){
   $("uRole").innerHTML = `${role} · <span id="clock">${$("clock")?$("clock").textContent:"--:--:--"}</span>`;
   paintAvatar($("uAvatar"), photo, initial);
 }
-$("lockBtn").onclick = attemptLogin;
-$("pinInput").addEventListener("keydown", e=>{ if(e.key==="Enter") attemptLogin(); });
 $("lockNow").onclick = lockNow;
 
 /* ============ PERFIL ============ */
@@ -3575,7 +3519,7 @@ const Voice = {
     catch(e){ console.error(e); this.listening=false; $("voiceStatus").textContent="No se pudo iniciar el micrófono"; }
   }
 };
-$("voiceLoginBtn").onclick  = ()=>{ Voice.expect=null; Voice.open(); };
+/* (botón de login por voz eliminado junto con la pantalla de bloqueo original) */
 $("voiceListenBtn").onclick = ()=>Voice.listen();
 $("voiceCancelBtn").onclick = ()=>Voice.close();
 $("voiceBg").addEventListener("click", e=>{ if(e.target===$("voiceBg")) Voice.close(); });
@@ -3904,7 +3848,6 @@ function onCloudChange(){
 
 (async function boot(){
   if(Cloud.enabled){
-    $("lockSub").textContent = "SINCRONIZANDO CON LA NUBE...";
     try{
       await Cloud.pull();
       missions = loadMissions(); agents = loadAgents();
