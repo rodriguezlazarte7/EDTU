@@ -788,8 +788,14 @@
     <h2 class="mono">🧬 RECONOCIMIENTO FACIAL</h2>
     <div class="v-sub mono">SUBE HASTA 8 FOTOS TUYAS · SONRIENDO Y SERIO · DISTINTAS LUCES Y ÁNGULOS</div>
     <div class="face-grid" id="faceGrid"></div>
+    <div id="faceCamWrap" style="display:none">
+      <div class="bio-frame" style="margin:12px 0 8px"><video id="faceCam" autoplay playsinline muted></video></div>
+      <button class="btn btn-primary" id="faceSnap" style="width:100%">📸 CAPTURAR (0/8)</button>
+      <button class="btn btn-ghost" id="faceCamStop" style="width:100%;margin-top:8px">✔ LISTO</button>
+    </div>
     <input type="file" id="faceFiles" accept="image/*" multiple style="display:none">
-    <button class="btn btn-primary" id="facePick" style="width:100%;margin-top:12px">📷 ELEGIR FOTOS</button>
+    <button class="btn btn-primary" id="faceTake" style="width:100%;margin-top:12px">📸 TOMAR FOTOS AQUÍ</button>
+    <button class="btn btn-ghost" id="facePick" style="width:100%;margin-top:8px">🖼️ O ELEGIR FOTOS GUARDADAS</button>
     <button class="btn btn-primary" id="faceSave" style="width:100%;margin-top:8px" disabled>💾 GUARDAR PLANTILLAS (0)</button>
     <button class="btn btn-ghost" id="faceWipe" style="width:100%;margin-top:8px">🧹 BORRAR ROSTRO GUARDADO</button>
     <div class="v-msg mono" id="faceMsg" style="color:var(--ngr)"></div>
@@ -5626,7 +5632,35 @@ const FaceReg={
     $("faceFs").classList.add("show");
     Secret.loadFaceApi().then(ok=>{ $("faceMsg").textContent = ok ? "IA LISTA · elige tus fotos (sonriendo Y serio)" : "⚠ IA no disponible (revisa internet)"; });
   },
-  close(){ $("faceFs").classList.remove("show"); this.items.forEach(i=>{ try{ URL.revokeObjectURL(i.url); }catch(e){} }); this.items=[]; },
+  close(){ this.camStop(); $("faceFs").classList.remove("show"); this.items.forEach(i=>{ try{ URL.revokeObjectURL(i.url); }catch(e){} }); this.items=[]; },
+  // ---- cámara integrada: tomar las fotos directo desde la app
+  async camOpen(){
+    const ok=await Secret.loadFaceApi();
+    if(!ok || !window.faceapi){ $("faceMsg").textContent="⚠ IA no disponible"; return; }
+    try{
+      this._cam=await navigator.mediaDevices.getUserMedia({video:{facingMode:"user"},audio:false});
+      $("faceCam").srcObject=this._cam;
+      $("faceCamWrap").style.display="block"; $("faceTake").style.display="none"; $("facePick").style.display="none";
+      this.updSnap(); $("faceMsg").textContent="😎 Pósate: sonriendo, serio, de ladito...";
+    }catch(e){ $("faceMsg").textContent="⛔ Cámara rechazada"; }
+  },
+  camStop(){ if(this._cam){ try{ this._cam.getTracks().forEach(t=>t.stop()); }catch(e){} this._cam=null; } try{ $("faceCam").srcObject=null; }catch(e){} $("faceCamWrap").style.display="none"; $("faceTake").style.display="block"; $("facePick").style.display="block"; },
+  updSnap(){ const b=$("faceSnap"); if(b){ b.textContent="📸 CAPTURAR ("+this.items.length+"/8)"; b.disabled=this.items.length>=8; } },
+  async snap(){
+    if(this.items.length>=8){ $("faceMsg").textContent="Ya tienes 8 fotos — pulsa GUARDAR"; return; }
+    const v=$("faceCam"); if(!v || !v.videoWidth) return;
+    const cv=document.createElement("canvas"); cv.width=v.videoWidth; cv.height=v.videoHeight;
+    cv.getContext("2d").drawImage(v,0,0);
+    let desc=null;
+    try{
+      const det=await faceapi.detectSingleFace(cv,new faceapi.TinyFaceDetectorOptions({inputSize:416,scoreThreshold:.4})).withFaceLandmarks(true).withFaceDescriptor();
+      if(det) desc=det.descriptor;
+    }catch(e){}
+    this.items.push({url:cv.toDataURL("image/jpeg",0.7), ok:!!desc, desc});
+    this.render(); this.updSnap();
+    try{ Secret.scanBeep(desc?950:280); }catch(e){}
+    $("faceMsg").textContent = desc ? "✅ Foto "+this.items.length+" lista — cambia de pose y captura otra" : "❌ No se vio un rostro — acércate y repite";
+  },
   render(){
     const g=$("faceGrid"); g.innerHTML="";
     for(let i=0;i<8;i++){
@@ -5670,6 +5704,9 @@ const FaceReg={
 };
 $("faceBtn").onclick=()=>FaceReg.open();
 $("faceClose").onclick=()=>FaceReg.close();
+$("faceTake").onclick=()=>FaceReg.camOpen();
+$("faceSnap").onclick=()=>FaceReg.snap();
+$("faceCamStop").onclick=()=>FaceReg.camStop();
 $("facePick").onclick=()=>$("faceFiles").click();
 $("faceFiles").onchange=e=>{ FaceReg.addFiles(e.target.files); e.target.value=""; };
 $("faceSave").onclick=()=>FaceReg.save();
