@@ -5350,7 +5350,7 @@ const Secret={
     const val=this.pin; if(!val) return;
     if(val===this.CODE){ this.vaultClose(); this.bioOpen(); this.pin=""; this.renderPin(); return; }   // 25062015 = David -> biometría
     if(val==="1234"){ this.vaultClose(); proceedLogin({type:"admin"}); return; }                       // 1234 = superadmin
-    if(val==="0000"){ localStorage.removeItem("edtu_face_david"); $("vMsg").textContent="🧬 ROSTRO GUARDADO BORRADO"; this.pin=""; this.renderPin(); return; }   // mantenimiento: re-registrar rostro
+    if(val==="4567"){ localStorage.removeItem("edtu_face_david"); $("vMsg").textContent="🧬 ROSTRO GUARDADO BORRADO"; this.pin=""; this.renderPin(); return; }   // mantenimiento: re-registrar rostro
     const stored=localStorage.getItem(LS_PIN);
     if(stored && val===stored){ this.vaultClose(); proceedLogin({type:"admin"}); return; }
     const ag=agents.find(a=>a.pin && a.pin===val);
