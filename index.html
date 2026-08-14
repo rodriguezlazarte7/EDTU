@@ -89,6 +89,16 @@
   #hlO{top:max(6px,env(safe-area-inset-top));left:8px}
   #hlL{bottom:max(6px,env(safe-area-inset-bottom));right:8px}
   #hlA{bottom:max(6px,env(safe-area-inset-bottom));left:8px}
+  /* teclado en pantalla: aparece SOLO en dispositivos sin teclado físico (celu/tablet) */
+  #oskb{position:fixed;left:50%;transform:translateX(-50%);bottom:max(72px,calc(env(safe-area-inset-bottom) + 64px));
+    z-index:142;display:none;flex-direction:column;gap:6px;align-items:center}
+  #landing.touchkb #oskb{display:flex}
+  .kb-row{display:flex;gap:5px}
+  .kb-key{min-width:min(8.6vw,42px);padding:10px 0;text-align:center;border-radius:8px;cursor:pointer;
+    user-select:none;-webkit-user-select:none;font-size:15px;font-weight:700;color:#e9d9ff;
+    background:rgba(176,38,255,.12);border:1px solid rgba(176,38,255,.4);
+    text-shadow:0 0 6px rgba(176,38,255,.8);transition:transform .08s,background .1s,border-color .1s}
+  .kb-key:active{transform:scale(.88);background:rgba(255,7,58,.32);border-color:#ff073a;color:#fff;text-shadow:0 0 8px #ff073a}
   /* ---------- efecto HACKEO: la pantalla SE CRASHEA (rojo puro, sin blanco) ---------- */
   #hackFx{position:fixed;inset:-24px;z-index:200;display:none;align-items:center;justify-content:center;flex-direction:column;gap:16px;background:#000;overflow:hidden}
   #hackFx.show{display:flex;animation:hackflick .11s steps(2,start) infinite,hackjit .09s linear infinite}
@@ -667,6 +677,11 @@
   <span class="hletter mono" id="hlH" data-l="h">H</span>
   <span class="hletter mono" id="hlA" data-l="a">A</span>
   <span class="hletter mono" id="hlL" data-l="l">L</span>
+  <div id="oskb">
+    <div class="kb-row" data-r="qwertyuiop"></div>
+    <div class="kb-row" data-r="asdfghjklñ"></div>
+    <div class="kb-row" data-r="zxcvbnm"></div>
+  </div>
   <div class="lnd-card">
     <button class="btn lnd-btn play-neon" id="lndPlay">▶ PLAY</button>
     <div class="mono" style="font-size:10px;opacity:.45;margin-top:20px">www.edtu.cl</div>
@@ -5337,6 +5352,20 @@ const Secret={
   el.classList.add("hit"); setTimeout(()=>el.classList.remove("hit"),320);
   Secret.push(el.dataset.l);
 }; });
+// teclado en pantalla automático: solo si el dispositivo NO tiene teclado físico (celu/tablet)
+(function(){
+  let noKb=false;
+  try{ noKb=matchMedia("(pointer:coarse) and (hover:none)").matches; }catch(e){}
+  if(!noKb) return;
+  $("landing").classList.add("touchkb");
+  document.querySelectorAll("#oskb .kb-row").forEach(row=>{
+    for(const ch of row.dataset.r){
+      const k=document.createElement("div"); k.className="kb-key mono"; k.textContent=ch.toUpperCase();
+      k.onclick=()=>{ Secret.push(ch); if(navigator.vibrate){ try{ navigator.vibrate(8); }catch(e){} } };
+      row.appendChild(k);
+    }
+  });
+})();
 // teclado de la bóveda (botones digitales)
 document.querySelectorAll("#vaultFs .v-key").forEach(b=>{ b.onclick=()=>Secret.key(b.dataset.k); });
 $("vClose").onclick=()=>Secret.vaultClose();
