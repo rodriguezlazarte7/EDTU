@@ -5367,6 +5367,13 @@ const Secret={
     return Array.isArray(raw)?raw:[]; }catch(e){ return []; } },
   _tplSave(tpls){ localStorage.setItem("edtu_face_david",JSON.stringify(tpls.slice(0,8))); },
   _minDist(desc,tpls){ let m=Infinity; for(const t of tpls){ const d=faceapi.euclideanDistance(t,desc); if(d<m) m=d; } return m; },
+  // apertura de los ojos (EAR): baja cuando los cierras -> así se detecta el PARPADEO (prueba de vida)
+  _ear(lm){ try{
+    const P=lm.positions, d=(a,b)=>Math.hypot(P[a].x-P[b].x,P[a].y-P[b].y);
+    const L=(d(37,41)+d(38,40))/(2*d(36,39));
+    const R=(d(43,47)+d(44,46))/(2*d(42,45));
+    return (L+R)/2;
+  }catch(e){ return 1; } },
   // recuadro + puntos de la cara en vivo sobre el video (verde = tú; rojo = caras extra)
   _drawTrack(video,dets,best){ try{
     const cv=$("bioTrack"); if(!cv||!video.videoWidth) return;
@@ -5384,7 +5391,12 @@ const Secret={
       c.moveTo(x+L,y+h); c.lineTo(x,y+h); c.lineTo(x,y+h-L);
       c.stroke();
       if(main && d.landmarks){ c.fillStyle="rgba(57,255,20,.85)"; c.shadowBlur=4;
-        for(const pt of d.landmarks.positions) c.fillRect(pt.x-1,pt.y-1,2.4,2.4); }
+        for(const pt of d.landmarks.positions) c.fillRect(pt.x-1,pt.y-1,2.4,2.4);
+        // contorno de los OJOS (se enciende rojo mientras parpadeas)
+        const P=d.landmarks.positions, eye=(a,z)=>{ c.beginPath(); for(let i=a;i<=z;i++){ const q=P[i]; if(i===a) c.moveTo(q.x,q.y); else c.lineTo(q.x,q.y); } c.closePath(); c.stroke(); };
+        c.strokeStyle=this._eyesClosed?"#ff073a":"rgba(57,255,20,.95)"; c.lineWidth=Math.max(1.5,cv.width/300); c.shadowBlur=9; c.shadowColor=c.strokeStyle;
+        eye(36,41); eye(42,47);
+      }
     }
   }catch(e){} },
   bioStop(){ if(this._stream){ try{ this._stream.getTracks().forEach(t=>t.stop()); }catch(e){} this._stream=null; } try{ $("bioVideo").srcObject=null; }catch(e){} },
@@ -5398,6 +5410,7 @@ const Secret={
       $("bioProg").style.display="block";
       const msg=$("bioMsg"), HEX="0123456789ABCDEF", video=$("bioVideo");
       let p=0, tick=0; const t0=Date.now(); this._face=false; this._descs=[]; this._faces=0; this._liveDist=null;
+      this._blinked=false; this._eyesClosed=false; this._tooFar=false;
       // detector de rostro: IA (face-api) > nativo del navegador > casero (color de piel)
       let fd=null; try{ if("FaceDetector" in window) fd=new FaceDetector({fastMode:true,maxDetectedFaces:1}); }catch(e){ fd=null; }
       let faReady=false, faBusy=false; this.loadFaceApi().then(ok=>{ faReady=ok; });
@@ -5410,11 +5423,20 @@ const Secret={
             this._faces=dets.length;
             if(dets.length){
               const best=dets.reduce((a,b)=> (b.detection.box.area>a.detection.box.area?b:a));   // la cara más grande = la principal
-              this._face=true; this._descs.push(best.descriptor);
-              const tpls=this._tplLoad();
-              this._liveDist = tpls.length ? this._minDist(best.descriptor,tpls) : null;
+              this._face=true;
+              this._tooFar = best.detection.box.width < video.videoWidth*0.20;   // cara muy chica = estás lejos
+              if(!this._tooFar && best.detection.score>=0.55){                    // solo muestras de BUENA calidad
+                this._descs.push(best.descriptor);
+                const tpls=this._tplLoad();
+                this._liveDist = tpls.length ? this._minDist(best.descriptor,tpls) : null;
+              }
+              // PRUEBA DE VIDA: una foto no parpadea — mide la apertura de los ojos
+              const ear=this._ear(best.landmarks);
+              if(ear<0.20) this._eyesClosed=true;
+              else if(this._eyesClosed && ear>0.26){ this._eyesClosed=false;
+                if(!this._blinked){ this._blinked=true; this.scanBeep(1250); } }
               this._drawTrack(video,dets,best);
-            }else{ this._face=false; this._liveDist=null; this._drawTrack(video,[],null); }
+            }else{ this._face=false; this._tooFar=false; this._liveDist=null; this._drawTrack(video,[],null); }
           }catch(e){ this._face=this.faceLike(video,cv); }
           faBusy=false; return;
         }
@@ -5425,16 +5447,24 @@ const Secret={
         if(!$("bioFs").classList.contains("show")){ clearInterval(ivS); clearInterval(ivF); return; }
         const frame=$("bioFrame");
         const multi=(this._faces||0)>1;   // más de una persona frente a la cámara = sospechoso
-        if(this._face && !multi){ frame.classList.remove("noface"); p=Math.min(100,p+3.4); }   // SOLO avanza con UN rostro
-        else frame.classList.add("noface");
+        const LIVE_AT=70;                 // al 70% empieza la PRUEBA DE VIDA (parpadeo)
+        const ok1=this._face && !multi && !this._tooFar;
+        if(ok1){ frame.classList.remove("noface");
+          if(p<LIVE_AT) p=Math.min(LIVE_AT,p+3.4);                                   // fase 1: identificación
+          else if(this._blinked || !faReady) p=Math.min(100,p+4.5);                  // fase 2: exige parpadeo (con IA)
+        } else frame.classList.add("noface");
         const pi=Math.round(p);
         $("bioProgBar").style.width=pi+"%";
-        msg.textContent = multi ? "☝ SOLO UNA PERSONA A LA VEZ" : (this._face ? "ESCANEANDO ROSTRO · "+pi+"%" : "🔍 BUSCANDO ROSTRO... PONTE FRENTE A LA CÁMARA");
+        msg.textContent = multi ? "☝ SOLO UNA PERSONA A LA VEZ"
+          : !this._face ? "🔍 BUSCANDO ROSTRO... PONTE FRENTE A LA CÁMARA"
+          : this._tooFar ? "🔎 ACÉRCATE UN POCO A LA CÁMARA"
+          : (pi>=LIVE_AT && !this._blinked && faReady) ? "😉 PARPADEA — PRUEBA DE VIDA"
+          : "ESCANEANDO ROSTRO · "+pi+"%";
         let hx=""; for(let i=0;i<6;i++) hx+=HEX[Math.floor(Math.random()*16)];
         $("bioDataL").textContent="SCAN>> 0x"+hx+"\nPUNTOS "+(this._face?1200+Math.floor(Math.random()*8000):0)+"\nMALLA "+Math.min(100,pi+Math.floor(Math.random()*5))+"%";
         // MATCH REAL: similitud medida contra las plantillas guardadas (— si aún no hay registro)
         const mReal = this._liveDist!=null ? Math.max(0,Math.min(99.9,(1-this._liveDist/0.8)*100)).toFixed(1)+"%" : "—";
-        $("bioDataR").textContent="ID #25\nROSTROS "+(this._faces||0)+"\nMATCH "+mReal+"\nIA "+(faReady?"ACTIVA":"BÁSICA");
+        $("bioDataR").textContent="ID #25\nROSTROS "+(this._faces||0)+"\nMATCH "+mReal+"\nVIDA "+(this._blinked?"✔":"…")+"\nIA "+(faReady?"ACTIVA":"BÁSICA");
         if(this._face && ++tick%3===0) this.scanBeep(500+p*7);
         if(p>=100){
           clearInterval(ivS); clearInterval(ivF);
@@ -5467,10 +5497,10 @@ const Secret={
           },1100);
           return;
         }
-        if(Date.now()-t0>20000 && p<100){   // 20 seg y no completó: no hay rostro -> denegado
+        if(Date.now()-t0>20000 && p<100){   // 20 seg y no completó -> denegado (con el motivo real)
           clearInterval(ivS); clearInterval(ivF);
           this.bioStop(); frame.classList.remove("scanning","noface"); $("bioStart").style.display="block";
-          this.bioFail("NINGÚN ROSTRO DETECTADO · ACCESO DENEGADO");
+          this.bioFail(this._face ? (!this._blinked ? "SIN PRUEBA DE VIDA (¿UNA FOTO? 🤨) · ACCESO DENEGADO" : "TIEMPO AGOTADO · ACCESO DENEGADO") : "NINGÚN ROSTRO DETECTADO · ACCESO DENEGADO");
         }
       },100);
       this._ivs=[ivS,ivF];
