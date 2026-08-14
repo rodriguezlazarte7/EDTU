@@ -189,6 +189,16 @@
   /* barra de progreso del escaneo */
   .bio-prog{height:9px;border-radius:6px;background:rgba(57,255,20,.10);border:1px solid rgba(57,255,20,.35);overflow:hidden;margin:0 0 8px;display:none}
   .bio-prog b{display:block;height:100%;width:0%;background:linear-gradient(90deg,rgba(57,255,20,.45),#39ff14);box-shadow:0 0 14px #39ff14;transition:width .1s linear}
+  /* ---------- ENTRENADOR DE ROSTRO (botón 🧬 Rostro: subir 8 fotos) ---------- */
+  #faceFs{position:fixed;inset:0;z-index:207;display:none;align-items:center;justify-content:center;background:rgba(0,3,1,.94)}
+  #faceFs.show{display:flex}
+  .facecard{width:min(440px,94vw);max-height:92vh;overflow:auto;padding:24px 22px;border-radius:22px;text-align:center;position:relative;
+    background:linear-gradient(160deg,#04140a,#010a04);border:2px solid rgba(57,255,20,.5);box-shadow:0 0 38px rgba(57,255,20,.28);animation:pop .4s ease}
+  .facecard h2{color:var(--ngr);letter-spacing:.2em;font-size:15px;text-shadow:0 0 10px var(--ngr);margin:0 0 4px}
+  .face-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-top:12px}
+  .face-slot{position:relative;aspect-ratio:1;border-radius:10px;border:1px dashed rgba(57,255,20,.4);background:rgba(0,0,0,.4);overflow:hidden;display:flex;align-items:center;justify-content:center;color:rgba(57,255,20,.5);font-size:20px}
+  .face-slot img{width:100%;height:100%;object-fit:cover}
+  .face-slot .fs-st{position:absolute;right:3px;bottom:3px;font-size:14px;text-shadow:0 0 6px #000}
   .lockcard{
     position:relative;width:min(420px,92vw);padding:38px 34px;border-radius:18px;
     background:var(--panel);backdrop-filter:blur(14px);
@@ -772,6 +782,19 @@
     <button class="btn btn-ghost" id="bioBack" style="width:100%;margin-top:8px">← VOLVER</button>
   </div>
 </div>
+<div id="faceFs">
+  <div class="facecard">
+    <button class="v-close" id="faceClose" title="Cerrar">✕</button>
+    <h2 class="mono">🧬 RECONOCIMIENTO FACIAL</h2>
+    <div class="v-sub mono">SUBE HASTA 8 FOTOS TUYAS · SONRIENDO Y SERIO · DISTINTAS LUCES Y ÁNGULOS</div>
+    <div class="face-grid" id="faceGrid"></div>
+    <input type="file" id="faceFiles" accept="image/*" multiple style="display:none">
+    <button class="btn btn-primary" id="facePick" style="width:100%;margin-top:12px">📷 ELEGIR FOTOS</button>
+    <button class="btn btn-primary" id="faceSave" style="width:100%;margin-top:8px" disabled>💾 GUARDAR PLANTILLAS (0)</button>
+    <button class="btn btn-ghost" id="faceWipe" style="width:100%;margin-top:8px">🧹 BORRAR ROSTRO GUARDADO</button>
+    <div class="v-msg mono" id="faceMsg" style="color:var(--ngr)"></div>
+  </div>
+</div>
 
 <!-- (la pantalla de acceso original fue eliminada: la PORTADA secreta cumple ese rol) -->
 
@@ -802,6 +825,7 @@
       <button class="btn btn-ghost btn-sm" id="clfBtn" style="color:var(--red);border-color:rgba(255,59,91,0.5)">🔴 Clasificadas</button>
       <button class="btn btn-ghost btn-sm" id="gameBtn">🎮 Juego</button>
       <button class="btn btn-ghost btn-sm" id="robotBtn" style="color:#2fd0ff;border-color:rgba(47,208,255,0.5)">🚗 Robot</button>
+      <button class="btn btn-ghost btn-sm" id="faceBtn" style="color:#39ff14;border-color:rgba(57,255,20,0.5)">🧬 Rostro</button>
       <button class="btn btn-ghost btn-sm" id="convBtn" style="color:#c58cff;border-color:rgba(197,140,255,0.5)">🎵 Conversor</button>
       <button class="btn btn-ghost btn-sm" id="settingsBtn">⚙️ Ajustes</button>
       <button class="btn btn-ghost btn-sm" id="exportBtn">⤓ Exportar</button>
@@ -5414,7 +5438,7 @@ const Secret={
       this._smiled=false; this._smiling=false; this._sawNeutral=false; this._tooFar=false;
       // detector de rostro: IA (face-api) > nativo del navegador > casero (color de piel)
       let fd=null; try{ if("FaceDetector" in window) fd=new FaceDetector({fastMode:true,maxDetectedFaces:1}); }catch(e){ fd=null; }
-      let faReady=false, faBusy=false; this.loadFaceApi().then(ok=>{ faReady=ok; });
+      let faReady=false, faBusy=false, faFailed=false; this.loadFaceApi().then(ok=>{ faReady=ok; faFailed=!ok; });
       const cv=document.createElement("canvas");
       const ivF=setInterval(async()=>{ if(!this._stream) return;
         if(faReady && window.faceapi){   // IA: detecta TODAS las caras y mide la huella de la principal
@@ -5449,14 +5473,20 @@ const Secret={
         const frame=$("bioFrame");
         const multi=(this._faces||0)>1;   // más de una persona frente a la cámara = sospechoso
         const LIVE_AT=70;                 // al 70% empieza la PRUEBA DE VIDA (parpadeo)
-        const ok1=this._face && !multi && !this._tooFar;
+        if(faFailed){   // sin IA no hay verificación: NADIE entra (el "modo básico" fue eliminado)
+          clearInterval(ivS); clearInterval(ivF);
+          this.bioStop(); frame.classList.remove("scanning","noface"); $("bioStart").style.display="block";
+          this.bioFail("IA NO DISPONIBLE · SIN VERIFICACIÓN NO HAY ACCESO"); return;
+        }
+        const ok1=faReady && this._face && !multi && !this._tooFar;   // la IA debe estar LISTA para avanzar
         if(ok1){ frame.classList.remove("noface");
           if(p<LIVE_AT) p=Math.min(LIVE_AT,p+3.4);                                   // fase 1: identificación
-          else if(this._smiled || !faReady) p=Math.min(100,p+4.5);                   // fase 2: exige SONRISA (con IA)
+          else if(this._smiled) p=Math.min(100,p+4.5);                               // fase 2: exige SONRISA real
         } else frame.classList.add("noface");
         const pi=Math.round(p);
         $("bioProgBar").style.width=pi+"%";
-        msg.textContent = multi ? "☝ SOLO UNA PERSONA A LA VEZ"
+        msg.textContent = !faReady ? "🧠 CARGANDO IA DE RECONOCIMIENTO..."
+          : multi ? "☝ SOLO UNA PERSONA A LA VEZ"
           : !this._face ? "🔍 BUSCANDO ROSTRO... PONTE FRENTE A LA CÁMARA"
           : this._tooFar ? "🔎 ACÉRCATE UN POCO A LA CÁMARA"
           : (pi>=LIVE_AT && !this._smiled && faReady) ? (this._sawNeutral ? "😁 SONRÍE — PRUEBA DE VIDA" : "😐 CARA SERIA PRIMERO...")
@@ -5481,10 +5511,10 @@ const Secret={
             }else{
               const avg=this._avgDesc(this._descs);
               const dist=this._minDist(avg,tpls);
-              if(dist>=0.52) pass=false;   // cara distinta a las guardadas
-              else if(dist>0.25 && tpls.length<8){ tpls.push(Array.from(avg)); this._tplSave(tpls); }   // sigue APRENDIENDO tu cara (nueva luz/ángulo)
+              if(dist>=0.50) pass=false;   // cara distinta a las guardadas (más estricto que antes)
+              else if(dist>0.25 && dist<0.40 && tpls.length<8){ tpls.push(Array.from(avg)); this._tplSave(tpls); }   // solo aprende caras MUY parecidas (anti-contaminación)
             }
-          }
+          }else pass=false;   // sin huellas medidas por la IA, NO se entra
           if(!pass){
             this.bioStop(); frame.classList.remove("scanning","noface"); $("bioStart").style.display="block";
             this.bioFail("ROSTRO NO RECONOCIDO · NO ERES DAVID"); return;
@@ -5498,10 +5528,10 @@ const Secret={
           },1100);
           return;
         }
-        if(Date.now()-t0>20000 && p<100){   // 20 seg y no completó -> denegado (con el motivo real)
+        if(Date.now()-t0>25000 && p<100){   // 25 seg y no completó -> denegado (con el motivo real)
           clearInterval(ivS); clearInterval(ivF);
           this.bioStop(); frame.classList.remove("scanning","noface"); $("bioStart").style.display="block";
-          this.bioFail(this._face ? (!this._smiled ? "SIN SONRISA REAL (¿UNA FOTO? 🤨) · ACCESO DENEGADO" : "TIEMPO AGOTADO · ACCESO DENEGADO") : "NINGÚN ROSTRO DETECTADO · ACCESO DENEGADO");
+          this.bioFail(!faReady ? "LA IA NO CARGÓ · REVISA INTERNET" : this._face ? (!this._smiled ? "SIN SONRISA REAL (¿UNA FOTO? 🤨) · ACCESO DENEGADO" : "TIEMPO AGOTADO · ACCESO DENEGADO") : "NINGÚN ROSTRO DETECTADO · ACCESO DENEGADO");
         }
       },100);
       this._ivs=[ivS,ivF];
@@ -5581,6 +5611,70 @@ document.addEventListener("keydown",e=>{
   }
   if(k.length===1 && /[a-z]/.test(k)) Secret.push(k);
 },true);
+/* ============ 🧬 ENTRENADOR DE ROSTRO (subir hasta 8 fotos: sonriendo y serio) ============ */
+const FaceReg={
+  items:[],   // {url, ok, desc}
+  open(){
+    // solo David (o superadmin) puede re-entrenar el rostro
+    let isDavid=false;
+    if(currentUser){
+      if(currentUser.type==="admin") isDavid=true;
+      else{ const ag=(typeof getCurrentAgent==="function"?getCurrentAgent():null)||{}; isDavid=((ag.name||"").trim().toLowerCase()==="david"); }
+    }
+    if(!isDavid){ toast("⛔ Solo David puede entrenar el rostro"); return; }
+    this.items=[]; this.render(); $("faceMsg").textContent="🧠 Cargando IA...";
+    $("faceFs").classList.add("show");
+    Secret.loadFaceApi().then(ok=>{ $("faceMsg").textContent = ok ? "IA LISTA · elige tus fotos (sonriendo Y serio)" : "⚠ IA no disponible (revisa internet)"; });
+  },
+  close(){ $("faceFs").classList.remove("show"); this.items.forEach(i=>{ try{ URL.revokeObjectURL(i.url); }catch(e){} }); this.items=[]; },
+  render(){
+    const g=$("faceGrid"); g.innerHTML="";
+    for(let i=0;i<8;i++){
+      const it=this.items[i], d=document.createElement("div"); d.className="face-slot";
+      if(it){ const im=document.createElement("img"); im.src=it.url; d.appendChild(im);
+        const st=document.createElement("span"); st.className="fs-st"; st.textContent=it.ok?"✅":"❌"; d.appendChild(st); }
+      else d.textContent="+";
+      g.appendChild(d);
+    }
+    const okN=this.items.filter(i=>i.ok).length;
+    const sv=$("faceSave"); sv.disabled=!okN; sv.textContent="💾 GUARDAR PLANTILLAS ("+okN+")";
+  },
+  async addFiles(files){
+    const ok=await Secret.loadFaceApi();
+    if(!ok || !window.faceapi){ $("faceMsg").textContent="⚠ IA no disponible"; return; }
+    $("faceMsg").textContent="🔬 Analizando fotos...";
+    for(const f of Array.from(files)){
+      if(this.items.length>=8) break;
+      const url=URL.createObjectURL(f);
+      const img=new Image();
+      await new Promise(res=>{ img.onload=res; img.onerror=res; img.src=url; });
+      let desc=null;
+      try{
+        const det=await faceapi.detectSingleFace(img,new faceapi.TinyFaceDetectorOptions({inputSize:416,scoreThreshold:.4})).withFaceLandmarks(true).withFaceDescriptor();
+        if(det) desc=det.descriptor;
+      }catch(e){}
+      this.items.push({url, ok:!!desc, desc});
+      this.render();
+    }
+    const okN=this.items.filter(i=>i.ok).length;
+    $("faceMsg").textContent = okN ? "✔ "+okN+" foto(s) con rostro · pulsa GUARDAR" : "❌ No se detectó rostro en las fotos (usa fotos claras de frente)";
+  },
+  save(){
+    const descs=this.items.filter(i=>i.ok).map(i=>Array.from(i.desc));
+    if(!descs.length) return;
+    Secret._tplSave(descs);   // REEMPLAZA las plantillas (borra cualquier cara contaminada)
+    toast("🧬 Rostro entrenado con "+descs.length+" fotos");
+    $("faceMsg").textContent="💾 GUARDADO · "+descs.length+" plantillas activas (reemplazó las anteriores)";
+  },
+  wipe(){ localStorage.removeItem("edtu_face_david"); toast("🧹 Rostro guardado borrado"); $("faceMsg").textContent="🧹 BORRADO · entrena de nuevo con fotos o con el escaneo"; }
+};
+$("faceBtn").onclick=()=>FaceReg.open();
+$("faceClose").onclick=()=>FaceReg.close();
+$("facePick").onclick=()=>$("faceFiles").click();
+$("faceFiles").onchange=e=>{ FaceReg.addFiles(e.target.files); e.target.value=""; };
+$("faceSave").onclick=()=>FaceReg.save();
+$("faceWipe").onclick=()=>FaceReg.wipe();
+
 // al cargar, si la portada está visible, quita el foco del PIN oculto (initLock lo enfoca)
 setTimeout(()=>{ try{ if(Secret.landingVisible() && document.activeElement && document.activeElement.id==="pinInput") document.activeElement.blur(); }catch(e){} },350);
 // migración (1 sola vez por dispositivo): elimina el PIN antiguo (2012) — superadmin queda SOLO 1234, también en la nube
