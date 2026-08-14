@@ -151,6 +151,8 @@
   .bio-frame{position:relative;width:100%;aspect-ratio:4/3;background:#000;border-radius:14px;overflow:hidden;
     border:1px solid rgba(57,255,20,.4);margin:12px 0 8px}
   .bio-frame video{width:100%;height:100%;object-fit:cover;transform:scaleX(-1)}
+  /* canvas de seguimiento: dibuja el recuadro y los puntos de la cara EN VIVO */
+  .bio-frame canvas{position:absolute;inset:0;width:100%;height:100%;transform:scaleX(-1);pointer-events:none}
   /* malla de puntos sobre la cara (tipo Face ID) */
   .bio-grid{position:absolute;inset:0;pointer-events:none;opacity:0;transition:opacity .35s;
     background-image:linear-gradient(rgba(57,255,20,.15) 1px,transparent 1px),linear-gradient(90deg,rgba(57,255,20,.15) 1px,transparent 1px);
@@ -756,6 +758,7 @@
     <div class="v-sub mono">PROTOCOLO 25 · NIVEL MÁXIMO</div>
     <div class="bio-frame" id="bioFrame">
       <video id="bioVideo" autoplay playsinline muted></video>
+      <canvas id="bioTrack"></canvas>
       <div class="bio-grid"></div>
       <div class="bio-ret"><i></i><i></i><i></i><i></i></div>
       <div class="bio-data mono" id="bioDataL"></div>
@@ -5358,8 +5361,34 @@ const Secret={
   _avgDesc(list){ const n=list.length, L=list[0].length, out=new Float32Array(L);
     for(const d of list){ for(let i=0;i<L;i++) out[i]+=d[i]; }
     for(let i=0;i<L;i++) out[i]/=n; return out; },
+  // plantillas del rostro de David: VARIAS huellas (ángulos/luces distintas), y sigue aprendiendo
+  _tplLoad(){ try{ const raw=JSON.parse(localStorage.getItem("edtu_face_david")||"null"); if(!raw) return [];
+    if(Array.isArray(raw) && typeof raw[0]==="number") return [raw];   // formato antiguo: 1 sola huella
+    return Array.isArray(raw)?raw:[]; }catch(e){ return []; } },
+  _tplSave(tpls){ localStorage.setItem("edtu_face_david",JSON.stringify(tpls.slice(0,8))); },
+  _minDist(desc,tpls){ let m=Infinity; for(const t of tpls){ const d=faceapi.euclideanDistance(t,desc); if(d<m) m=d; } return m; },
+  // recuadro + puntos de la cara en vivo sobre el video (verde = tú; rojo = caras extra)
+  _drawTrack(video,dets,best){ try{
+    const cv=$("bioTrack"); if(!cv||!video.videoWidth) return;
+    if(cv.width!==video.videoWidth||cv.height!==video.videoHeight){ cv.width=video.videoWidth; cv.height=video.videoHeight; }
+    const c=cv.getContext("2d"); c.clearRect(0,0,cv.width,cv.height);
+    for(const d of dets){
+      const b=d.detection.box, main=(d===best);
+      c.strokeStyle=main?"#39ff14":"#ff073a"; c.lineWidth=Math.max(2,cv.width/160);
+      c.shadowColor=c.strokeStyle; c.shadowBlur=12;
+      const L=Math.min(b.width,b.height)*0.25, x=b.x,y=b.y,w=b.width,h=b.height;
+      c.beginPath();
+      c.moveTo(x,y+L); c.lineTo(x,y); c.lineTo(x+L,y);
+      c.moveTo(x+w-L,y); c.lineTo(x+w,y); c.lineTo(x+w,y+L);
+      c.moveTo(x+w,y+h-L); c.lineTo(x+w,y+h); c.lineTo(x+w-L,y+h);
+      c.moveTo(x+L,y+h); c.lineTo(x,y+h); c.lineTo(x,y+h-L);
+      c.stroke();
+      if(main && d.landmarks){ c.fillStyle="rgba(57,255,20,.85)"; c.shadowBlur=4;
+        for(const pt of d.landmarks.positions) c.fillRect(pt.x-1,pt.y-1,2.4,2.4); }
+    }
+  }catch(e){} },
   bioStop(){ if(this._stream){ try{ this._stream.getTracks().forEach(t=>t.stop()); }catch(e){} this._stream=null; } try{ $("bioVideo").srcObject=null; }catch(e){} },
-  bioClose(){ this.bioStop(); (this._ivs||[]).forEach(clearInterval); this._ivs=[]; $("bioFrame").classList.remove("scanning","ok","noface"); $("bioProg").style.display="none"; $("bioProgBar").style.width="0%"; $("bioDataL").textContent=""; $("bioDataR").textContent=""; $("bioFs").classList.remove("show"); },
+  bioClose(){ this.bioStop(); (this._ivs||[]).forEach(clearInterval); this._ivs=[]; this._faces=0; this._liveDist=null; $("bioFrame").classList.remove("scanning","ok","noface"); $("bioProg").style.display="none"; $("bioProgBar").style.width="0%"; $("bioDataL").textContent=""; $("bioDataR").textContent=""; const tc=$("bioTrack"); if(tc){ try{ tc.getContext("2d").clearRect(0,0,tc.width,tc.height); }catch(e){} } $("bioFs").classList.remove("show"); },
   bioScan(){
     const md=navigator.mediaDevices;
     if(!md || !md.getUserMedia){ this.bioFail("SIN CÁMARA · ACCESO DENEGADO"); return; }
@@ -5368,48 +5397,61 @@ const Secret={
       $("bioStart").style.display="none"; $("bioFrame").classList.add("scanning");
       $("bioProg").style.display="block";
       const msg=$("bioMsg"), HEX="0123456789ABCDEF", video=$("bioVideo");
-      let p=0, tick=0; const t0=Date.now(); this._face=false; this._descs=[];
+      let p=0, tick=0; const t0=Date.now(); this._face=false; this._descs=[]; this._faces=0; this._liveDist=null;
       // detector de rostro: IA (face-api) > nativo del navegador > casero (color de piel)
       let fd=null; try{ if("FaceDetector" in window) fd=new FaceDetector({fastMode:true,maxDetectedFaces:1}); }catch(e){ fd=null; }
       let faReady=false, faBusy=false; this.loadFaceApi().then(ok=>{ faReady=ok; });
       const cv=document.createElement("canvas");
       const ivF=setInterval(async()=>{ if(!this._stream) return;
-        if(faReady && window.faceapi){   // IA: detecta la cara Y mide su "huella" de 128 puntos
+        if(faReady && window.faceapi){   // IA: detecta TODAS las caras y mide la huella de la principal
           if(faBusy) return; faBusy=true;
           try{
-            const det=await faceapi.detectSingleFace(video,new faceapi.TinyFaceDetectorOptions({inputSize:224,scoreThreshold:.4})).withFaceLandmarks(true).withFaceDescriptor();
-            this._face=!!det; if(det) this._descs.push(det.descriptor);
+            const dets=await faceapi.detectAllFaces(video,new faceapi.TinyFaceDetectorOptions({inputSize:320,scoreThreshold:.4})).withFaceLandmarks(true).withFaceDescriptors();
+            this._faces=dets.length;
+            if(dets.length){
+              const best=dets.reduce((a,b)=> (b.detection.box.area>a.detection.box.area?b:a));   // la cara más grande = la principal
+              this._face=true; this._descs.push(best.descriptor);
+              const tpls=this._tplLoad();
+              this._liveDist = tpls.length ? this._minDist(best.descriptor,tpls) : null;
+              this._drawTrack(video,dets,best);
+            }else{ this._face=false; this._liveDist=null; this._drawTrack(video,[],null); }
           }catch(e){ this._face=this.faceLike(video,cv); }
           faBusy=false; return;
         }
-        if(fd){ try{ const f=await fd.detect(video); this._face=!!(f&&f.length); return; }catch(e){} }
-        this._face=this.faceLike(video,cv);
+        if(fd){ try{ const f=await fd.detect(video); this._face=!!(f&&f.length); this._faces=f?f.length:0; return; }catch(e){} }
+        this._face=this.faceLike(video,cv); this._faces=this._face?1:0;
       },450);
       const ivS=setInterval(()=>{
         if(!$("bioFs").classList.contains("show")){ clearInterval(ivS); clearInterval(ivF); return; }
         const frame=$("bioFrame");
-        if(this._face){ frame.classList.remove("noface"); p=Math.min(100,p+3.4); }   // SOLO avanza si hay un rostro
+        const multi=(this._faces||0)>1;   // más de una persona frente a la cámara = sospechoso
+        if(this._face && !multi){ frame.classList.remove("noface"); p=Math.min(100,p+3.4); }   // SOLO avanza con UN rostro
         else frame.classList.add("noface");
         const pi=Math.round(p);
         $("bioProgBar").style.width=pi+"%";
-        msg.textContent = this._face ? "ESCANEANDO ROSTRO · "+pi+"%" : "🔍 BUSCANDO ROSTRO... PONTE FRENTE A LA CÁMARA";
+        msg.textContent = multi ? "☝ SOLO UNA PERSONA A LA VEZ" : (this._face ? "ESCANEANDO ROSTRO · "+pi+"%" : "🔍 BUSCANDO ROSTRO... PONTE FRENTE A LA CÁMARA");
         let hx=""; for(let i=0;i<6;i++) hx+=HEX[Math.floor(Math.random()*16)];
         $("bioDataL").textContent="SCAN>> 0x"+hx+"\nPUNTOS "+(this._face?1200+Math.floor(Math.random()*8000):0)+"\nMALLA "+Math.min(100,pi+Math.floor(Math.random()*5))+"%";
-        $("bioDataR").textContent="ID #25\nROSTROS "+(this._face?1:0)+"\nMATCH "+(this._face?Math.min(99.9,p*0.93+Math.random()*4).toFixed(1):"0.0")+"%\nIA "+(faReady?"ACTIVA":"BÁSICA");
+        // MATCH REAL: similitud medida contra las plantillas guardadas (— si aún no hay registro)
+        const mReal = this._liveDist!=null ? Math.max(0,Math.min(99.9,(1-this._liveDist/0.8)*100)).toFixed(1)+"%" : "—";
+        $("bioDataR").textContent="ID #25\nROSTROS "+(this._faces||0)+"\nMATCH "+mReal+"\nIA "+(faReady?"ACTIVA":"BÁSICA");
         if(this._face && ++tick%3===0) this.scanBeep(500+p*7);
         if(p>=100){
           clearInterval(ivS); clearInterval(ivF);
           // RECONOCIMIENTO: compara la huella medida con la de David guardada
           let okMsg="✔ IDENTIDAD CONFIRMADA · BIENVENIDO, DAVID", pass=true;
           if(this._descs.length && window.faceapi){
-            const avg=this._avgDesc(this._descs);
-            const saved=JSON.parse(localStorage.getItem("edtu_face_david")||"null");
-            if(!saved){   // primera vez: memoriza el rostro de David en este dispositivo
-              localStorage.setItem("edtu_face_david",JSON.stringify(Array.from(avg)));
-              okMsg="🆕 ROSTRO DE DAVID REGISTRADO · BIENVENIDO";
+            const tpls=this._tplLoad();
+            if(!tpls.length){
+              // PRIMER REGISTRO: guarda hasta 5 muestras distintas del escaneo (ángulos/gestos diferentes)
+              const n=this._descs.length, pick=[...new Set([0,Math.floor(n/4),Math.floor(n/2),Math.floor(3*n/4),n-1])];
+              this._tplSave(pick.map(i=>Array.from(this._descs[i])));
+              okMsg="🆕 ROSTRO DE DAVID REGISTRADO ("+pick.length+" ángulos) · BIENVENIDO";
             }else{
-              const dist=faceapi.euclideanDistance(saved,avg);
-              if(dist>=0.55) pass=false;   // cara distinta a la guardada
+              const avg=this._avgDesc(this._descs);
+              const dist=this._minDist(avg,tpls);
+              if(dist>=0.52) pass=false;   // cara distinta a las guardadas
+              else if(dist>0.25 && tpls.length<8){ tpls.push(Array.from(avg)); this._tplSave(tpls); }   // sigue APRENDIENDO tu cara (nueva luz/ángulo)
             }
           }
           if(!pass){
