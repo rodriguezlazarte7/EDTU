@@ -26,6 +26,8 @@
     --txt:#d7e6ff;
     --muted:#6f81a8;
     --grid:rgba(25,255,133,0.06);
+    --npu:#b026ff;   /* morado NEON (portada) */
+    --ngr:#39ff14;   /* verde NEON (portada) */
   }
   *{box-sizing:border-box;margin:0;padding:0}
   html,body{height:100%}
@@ -59,10 +61,74 @@
     background:#000000;
   }
   #landing{position:fixed;inset:0;z-index:140;display:flex;align-items:center;justify-content:center;text-align:center;
-    background:radial-gradient(circle at 50% 20%,#062617,#01060a 70%)}
+    background:radial-gradient(circle at 50% 20%,#20063a,#050011 70%)}
   #landing .lnd-card{display:flex;flex-direction:column;align-items:center;padding:34px 30px;max-width:92vw}
-  #landing .lnd-logo{font-size:12px;letter-spacing:.35em;color:var(--cyan);opacity:.8;margin-bottom:6px}
+  #landing .lnd-logo{font-size:12px;letter-spacing:.35em;color:var(--npu);text-shadow:0 0 10px var(--npu);opacity:.9;margin-bottom:6px}
   #landing .lnd-btn{width:min(340px,86vw);font-size:17px;padding:15px 20px;margin-top:12px}
+  /* botón PLAY con pulso gamer continuo (morado <-> verde neón) */
+  .play-neon{
+    font-family:"Consolas","SFMono-Regular",ui-monospace,monospace;
+    font-size:24px !important;font-weight:900;letter-spacing:.35em;text-indent:.35em;
+    color:#fff;background:linear-gradient(90deg,rgba(176,38,255,.16),rgba(57,255,20,.16));
+    border:2px solid var(--npu);border-radius:14px;cursor:pointer;
+    animation:playPulse 1.6s ease-in-out infinite;
+  }
+  @keyframes playPulse{
+    0%,100%{box-shadow:0 0 12px var(--npu),0 0 34px rgba(176,38,255,.55),inset 0 0 14px rgba(176,38,255,.25);border-color:var(--npu);text-shadow:0 0 10px var(--npu);transform:scale(1)}
+    50%{box-shadow:0 0 14px var(--ngr),0 0 40px rgba(57,255,20,.5),inset 0 0 16px rgba(57,255,20,.22);border-color:var(--ngr);text-shadow:0 0 12px var(--ngr);transform:scale(1.045)}
+  }
+  /* ---------- ACCESO SECRETO: letras H·O·L·A en las esquinas ---------- */
+  .hletter{position:fixed;z-index:141;font-size:clamp(26px,4.5vw,40px);font-weight:900;line-height:1;
+    color:rgba(176,38,255,.45);text-shadow:0 0 12px rgba(176,38,255,.6);
+    padding:16px 20px;cursor:pointer;user-select:none;-webkit-user-select:none;
+    transition:color .25s,text-shadow .25s,transform .15s;animation:hlbreath 3.4s ease-in-out infinite}
+  .hletter:hover{color:var(--ngr);text-shadow:0 0 16px var(--ngr)}
+  .hletter.hit{color:var(--ngr);text-shadow:0 0 20px var(--ngr);transform:scale(1.3)}
+  @keyframes hlbreath{0%,100%{opacity:.5}50%{opacity:.95}}
+  #hlH{top:max(6px,env(safe-area-inset-top));right:8px}
+  #hlO{top:max(6px,env(safe-area-inset-top));left:8px}
+  #hlL{bottom:max(6px,env(safe-area-inset-bottom));right:8px}
+  #hlA{bottom:max(6px,env(safe-area-inset-bottom));left:8px}
+  /* ---------- efecto HACKEO (pantalla parpadea) ---------- */
+  #hackFx{position:fixed;inset:0;z-index:200;display:none;align-items:center;justify-content:center;flex-direction:column;gap:16px;background:#000;overflow:hidden}
+  #hackFx.show{display:flex;animation:hackflick .12s steps(2,start) infinite}
+  @keyframes hackflick{0%{background:#12002a;filter:none}50%{background:#001f08;filter:invert(1) hue-rotate(90deg)}}
+  #hackFx .hk-title{font-size:clamp(26px,6vw,54px);font-weight:900;letter-spacing:.16em;color:var(--ngr);text-shadow:0 0 18px var(--ngr)}
+  #hackFx .hk-code{font-size:11px;color:rgba(176,38,255,.85);white-space:pre;text-align:center;max-width:92vw;line-height:1.55;overflow:hidden}
+  /* ---------- BÓVEDA digital (caja fuerte) ---------- */
+  #vaultFs{position:fixed;inset:0;z-index:205;display:none;align-items:center;justify-content:center;background:rgba(2,0,8,.94)}
+  #vaultFs.show{display:flex}
+  .vault{position:relative;width:min(360px,94vw);padding:26px 22px 20px;border-radius:22px;text-align:center;
+    background:linear-gradient(160deg,#2a040c,#0c0103);
+    border:2px solid rgba(255,7,58,.65);
+    box-shadow:0 0 42px rgba(255,7,58,.45),inset 0 0 30px rgba(255,7,58,.10);animation:pop .4s ease}
+  .vault h2{color:#ff073a;letter-spacing:.28em;font-size:15px;text-shadow:0 0 12px #ff073a,0 0 26px rgba(255,7,58,.7);margin:0 0 4px}
+  .vault .v-sub{color:rgba(255,96,120,.95);font-size:10px;letter-spacing:.22em;margin-bottom:14px}
+  .v-display{font-size:28px;letter-spacing:.4em;text-indent:.4em;color:#ff2447;background:rgba(0,0,0,.6);
+    border:1px solid rgba(255,7,58,.5);border-radius:12px;padding:13px 6px;min-height:56px;margin-bottom:14px;
+    text-shadow:0 0 10px #ff073a;overflow:hidden;white-space:nowrap}
+  .v-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:10px}
+  .v-key{font-size:20px;font-weight:800;padding:14px 0;border-radius:12px;cursor:pointer;
+    background:rgba(255,7,58,.10);border:1px solid rgba(255,7,58,.5);color:#ffd9de;
+    text-shadow:0 0 7px rgba(255,7,58,.9);transition:transform .08s,background .12s}
+  .v-key:active{transform:scale(.93);background:rgba(255,7,58,.28)}
+  .v-key.ok{color:#ff073a;border-color:#ff073a;box-shadow:0 0 14px rgba(255,7,58,.55),inset 0 0 10px rgba(255,7,58,.25)}
+  .v-key.del{color:#fff;background:rgba(255,7,58,.22);border-color:rgba(255,7,58,.7)}
+  .v-close{position:absolute;top:8px;right:12px;background:none;border:none;color:var(--muted);font-size:18px;cursor:pointer}
+  .v-msg{min-height:16px;font-size:11px;letter-spacing:.14em;margin-top:10px;color:var(--red)}
+  /* ---------- VERIFICACIÓN BIOMÉTRICA (cámara + escaneo) ---------- */
+  #bioFs{position:fixed;inset:0;z-index:206;display:none;align-items:center;justify-content:center;background:rgba(0,3,1,.96)}
+  #bioFs.show{display:flex}
+  .bio{width:min(410px,94vw);padding:24px 22px;border-radius:22px;text-align:center;
+    background:linear-gradient(160deg,#04140a,#010a04);
+    border:2px solid rgba(57,255,20,.5);box-shadow:0 0 38px rgba(57,255,20,.28);animation:pop .4s ease}
+  .bio h2{color:var(--ngr);letter-spacing:.2em;font-size:15px;text-shadow:0 0 10px var(--ngr);margin:0 0 4px}
+  .bio-frame{position:relative;width:100%;aspect-ratio:4/3;background:#000;border-radius:14px;overflow:hidden;
+    border:1px solid rgba(57,255,20,.4);margin:12px 0 8px}
+  .bio-frame video{width:100%;height:100%;object-fit:cover;transform:scaleX(-1)}
+  .bio-scanline{position:absolute;left:0;right:0;height:3px;background:var(--ngr);box-shadow:0 0 20px var(--ngr);top:0;display:none}
+  .bio-frame.scanning .bio-scanline{display:block;animation:bioscan 1s linear infinite}
+  @keyframes bioscan{0%{top:0}50%{top:calc(100% - 3px)}100%{top:0}}
   .lockcard{
     position:relative;width:min(420px,92vw);padding:38px 34px;border-radius:18px;
     background:var(--panel);backdrop-filter:blur(14px);
@@ -580,15 +646,60 @@
 </head>
 <body>
 
-<!-- ============ PORTADA (elige: jugar o login) ============ -->
+<!-- ============ PORTADA (PLAY público · login SECRETO: escribe HOLA) ============ -->
 <div id="landing">
+  <span class="hletter mono" id="hlO" data-l="o">O</span>
+  <span class="hletter mono" id="hlH" data-l="h">H</span>
+  <span class="hletter mono" id="hlA" data-l="a">A</span>
+  <span class="hletter mono" id="hlL" data-l="l">L</span>
   <div class="lnd-card">
     <div class="lnd-logo mono">⬡ EDTU ⬡</div>
-    <h1 class="glow" style="margin:0;font-size:clamp(40px,9vw,72px);letter-spacing:.08em">EDTU</h1>
-    <p class="mono" style="margin:2px 0 22px;color:var(--cyan);font-size:11px;letter-spacing:.28em">JUGAR · CREAR · EXPLORAR</p>
-    <button class="btn btn-primary lnd-btn" id="lndPlay">🎮 JUGAR SWARM</button>
-    <button class="btn btn-ghost lnd-btn" id="lndLogin">🔒 INICIAR SESIÓN</button>
+    <h1 class="glow" style="margin:0;font-size:clamp(40px,9vw,72px);letter-spacing:.08em;color:var(--npu)">EDTU</h1>
+    <p class="mono" style="margin:2px 0 22px;color:var(--ngr);text-shadow:0 0 8px var(--ngr);font-size:11px;letter-spacing:.28em">JUGAR · CREAR · EXPLORAR</p>
+    <button class="btn lnd-btn play-neon" id="lndPlay">▶ PLAY</button>
     <div class="mono" style="font-size:10px;opacity:.45;margin-top:20px">www.edtu.cl</div>
+  </div>
+</div>
+
+<!-- ============ ACCESO SECRETO: hackeo -> bóveda -> biometría ============ -->
+<div id="hackFx">
+  <div class="hk-title mono" id="hkTitle">&gt;_ INTRUSIÓN</div>
+  <div class="hk-code mono" id="hkCode"></div>
+</div>
+<div id="vaultFs">
+  <div class="vault" id="vaultCard">
+    <button class="v-close" id="vClose" title="Cerrar">✕</button>
+    <h2 class="mono">⬡ BÓVEDA EDTU ⬡</h2>
+    <div class="v-sub mono">ACCESO RESTRINGIDO · SOLO AGENTES</div>
+    <div class="v-display mono" id="vDisplay">– – – –</div>
+    <div class="v-grid">
+      <button class="v-key mono" data-k="1">1</button>
+      <button class="v-key mono" data-k="2">2</button>
+      <button class="v-key mono" data-k="3">3</button>
+      <button class="v-key mono" data-k="4">4</button>
+      <button class="v-key mono" data-k="5">5</button>
+      <button class="v-key mono" data-k="6">6</button>
+      <button class="v-key mono" data-k="7">7</button>
+      <button class="v-key mono" data-k="8">8</button>
+      <button class="v-key mono" data-k="9">9</button>
+      <button class="v-key del mono" data-k="C">C</button>
+      <button class="v-key mono" data-k="0">0</button>
+      <button class="v-key ok mono" data-k="OK">✔</button>
+    </div>
+    <div class="v-msg mono" id="vMsg"></div>
+  </div>
+</div>
+<div id="bioFs">
+  <div class="bio">
+    <h2 class="mono">🧬 VERIFICACIÓN BIOMÉTRICA</h2>
+    <div class="v-sub mono">PROTOCOLO 25 · NIVEL MÁXIMO</div>
+    <div class="bio-frame" id="bioFrame">
+      <video id="bioVideo" autoplay playsinline muted></video>
+      <div class="bio-scanline"></div>
+    </div>
+    <div class="v-msg mono" id="bioMsg" style="color:var(--ngr)"></div>
+    <button class="btn btn-primary" id="bioStart" style="width:100%;margin-top:8px">📷 ACTIVAR CÁMARA</button>
+    <button class="btn btn-ghost" id="bioBack" style="width:100%;margin-top:8px">← VOLVER</button>
   </div>
 </div>
 
@@ -5098,9 +5209,132 @@ document.querySelectorAll("#monOverlay .gc-opt").forEach(b=>{ b.onclick=()=>{
   if(b.dataset.mmus!=null){ MonMusic.on=(b.dataset.mmus==="1"); if(!MonMusic.on) MonMusic.stop(); }
   if(b.dataset.mskin) Monster.cfg.skin=b.dataset.mskin;
 }; });
-// Portada: elegir jugar (público) o iniciar sesión
+// Portada: solo PLAY a la vista — el login está ESCONDIDO (escribe "hola" o toca H-O-L-A)
 $("lndPlay").onclick=()=>{ $("landing").style.display="none"; Monster._fromLanding=true; Monster.open(); };
-$("lndLogin").onclick=()=>{ $("landing").style.display="none"; try{ Voice.expect=null; Voice.open(); }catch(e){ const pi=$("pinInput"); if(pi) setTimeout(()=>pi.focus(),60); } };   // el login pide reconocimiento de voz
+
+/* ============ ACCESO SECRETO: "hola" -> hackeo -> bóveda -> biometría ============ */
+const Secret={
+  buf:"", pin:"", CODE:"25062015", _busy:false, _stream:null, _ctx:null,
+  landingVisible(){ const l=$("landing"); return l && l.style.display!=="none" && getComputedStyle(l).display!=="none"; },
+  // ---- detector de la palabra secreta (teclado o tocando las letras de las esquinas)
+  push(ch){ this.buf=(this.buf+ch).slice(-8); if(this.buf.endsWith("hola")){ this.buf=""; this.trigger(); } },
+  // ---- sonido glitch de "hackeo" (WebAudio)
+  hackSound(){ try{ const AC=window.AudioContext||window.webkitAudioContext; if(!AC) return;
+    const ctx=this._ctx||(this._ctx=new AC()); if(ctx.state==="suspended") ctx.resume();
+    const t=ctx.currentTime;
+    for(let i=0;i<13;i++){ const o=ctx.createOscillator(),g=ctx.createGain();
+      o.type="square"; o.frequency.value=180+Math.random()*1900;
+      g.gain.setValueAtTime(.055,t+i*.13); g.gain.exponentialRampToValueAtTime(.001,t+i*.13+.1);
+      o.connect(g); g.connect(ctx.destination); o.start(t+i*.13); o.stop(t+i*.13+.11); }
+  }catch(e){} },
+  // ---- pantalla parpadeando tipo hackeo y luego se abre la bóveda
+  trigger(){
+    if(this._busy) return; this._busy=true;
+    const fx=$("hackFx"); fx.classList.add("show"); this.hackSound();
+    if(navigator.vibrate){ try{ navigator.vibrate([60,40,60,40,120]); }catch(e){} }
+    try{ decodeEffect($("hkTitle"),"ACCESO DETECTADO",1300); }catch(e){ $("hkTitle").textContent="ACCESO DETECTADO"; }
+    const code=$("hkCode"), HEX="0123456789ABCDEF";
+    const iv=setInterval(()=>{ let s="";
+      for(let i=0;i<7;i++){ let ln=""; for(let j=0;j<28;j++) ln+=HEX[Math.floor(Math.random()*16)]; s+=ln+"\n"; }
+      code.textContent=s; },70);
+    setTimeout(()=>{ clearInterval(iv); fx.classList.remove("show"); this._busy=false; this.vaultOpen(); },1900);
+  },
+  // ---- bóveda (caja fuerte digital)
+  vaultOpen(){ this.pin=""; this.renderPin(); $("vMsg").textContent=""; $("vaultFs").classList.add("show"); },
+  vaultClose(){ $("vaultFs").classList.remove("show"); },
+  renderPin(){ $("vDisplay").textContent = this.pin ? "●".repeat(this.pin.length) : "– – – –"; },
+  key(k){
+    if(k==="C"){ this.pin=""; }
+    else if(k==="DEL"){ this.pin=this.pin.slice(0,-1); }
+    else if(k==="OK"){ this.vaultSubmit(); return; }
+    else if(this.pin.length<12){ this.pin+=k; }
+    this.renderPin();
+  },
+  vaultDeny(msg){
+    $("vMsg").textContent="⛔ "+msg;
+    const c=$("vaultCard"); c.classList.add("shake"); setTimeout(()=>c.classList.remove("shake"),350);
+    accessDenied(); this.pin=""; this.renderPin();
+  },
+  vaultSubmit(){
+    const val=this.pin; if(!val) return;
+    if(val===this.CODE){ this.vaultClose(); this.bioOpen(); this.pin=""; this.renderPin(); return; }   // código maestro -> biometría
+    const stored=localStorage.getItem(LS_PIN);
+    if(stored && val===stored){ this.vaultClose(); proceedLogin({type:"admin"}); return; }
+    const ag=agents.find(a=>a.pin && a.pin===val);
+    if(ag){
+      if(ag.blocked){ this.vaultDeny("AGENTE BLOQUEADO"); return; }
+      this.vaultClose(); proceedLogin({type:"agent", id:ag.id}); return;
+    }
+    if(!stored){   // primera vez: el PIN que pongas queda como PIN de superadmin
+      if(val.length<4){ $("vMsg").textContent="⚠ PIN MUY CORTO (mín. 4)"; return; }
+      localStorage.setItem(LS_PIN,val); Cloud.saveConfig({admin_pin:val});
+      toast("PIN de superadmin creado"); this.vaultClose(); accessGranted({type:"admin"}); return;
+    }
+    this.vaultDeny("ACCESO DENEGADO");
+  },
+  // ---- verificación biométrica (cámara + escaneo 3 seg)
+  bioOpen(){
+    $("bioMsg").style.color="var(--ngr)"; $("bioMsg").textContent="CONFIRMA TU IDENTIDAD, AGENTE";
+    $("bioStart").style.display="block"; $("bioFrame").classList.remove("scanning");
+    $("bioFs").classList.add("show");
+  },
+  bioStop(){ if(this._stream){ try{ this._stream.getTracks().forEach(t=>t.stop()); }catch(e){} this._stream=null; } try{ $("bioVideo").srcObject=null; }catch(e){} },
+  bioClose(){ this.bioStop(); $("bioFrame").classList.remove("scanning"); $("bioFs").classList.remove("show"); },
+  bioScan(){
+    const md=navigator.mediaDevices;
+    if(!md || !md.getUserMedia){ this.bioFail("SIN CÁMARA · ACCESO DENEGADO"); return; }
+    md.getUserMedia({video:{facingMode:"user"}, audio:false}).then(stream=>{
+      this._stream=stream; $("bioVideo").srcObject=stream;
+      $("bioStart").style.display="none"; $("bioFrame").classList.add("scanning");
+      const t0=Date.now(), DUR=3000, msg=$("bioMsg");
+      const iv=setInterval(()=>{
+        const p=Math.min(100,Math.round((Date.now()-t0)/DUR*100));
+        const bars=Math.round(p/10);
+        msg.textContent="ESCANEANDO "+"▓".repeat(bars)+"░".repeat(10-bars)+" "+p+"%";
+        if(p>=100){
+          clearInterval(iv); $("bioFrame").classList.remove("scanning");
+          msg.textContent="✔ IDENTIDAD CONFIRMADA · BIENVENIDO";
+          setTimeout(()=>{ this.bioClose(); accessGranted({type:"admin"}); },800);
+        }
+      },100);
+    }).catch(()=>{ this.bioFail("CÁMARA RECHAZADA · ACCESO DENEGADO"); });
+  },
+  bioFail(msg){ const m=$("bioMsg"); m.style.color="var(--red)"; m.textContent="⛔ "+msg; accessDenied(); }
+};
+// letras H-O-L-A de las esquinas (también sirven en celular, tocándolas en orden)
+["hlH","hlO","hlL","hlA"].forEach(id=>{ const el=$(id); el.onclick=()=>{
+  el.classList.add("hit"); setTimeout(()=>el.classList.remove("hit"),320);
+  Secret.push(el.dataset.l);
+}; });
+// teclado de la bóveda (botones digitales)
+document.querySelectorAll("#vaultFs .v-key").forEach(b=>{ b.onclick=()=>Secret.key(b.dataset.k); });
+$("vClose").onclick=()=>Secret.vaultClose();
+$("bioStart").onclick=()=>Secret.bioScan();
+$("bioBack").onclick=()=>Secret.bioClose();
+// teclado físico: "hola" en la portada · dígitos/Enter/Backspace/Esc en la bóveda
+// (fase captura: así las teclas NO llegan al input del PIN oculto bajo la portada)
+document.addEventListener("keydown",e=>{
+  if($("vaultFs").classList.contains("show")){
+    if(e.key>="0"&&e.key<="9") Secret.key(e.key);
+    else if(e.key==="Backspace") Secret.key("DEL");
+    else if(e.key==="Enter") Secret.key("OK");
+    else if(e.key==="Escape") Secret.vaultClose();
+    else return;
+    e.preventDefault(); e.stopPropagation(); return;
+  }
+  if($("bioFs").classList.contains("show")){ if(e.key==="Escape") Secret.bioClose(); return; }
+  if(!Secret.landingVisible()) return;   // dentro de la app / lock real: no intervenir
+  // PORTADA visible: si el foco quedó en el PIN escondido, le robamos la tecla
+  const t=e.target, typing=t&&(t.tagName==="INPUT"||t.tagName==="TEXTAREA"||t.isContentEditable);
+  const k=(e.key||"").toLowerCase();
+  if(typing && (k.length===1 || e.key==="Enter" || e.key==="Backspace")){
+    e.preventDefault(); e.stopPropagation();
+    if(t.value) t.value="";   // limpia lo que se haya colado en el input oculto
+  }
+  if(k.length===1 && /[a-z]/.test(k)) Secret.push(k);
+},true);
+// al cargar, si la portada está visible, quita el foco del PIN oculto (initLock lo enfoca)
+setTimeout(()=>{ try{ if(Secret.landingVisible() && document.activeElement && document.activeElement.id==="pinInput") document.activeElement.blur(); }catch(e){} },350);
 
 /* ============ NAVEGACIÓN GLOBAL POR MANDO (toda EDTU con joystick) ============ */
 const Pad={
