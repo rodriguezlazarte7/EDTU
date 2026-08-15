@@ -5398,6 +5398,45 @@ const Secret={
     return Array.isArray(raw)?raw:[]; }catch(e){ return []; } },
   _tplSave(tpls){ localStorage.setItem("edtu_face_david",JSON.stringify(tpls.slice(0,8))); },
   _minDist(desc,tpls){ let m=Infinity; for(const t of tpls){ const d=faceapi.euclideanDistance(t,desc); if(d<m) m=d; } return m; },
+  // ---- MALLA 3D estilo EMOCA (MediaPipe Face Landmarker: 468 puntos con profundidad + emociones)
+  loadMesh(){
+    if(this._meshLoad) return this._meshLoad;
+    this._meshLoad=(async()=>{ try{
+      const v=await import("https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.14/vision_bundle.mjs");
+      const files=await v.FilesetResolver.forVisionTasks("https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.14/wasm");
+      this._mesh=await v.FaceLandmarker.createFromOptions(files,{
+        baseOptions:{ modelAssetPath:"https://storage.googleapis.com/mediapipe-models/face_landmarker/face_landmarker/float16/1/face_landmarker.task" },
+        runningMode:"VIDEO", numFaces:2, outputFaceBlendshapes:true });
+      this._meshTess=v.FaceLandmarker.FACE_LANDMARKS_TESSELATION||[];
+      this._meshReady=true; return true;
+    }catch(e){ this._meshReady=false; return false; } })();
+    return this._meshLoad;
+  },
+  // sonrisa medida por los MÚSCULOS de la cara (blendshapes), no por foto de expresión
+  _smileScore(res){ try{
+    const bs=res.faceBlendshapes && res.faceBlendshapes[0]; if(!bs) return 0;
+    let l=0,r=0; for(const cat of bs.categories){ if(cat.categoryName==="mouthSmileLeft") l=cat.score; else if(cat.categoryName==="mouthSmileRight") r=cat.score; }
+    return (l+r)/2;
+  }catch(e){ return 0; } },
+  // dibuja la malla alámbrica 3D: alambre + 468 puntos (más cerca = más brillante y grande)
+  _drawMesh(video,cvId,res){ try{
+    const cv=$(cvId); if(!cv || !video.videoWidth) return;
+    if(cv.width!==video.videoWidth||cv.height!==video.videoHeight){ cv.width=video.videoWidth; cv.height=video.videoHeight; }
+    const c=cv.getContext("2d"); c.clearRect(0,0,cv.width,cv.height);
+    const faces=(res && res.faceLandmarks)||[], W=cv.width, H=cv.height, T=this._meshTess||[];
+    faces.forEach((pts,fi)=>{
+      const main=(fi===0);
+      c.strokeStyle=main?"rgba(57,255,20,.25)":"rgba(255,7,58,.3)"; c.lineWidth=1; c.shadowBlur=0;
+      c.beginPath();
+      for(const e of T){ const a=pts[e.start], b=pts[e.end]; c.moveTo(a.x*W,a.y*H); c.lineTo(b.x*W,b.y*H); }
+      c.stroke();
+      for(const p of pts){
+        const z=Math.max(0,Math.min(1,0.5-(p.z*6)));   // z negativo = más cerca de la cámara
+        c.fillStyle=main?("rgba(57,255,20,"+(0.25+z*0.75).toFixed(2)+")"):"rgba(255,7,58,.6)";
+        const s=1+z*2.2; c.fillRect(p.x*W-s/2,p.y*H-s/2,s,s);
+      }
+    });
+  }catch(e){} },
   // recuadro + puntos de la cara en vivo sobre el video (verde = tú; rojo = caras extra)
   _drawTrack(video,dets,best,cvId){ try{
     const cv=$(cvId||"bioTrack"); if(!cv||!video.videoWidth) return;
@@ -5441,7 +5480,7 @@ const Secret={
       $("bioProg").style.display="block";
       const msg=$("bioMsg"), HEX="0123456789ABCDEF", video=$("bioVideo");
       let p=0, tick=0; const t0=Date.now(); this._face=false; this._descs=[]; this._faces=0; this._liveDist=null;
-      this._smiled=false; this._smiling=false; this._sawNeutral=false; this._tooFar=false;
+      this._smiled=false; this._smiling=false; this._sawNeutral=false; this._tooFar=false; this._meshFaces=0; this._smilePct=0;
       // detector de rostro: IA (face-api) > nativo del navegador > casero (color de piel)
       let fd=null; try{ if("FaceDetector" in window) fd=new FaceDetector({fastMode:true,maxDetectedFaces:1}); }catch(e){ fd=null; }
       let faReady=false, faBusy=false, faFailed=false; this.loadFaceApi().then(ok=>{ faReady=ok; faFailed=!ok; });
@@ -5461,26 +5500,44 @@ const Secret={
                 const tpls=this._tplLoad();
                 this._liveDist = tpls.length ? this._minDist(best.descriptor,tpls) : null;
               }
-              // PRUEBA DE VIDA: cara seria -> SONRISA (una foto no cambia de expresión)
-              const hap=best.expressions ? (best.expressions.happy||0) : 0;
-              this._smiling = hap>0.75;
-              if(hap<0.35) this._sawNeutral=true;
-              if(this._sawNeutral && hap>0.75 && !this._smiled){ this._smiled=true; this.scanBeep(1250); }
-              this._drawTrack(video,dets,best);
-            }else{ this._face=false; this._tooFar=false; this._liveDist=null; this._drawTrack(video,[],null); }
+              if(!this._meshReady){   // sin malla 3D: sonrisa por expresión clásica (respaldo)
+                const hap=best.expressions ? (best.expressions.happy||0) : 0;
+                this._smiling = hap>0.75;
+                if(hap<0.35) this._sawNeutral=true;
+                if(this._sawNeutral && hap>0.75 && !this._smiled){ this._smiled=true; this.scanBeep(1250); }
+                this._drawTrack(video,dets,best);
+              }
+            }else{ this._face=false; this._tooFar=false; this._liveDist=null; if(!this._meshReady) this._drawTrack(video,[],null); }
           }catch(e){ this._face=this.faceLike(video,cv); }
           faBusy=false; return;
         }
         if(fd){ try{ const f=await fd.detect(video); this._face=!!(f&&f.length); this._faces=f?f.length:0; return; }catch(e){} }
         this._face=this.faceLike(video,cv); this._faces=this._face?1:0;
       },450);
+      // MALLA 3D estilo EMOCA: 468 puntos con profundidad + sonrisa por músculos (blendshapes)
+      let ivM=null;
+      this.loadMesh().then(ok=>{ if(!ok || !this._stream) return;
+        ivM=setInterval(()=>{ try{
+          const v=$("bioVideo"); if(!v || !v.videoWidth) return;
+          const res=this._mesh.detectForVideo(v,performance.now());
+          this._meshFaces=(res.faceLandmarks||[]).length;
+          if(this._meshFaces){
+            const s=this._smileScore(res);
+            this._smiling=s>0.5; this._smilePct=Math.round(s*100);
+            if(s<0.2) this._sawNeutral=true;
+            if(this._sawNeutral && s>0.5 && !this._smiled){ this._smiled=true; this.scanBeep(1250); }
+          } else this._smilePct=0;
+          this._drawMesh(v,"bioTrack",res);
+        }catch(e){} },90);
+        if(this._ivs) this._ivs.push(ivM);
+      });
       const ivS=setInterval(()=>{
         if(!$("bioFs").classList.contains("show")){ clearInterval(ivS); clearInterval(ivF); return; }
         const frame=$("bioFrame");
-        const multi=(this._faces||0)>1;   // más de una persona frente a la cámara = sospechoso
+        const multi=((this._faces||0)>1)||((this._meshFaces||0)>1);   // más de una persona = sospechoso
         const LIVE_AT=70;                 // al 70% empieza la PRUEBA DE VIDA (parpadeo)
         if(faFailed){   // sin IA no hay verificación: NADIE entra (el "modo básico" fue eliminado)
-          clearInterval(ivS); clearInterval(ivF);
+          clearInterval(ivS); clearInterval(ivF); if(ivM) clearInterval(ivM);
           this.bioStop(); frame.classList.remove("scanning","noface"); $("bioStart").style.display="block";
           this.bioFail("IA NO DISPONIBLE · SIN VERIFICACIÓN NO HAY ACCESO"); return;
         }
@@ -5495,16 +5552,16 @@ const Secret={
           : multi ? "☝ SOLO UNA PERSONA A LA VEZ"
           : !this._face ? "🔍 BUSCANDO ROSTRO... PONTE FRENTE A LA CÁMARA"
           : this._tooFar ? "🔎 ACÉRCATE UN POCO A LA CÁMARA"
-          : (pi>=LIVE_AT && !this._smiled && faReady) ? (this._sawNeutral ? "😁 SONRÍE — PRUEBA DE VIDA" : "😐 CARA SERIA PRIMERO...")
+          : (pi>=LIVE_AT && !this._smiled && faReady) ? (this._sawNeutral ? "😁 SONRÍE — PRUEBA DE VIDA"+(this._meshReady?" · "+(this._smilePct||0)+"%":"") : "😐 CARA SERIA PRIMERO...")
           : "ESCANEANDO ROSTRO · "+pi+"%";
         let hx=""; for(let i=0;i<6;i++) hx+=HEX[Math.floor(Math.random()*16)];
-        $("bioDataL").textContent="SCAN>> 0x"+hx+"\nPUNTOS "+(this._face?777:0)+"\nMALLA "+Math.min(100,pi+Math.floor(Math.random()*5))+"%";
+        $("bioDataL").textContent="SCAN>> 0x"+hx+"\n"+(this._meshReady?"MALLA 3D · 468 PTS":"PUNTOS "+(this._face?777:0))+"\nSONRISA "+(this._smilePct||0)+"%";
         // MATCH REAL: similitud medida contra las plantillas guardadas (— si aún no hay registro)
         const mReal = this._liveDist!=null ? Math.max(0,Math.min(99.9,(1-this._liveDist/0.8)*100)).toFixed(1)+"%" : "—";
         $("bioDataR").textContent="ID #25\nROSTROS "+(this._faces||0)+"\nMATCH "+mReal+"\nVIDA "+(this._smiled?"✔":"…")+"\nIA "+(faReady?"ACTIVA":"BÁSICA");
         if(this._face && ++tick%3===0) this.scanBeep(500+p*7);
         if(p>=100){
-          clearInterval(ivS); clearInterval(ivF);
+          clearInterval(ivS); clearInterval(ivF); if(ivM) clearInterval(ivM);
           // RECONOCIMIENTO: compara la huella medida con la de David guardada
           let okMsg="✔ IDENTIDAD CONFIRMADA · BIENVENIDO, DAVID", pass=true;
           if(this._descs.length && window.faceapi){
@@ -5535,7 +5592,7 @@ const Secret={
           return;
         }
         if(Date.now()-t0>25000 && p<100){   // 25 seg y no completó -> denegado (con el motivo real)
-          clearInterval(ivS); clearInterval(ivF);
+          clearInterval(ivS); clearInterval(ivF); if(ivM) clearInterval(ivM);
           this.bioStop(); frame.classList.remove("scanning","noface"); $("bioStart").style.display="block";
           this.bioFail(!faReady ? "LA IA NO CARGÓ · REVISA INTERNET" : this._face ? (!this._smiled ? "SIN SONRISA REAL (¿UNA FOTO? 🤨) · ACCESO DENEGADO" : "TIEMPO AGOTADO · ACCESO DENEGADO") : "NINGÚN ROSTRO DETECTADO · ACCESO DENEGADO");
         }
@@ -5645,7 +5702,7 @@ const FaceReg={
       // rastreo EN VIVO: recuadro + landmarks + boca dorada al sonreír (como en el escaneo)
       let busy=false;
       this._trackIv=setInterval(async()=>{
-        const v=$("faceCam"); if(!v || !v.videoWidth || busy) return; busy=true;
+        const v=$("faceCam"); if(!v || !v.videoWidth || busy || Secret._meshReady) return; busy=true;
         try{
           const det=await faceapi.detectSingleFace(v,new faceapi.TinyFaceDetectorOptions({inputSize:320,scoreThreshold:.4})).withFaceLandmarks(true).withFaceExpressions();
           Secret._smiling = !!(det && det.expressions && det.expressions.happy>0.75);
@@ -5653,10 +5710,21 @@ const FaceReg={
         }catch(e){}
         busy=false;
       },300);
+      // malla 3D estilo EMOCA también aquí (si la IA de malla está disponible)
+      this._meshIv=null;
+      Secret.loadMesh().then(ok=>{ if(!ok || !this._cam) return;
+        this._meshIv=setInterval(()=>{ try{
+          const v=$("faceCam"); if(!v || !v.videoWidth) return;
+          const res=Secret._mesh.detectForVideo(v,performance.now());
+          Secret._smiling=Secret._smileScore(res)>0.5;
+          Secret._drawMesh(v,"faceCamTrack",res);
+        }catch(e){} },90);
+      });
     }catch(e){ $("faceMsg").textContent="⛔ Cámara rechazada"; }
   },
   camStop(){
     if(this._trackIv){ clearInterval(this._trackIv); this._trackIv=null; }
+    if(this._meshIv){ clearInterval(this._meshIv); this._meshIv=null; }
     const tc=$("faceCamTrack"); if(tc){ try{ tc.getContext("2d").clearRect(0,0,tc.width,tc.height); }catch(e){} }
     if(this._cam){ try{ this._cam.getTracks().forEach(t=>t.stop()); }catch(e){} this._cam=null; } try{ $("faceCam").srcObject=null; }catch(e){} $("faceCamWrap").style.display="none"; $("faceTake").style.display="block"; $("facePick").style.display="block"; },
   updSnap(){ const b=$("faceSnap"); if(b){ b.textContent="📸 CAPTURAR ("+this.items.length+"/8)"; b.disabled=this.items.length>=8; } },
