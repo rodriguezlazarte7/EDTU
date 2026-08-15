@@ -789,7 +789,7 @@
     <div class="v-sub mono">SUBE HASTA 8 FOTOS TUYAS · SONRIENDO Y SERIO · DISTINTAS LUCES Y ÁNGULOS</div>
     <div class="face-grid" id="faceGrid"></div>
     <div id="faceCamWrap" style="display:none">
-      <div class="bio-frame" style="margin:12px 0 8px"><video id="faceCam" autoplay playsinline muted></video></div>
+      <div class="bio-frame" style="margin:12px 0 8px"><video id="faceCam" autoplay playsinline muted></video><canvas id="faceCamTrack"></canvas></div>
       <button class="btn btn-primary" id="faceSnap" style="width:100%">📸 CAPTURAR (0/8)</button>
       <button class="btn btn-ghost" id="faceCamStop" style="width:100%;margin-top:8px">✔ LISTO</button>
     </div>
@@ -5399,8 +5399,8 @@ const Secret={
   _tplSave(tpls){ localStorage.setItem("edtu_face_david",JSON.stringify(tpls.slice(0,8))); },
   _minDist(desc,tpls){ let m=Infinity; for(const t of tpls){ const d=faceapi.euclideanDistance(t,desc); if(d<m) m=d; } return m; },
   // recuadro + puntos de la cara en vivo sobre el video (verde = tú; rojo = caras extra)
-  _drawTrack(video,dets,best){ try{
-    const cv=$("bioTrack"); if(!cv||!video.videoWidth) return;
+  _drawTrack(video,dets,best,cvId){ try{
+    const cv=$(cvId||"bioTrack"); if(!cv||!video.videoWidth) return;
     if(cv.width!==video.videoWidth||cv.height!==video.videoHeight){ cv.width=video.videoWidth; cv.height=video.videoHeight; }
     const c=cv.getContext("2d"); c.clearRect(0,0,cv.width,cv.height);
     for(const d of dets){
@@ -5642,9 +5642,23 @@ const FaceReg={
       $("faceCam").srcObject=this._cam;
       $("faceCamWrap").style.display="block"; $("faceTake").style.display="none"; $("facePick").style.display="none";
       this.updSnap(); $("faceMsg").textContent="😎 Pósate: sonriendo, serio, de ladito...";
+      // rastreo EN VIVO: recuadro + landmarks + boca dorada al sonreír (como en el escaneo)
+      let busy=false;
+      this._trackIv=setInterval(async()=>{
+        const v=$("faceCam"); if(!v || !v.videoWidth || busy) return; busy=true;
+        try{
+          const det=await faceapi.detectSingleFace(v,new faceapi.TinyFaceDetectorOptions({inputSize:320,scoreThreshold:.4})).withFaceLandmarks(true).withFaceExpressions();
+          Secret._smiling = !!(det && det.expressions && det.expressions.happy>0.75);
+          Secret._drawTrack(v, det?[det]:[], det||null, "faceCamTrack");
+        }catch(e){}
+        busy=false;
+      },300);
     }catch(e){ $("faceMsg").textContent="⛔ Cámara rechazada"; }
   },
-  camStop(){ if(this._cam){ try{ this._cam.getTracks().forEach(t=>t.stop()); }catch(e){} this._cam=null; } try{ $("faceCam").srcObject=null; }catch(e){} $("faceCamWrap").style.display="none"; $("faceTake").style.display="block"; $("facePick").style.display="block"; },
+  camStop(){
+    if(this._trackIv){ clearInterval(this._trackIv); this._trackIv=null; }
+    const tc=$("faceCamTrack"); if(tc){ try{ tc.getContext("2d").clearRect(0,0,tc.width,tc.height); }catch(e){} }
+    if(this._cam){ try{ this._cam.getTracks().forEach(t=>t.stop()); }catch(e){} this._cam=null; } try{ $("faceCam").srcObject=null; }catch(e){} $("faceCamWrap").style.display="none"; $("faceTake").style.display="block"; $("facePick").style.display="block"; },
   updSnap(){ const b=$("faceSnap"); if(b){ b.textContent="📸 CAPTURAR ("+this.items.length+"/8)"; b.disabled=this.items.length>=8; } },
   async snap(){
     if(this.items.length>=8){ $("faceMsg").textContent="Ya tienes 8 fotos — pulsa GUARDAR"; return; }
@@ -5654,7 +5668,11 @@ const FaceReg={
     let desc=null;
     try{
       const det=await faceapi.detectSingleFace(cv,new faceapi.TinyFaceDetectorOptions({inputSize:416,scoreThreshold:.4})).withFaceLandmarks(true).withFaceDescriptor();
-      if(det) desc=det.descriptor;
+      if(det){ desc=det.descriptor;
+        // marca los landmarks sobre la foto capturada (miniatura con los puntos de la IA)
+        const c2=cv.getContext("2d"); c2.fillStyle="rgba(57,255,20,.9)"; c2.shadowColor="#39ff14"; c2.shadowBlur=4;
+        for(const pt of det.landmarks.positions) c2.fillRect(pt.x-2,pt.y-2,4,4);
+      }
     }catch(e){}
     this.items.push({url:cv.toDataURL("image/jpeg",0.7), ok:!!desc, desc});
     this.render(); this.updSnap();
