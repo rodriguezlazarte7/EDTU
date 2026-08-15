@@ -119,56 +119,52 @@
   #vaultFs{position:fixed;inset:0;z-index:205;display:none;align-items:center;justify-content:center;background:rgba(2,0,8,.94)}
   #vaultFs.show{display:flex}
   .vault{position:relative;width:min(360px,94vw);padding:26px 22px 20px;border-radius:22px;text-align:center;
-    background:linear-gradient(160deg,#2a040c,#0c0103);
-    border:2px solid rgba(255,7,58,.65);
-    box-shadow:0 0 42px rgba(255,7,58,.45),inset 0 0 30px rgba(255,7,58,.10);animation:pop .4s ease}
-  .vault h2{color:#ff073a;letter-spacing:.28em;font-size:15px;text-shadow:0 0 12px #ff073a,0 0 26px rgba(255,7,58,.7);margin:0 0 4px}
-  .vault .v-sub{color:rgba(255,96,120,.95);font-size:10px;letter-spacing:.22em;margin-bottom:14px}
-  .v-display{font-size:28px;letter-spacing:.4em;text-indent:.4em;color:#ff2447;background:rgba(0,0,0,.6);
-    border:1px solid rgba(255,7,58,.5);border-radius:12px;padding:13px 6px;min-height:56px;margin-bottom:14px;
-    text-shadow:0 0 10px #ff073a;overflow:hidden;white-space:nowrap}
+    background:linear-gradient(160deg,#041427,#010a14);
+    border:2px solid rgba(0,170,255,.65);
+    box-shadow:0 0 42px rgba(0,170,255,.45),inset 0 0 30px rgba(0,170,255,.10);animation:pop .4s ease}
+  .vault h2{color:#00aaff;letter-spacing:.28em;font-size:15px;text-shadow:0 0 12px #00aaff,0 0 26px rgba(0,170,255,.7);margin:0 0 4px}
+  .vault .v-sub{color:rgba(120,200,255,.95);font-size:10px;letter-spacing:.22em;margin-bottom:14px}
+  .v-display{font-size:28px;letter-spacing:.4em;text-indent:.4em;color:#33bbff;background:rgba(0,0,0,.6);
+    border:1px solid rgba(0,170,255,.5);border-radius:12px;padding:13px 6px;min-height:56px;margin-bottom:14px;
+    text-shadow:0 0 10px #00aaff;overflow:hidden;white-space:nowrap}
   .v-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:10px}
   .v-key{font-size:20px;font-weight:800;padding:14px 0;border-radius:12px;cursor:pointer;
-    background:rgba(255,7,58,.10);border:1px solid rgba(255,7,58,.5);color:#ffd9de;
-    text-shadow:0 0 7px rgba(255,7,58,.9);
+    background:rgba(0,170,255,.10);border:1px solid rgba(0,170,255,.5);color:#d9f0ff;
+    text-shadow:0 0 7px rgba(0,170,255,.9);
     transition:transform .16s cubic-bezier(.2,1.6,.4,1),background .12s,box-shadow .16s,border-color .16s}
   /* la tecla se LEVANTA al pasar el mouse (con sombra debajo, como flotando) */
   .v-key:hover,.v-key:focus-visible{transform:translateY(-6px) scale(1.07);color:#fff;
-    background:rgba(255,7,58,.22);border-color:#ff073a;
-    box-shadow:0 12px 20px rgba(0,0,0,.6),0 0 20px rgba(255,7,58,.7),inset 0 0 10px rgba(255,7,58,.25)}
-  .v-key:active{transform:translateY(-1px) scale(.94);background:rgba(255,7,58,.3);box-shadow:0 3px 8px rgba(0,0,0,.5),0 0 12px rgba(255,7,58,.55)}
-  .v-key.ok{color:#ff073a;border-color:#ff073a;box-shadow:0 0 14px rgba(255,7,58,.55),inset 0 0 10px rgba(255,7,58,.25)}
+    background:rgba(0,170,255,.22);border-color:#00aaff;
+    box-shadow:0 12px 20px rgba(0,0,0,.6),0 0 20px rgba(0,170,255,.7),inset 0 0 10px rgba(0,170,255,.25)}
+  .v-key:active{transform:translateY(-1px) scale(.94);background:rgba(0,170,255,.3);box-shadow:0 3px 8px rgba(0,0,0,.5),0 0 12px rgba(0,170,255,.55)}
+  .v-key.ok{color:#00e0ff;border-color:#00e0ff;box-shadow:0 0 14px rgba(0,224,255,.55),inset 0 0 10px rgba(0,224,255,.25)}
   .v-key.del{color:#fff;background:rgba(255,7,58,.22);border-color:rgba(255,7,58,.7)}
   .v-close{position:absolute;top:8px;right:12px;background:none;border:none;color:var(--muted);font-size:18px;cursor:pointer}
   .v-msg{min-height:16px;font-size:11px;letter-spacing:.14em;margin-top:10px;color:var(--red)}
   /* ---------- VERIFICACIÓN BIOMÉTRICA (cámara + escaneo) ---------- */
-  #bioFs{position:fixed;inset:0;z-index:206;display:none;align-items:center;justify-content:center;background:rgba(0,3,1,.96)}
+  #bioFs{position:fixed;inset:0;z-index:206;display:none;align-items:center;justify-content:center;background:rgba(0,6,12,.96)}
   #bioFs.show{display:flex}
   .bio{width:min(410px,94vw);padding:24px 22px;border-radius:22px;text-align:center;
-    background:linear-gradient(160deg,#04140a,#010a04);
-    border:2px solid rgba(57,255,20,.5);box-shadow:0 0 38px rgba(57,255,20,.28);animation:pop .4s ease}
-  .bio h2{color:var(--ngr);letter-spacing:.2em;font-size:15px;text-shadow:0 0 10px var(--ngr);margin:0 0 4px}
+    background:linear-gradient(160deg,#04101f,#01060f);
+    border:2px solid rgba(0,170,255,.5);box-shadow:0 0 38px rgba(0,170,255,.3);animation:pop .4s ease}
+  .bio h2{color:#4fc3ff;letter-spacing:.2em;font-size:15px;text-shadow:0 0 10px #00aaff;margin:0 0 4px}
   .bio-frame{position:relative;width:100%;aspect-ratio:4/3;background:#000;border-radius:14px;overflow:hidden;
-    border:1px solid rgba(57,255,20,.4);margin:12px 0 8px}
+    border:1px solid rgba(0,170,255,.4);margin:12px 0 8px}
   .bio-frame video{width:100%;height:100%;object-fit:cover;transform:scaleX(-1)}
   /* canvas de seguimiento: dibuja el recuadro y los puntos de la cara EN VIVO */
   .bio-frame canvas{position:absolute;inset:0;width:100%;height:100%;transform:scaleX(-1);pointer-events:none}
   /* malla de puntos sobre la cara (tipo Face ID) */
   .bio-grid{position:absolute;inset:0;pointer-events:none;opacity:0;transition:opacity .35s;
-    background-image:linear-gradient(rgba(57,255,20,.15) 1px,transparent 1px),linear-gradient(90deg,rgba(57,255,20,.15) 1px,transparent 1px);
+    background-image:linear-gradient(rgba(0,170,255,.16) 1px,transparent 1px),linear-gradient(90deg,rgba(0,170,255,.16) 1px,transparent 1px);
     background-size:24px 24px}
   .bio-frame.scanning .bio-grid{opacity:1}
-  /* banda de escaneo con estela luminosa */
-  .bio-scanline{position:absolute;left:0;right:0;height:64px;top:-64px;display:none;pointer-events:none;
-    background:linear-gradient(to bottom,transparent,rgba(57,255,20,.30) 72%,#39ff14);
-    box-shadow:0 3px 26px rgba(57,255,20,.85)}
-  .bio-frame.scanning .bio-scanline{display:block;animation:bioscan 1.35s linear infinite}
-  @keyframes bioscan{0%{top:-64px}100%{top:100%}}
+  /* (la banda de escaneo fue reemplazada por la MIRA CIRCULAR HUD dibujada en el canvas) */
+  .bio-scanline{display:none}
   /* mira de enfoque (esquinas que laten alrededor de la cara) */
   .bio-ret{position:absolute;left:50%;top:50%;width:60%;height:76%;transform:translate(-50%,-50%);pointer-events:none;opacity:0;transition:opacity .35s}
   .bio-frame.scanning .bio-ret{opacity:1;animation:retpulse 1.2s ease-in-out infinite}
   @keyframes retpulse{0%,100%{transform:translate(-50%,-50%) scale(1)}50%{transform:translate(-50%,-50%) scale(1.035)}}
-  .bio-ret i{position:absolute;width:26px;height:26px;border:3px solid #39ff14;filter:drop-shadow(0 0 7px #39ff14)}
+  .bio-ret i{position:absolute;width:26px;height:26px;border:3px solid #4fc3ff;filter:drop-shadow(0 0 7px #00aaff)}
   .bio-ret i:nth-child(1){top:0;left:0;border-right:none;border-bottom:none;border-top-left-radius:9px}
   .bio-ret i:nth-child(2){top:0;right:0;border-left:none;border-bottom:none;border-top-right-radius:9px}
   .bio-ret i:nth-child(3){bottom:0;left:0;border-right:none;border-top:none;border-bottom-left-radius:9px}
@@ -178,25 +174,25 @@
   .bio-frame.noface .bio-scanline{background:linear-gradient(to bottom,transparent,rgba(255,7,58,.30) 72%,#ff073a);box-shadow:0 3px 26px rgba(255,7,58,.85)}
   /* lecturas de datos en vivo a los costados */
   .bio-data{position:absolute;left:8px;top:8px;text-align:left;font-size:9px;line-height:1.75;display:none;pointer-events:none;white-space:pre;
-    color:rgba(57,255,20,.95);text-shadow:0 0 7px rgba(57,255,20,.8)}
+    color:rgba(140,215,255,.95);text-shadow:0 0 7px rgba(0,170,255,.8)}
   .bio-data.r{left:auto;right:8px;text-align:right}
   .bio-frame.scanning .bio-data{display:block}
   /* flash verde + check gigante al confirmar identidad */
-  .bio-frame.ok::after{content:"";position:absolute;inset:0;background:rgba(57,255,20,.30);animation:bioflash .55s ease}
+  .bio-frame.ok::after{content:"";position:absolute;inset:0;background:rgba(0,170,255,.30);animation:bioflash .55s ease}
   @keyframes bioflash{0%{opacity:0}30%{opacity:1}100%{opacity:0}}
-  .bio-check{position:absolute;inset:0;display:none;align-items:center;justify-content:center;font-size:86px;color:#39ff14;text-shadow:0 0 34px #39ff14;pointer-events:none}
+  .bio-check{position:absolute;inset:0;display:none;align-items:center;justify-content:center;font-size:86px;color:#00d5ff;text-shadow:0 0 34px #00aaff;pointer-events:none}
   .bio-frame.ok .bio-check{display:flex;animation:pop .4s ease}
   /* barra de progreso del escaneo */
-  .bio-prog{height:9px;border-radius:6px;background:rgba(57,255,20,.10);border:1px solid rgba(57,255,20,.35);overflow:hidden;margin:0 0 8px;display:none}
-  .bio-prog b{display:block;height:100%;width:0%;background:linear-gradient(90deg,rgba(57,255,20,.45),#39ff14);box-shadow:0 0 14px #39ff14;transition:width .1s linear}
+  .bio-prog{height:9px;border-radius:6px;background:rgba(0,170,255,.10);border:1px solid rgba(0,170,255,.35);overflow:hidden;margin:0 0 8px;display:none}
+  .bio-prog b{display:block;height:100%;width:0%;background:linear-gradient(90deg,rgba(0,170,255,.45),#00d5ff);box-shadow:0 0 14px #00aaff;transition:width .1s linear}
   /* ---------- ENTRENADOR DE ROSTRO (botón 🧬 Rostro: subir 8 fotos) ---------- */
   #faceFs{position:fixed;inset:0;z-index:207;display:none;align-items:center;justify-content:center;background:rgba(0,3,1,.94)}
   #faceFs.show{display:flex}
   .facecard{width:min(440px,94vw);max-height:92vh;overflow:auto;padding:24px 22px;border-radius:22px;text-align:center;position:relative;
-    background:linear-gradient(160deg,#04140a,#010a04);border:2px solid rgba(57,255,20,.5);box-shadow:0 0 38px rgba(57,255,20,.28);animation:pop .4s ease}
-  .facecard h2{color:var(--ngr);letter-spacing:.2em;font-size:15px;text-shadow:0 0 10px var(--ngr);margin:0 0 4px}
+    background:linear-gradient(160deg,#04101f,#01060f);border:2px solid rgba(0,170,255,.5);box-shadow:0 0 38px rgba(0,170,255,.3);animation:pop .4s ease}
+  .facecard h2{color:#4fc3ff;letter-spacing:.2em;font-size:15px;text-shadow:0 0 10px #00aaff;margin:0 0 4px}
   .face-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-top:12px}
-  .face-slot{position:relative;aspect-ratio:1;border-radius:10px;border:1px dashed rgba(57,255,20,.4);background:rgba(0,0,0,.4);overflow:hidden;display:flex;align-items:center;justify-content:center;color:rgba(57,255,20,.5);font-size:20px}
+  .face-slot{position:relative;aspect-ratio:1;border-radius:10px;border:1px dashed rgba(0,170,255,.4);background:rgba(0,0,0,.4);overflow:hidden;display:flex;align-items:center;justify-content:center;color:rgba(79,195,255,.6);font-size:20px}
   .face-slot img{width:100%;height:100%;object-fit:cover}
   .face-slot .fs-st{position:absolute;right:3px;bottom:3px;font-size:14px;text-shadow:0 0 6px #000}
   .lockcard{
@@ -759,7 +755,7 @@
       <button class="v-key mono" data-k="0">0</button>
       <button class="v-key ok mono" data-k="OK">✔</button>
     </div>
-    <button class="btn btn-ghost" id="vFace" style="width:100%;margin-top:12px;color:#39ff14;border-color:rgba(57,255,20,.5)">🧬 ENTRAR CON ROSTRO</button>
+    <button class="btn btn-ghost" id="vFace" style="width:100%;margin-top:12px;color:#4fc3ff;border-color:rgba(0,170,255,.5)">🧬 ENTRAR CON ROSTRO</button>
     <div class="v-msg mono" id="vMsg"></div>
   </div>
 </div>
@@ -778,7 +774,7 @@
       <div class="bio-check mono">✔</div>
     </div>
     <div class="bio-prog" id="bioProg"><b id="bioProgBar"></b></div>
-    <div class="v-msg mono" id="bioMsg" style="color:var(--ngr)"></div>
+    <div class="v-msg mono" id="bioMsg" style="color:#4fc3ff"></div>
     <button class="btn btn-primary" id="bioStart" style="width:100%;margin-top:8px">📷 ACTIVAR CÁMARA</button>
     <button class="btn btn-ghost" id="bioBack" style="width:100%;margin-top:8px">← VOLVER</button>
   </div>
@@ -799,7 +795,7 @@
     <button class="btn btn-ghost" id="facePick" style="width:100%;margin-top:8px">🖼️ O ELEGIR FOTOS GUARDADAS</button>
     <button class="btn btn-primary" id="faceSave" style="width:100%;margin-top:8px" disabled>💾 GUARDAR PLANTILLAS (0)</button>
     <button class="btn btn-ghost" id="faceWipe" style="width:100%;margin-top:8px">🧹 BORRAR ROSTRO GUARDADO</button>
-    <div class="v-msg mono" id="faceMsg" style="color:var(--ngr)"></div>
+    <div class="v-msg mono" id="faceMsg" style="color:#4fc3ff"></div>
   </div>
 </div>
 
@@ -5385,7 +5381,7 @@ const Secret={
   bioOpen(target){
     this._target=target||{mode:"david"};
     const t=this._target;
-    $("bioMsg").style.color="var(--ngr)";
+    $("bioMsg").style.color="#4fc3ff";
     $("bioMsg").textContent = t.mode==="identify" ? "IDENTIFÍCATE — LA IA DIRÁ QUIÉN ERES"
       : t.mode==="agent" ? "VERIFICACIÓN DE "+((t.name||"AGENTE").toUpperCase())
       : "CONFIRMA TU IDENTIDAD, AGENTE";
@@ -5442,6 +5438,30 @@ const Secret={
     let l=0,r=0; for(const cat of bs.categories){ if(cat.categoryName==="mouthSmileLeft") l=cat.score; else if(cat.categoryName==="mouthSmileRight") r=cat.score; }
     return (l+r)/2;
   }catch(e){ return 0; } },
+  // MIRA CIRCULAR HUD (como escáner de película): anillos girando, marcas y líneas de mira
+  _drawHud(c,cx,cy,R,t,col){
+    c.save(); c.translate(cx,cy); c.strokeStyle=col; c.fillStyle=col; c.shadowColor=col; c.shadowBlur=8;
+    // anillo exterior punteado (gira)
+    c.save(); c.rotate(t*0.8); c.setLineDash([R*0.09,R*0.07]); c.lineWidth=Math.max(2,R*0.05);
+    c.beginPath(); c.arc(0,0,R,0,Math.PI*2); c.stroke(); c.restore();
+    // arcos parciales (giran al revés)
+    c.save(); c.rotate(-t*1.3); c.lineWidth=Math.max(1.5,R*0.03);
+    c.beginPath(); c.arc(0,0,R*0.78,0,Math.PI*0.6); c.stroke();
+    c.beginPath(); c.arc(0,0,R*0.78,Math.PI,Math.PI*1.6); c.stroke(); c.restore();
+    // anillo de marcas tipo reloj
+    c.save(); c.rotate(t*0.4); c.lineWidth=Math.max(1,R*0.02);
+    for(let i=0;i<36;i++){ const a=i*Math.PI/18, L=(i%6===0)?R*0.13:R*0.06;
+      c.beginPath(); c.moveTo(Math.cos(a)*R*0.62,Math.sin(a)*R*0.62); c.lineTo(Math.cos(a)*(R*0.62-L),Math.sin(a)*(R*0.62-L)); c.stroke(); }
+    c.restore();
+    // círculo interior + punto central
+    c.lineWidth=Math.max(1.5,R*0.025); c.beginPath(); c.arc(0,0,R*0.34,0,Math.PI*2); c.stroke();
+    c.beginPath(); c.arc(0,0,R*0.05,0,Math.PI*2); c.fill();
+    // líneas de mira que salen hacia afuera (finas)
+    c.save(); c.lineWidth=1; c.globalAlpha=0.55;
+    for(const a of [0.3,1.9,3.5,5.1]){ c.beginPath(); c.moveTo(Math.cos(a)*R*0.36,Math.sin(a)*R*0.36); c.lineTo(Math.cos(a)*R*1.25,Math.sin(a)*R*1.25); c.stroke(); }
+    c.restore();
+    c.restore();
+  },
   // dibuja la malla alámbrica 3D: alambre + 468 puntos (más cerca = más brillante y grande)
   _drawMesh(video,cvId,res){ try{
     const cv=$(cvId); if(!cv || !video.videoWidth) return;
@@ -5460,7 +5480,15 @@ const Secret={
         c.fillStyle=good?("rgba(0,170,255,"+(0.25+z*0.75).toFixed(2)+")"):"rgba(255,7,58,.6)";
         const s=1+z*2.2; c.fillRect(p.x*W-s/2,p.y*H-s/2,s,s);
       }
+      // la MIRA HUD centrada en la cara principal (la sigue en vivo)
+      if(main){
+        const nose=pts[168]||pts[1]||pts[0], l=pts[234]||pts[0], r=pts[454]||pts[0];
+        const R=Math.max(30,Math.hypot((r.x-l.x)*W,(r.y-l.y)*H)*0.62);
+        this._drawHud(c, nose.x*W, nose.y*H, R, performance.now()/1000, good?"rgba(140,215,255,.85)":"rgba(255,60,90,.85)");
+      }
     });
+    // sin rostro: la mira busca en el centro, tenue
+    if(!faces.length) this._drawHud(c,W/2,H/2,Math.min(W,H)*0.32,performance.now()/1000,"rgba(120,190,255,.30)");
   }catch(e){} },
   // recuadro + puntos de la cara en vivo sobre el video (verde = tú; rojo = caras extra)
   _drawTrack(video,dets,best,cvId){ try{
@@ -5481,7 +5509,7 @@ const Secret={
       if(main && d.landmarks){
         // malla de 777 PUNTOS: nube densa alrededor de los 68 puntos base (estable, sin parpadeo)
         const P=d.landmarks.positions;
-        c.fillStyle="rgba(57,255,20,.75)"; c.shadowBlur=3; c.shadowColor="#39ff14";
+        c.fillStyle="rgba(0,170,255,.75)"; c.shadowBlur=3; c.shadowColor="#00aaff";
         const sx=b.width*0.05, sy=b.height*0.05, dot=Math.max(1.4,cv.width/560);
         for(let n=0;n<777;n++){
           const q=P[n%68], px=q.x+Math.sin(n*7.13)*sx, py=q.y+Math.cos(n*9.71)*sy;
@@ -5489,7 +5517,7 @@ const Secret={
         }
         // contorno de la BOCA (se enciende dorado cuando SONRÍES)
         const mouth=()=>{ c.beginPath(); for(let i=48;i<=59;i++){ const q=P[i]; if(i===48) c.moveTo(q.x,q.y); else c.lineTo(q.x,q.y); } c.closePath(); c.stroke(); };
-        c.strokeStyle=this._smiling?"#ffe14b":"rgba(57,255,20,.95)"; c.lineWidth=Math.max(1.6,cv.width/280); c.shadowBlur=this._smiling?14:8; c.shadowColor=c.strokeStyle;
+        c.strokeStyle=this._smiling?"#ffe14b":"rgba(0,200,255,.95)"; c.lineWidth=Math.max(1.6,cv.width/280); c.shadowBlur=this._smiling?14:8; c.shadowColor=c.strokeStyle;
         mouth();
       }
     }
@@ -5807,7 +5835,7 @@ const FaceReg={
       const det=await faceapi.detectSingleFace(cv,new faceapi.TinyFaceDetectorOptions({inputSize:416,scoreThreshold:.4})).withFaceLandmarks(true).withFaceDescriptor();
       if(det){ desc=det.descriptor;
         // marca los landmarks sobre la foto capturada (miniatura con los puntos de la IA)
-        const c2=cv.getContext("2d"); c2.fillStyle="rgba(57,255,20,.9)"; c2.shadowColor="#39ff14"; c2.shadowBlur=4;
+        const c2=cv.getContext("2d"); c2.fillStyle="rgba(0,170,255,.9)"; c2.shadowColor="#00aaff"; c2.shadowBlur=4;
         for(const pt of det.landmarks.positions) c2.fillRect(pt.x-2,pt.y-2,4,4);
       }
     }catch(e){}
