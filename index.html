@@ -5450,13 +5450,14 @@ const Secret={
     const faces=(res && res.faceLandmarks)||[], W=cv.width, H=cv.height, T=this._meshTess||[];
     faces.forEach((pts,fi)=>{
       const main=(fi===0);
-      c.strokeStyle=main?"rgba(57,255,20,.25)":"rgba(255,7,58,.3)"; c.lineWidth=1; c.shadowBlur=0;
+      const good=main && this._liveMatch!==false;   // rostro equivocado -> malla ROJA
+      c.strokeStyle=good?"rgba(57,255,20,.25)":"rgba(255,7,58,.3)"; c.lineWidth=1; c.shadowBlur=0;
       c.beginPath();
       for(const e of T){ const a=pts[e.start], b=pts[e.end]; c.moveTo(a.x*W,a.y*H); c.lineTo(b.x*W,b.y*H); }
       c.stroke();
       for(const p of pts){
         const z=Math.max(0,Math.min(1,0.5-(p.z*6)));   // z negativo = más cerca de la cámara
-        c.fillStyle=main?("rgba(57,255,20,"+(0.25+z*0.75).toFixed(2)+")"):"rgba(255,7,58,.6)";
+        c.fillStyle=good?("rgba(57,255,20,"+(0.25+z*0.75).toFixed(2)+")"):"rgba(255,7,58,.6)";
         const s=1+z*2.2; c.fillRect(p.x*W-s/2,p.y*H-s/2,s,s);
       }
     });
@@ -5494,7 +5495,7 @@ const Secret={
     }
   }catch(e){} },
   bioStop(){ if(this._stream){ try{ this._stream.getTracks().forEach(t=>t.stop()); }catch(e){} this._stream=null; } try{ $("bioVideo").srcObject=null; }catch(e){} },
-  bioClose(){ this.bioStop(); (this._ivs||[]).forEach(clearInterval); this._ivs=[]; this._faces=0; this._liveDist=null; $("bioFrame").classList.remove("scanning","ok","noface"); $("bioProg").style.display="none"; $("bioProgBar").style.width="0%"; $("bioDataL").textContent=""; $("bioDataR").textContent=""; const tc=$("bioTrack"); if(tc){ try{ tc.getContext("2d").clearRect(0,0,tc.width,tc.height); }catch(e){} } $("bioFs").classList.remove("show"); },
+  bioClose(){ this.bioStop(); (this._ivs||[]).forEach(clearInterval); this._ivs=[]; this._faces=0; this._liveDist=null; this._liveMatch=null; $("bioFrame").classList.remove("scanning","ok","noface"); $("bioProg").style.display="none"; $("bioProgBar").style.width="0%"; $("bioDataL").textContent=""; $("bioDataR").textContent=""; const tc=$("bioTrack"); if(tc){ try{ tc.getContext("2d").clearRect(0,0,tc.width,tc.height); }catch(e){} } $("bioFs").classList.remove("show"); },
   bioScan(){
     const md=navigator.mediaDevices;
     if(!md || !md.getUserMedia){ this.bioFail("SIN CÁMARA · ACCESO DENEGADO"); return; }
@@ -5504,7 +5505,7 @@ const Secret={
       $("bioProg").style.display="block";
       const msg=$("bioMsg"), HEX="0123456789ABCDEF", video=$("bioVideo");
       let p=0, tick=0; const t0=Date.now(); this._face=false; this._descs=[]; this._faces=0; this._liveDist=null;
-      this._smiled=false; this._smiling=false; this._sawNeutral=false; this._tooFar=false; this._meshFaces=0; this._smilePct=0;
+      this._smiled=false; this._smiling=false; this._sawNeutral=false; this._tooFar=false; this._meshFaces=0; this._smilePct=0; this._liveMatch=null;
       // detector de rostro: IA (face-api) > nativo del navegador > casero (color de piel)
       let fd=null; try{ if("FaceDetector" in window) fd=new FaceDetector({fastMode:true,maxDetectedFaces:1}); }catch(e){ fd=null; }
       let faReady=false, faBusy=false, faFailed=false; this.loadFaceApi().then(ok=>{ faReady=ok; faFailed=!ok; });
@@ -5522,8 +5523,14 @@ const Secret={
               if(!this._tooFar && best.detection.score>=0.55){                    // solo muestras de BUENA calidad
                 this._descs.push(best.descriptor);
                 const tg0=this._target||{mode:"david"};
-                const tpls=tg0.mode==="agent" ? this._tplLoad("edtu_face_"+tg0.id) : (tg0.mode==="identify" ? [] : this._tplLoad());
+                let tpls;
+                if(tg0.mode==="agent") tpls=this._tplLoad("edtu_face_"+tg0.id);
+                else if(tg0.mode==="identify"){   // contra TODOS los rostros entrenados del dispositivo
+                  tpls=this._tplLoad().slice();
+                  for(const a of agents){ if(!a.blocked) tpls=tpls.concat(this._tplLoad("edtu_face_"+a.id)); }
+                } else tpls=this._tplLoad();
                 this._liveDist = tpls.length ? this._minDist(best.descriptor,tpls) : null;
+                this._liveMatch = tpls.length ? (this._liveDist<0.55) : null;   // ¿es la persona correcta AHORA MISMO?
               }
               if(!this._meshReady){   // sin malla 3D: sonrisa por expresión clásica (respaldo)
                 const hap=best.expressions ? (best.expressions.happy||0) : 0;
@@ -5532,7 +5539,7 @@ const Secret={
                 if(this._sawNeutral && hap>0.75 && !this._smiled){ this._smiled=true; this.scanBeep(1250); }
                 this._drawTrack(video,dets,best);
               }
-            }else{ this._face=false; this._tooFar=false; this._liveDist=null; if(!this._meshReady) this._drawTrack(video,[],null); }
+            }else{ this._face=false; this._tooFar=false; this._liveDist=null; this._liveMatch=null; if(!this._meshReady) this._drawTrack(video,[],null); }
           }catch(e){ this._face=this.faceLike(video,cv); }
           faBusy=false; return;
         }
@@ -5566,7 +5573,7 @@ const Secret={
           this.bioStop(); frame.classList.remove("scanning","noface"); $("bioStart").style.display="block";
           this.bioFail("IA NO DISPONIBLE · SIN VERIFICACIÓN NO HAY ACCESO"); return;
         }
-        const ok1=faReady && this._face && !multi && !this._tooFar;   // la IA debe estar LISTA para avanzar
+        const ok1=faReady && this._face && !multi && !this._tooFar && this._liveMatch!==false;   // rostro equivocado = barra CONGELADA
         if(ok1){ frame.classList.remove("noface");
           if(p<LIVE_AT) p=Math.min(LIVE_AT,p+3.4);                                   // fase 1: identificación
           else if(this._smiled) p=Math.min(100,p+4.5);                               // fase 2: exige SONRISA real
@@ -5577,6 +5584,7 @@ const Secret={
           : multi ? "☝ SOLO UNA PERSONA A LA VEZ"
           : !this._face ? "🔍 BUSCANDO ROSTRO... PONTE FRENTE A LA CÁMARA"
           : this._tooFar ? "🔎 ACÉRCATE UN POCO A LA CÁMARA"
+          : this._liveMatch===false ? "🚫 ROSTRO NO COINCIDE — LA BARRA NO AVANZA"
           : (pi>=LIVE_AT && !this._smiled && faReady) ? (this._sawNeutral ? "😁 SONRÍE — PRUEBA DE VIDA"+(this._meshReady?" · "+(this._smilePct||0)+"%":"") : "😐 CARA SERIA PRIMERO...")
           : "ESCANEANDO ROSTRO · "+pi+"%";
         let hx=""; for(let i=0;i<6;i++) hx+=HEX[Math.floor(Math.random()*16)];
@@ -5771,6 +5779,7 @@ const FaceReg={
         busy=false;
       },300);
       // malla 3D estilo EMOCA también aquí (si la IA de malla está disponible)
+      Secret._liveMatch=null;   // en el entrenador la malla siempre es verde (no se compara identidad)
       this._meshIv=null;
       Secret.loadMesh().then(ok=>{ if(!ok || !this._cam) return;
         this._meshIv=setInterval(()=>{ try{
