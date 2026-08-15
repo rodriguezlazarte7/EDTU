@@ -186,6 +186,12 @@
   .face-slot{position:relative;aspect-ratio:1;border-radius:10px;border:1px dashed rgba(0,170,255,.4);background:rgba(0,0,0,.4);overflow:hidden;display:flex;align-items:center;justify-content:center;color:rgba(79,195,255,.6);font-size:20px}
   .face-slot img{width:100%;height:100%;object-fit:cover}
   .face-slot .fs-st{position:absolute;right:3px;bottom:3px;font-size:14px;text-shadow:0 0 6px #000}
+  /* ---------- JUEGO: F1 RB RUSH ---------- */
+  #f1Fs{position:fixed;inset:0;z-index:120;display:none;background:#000}
+  #f1Fs.open{display:block}
+  #f1Canvas{width:100%;height:100%;display:block}
+  #f1Nitro{position:absolute;right:14px;bottom:max(18px,env(safe-area-inset-bottom));z-index:6;display:none}
+  #f1Fs.touch #f1Nitro{display:block}
   .lockcard{
     position:relative;width:min(420px,92vw);padding:38px 34px;border-radius:18px;
     background:var(--panel);backdrop-filter:blur(14px);
@@ -1273,7 +1279,23 @@
     <button class="btn btn-primary" id="pickRush" style="font-size:17px;padding:14px 20px">🚀 EDTU RUSH</button>
     <button class="btn btn-primary" id="pickFoot" style="font-size:17px;padding:14px 20px">⚽ THE FOOTBALL RUSH</button>
     <button class="btn btn-primary" id="pickMon" style="font-size:17px;padding:14px 20px">➤ SWARM</button>
+    <button class="btn btn-primary" id="pickF1" style="font-size:17px;padding:14px 20px;background:linear-gradient(90deg,#1e2f66,#8a0f1f);border-color:#ffd12e;color:#fff">🏎️ F1 RB RUSH</button>
     <button class="btn btn-ghost btn-sm" id="pickClose">Cerrar</button>
+  </div>
+</div>
+
+<!-- ============ JUEGO: F1 RB RUSH ============ -->
+<div id="f1Fs">
+  <canvas id="f1Canvas"></canvas>
+  <div class="game-top">
+    <div id="f1Hud" class="mono"></div>
+    <button class="btn btn-ghost btn-sm" id="f1Close">✕ Salir</button>
+  </div>
+  <button class="foot-touch" id="f1Nitro">🔥<br><span>NITRO</span></button>
+  <div id="f1Overlay" class="game-overlay">
+    <div id="f1Msg">🏎️ F1 RB RUSH</div>
+    <div id="f1Result" style="font-size:15px"></div>
+    <button class="btn btn-primary" id="f1Start" style="font-size:17px;padding:12px 28px">▶ CORRER</button>
   </div>
 </div>
 
@@ -1708,12 +1730,45 @@ function proceedLogin(user){
   }
   accessGranted(user);
 }
+// 🗣️ VOZ DE BIENVENIDA: "Todo OK, {agente}. Tienes X misiones pendientes y eres el número X del ranking. ¿Qué sigue?"
+function welcomeVoice(){
+  try{
+    if(!("speechSynthesis" in window)) return;
+    const norm=s=>(s||"").toLowerCase().normalize("NFD").replace(/[̀-ͯ]/g,"").replace(/\s+/g," ").trim();
+    const me=currentDisplayName(), meK=norm(me);
+    const isAdmin=currentUser && currentUser.type==="admin";
+    let pend=0;
+    missions.forEach(m=>{
+      if(m.status==="completada"||m.status==="abortada") return;
+      if(isAdmin || (m.agents||[]).some(n=>norm(n)===meK)) pend++;
+    });
+    // ranking: mismo criterio que el panel (completadas y luego eficacia)
+    const stats={};
+    missions.forEach(m=>{ const seen=new Set();
+      (m.agents||[]).forEach(n=>{ const k=norm(n); if(!k||seen.has(k)) return; seen.add(k);
+        if(!stats[k]) stats[k]={completed:0,total:0};
+        stats[k].total++; if(m.status==="completada") stats[k].completed++; });
+    });
+    const arr=Object.keys(stats).map(k=>({k,completed:stats[k].completed,e:stats[k].total?stats[k].completed/stats[k].total:0}));
+    arr.sort((a,b)=> b.completed-a.completed || b.e-a.e);
+    const pos=arr.findIndex(x=>x.k===meK);
+    let msg="Todo OK, "+me+". Te recuerdo que tienes "+pend+(pend===1?" misión pendiente":" misiones pendientes");
+    if(pos>=0) msg+=" y eres el número "+(pos+1)+" en el ranking";
+    msg+=". ¿Qué sigue?";
+    const u=new SpeechSynthesisUtterance(msg);
+    u.lang="es-ES"; u.rate=1.02; u.pitch=1.0;
+    const vs=speechSynthesis.getVoices(), v=vs.find(x=>/^es[-_]?/i.test(x.lang));
+    if(v) u.voice=v;
+    speechSynthesis.cancel(); speechSynthesis.speak(u);
+  }catch(e){}
+}
 function unlock(user){
   currentUser = user || {type:"admin"};
   const lnd=$("landing"); if(lnd) lnd.style.display="none";
   $("app").style.display="block";
   const who = currentUser.type==="agent" ? (getCurrentAgent()||{}).name : "superadmin";
   toast("Bienvenido, "+(who||"agente"));
+  welcomeVoice();   // 🗣️ saludo hablado con el reporte del agente
   renderUserBox();
   render();
   Call.initRing();    // escuchar llamadas entrantes
@@ -5277,6 +5332,163 @@ document.querySelectorAll("#monOverlay .gc-opt").forEach(b=>{ b.onclick=()=>{
   if(b.dataset.mmus!=null){ MonMusic.on=(b.dataset.mmus==="1"); if(!MonMusic.on) MonMusic.stop(); }
   if(b.dataset.mskin) Monster.cfg.skin=b.dataset.mskin;
 }; });
+/* ============ 🏎️ F1 RB RUSH — carrera estilo Red Bull ============ */
+const F1={
+  running:false, raf:null, W:0,H:0, ctx:null, keys:{},
+  px:0, speed:0, dist:0, fuel:100, nitroOn:false, drs:false, cars:[], parts:[], overt:0, best:0, shake:0,
+  _spawnT:0, _nextDrs:600, _drsEnd:0, _tPrev:0, _touchX:null, _btnNitro:false, _eng:null, _engG:null,
+  PXM:10,   // píxeles por metro
+  roadW(){ return Math.min(this.W*0.74, 560); },
+  laneX(i){ const rw=this.roadW(), left=(this.W-rw)/2; return left+rw*(i+0.5)/4; },
+  open(){
+    $("f1Fs").classList.add("open");
+    if(('ontouchstart' in window)||navigator.maxTouchPoints>0) $("f1Fs").classList.add("touch");
+    this.resize(); window.addEventListener("resize",this._rs=()=>this.resize());
+    this.best=+(localStorage.getItem("edtu_f1_best")||0);
+    $("f1Overlay").style.display="flex"; $("f1Msg").textContent="🏎️ F1 RB RUSH";
+    $("f1Result").innerHTML="Esquiva el tráfico · 🔥 NITRO: espacio / Y / RT / botón · franjas verdes = DRS turbo<br>🏆 Récord: <b>"+Math.round(this.best)+"</b> m";
+    this.draw(0);
+  },
+  close(){ this.stop(); $("f1Fs").classList.remove("open"); window.removeEventListener("resize",this._rs); },
+  resize(){ const c=$("f1Canvas"); this.W=c.width=innerWidth; this.H=c.height=innerHeight; this.ctx=c.getContext("2d"); },
+  start(){
+    this.px=this.W/2; this.speed=120; this.dist=0; this.fuel=100; this.cars=[]; this.parts=[]; this.overt=0;
+    this._spawnT=0; this._nextDrs=500; this._drsEnd=0; this.shake=0; this.running=true; this._tPrev=performance.now();
+    $("f1Overlay").style.display="none";
+    this.engineOn();
+    if(!this.raf){ const f=(t)=>{ if(!this.running){ this.raf=null; return; } try{ this.tick(t); }catch(e){} this.raf=requestAnimationFrame(f); }; this.raf=requestAnimationFrame(f); }
+  },
+  stop(){ this.running=false; if(this.raf){ cancelAnimationFrame(this.raf); this.raf=null; } this.engineOff(); },
+  // ---- sonido de motor (sube de tono con la velocidad)
+  actx(){ const AC=window.AudioContext||window.webkitAudioContext; if(!AC) return null; if(!this._ac) this._ac=new AC(); if(this._ac.state==="suspended") this._ac.resume(); return this._ac; },
+  engineOn(){ try{ const a=this.actx(); if(!a) return; this._eng=a.createOscillator(); this._engG=a.createGain();
+    this._eng.type="sawtooth"; this._eng.frequency.value=80; this._engG.gain.value=.035;
+    this._eng.connect(this._engG); this._engG.connect(a.destination); this._eng.start(); }catch(e){} },
+  engineOff(){ try{ if(this._eng){ this._eng.stop(); this._eng=null; } }catch(e){} },
+  crashSound(){ try{ const a=this.actx(); if(!a) return; const n=a.createBufferSource(), buf=a.createBuffer(1,a.sampleRate*0.4,a.sampleRate), d=buf.getChannelData(0);
+    for(let i=0;i<d.length;i++) d[i]=(Math.random()*2-1)*(1-i/d.length);
+    const g=a.createGain(); g.gain.value=.25; n.buffer=buf; n.connect(g); g.connect(a.destination); n.start(); }catch(e){} },
+  // ---- entrada: teclado + mando + táctil
+  input(dt){
+    let dx=0;
+    if(this.keys.ArrowLeft||this.keys.a) dx-=1;
+    if(this.keys.ArrowRight||this.keys.d) dx+=1;
+    let nitro=!!(this.keys[" "]||this.keys.Shift||this._btnNitro);
+    const gp=(typeof Pad!=="undefined"&&Pad.choosePad)?Pad.choosePad():null;
+    if(gp){ const ax=gp.axes[0]||0; if(Math.abs(ax)>0.25) dx+=ax;
+      const b=i=>!!(gp.buttons[i]&&(gp.buttons[i].pressed||gp.buttons[i].value>0.5));
+      if(b(3)||b(7)||b(0)) nitro=true;
+      if(gp.buttons[14]&&gp.buttons[14].pressed) dx-=1;
+      if(gp.buttons[15]&&gp.buttons[15].pressed) dx+=1;
+    }
+    if(this._touchX!=null) this.px += (this._touchX-this.px)*Math.min(1,dt*10);
+    this.px += dx*this.W*0.62*dt;
+    const rw=this.roadW(), left=(this.W-rw)/2;
+    this.px=Math.max(left+26, Math.min(left+rw-26, this.px));
+    this.nitroOn = nitro && this.fuel>1;
+  },
+  tick(t){
+    const dt=Math.min(0.05,(t-this._tPrev)/1000); this._tPrev=t;
+    this.input(dt);
+    // velocidad: acelera sola, NITRO y DRS la disparan
+    const baseMax=300+Math.min(80,this.dist/200);   // sube hasta 380 km/h con la distancia
+    let target=baseMax;
+    if(this.nitroOn){ target*=1.35; this.fuel=Math.max(0,this.fuel-26*dt); }
+    else this.fuel=Math.min(100,this.fuel+9*dt);
+    this.drs = this.dist<this._drsEnd;
+    if(this.drs) target*=1.15;
+    this.speed += (target-this.speed)*Math.min(1,dt*(this.speed<target?0.9:2.2));
+    const mps=this.speed/3.6; this.dist+=mps*dt;
+    if(this._eng) this._eng.frequency.value=70+this.speed*0.6+(this.nitroOn?60:0);
+    // zonas DRS cada ~800 m (duran 220 m)
+    if(this.dist>this._nextDrs){ this._drsEnd=this.dist+220; this._nextDrs=this.dist+800+Math.random()*400; }
+    // tráfico
+    this._spawnT-=dt;
+    if(this._spawnT<=0){
+      this._spawnT=Math.max(0.5,1.25-this.dist/4000);
+      const lane=Math.floor(Math.random()*4);
+      const COLS=[["#a10d1f","#ffd9d9"],["#d8d8d8","#333"],["#ff7b1e","#222"],["#1673ff","#dff"],["#12c48b","#043"]];
+      this.cars.push({ lane, x:this.laneX(lane), m:this.dist+(this.H*0.8)/this.PXM+20+Math.random()*40,
+        v:(110+Math.random()*90)/3.6, col:COLS[Math.floor(Math.random()*COLS.length)], passed:false });
+    }
+    const py=this.H*0.8;
+    for(let i=this.cars.length-1;i>=0;i--){
+      const c=this.cars[i]; c.m+=c.v*dt;
+      const y=py-(c.m-this.dist)*this.PXM;
+      if(y>this.H+80){ this.cars.splice(i,1); this.overt++; continue; }
+      // choque
+      if(Math.abs(c.m-this.dist)<5 && Math.abs(c.x-this.px)<46) return this.crash();
+    }
+    // partículas del nitro
+    if(this.nitroOn){ for(let i=0;i<3;i++) this.parts.push({x:this.px+(Math.random()*18-9),y:py+34,vy:120+Math.random()*80,life:.4,col:Math.random()<.5?"#ff8c1a":"#33bbff"}); }
+    for(let i=this.parts.length-1;i>=0;i--){ const p=this.parts[i]; p.y+=p.vy*dt; p.life-=dt; if(p.life<=0) this.parts.splice(i,1); }
+    if(this.shake>0) this.shake=Math.max(0,this.shake-dt*30);
+    this.draw(t);
+    $("f1Hud").textContent="⚡ "+Math.round(this.speed)+" km/h · 📏 "+(this.dist>=1000?(this.dist/1000).toFixed(2)+" km":Math.round(this.dist)+" m")+" · 🏁 "+this.overt+(this.drs?" · 🟢 DRS":"");
+  },
+  crash(){
+    this.crashSound(); this.engineOff(); this.running=false;
+    if(navigator.vibrate){ try{ navigator.vibrate([120,60,180]); }catch(e){} }
+    const m=Math.round(this.dist), rec=m>this.best;
+    if(rec){ this.best=m; localStorage.setItem("edtu_f1_best",String(m)); }
+    $("f1Overlay").style.display="flex";
+    $("f1Msg").textContent="💥 ¡CHOCASTE!";
+    $("f1Result").innerHTML=(rec?"🏆 ¡NUEVO RÉCORD!<br>":"")+"Distancia: <b>"+m+"</b> m · Adelantados: <b>"+this.overt+"</b> · Récord: <b>"+Math.round(this.best)+"</b> m";
+    $("f1Start").textContent="▶ CORRER OTRA VEZ";
+    if(this.raf){ cancelAnimationFrame(this.raf); this.raf=null; }
+  },
+  // ---- dibujo
+  drawCar(c2,x,y,body,accent,me){
+    c2.save(); c2.translate(x,y);
+    c2.fillStyle="#111";
+    [[-20,-26],[8,-26],[-22,16],[10,16]].forEach(w=>c2.fillRect(w[0],w[1],12,16));   // ruedas
+    c2.fillStyle=body; c2.beginPath();               // cuerpo
+    c2.moveTo(0,-34); c2.lineTo(9,-16); c2.lineTo(7,20); c2.lineTo(13,26); c2.lineTo(-13,26); c2.lineTo(-7,20); c2.lineTo(-9,-16); c2.closePath(); c2.fill();
+    c2.fillStyle=accent; c2.fillRect(-15,-34,30,5);  // alerón delantero
+    c2.fillRect(-14,24,28,6);                        // alerón trasero
+    if(me){ c2.fillStyle="#ffd12e"; c2.beginPath(); c2.moveTo(0,-34); c2.lineTo(5,-20); c2.lineTo(-5,-20); c2.closePath(); c2.fill(); }
+    c2.strokeStyle="rgba(255,255,255,.5)"; c2.lineWidth=1.5; c2.beginPath(); c2.arc(0,2,5,0,Math.PI*2); c2.stroke();   // halo
+    c2.restore();
+  },
+  draw(t){
+    const c2=this.ctx; if(!c2) return;
+    const rw=this.roadW(), left=(this.W-rw)/2, py=this.H*0.8;
+    c2.save();
+    if(this.shake>0) c2.translate((Math.random()*2-1)*this.shake,(Math.random()*2-1)*this.shake);
+    c2.fillStyle="#06070d"; c2.fillRect(-20,-20,this.W+40,this.H+40);          // fondo
+    c2.fillStyle="#15161c"; c2.fillRect(left,0,rw,this.H);                     // asfalto
+    const off=(this.dist*this.PXM)%80;
+    for(let k=0;k<2;k++){ const bx=k===0?left-10:left+rw;                      // pianos rojo/blanco
+      for(let y=-80;y<this.H+80;y+=40){ const yy=y+off; c2.fillStyle=(Math.floor((y)/40)%2===0)?"#c8102e":"#e8e8e8"; c2.fillRect(bx,yy,10,40); } }
+    c2.strokeStyle="rgba(255,255,255,.28)"; c2.lineWidth=4; c2.setLineDash([26,30]); c2.lineDashOffset=-(this.dist*this.PXM)%56;
+    for(let i=1;i<4;i++){ const x=left+rw*i/4; c2.beginPath(); c2.moveTo(x,0); c2.lineTo(x,this.H); c2.stroke(); }
+    c2.setLineDash([]);
+    // franja DRS (verde) si viene una cerca
+    const zs=this._drsEnd-220, ze=this._drsEnd;
+    if(ze>this.dist-30){ const y1=py-(ze-this.dist)*this.PXM, y2=py-(zs-this.dist)*this.PXM;
+      if(y2>0&&y1<this.H){ c2.fillStyle="rgba(30,255,120,.14)"; c2.fillRect(left,Math.max(0,y1),rw,Math.min(this.H,y2)-Math.max(0,y1));
+        c2.fillStyle="rgba(30,255,120,.7)"; c2.font="bold 22px Consolas,monospace"; c2.fillText("DRS",left+12,Math.max(24,y1+26)); } }
+    this.parts.forEach(p=>{ c2.globalAlpha=Math.max(0,p.life*2.4); c2.fillStyle=p.col; c2.fillRect(p.x-3,p.y,6,10); c2.globalAlpha=1; });
+    this.cars.forEach(c=>{ const y=py-(c.m-this.dist)*this.PXM; if(y>-60&&y<this.H+60) this.drawCar(c2,c.x,y,c.col[0],c.col[1],false); });
+    this.drawCar(c2,this.px,py,"#1e2f66","#c8102e",true);                      // tu RB
+    // barra de NITRO
+    const bw=Math.min(260,this.W*0.5);
+    c2.fillStyle="rgba(255,255,255,.12)"; c2.fillRect((this.W-bw)/2,this.H-26,bw,10);
+    c2.fillStyle=this.nitroOn?"#ff8c1a":"#33bbff"; c2.fillRect((this.W-bw)/2,this.H-26,bw*this.fuel/100,10);
+    c2.restore();
+  }
+};
+$("pickF1").onclick=()=>{ $("gamePick").classList.remove("open"); F1.open(); };
+$("f1Close").onclick=()=>F1.close();
+$("f1Start").onclick=()=>F1.start();
+(function(){ const b=$("f1Nitro"), on=e=>{ e.preventDefault(); F1._btnNitro=true; }, off=()=>{ F1._btnNitro=false; };
+  b.addEventListener("pointerdown",on); b.addEventListener("pointerup",off); b.addEventListener("pointercancel",off); b.addEventListener("pointerleave",off); })();
+$("f1Canvas").addEventListener("pointerdown",e=>{ F1._touchX=e.clientX; });
+$("f1Canvas").addEventListener("pointermove",e=>{ if(e.buttons||e.pressure>0) F1._touchX=e.clientX; });
+$("f1Canvas").addEventListener("pointerup",()=>{ F1._touchX=null; });
+document.addEventListener("keydown",e=>{ if(!$("f1Fs").classList.contains("open")) return; F1.keys[e.key]=true; if(e.key===" ") e.preventDefault(); if(e.key==="Escape") F1.close(); });
+document.addEventListener("keyup",e=>{ F1.keys[e.key]=false; });
+
 // Portada: solo PLAY a la vista — el login está ESCONDIDO (escribe "hola" o toca H-O-L-A)
 $("lndPlay").onclick=()=>{ $("landing").style.display="none"; Monster._fromLanding=true; Monster.open(); };
 
@@ -5897,7 +6109,7 @@ const Pad={
   // La navegación NO actúa dentro de juegos/robot (ellos usan el mando a su manera)
   navOn(){ const o=id=>{ const e=document.getElementById(id); return e&&e.classList.contains("open"); };
     if(o("monFs") && typeof Monster!=="undefined" && (Monster.shopping||Monster.labOpen)) return true;   // navegar tienda/laboratorio con el mando
-    return !(o("gameFs")||o("footFs")||o("robotFs")||o("monFs")); },
+    return !(o("gameFs")||o("footFs")||o("robotFs")||o("monFs")||o("f1Fs")); },
   isVis(el){ if(!el||el.disabled) return false; if(el.getAttribute&&el.getAttribute("aria-hidden")==="true") return false;
     const s=getComputedStyle(el); if(s.display==="none"||s.visibility==="hidden"||+s.opacity===0||s.pointerEvents==="none") return false;
     const r=el.getBoundingClientRect(); if(r.width<3||r.height<3) return false;
