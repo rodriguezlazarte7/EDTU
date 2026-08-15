@@ -797,6 +797,7 @@
     </div>
     <input type="file" id="faceFiles" accept="image/*" multiple style="display:none">
     <button class="btn btn-primary" id="faceTake" style="width:100%;margin-top:12px">📸 TOMAR FOTOS AQUÍ</button>
+    <button class="btn btn-primary" id="faceLearn" style="width:100%;margin-top:8px">🧠 APRENDER CARA (escaneo continuo)</button>
     <button class="btn btn-ghost" id="facePick" style="width:100%;margin-top:8px">🖼️ O ELEGIR FOTOS GUARDADAS</button>
     <button class="btn btn-primary" id="faceSave" style="width:100%;margin-top:8px" disabled>💾 GUARDAR PLANTILLAS (0)</button>
     <button class="btn btn-ghost" id="faceWipe" style="width:100%;margin-top:8px">🧹 BORRAR ROSTRO GUARDADO</button>
@@ -5716,7 +5717,7 @@ const Secret={
   _tplLoad(key){ try{ const raw=JSON.parse(localStorage.getItem(key||"edtu_face_david")||"null"); if(!raw) return [];
     if(Array.isArray(raw) && typeof raw[0]==="number") return [raw];   // formato antiguo: 1 sola huella
     return Array.isArray(raw)?raw:[]; }catch(e){ return []; } },
-  _tplSave(tpls,key){ localStorage.setItem(key||"edtu_face_david",JSON.stringify(tpls.slice(0,8))); },
+  _tplSave(tpls,key){ localStorage.setItem(key||"edtu_face_david",JSON.stringify(tpls.slice(0,10))); },
   _minDist(desc,tpls){ let m=Infinity; for(const t of tpls){ const d=faceapi.euclideanDistance(t,desc); if(d<m) m=d; } return m; },
   // ---- MALLA 3D estilo EMOCA (MediaPipe Face Landmarker: 468 puntos con profundidad + emociones)
   loadMesh(){
@@ -6075,7 +6076,7 @@ const FaceReg={
       this._cam=await navigator.mediaDevices.getUserMedia({video:{facingMode:"user", width:{ideal:640}, height:{ideal:480}},audio:false});
       $("faceCam").srcObject=this._cam;
       const fv=$("faceCam"); fv.onloadedmetadata=()=>{ try{ $("faceCamFrame").style.aspectRatio=(fv.videoWidth>=fv.videoHeight)?"4 / 3":"3 / 4"; }catch(e){} };
-      $("faceCamWrap").style.display="block"; $("faceTake").style.display="none"; $("facePick").style.display="none";
+      $("faceCamWrap").style.display="block"; $("faceTake").style.display="none"; $("facePick").style.display="none"; $("faceLearn").style.display="none";
       this.updSnap(); $("faceMsg").textContent="😎 Pósate: sonriendo, serio, de ladito...";
       // rastreo EN VIVO: recuadro + landmarks + boca dorada al sonreír (como en el escaneo)
       let busy=false;
@@ -6101,11 +6102,53 @@ const FaceReg={
       });
     }catch(e){ $("faceMsg").textContent="⛔ Cámara rechazada"; }
   },
+  // 🧠 MODO APRENDER CARA: escaneo continuo que colecciona huellas nuevas hasta que sales
+  async learnStart(){
+    const ok=await Secret.loadFaceApi();
+    if(!ok || !window.faceapi){ $("faceMsg").textContent="⚠ IA no disponible"; return; }
+    this.learn=true;
+    await this.camOpen();
+    if(!this._cam){ this.learn=false; return; }
+    $("faceSnap").style.display="none"; $("faceCamStop").textContent="✔ SALIR DEL MODO";
+    $("faceMsg").textContent="🧠 APRENDIENDO... gira la cabeza, sonríe, ponte serio, acércate y aléjate";
+    let busyL=false;
+    this._learnIv=setInterval(async()=>{
+      if(busyL || !this._cam) return; busyL=true;
+      try{
+        const v=$("faceCam");
+        if(v && v.videoWidth){
+          const dets=await faceapi.detectAllFaces(v,new faceapi.TinyFaceDetectorOptions({inputSize:416,scoreThreshold:.5})).withFaceLandmarks(true).withFaceDescriptors();
+          if(dets.length===1){
+            const desc=dets[0].descriptor;
+            const tpls=Secret._tplLoad(this.target.key);
+            if(!tpls.length){ tpls.push(Array.from(desc)); Secret._tplSave(tpls,this.target.key); Secret.scanBeep(900); }
+            else{
+              const d=Secret._minDist(desc,tpls);
+              if(d>0.62){ $("faceMsg").textContent="😳 Ese rostro no parece de "+this.target.label+" — ignorado"; busyL=false; return; }
+              if(d>=0.22 && tpls.length<10){ tpls.push(Array.from(desc)); Secret._tplSave(tpls,this.target.key); Secret.scanBeep(700+tpls.length*40); }
+            }
+            const n=Secret._tplLoad(this.target.key).length;
+            $("faceMsg").textContent = n>=10 ? "🧠 ¡APRENDIZAJE COMPLETO! ("+n+"/10) · puedes salir cuando quieras"
+              : "🧠 APRENDIENDO A "+this.target.label+" · muestras "+n+"/10 — cambia de ángulo, gesto y luz";
+          }
+          else $("faceMsg").textContent = dets.length>1 ? "☝ SOLO UNA PERSONA A LA VEZ" : "🔍 Buscando rostro...";
+        }
+      }catch(e){}
+      busyL=false;
+    },700);
+  },
   camStop(){
+    if(this._learnIv){ clearInterval(this._learnIv); this._learnIv=null; }
+    if(this.learn){ this.learn=false;
+      const n=Secret._tplLoad(this.target.key).length;
+      $("faceMsg").textContent="🧠 Aprendizaje terminado · "+n+" plantillas de "+this.target.label;
+      toast("🧠 Rostro de "+this.target.label+" aprendido ("+n+" plantillas)");
+    }
+    $("faceSnap").style.display=""; $("faceCamStop").textContent="✔ LISTO";
     if(this._trackIv){ clearInterval(this._trackIv); this._trackIv=null; }
     if(this._meshIv){ clearInterval(this._meshIv); this._meshIv=null; }
     const tc=$("faceCamTrack"); if(tc){ try{ tc.getContext("2d").clearRect(0,0,tc.width,tc.height); }catch(e){} }
-    if(this._cam){ try{ this._cam.getTracks().forEach(t=>t.stop()); }catch(e){} this._cam=null; } try{ $("faceCam").srcObject=null; }catch(e){} $("faceCamWrap").style.display="none"; $("faceTake").style.display="block"; $("facePick").style.display="block"; },
+    if(this._cam){ try{ this._cam.getTracks().forEach(t=>t.stop()); }catch(e){} this._cam=null; } try{ $("faceCam").srcObject=null; }catch(e){} $("faceCamWrap").style.display="none"; $("faceTake").style.display="block"; $("facePick").style.display="block"; $("faceLearn").style.display="block"; },
   updSnap(){ const b=$("faceSnap"); if(b){ b.textContent="📸 CAPTURAR ("+this.items.length+"/8)"; b.disabled=this.items.length>=8; } },
   async snap(){
     if(this.items.length>=8){ $("faceMsg").textContent="Ya tienes 8 fotos — pulsa GUARDAR"; return; }
@@ -6170,6 +6213,7 @@ const FaceReg={
 $("faceBtn").onclick=()=>FaceReg.open();
 $("faceClose").onclick=()=>FaceReg.close();
 $("faceTake").onclick=()=>FaceReg.camOpen();
+$("faceLearn").onclick=()=>FaceReg.learnStart();
 $("faceSnap").onclick=()=>FaceReg.snap();
 $("faceCamStop").onclick=()=>FaceReg.camStop();
 $("facePick").onclick=()=>$("faceFiles").click();
