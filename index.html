@@ -186,6 +186,10 @@
   .face-slot{position:relative;aspect-ratio:1;border-radius:10px;border:1px dashed rgba(0,170,255,.4);background:rgba(0,0,0,.4);overflow:hidden;display:flex;align-items:center;justify-content:center;color:rgba(79,195,255,.6);font-size:20px}
   .face-slot img{width:100%;height:100%;object-fit:cover}
   .face-slot .fs-st{position:absolute;right:3px;bottom:3px;font-size:14px;text-shadow:0 0 6px #000}
+  /* ---------- ENTRETENCIÓN: filtros AR ---------- */
+  #funFs{position:fixed;inset:0;z-index:152;display:none;align-items:center;justify-content:center;background:rgba(0,6,12,.94)}
+  #funFs.show{display:flex}
+  .fun-chip.sel{color:#ffd12e;border-color:#ffd12e;box-shadow:0 0 10px rgba(255,209,46,.4)}
   /* ---------- ESTACIÓN METEOROLÓGICA (botón Clima) ---------- */
   #wxBg{position:fixed;inset:0;z-index:150;display:none;align-items:center;justify-content:center;background:rgba(0,0,0,.75);backdrop-filter:blur(4px)}
   #wxBg.open{display:flex}
@@ -832,6 +836,7 @@
       <button class="btn btn-ghost btn-sm" id="statsBtn">📈 Stats</button>
       <button class="btn btn-ghost btn-sm" id="rankBtn">🎖️ Ranking</button>
       <button class="btn btn-ghost btn-sm" id="wxBtn">🌦️ Clima</button>
+      <button class="btn btn-ghost btn-sm" id="funBtn">🎭 Entretención</button>
       <button class="btn btn-ghost btn-sm" id="clfBtn" style="color:var(--red);border-color:rgba(255,59,91,0.5)">🔴 Clasificadas</button>
       <button class="btn btn-ghost btn-sm" id="gameBtn">🎮 Juego</button>
       <button class="btn btn-ghost btn-sm" id="robotBtn" style="color:#2fd0ff;border-color:rgba(47,208,255,0.5)">🚗 Robot</button>
@@ -1089,6 +1094,7 @@
     <div class="call-controls">
       <button class="call-ctrl" id="callMic" title="Silenciar micrófono">🎙️</button>
       <button class="call-ctrl" id="callCam" title="Apagar cámara">📹</button>
+      <button class="call-ctrl" id="callFx" title="Cambiar filtro AR">🎭</button>
       <button class="call-ctrl share" id="callScreen" title="Compartir pantalla">🖥️</button>
       <button class="call-ctrl danger" id="callHangup" title="Colgar">📴</button>
     </div>
@@ -1288,6 +1294,21 @@
 </div>
 
 <!-- ============ SELECTOR DE JUEGO ============ -->
+<div id="funFs">
+  <div class="facecard">
+    <button class="v-close" id="funClose" title="Cerrar">✕</button>
+    <h2 class="mono">🎭 ENTRETENCIÓN — FILTROS</h2>
+    <div class="v-sub mono">EL FILTRO ELEGIDO TAMBIÉN SE USA EN LAS VIDEOLLAMADAS 📹</div>
+    <div class="bio-frame" id="funFrame" style="margin:12px 0 8px">
+      <video id="funCam" autoplay playsinline muted></video>
+      <canvas id="funTrack"></canvas>
+    </div>
+    <div id="funChips" style="display:flex;flex-wrap:wrap;gap:6px;justify-content:center"></div>
+    <button class="btn btn-primary" id="funShot" style="width:100%;margin-top:10px">📸 FOTO CON FILTRO</button>
+    <div class="v-msg mono" id="funMsg" style="color:#4fc3ff"></div>
+  </div>
+</div>
+
 <div id="wxBg">
   <div class="wx-card">
     <button class="v-close" id="wxClose" title="Cerrar">✕</button>
@@ -3732,8 +3753,10 @@ const Call = {
   reject(){ this.hideIncoming(); },
 
   async join(room){
-    try{ this.localStream = await navigator.mediaDevices.getUserMedia({video:true, audio:true}); }
+    try{ this.rawStream = await navigator.mediaDevices.getUserMedia({video:true, audio:true}); }
     catch(e){ toast("⚠ No se pudo acceder a cámara/micrófono"); return false; }
+    // 🎭 los demás te ven CON tu filtro AR (el video pasa por el canvas de Fun)
+    this.localStream = (typeof Fun!=="undefined") ? Fun.pipe(this.rawStream) : this.rawStream;
     this.room=room; this.peerId=uid(); this.peers={}; this.micOn=true; this.camOn=true;
     $("callMic").classList.remove("off"); $("callMic").textContent="🎙️";
     $("callCam").classList.remove("off"); $("callCam").textContent="📹";
@@ -3836,6 +3859,8 @@ const Call = {
     Object.keys(this.peers).forEach(id=>this.removePeer(id));
     if(this.chan){ try{ Cloud.sb.removeChannel(this.chan); }catch(e){} this.chan=null; }
     if(this.localStream){ this.localStream.getTracks().forEach(t=>t.stop()); this.localStream=null; }
+    if(this.rawStream){ this.rawStream.getTracks().forEach(t=>t.stop()); this.rawStream=null; }
+    if(typeof Fun!=="undefined") Fun.pipeStop();
     $("callGrid").innerHTML=""; $("callBg").classList.remove("open");
     this.room=null; this.peers={};
   }
@@ -5591,6 +5616,145 @@ const Wx={
 $("wxBtn").onclick=()=>Wx.open();
 $("wxClose").onclick=()=>$("wxBg").classList.remove("open");
 $("wxBg").addEventListener("click",e=>{ if(e.target===$("wxBg")) $("wxBg").classList.remove("open"); });
+
+/* ============ 🎭 ENTRETENCIÓN — filtros AR en vivo (y en videollamadas) ============ */
+const Fun={
+  FILTERS:[
+    {id:"none",n:"Sin filtro",e:"🚫"},{id:"gafas",n:"Espía",e:"🕶️"},{id:"bigote",n:"Bigote",e:"🥸"},
+    {id:"casco",n:"Casco RB",e:"🏎️"},{id:"corona",n:"Rey",e:"👑"},{id:"perrito",n:"Perrito",e:"🐶"},{id:"payaso",n:"Payaso",e:"🔴"}],
+  current:"gafas", _cam:null, _iv:null, _pts:null, _pipeV:null, _pipeDet:null, _pipeDraw:null,
+  open(){
+    $("funFs").classList.add("show"); this.renderChips(); $("funMsg").textContent="🧠 Cargando IA...";
+    Secret.loadMesh().then(ok=>{
+      if(!ok){ $("funMsg").textContent="⚠ IA no disponible (revisa internet)"; return; }
+      navigator.mediaDevices.getUserMedia({video:{facingMode:"user",width:{ideal:640},height:{ideal:480}},audio:false}).then(s=>{
+        this._cam=s; const v=$("funCam"); v.srcObject=s;
+        v.onloadedmetadata=()=>{ try{ $("funFrame").style.aspectRatio=(v.videoWidth>=v.videoHeight)?"4 / 3":"3 / 4"; }catch(e){} };
+        $("funMsg").textContent="Elige tu filtro 😎 (también saldrá en tus llamadas)";
+        let busy=false;
+        this._iv=setInterval(()=>{ if(busy||!this._cam||!v.videoWidth) return; busy=true;
+          try{
+            const res=Secret._mesh.detectForVideo(v,performance.now());
+            this._pts=(res.faceLandmarks&&res.faceLandmarks[0])||null;
+            const cv=$("funTrack");
+            if(cv.width!==v.videoWidth||cv.height!==v.videoHeight){ cv.width=v.videoWidth; cv.height=v.videoHeight; }
+            const c=cv.getContext("2d"); c.clearRect(0,0,cv.width,cv.height);
+            if(this._pts && this.current!=="none") this.drawFilter(c,this._pts,cv.width,cv.height);
+          }catch(e){}
+          busy=false;
+        },66);
+      }).catch(()=>{ $("funMsg").textContent="⛔ Cámara rechazada"; });
+    });
+  },
+  close(){ if(this._iv){ clearInterval(this._iv); this._iv=null; } if(this._cam){ try{ this._cam.getTracks().forEach(t=>t.stop()); }catch(e){} this._cam=null; } try{ $("funCam").srcObject=null; }catch(e){} $("funFs").classList.remove("show"); },
+  renderChips(){
+    const w=$("funChips"); w.innerHTML="";
+    this.FILTERS.forEach(f=>{ const b=document.createElement("button");
+      b.className="btn btn-ghost btn-sm fun-chip"+(this.current===f.id?" sel":""); b.textContent=f.e+" "+f.n;
+      b.onclick=()=>{ this.current=f.id; this.renderChips(); }; w.appendChild(b); });
+  },
+  photo(){
+    const v=$("funCam"); if(!v||!v.videoWidth) return;
+    const comp=document.createElement("canvas"); comp.width=v.videoWidth; comp.height=v.videoHeight;
+    const cc=comp.getContext("2d"); cc.drawImage(v,0,0);
+    if(this._pts && this.current!=="none") this.drawFilter(cc,this._pts,comp.width,comp.height);
+    const fin=document.createElement("canvas"); fin.width=comp.width; fin.height=comp.height;
+    const fc=fin.getContext("2d"); fc.translate(fin.width,0); fc.scale(-1,1); fc.drawImage(comp,0,0);
+    const aEl=document.createElement("a"); aEl.download="edtu-filtro.png"; aEl.href=fin.toDataURL("image/png"); aEl.click();
+    toast("📸 Foto con filtro guardada (Descargas)");
+  },
+  cycle(){ const i=this.FILTERS.findIndex(f=>f.id===this.current); this.current=this.FILTERS[(i+1)%this.FILTERS.length].id;
+    const f=this.FILTERS.find(x=>x.id===this.current); toast("🎭 Filtro: "+f.e+" "+f.n); },
+  // tubería para LLAMADAS: video crudo -> canvas con filtro -> stream que ven los demás
+  pipe(raw){
+    try{
+      this.pipeStop();
+      const v=document.createElement("video"); v.muted=true; v.playsInline=true;
+      v.srcObject=new MediaStream(raw.getVideoTracks()); v.play();
+      const cv=document.createElement("canvas"), ctx=cv.getContext("2d");
+      let pts=null, busy=false;
+      this._pipeV=v;
+      Secret.loadMesh();
+      this._pipeDet=setInterval(()=>{ if(busy||!v.videoWidth||!Secret._meshReady) return; busy=true;
+        try{ const r=Secret._mesh.detectForVideo(v,performance.now()); pts=(r.faceLandmarks&&r.faceLandmarks[0])||null; }catch(e){}
+        busy=false; },120);
+      this._pipeDraw=setInterval(()=>{ try{
+        if(!v.videoWidth) return;
+        if(cv.width!==v.videoWidth||cv.height!==v.videoHeight){ cv.width=v.videoWidth; cv.height=v.videoHeight; }
+        ctx.drawImage(v,0,0);
+        if(pts && this.current!=="none") this.drawFilter(ctx,pts,cv.width,cv.height);
+      }catch(e){} },45);
+      const out=cv.captureStream(22);
+      raw.getAudioTracks().forEach(t=>out.addTrack(t));
+      return out;
+    }catch(e){ return raw; }
+  },
+  pipeStop(){
+    if(this._pipeDet){ clearInterval(this._pipeDet); this._pipeDet=null; }
+    if(this._pipeDraw){ clearInterval(this._pipeDraw); this._pipeDraw=null; }
+    if(this._pipeV){ try{ this._pipeV.srcObject=null; }catch(e){} this._pipeV=null; }
+  },
+  // dibujo de los filtros anclados a la cara (malla de 468 puntos)
+  drawFilter(c,pts,W,H){
+    const P=i=>({x:pts[i].x*W, y:pts[i].y*H});
+    const a=P(234), b=P(454), fw=Math.hypot(b.x-a.x,b.y-a.y), tilt=Math.atan2(b.y-a.y,b.x-a.x);
+    const mid=P(168), nose=P(1), top=P(10);
+    const at=(p,fn)=>{ c.save(); c.translate(p.x,p.y); c.rotate(tilt); fn(); c.restore(); };
+    const f=this.current;
+    if(f==="gafas") at(mid,()=>{
+      const w=fw*0.30, h=fw*0.15, gap=fw*0.19;
+      c.fillStyle="rgba(10,10,14,.92)"; c.strokeStyle="#39424f"; c.lineWidth=fw*0.02;
+      [-gap,gap].forEach(off=>{ c.beginPath(); c.roundRect(off-w/2,-h/2,w,h,h*0.4); c.fill(); c.stroke(); });
+      c.fillRect(-gap+w/2-1,-h*0.12,gap*2-w+2,h*0.16);
+      c.strokeStyle="rgba(10,10,14,.9)"; c.lineWidth=fw*0.03;
+      c.beginPath(); c.moveTo(-gap-w/2,0); c.lineTo(-fw*0.55,-fw*0.03); c.moveTo(gap+w/2,0); c.lineTo(fw*0.55,-fw*0.03); c.stroke();
+      c.fillStyle="rgba(120,180,255,.25)";
+      [-gap,gap].forEach(off=>{ c.beginPath(); c.roundRect(off-w/2+3,-h/2+3,w*0.45,h*0.35,4); c.fill(); });
+    });
+    else if(f==="bigote"){ const m2=P(164); at(m2,()=>{
+      c.fillStyle="#3a2415";
+      for(const s of [-1,1]){ c.beginPath();
+        c.moveTo(0,0); c.quadraticCurveTo(s*fw*0.16,-fw*0.075, s*fw*0.30,-fw*0.02);
+        c.quadraticCurveTo(s*fw*0.34,fw*0.01, s*fw*0.26,fw*0.035);
+        c.quadraticCurveTo(s*fw*0.12,fw*0.055, 0,fw*0.02); c.closePath(); c.fill(); }
+    }); }
+    else if(f==="casco") at(top,()=>{
+      const r=fw*0.62;
+      c.fillStyle="#1e2f66"; c.beginPath(); c.arc(0,fw*0.1,r,Math.PI,0); c.closePath(); c.fill();
+      c.fillStyle="#c8102e"; c.beginPath(); c.moveTo(0,fw*0.1); c.arc(0,fw*0.1,r,Math.PI*1.3,Math.PI*1.7); c.closePath(); c.fill();
+      c.fillStyle="#ffd12e"; c.fillRect(-r,fw*0.04,r*2,fw*0.09);
+    });
+    else if(f==="corona") at(top,()=>{
+      const w=fw*0.55,h=fw*0.34;
+      c.fillStyle="#ffd12e"; c.strokeStyle="#c9971b"; c.lineWidth=2;
+      c.beginPath(); c.moveTo(-w,-fw*0.08);
+      c.lineTo(-w,-h); c.lineTo(-w*0.5,-h*0.55); c.lineTo(0,-h*1.15); c.lineTo(w*0.5,-h*0.55); c.lineTo(w,-h); c.lineTo(w,-fw*0.08);
+      c.closePath(); c.fill(); c.stroke();
+      c.fillStyle="#c8102e";
+      [[-w*0.5,-h*0.42],[0,-h*0.75],[w*0.5,-h*0.42]].forEach(p=>{ c.beginPath(); c.arc(p[0],p[1],fw*0.045,0,Math.PI*2); c.fill(); });
+    });
+    else if(f==="perrito"){
+      at(top,()=>{
+        c.fillStyle="#8a5a2b";
+        for(const s of [-1,1]){ c.beginPath(); c.ellipse(s*fw*0.42,-fw*0.30,fw*0.16,fw*0.30,s*0.5,0,Math.PI*2); c.fill(); }
+        c.fillStyle="#c98a4b";
+        for(const s of [-1,1]){ c.beginPath(); c.ellipse(s*fw*0.42,-fw*0.28,fw*0.08,fw*0.18,s*0.5,0,Math.PI*2); c.fill(); }
+      });
+      at(nose,()=>{
+        c.fillStyle="#26170c"; c.beginPath(); c.ellipse(0,0,fw*0.11,fw*0.08,0,0,Math.PI*2); c.fill();
+        c.fillStyle="rgba(255,255,255,.5)"; c.beginPath(); c.ellipse(-fw*0.035,-fw*0.025,fw*0.03,fw*0.02,0,0,Math.PI*2); c.fill();
+      });
+    }
+    else if(f==="payaso") at(nose,()=>{
+      c.fillStyle="#e21b1b"; c.beginPath(); c.arc(0,0,fw*0.13,0,Math.PI*2); c.fill();
+      c.fillStyle="rgba(255,255,255,.65)"; c.beginPath(); c.arc(-fw*0.045,-fw*0.045,fw*0.04,0,Math.PI*2); c.fill();
+    });
+  }
+};
+$("funBtn").onclick=()=>Fun.open();
+$("funClose").onclick=()=>Fun.close();
+$("funShot").onclick=()=>Fun.photo();
+$("callFx").onclick=()=>Fun.cycle();
 
 // Portada: solo PLAY a la vista — el login está ESCONDIDO (escribe "hola" o toca H-O-L-A)
 $("lndPlay").onclick=()=>{ $("landing").style.display="none"; Monster._fromLanding=true; Monster.open(); };
