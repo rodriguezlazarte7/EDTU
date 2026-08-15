@@ -5450,14 +5450,14 @@ const Secret={
     const faces=(res && res.faceLandmarks)||[], W=cv.width, H=cv.height, T=this._meshTess||[];
     faces.forEach((pts,fi)=>{
       const main=(fi===0);
-      const good=main && this._liveMatch!==false;   // rostro equivocado -> malla ROJA
-      c.strokeStyle=good?"rgba(57,255,20,.25)":"rgba(255,7,58,.3)"; c.lineWidth=1; c.shadowBlur=0;
+      const good=main && this._liveMatch!==false;   // rostro correcto -> malla AZUL · equivocado -> ROJA
+      c.strokeStyle=good?"rgba(0,170,255,.28)":"rgba(255,7,58,.3)"; c.lineWidth=1; c.shadowBlur=0;
       c.beginPath();
       for(const e of T){ const a=pts[e.start], b=pts[e.end]; c.moveTo(a.x*W,a.y*H); c.lineTo(b.x*W,b.y*H); }
       c.stroke();
       for(const p of pts){
         const z=Math.max(0,Math.min(1,0.5-(p.z*6)));   // z negativo = más cerca de la cámara
-        c.fillStyle=good?("rgba(57,255,20,"+(0.25+z*0.75).toFixed(2)+")"):"rgba(255,7,58,.6)";
+        c.fillStyle=good?("rgba(0,170,255,"+(0.25+z*0.75).toFixed(2)+")"):"rgba(255,7,58,.6)";
         const s=1+z*2.2; c.fillRect(p.x*W-s/2,p.y*H-s/2,s,s);
       }
     });
