@@ -5625,6 +5625,7 @@ const Fun={
   current:"gafas", _cam:null, _iv:null, _pts:null, _pipeV:null, _pipeDet:null, _pipeDraw:null,
   open(){
     $("funFs").classList.add("show"); this.renderChips(); $("funMsg").textContent="🧠 Cargando IA...";
+    this.loadHands();   // IA de manos (6 y 7 en las palmas)
     Secret.loadMesh().then(ok=>{
       if(!ok){ $("funMsg").textContent="⚠ IA no disponible (revisa internet)"; return; }
       navigator.mediaDevices.getUserMedia({video:{facingMode:"user",width:{ideal:640},height:{ideal:480}},audio:false}).then(s=>{
@@ -5636,10 +5637,12 @@ const Fun={
           try{
             const res=Secret._mesh.detectForVideo(v,performance.now());
             this._pts=(res.faceLandmarks&&res.faceLandmarks[0])||null;
+            if(this._hands){ try{ this._hres=this._hands.detectForVideo(v,performance.now()); }catch(e){} }
             const cv=$("funTrack");
             if(cv.width!==v.videoWidth||cv.height!==v.videoHeight){ cv.width=v.videoWidth; cv.height=v.videoHeight; }
             const c=cv.getContext("2d"); c.clearRect(0,0,cv.width,cv.height);
             if(this._pts && this.current!=="none") this.drawFilter(c,this._pts,cv.width,cv.height);
+            if(this._hres) this.drawHands(c,this._hres,cv.width,cv.height,true);
           }catch(e){}
           busy=false;
         },66);
@@ -5658,6 +5661,7 @@ const Fun={
     const comp=document.createElement("canvas"); comp.width=v.videoWidth; comp.height=v.videoHeight;
     const cc=comp.getContext("2d"); cc.drawImage(v,0,0);
     if(this._pts && this.current!=="none") this.drawFilter(cc,this._pts,comp.width,comp.height);
+    if(this._hres) this.drawHands(cc,this._hres,comp.width,comp.height,true);
     const fin=document.createElement("canvas"); fin.width=comp.width; fin.height=comp.height;
     const fc=fin.getContext("2d"); fc.translate(fin.width,0); fc.scale(-1,1); fc.drawImage(comp,0,0);
     const aEl=document.createElement("a"); aEl.download="edtu-filtro.png"; aEl.href=fin.toDataURL("image/png"); aEl.click();
@@ -5665,6 +5669,37 @@ const Fun={
   },
   cycle(){ const i=this.FILTERS.findIndex(f=>f.id===this.current); this.current=this.FILTERS[(i+1)%this.FILTERS.length].id;
     const f=this.FILTERS.find(x=>x.id===this.current); toast("🎭 Filtro: "+f.e+" "+f.n); },
+  // 🖐️ detector de MANOS (21 puntos por mano): pone el 6 en tu palma derecha y el 7 en la izquierda
+  loadHands(){
+    if(this._handsLoad) return this._handsLoad;
+    this._handsLoad=(async()=>{ try{
+      const ok=await Secret.loadMesh(); if(!ok||!Secret._visMod) return false;
+      this._hands=await Secret._visMod.HandLandmarker.createFromOptions(Secret._visFiles,{
+        baseOptions:{ modelAssetPath:"https://storage.googleapis.com/mediapipe-models/hand_landmarker/hand_landmarker/float16/1/hand_landmarker.task" },
+        runningMode:"VIDEO", numHands:2 });
+      return true;
+    }catch(e){ return false; } })();
+    return this._handsLoad;
+  },
+  drawHands(c,res,W,H,mirror){ try{
+    if(!res || !res.landmarks) return;
+    res.landmarks.forEach((lm,i)=>{
+      const hd=((res.handedness||[])[i]||[])[0]||{};
+      // el video crudo no está espejado: la etiqueta viene al revés -> "Left" = TU mano DERECHA
+      const num = hd.categoryName==="Left" ? "6" : "7";
+      const ids=[0,5,9,13,17]; let cx=0,cy=0;
+      ids.forEach(j=>{ cx+=lm[j].x; cy+=lm[j].y; }); cx=cx/ids.length*W; cy=cy/ids.length*H;
+      const size=Math.max(26,Math.hypot((lm[5].x-lm[17].x)*W,(lm[5].y-lm[17].y)*H)*1.5);
+      c.save(); c.translate(cx,cy);
+      if(mirror) c.scale(-1,1);   // para que el número se lea bien en el espejo
+      c.font="900 "+Math.round(size)+"px Consolas,monospace"; c.textAlign="center"; c.textBaseline="middle";
+      c.shadowColor="#ff2d55"; c.shadowBlur=20;
+      c.fillStyle="rgba(255,45,85,.95)"; c.fillText(num,0,0);
+      c.shadowBlur=6; c.fillStyle="rgba(255,235,240,.95)";
+      c.font="900 "+Math.round(size*0.86)+"px Consolas,monospace"; c.fillText(num,0,0);
+      c.restore();
+    });
+  }catch(e){} },
   // tubería para LLAMADAS: video crudo -> canvas con filtro -> stream que ven los demás
   pipe(raw){
     try{
@@ -5672,17 +5707,19 @@ const Fun={
       const v=document.createElement("video"); v.muted=true; v.playsInline=true;
       v.srcObject=new MediaStream(raw.getVideoTracks()); v.play();
       const cv=document.createElement("canvas"), ctx=cv.getContext("2d");
-      let pts=null, busy=false;
+      let pts=null, hres=null, busy=false;
       this._pipeV=v;
-      Secret.loadMesh();
+      Secret.loadMesh(); this.loadHands();
       this._pipeDet=setInterval(()=>{ if(busy||!v.videoWidth||!Secret._meshReady) return; busy=true;
         try{ const r=Secret._mesh.detectForVideo(v,performance.now()); pts=(r.faceLandmarks&&r.faceLandmarks[0])||null; }catch(e){}
+        if(this._hands){ try{ hres=this._hands.detectForVideo(v,performance.now()); }catch(e){} }
         busy=false; },120);
       this._pipeDraw=setInterval(()=>{ try{
         if(!v.videoWidth) return;
         if(cv.width!==v.videoWidth||cv.height!==v.videoHeight){ cv.width=v.videoWidth; cv.height=v.videoHeight; }
         ctx.drawImage(v,0,0);
         if(pts && this.current!=="none") this.drawFilter(ctx,pts,cv.width,cv.height);
+        if(hres) this.drawHands(ctx,hres,cv.width,cv.height,false);
       }catch(e){} },45);
       const out=cv.captureStream(22);
       raw.getAudioTracks().forEach(t=>out.addTrack(t));
@@ -5702,14 +5739,34 @@ const Fun={
     const at=(p,fn)=>{ c.save(); c.translate(p.x,p.y); c.rotate(tilt); fn(); c.restore(); };
     const f=this.current;
     if(f==="gafas") at(mid,()=>{
-      const w=fw*0.30, h=fw*0.15, gap=fw*0.19;
-      c.fillStyle="rgba(10,10,14,.92)"; c.strokeStyle="#39424f"; c.lineWidth=fw*0.02;
-      [-gap,gap].forEach(off=>{ c.beginPath(); c.roundRect(off-w/2,-h/2,w,h,h*0.4); c.fill(); c.stroke(); });
-      c.fillRect(-gap+w/2-1,-h*0.12,gap*2-w+2,h*0.16);
-      c.strokeStyle="rgba(10,10,14,.9)"; c.lineWidth=fw*0.03;
-      c.beginPath(); c.moveTo(-gap-w/2,0); c.lineTo(-fw*0.55,-fw*0.03); c.moveTo(gap+w/2,0); c.lineTo(fw*0.55,-fw*0.03); c.stroke();
-      c.fillStyle="rgba(120,180,255,.25)";
-      [-gap,gap].forEach(off=>{ c.beginPath(); c.roundRect(off-w/2+3,-h/2+3,w*0.45,h*0.35,4); c.fill(); });
+      // VISOR CYBERPUNK LED (como la foto): banda transparente con circuitos rojos brillantes
+      const w=fw*0.86, h=fw*0.30, r=h*0.42, t=performance.now()/1000;
+      const glow=0.75+Math.sin(t*3)*0.25;   // los LEDs "respiran"
+      c.fillStyle="rgba(180,215,255,.13)";
+      c.strokeStyle="rgba(255,45,85,"+(0.95*glow)+")"; c.lineWidth=Math.max(2,fw*0.016);
+      c.shadowColor="#ff2d55"; c.shadowBlur=16*glow;
+      c.beginPath(); c.roundRect(-w/2,-h/2,w,h,r); c.fill(); c.stroke();
+      // brillo LED del borde superior e inferior
+      c.strokeStyle="rgba(255,130,160,"+(0.9*glow)+")"; c.lineWidth=Math.max(1.5,fw*0.008);
+      c.beginPath(); c.moveTo(-w/2+r*0.6,-h/2+fw*0.014); c.lineTo(w/2-r*0.6,-h/2+fw*0.014);
+      c.moveTo(-w/2+r*0.6,h/2-fw*0.014); c.lineTo(w/2-r*0.6,h/2-fw*0.014); c.stroke();
+      // circuitos grabados
+      c.strokeStyle="rgba(255,60,100,"+(0.85*glow)+")"; c.lineWidth=Math.max(1,fw*0.006); c.shadowBlur=8*glow;
+      c.beginPath();
+      c.moveTo(-w*0.40,h*0.10); c.lineTo(-w*0.26,h*0.10); c.lineTo(-w*0.22,h*0.02); c.lineTo(-w*0.10,h*0.02);   // pista con quiebre
+      c.moveTo(-w*0.34,-h*0.14); c.lineTo(-w*0.20,-h*0.14); c.lineTo(-w*0.16,-h*0.24);
+      c.moveTo(w*0.06,h*0.16); c.lineTo(w*0.18,h*0.16); c.lineTo(w*0.22,h*0.06);
+      c.stroke();
+      for(let i=0;i<8;i++){ const zx=-w*0.40+i*w*0.02;                                            // zigzag
+        c.beginPath(); c.moveTo(zx,-h*0.30); c.lineTo(zx+w*0.01,-h*0.22); c.stroke(); }
+      for(let i=0;i<12;i++){ const tx=w*0.02+i*w*0.028;                                           // regla de marcas
+        c.beginPath(); c.moveTo(tx,-h*0.32); c.lineTo(tx,-h*0.32+(i%4===0?h*0.14:h*0.07)); c.stroke(); }
+      c.beginPath(); c.arc(w*0.30,-h*0.02,h*0.24,0,Math.PI*1.5); c.stroke();                      // radar
+      c.beginPath(); c.arc(w*0.30,-h*0.02,h*0.13,0,Math.PI*2); c.stroke();
+      c.beginPath(); c.arc(w*0.30,-h*0.02,h*0.04,0,Math.PI*2); c.stroke();
+      c.beginPath(); c.moveTo(-w*0.12,-h*0.22); c.lineTo(-w*0.04,-h*0.22); c.lineTo(-w*0.06,-h*0.30); c.closePath(); c.stroke();   // flechita
+      c.beginPath(); c.arc(-w*0.24,h*0.22,h*0.05,0,Math.PI*2); c.stroke();
+      c.shadowBlur=0;
     });
     else if(f==="bigote"){ const m2=P(164); at(m2,()=>{
       c.fillStyle="#3a2415";
@@ -5889,6 +5946,7 @@ const Secret={
     this._meshLoad=(async()=>{ try{
       const v=await import("https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.14/vision_bundle.mjs");
       const files=await v.FilesetResolver.forVisionTasks("https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.14/wasm");
+      this._visMod=v; this._visFiles=files;   // guardados para otras IAs (detector de manos, etc.)
       this._mesh=await v.FaceLandmarker.createFromOptions(files,{
         baseOptions:{ modelAssetPath:"https://storage.googleapis.com/mediapipe-models/face_landmarker/face_landmarker/float16/1/face_landmarker.task" },
         runningMode:"VIDEO", numFaces:2, outputFaceBlendshapes:true });
