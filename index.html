@@ -151,8 +151,8 @@
   .bio-frame{position:relative;width:100%;aspect-ratio:4/3;background:#000;border-radius:14px;overflow:hidden;
     border:1px solid rgba(0,170,255,.4);margin:12px 0 8px}
   .bio-frame video{width:100%;height:100%;object-fit:cover;transform:scaleX(-1)}
-  /* canvas de seguimiento: dibuja el recuadro y los puntos de la cara EN VIVO */
-  .bio-frame canvas{position:absolute;inset:0;width:100%;height:100%;transform:scaleX(-1);pointer-events:none}
+  /* canvas de seguimiento: dibuja la mira EN VIVO (object-fit igual al video para que quede ALINEADA en celulares) */
+  .bio-frame canvas{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;transform:scaleX(-1);pointer-events:none}
   /* malla de puntos sobre la cara (tipo Face ID) */
   .bio-grid{position:absolute;inset:0;pointer-events:none;opacity:0;transition:opacity .35s;
     background-image:linear-gradient(rgba(0,170,255,.16) 1px,transparent 1px),linear-gradient(90deg,rgba(0,170,255,.16) 1px,transparent 1px);
@@ -786,7 +786,7 @@
     <div class="v-sub mono" id="faceSub">SUBE HASTA 8 FOTOS TUYAS · SONRIENDO Y SERIO · DISTINTAS LUCES Y ÁNGULOS</div>
     <div class="face-grid" id="faceGrid"></div>
     <div id="faceCamWrap" style="display:none">
-      <div class="bio-frame" style="margin:12px 0 8px"><video id="faceCam" autoplay playsinline muted></video><canvas id="faceCamTrack"></canvas></div>
+      <div class="bio-frame" id="faceCamFrame" style="margin:12px 0 8px"><video id="faceCam" autoplay playsinline muted></video><canvas id="faceCamTrack"></canvas></div>
       <button class="btn btn-primary" id="faceSnap" style="width:100%">📸 CAPTURAR (0/8)</button>
       <button class="btn btn-ghost" id="faceCamStop" style="width:100%;margin-top:8px">✔ LISTO</button>
     </div>
@@ -5517,8 +5517,10 @@ const Secret={
   bioScan(){
     const md=navigator.mediaDevices;
     if(!md || !md.getUserMedia){ this.bioFail("SIN CÁMARA · ACCESO DENEGADO"); return; }
-    md.getUserMedia({video:{facingMode:"user"}, audio:false}).then(stream=>{
+    md.getUserMedia({video:{facingMode:"user", width:{ideal:640}, height:{ideal:480}}, audio:false}).then(stream=>{
       this._stream=stream; $("bioVideo").srcObject=stream;
+      // celular vertical: el marco se adapta a la forma de la cámara (así la mira queda alineada)
+      const bv=$("bioVideo"); bv.onloadedmetadata=()=>{ try{ $("bioFrame").style.aspectRatio=(bv.videoWidth>=bv.videoHeight)?"4 / 3":"3 / 4"; }catch(e){} };
       $("bioStart").style.display="none"; $("bioFrame").classList.add("scanning");
       $("bioProg").style.display="block";
       const msg=$("bioMsg"), HEX="0123456789ABCDEF", video=$("bioVideo");
@@ -5537,8 +5539,9 @@ const Secret={
             if(dets.length){
               const best=dets.reduce((a,b)=> (b.detection.box.area>a.detection.box.area?b:a));   // la cara más grande = la principal
               this._face=true;
-              this._tooFar = best.detection.box.width < video.videoWidth*0.20;   // cara muy chica = estás lejos
-              if(!this._tooFar && best.detection.score>=0.55){                    // solo muestras de BUENA calidad
+              const minDim=Math.min(video.videoWidth,video.videoHeight);          // en celular vertical manda el ANCHO
+              this._tooFar = best.detection.box.width < minDim*0.18;              // cara muy chica = estás lejos
+              if(!this._tooFar && best.detection.score>=0.45){                    // calidad mínima (tolerante con cámaras de celular)
                 this._descs.push(best.descriptor);
                 const tg0=this._target||{mode:"david"};
                 let tpls;
@@ -5594,7 +5597,7 @@ const Secret={
         const ok1=faReady && this._face && !multi && !this._tooFar && this._liveMatch!==false;   // rostro equivocado = barra CONGELADA
         if(ok1){ frame.classList.remove("noface");
           if(p<LIVE_AT) p=Math.min(LIVE_AT,p+3.4);                                   // fase 1: identificación
-          else if(this._smiled) p=Math.min(100,p+4.5);                               // fase 2: exige SONRISA real
+          else if(this._smiled) p=Math.min(this._descs.length>=2?100:96, p+4.5);     // fase 2: sonrisa + mínimo 2 huellas buenas
         } else frame.classList.add("noface");
         const pi=Math.round(p);
         $("bioProgBar").style.width=pi+"%";
@@ -5603,6 +5606,7 @@ const Secret={
           : !this._face ? "🔍 BUSCANDO ROSTRO... PONTE FRENTE A LA CÁMARA"
           : this._tooFar ? "🔎 ACÉRCATE UN POCO A LA CÁMARA"
           : this._liveMatch===false ? "🚫 ROSTRO NO COINCIDE — LA BARRA NO AVANZA"
+          : (pi>=96 && this._descs.length<2) ? "📷 ACÉRCATE Y BUSCA MÁS LUZ — MEJORANDO IMAGEN..."
           : (pi>=LIVE_AT && !this._smiled && faReady) ? (this._sawNeutral ? "😁 SONRÍE — PRUEBA DE VIDA"+(this._meshReady?" · "+(this._smilePct||0)+"%":"") : "😐 CARA SERIA PRIMERO...")
           : "ESCANEANDO ROSTRO · "+pi+"%";
         let hx=""; for(let i=0;i<6;i++) hx+=HEX[Math.floor(Math.random()*16)];
@@ -5781,8 +5785,9 @@ const FaceReg={
     const ok=await Secret.loadFaceApi();
     if(!ok || !window.faceapi){ $("faceMsg").textContent="⚠ IA no disponible"; return; }
     try{
-      this._cam=await navigator.mediaDevices.getUserMedia({video:{facingMode:"user"},audio:false});
+      this._cam=await navigator.mediaDevices.getUserMedia({video:{facingMode:"user", width:{ideal:640}, height:{ideal:480}},audio:false});
       $("faceCam").srcObject=this._cam;
+      const fv=$("faceCam"); fv.onloadedmetadata=()=>{ try{ $("faceCamFrame").style.aspectRatio=(fv.videoWidth>=fv.videoHeight)?"4 / 3":"3 / 4"; }catch(e){} };
       $("faceCamWrap").style.display="block"; $("faceTake").style.display="none"; $("facePick").style.display="none";
       this.updSnap(); $("faceMsg").textContent="😎 Pósate: sonriendo, serio, de ladito...";
       // rastreo EN VIVO: recuadro + landmarks + boca dorada al sonreír (como en el escaneo)
