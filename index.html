@@ -759,6 +759,7 @@
       <button class="v-key mono" data-k="0">0</button>
       <button class="v-key ok mono" data-k="OK">✔</button>
     </div>
+    <button class="btn btn-ghost" id="vFace" style="width:100%;margin-top:12px;color:#39ff14;border-color:rgba(57,255,20,.5)">🧬 ENTRAR CON ROSTRO</button>
     <div class="v-msg mono" id="vMsg"></div>
   </div>
 </div>
@@ -786,7 +787,7 @@
   <div class="facecard">
     <button class="v-close" id="faceClose" title="Cerrar">✕</button>
     <h2 class="mono">🧬 RECONOCIMIENTO FACIAL</h2>
-    <div class="v-sub mono">SUBE HASTA 8 FOTOS TUYAS · SONRIENDO Y SERIO · DISTINTAS LUCES Y ÁNGULOS</div>
+    <div class="v-sub mono" id="faceSub">SUBE HASTA 8 FOTOS TUYAS · SONRIENDO Y SERIO · DISTINTAS LUCES Y ÁNGULOS</div>
     <div class="face-grid" id="faceGrid"></div>
     <div id="faceCamWrap" style="display:none">
       <div class="bio-frame" style="margin:12px 0 8px"><video id="faceCam" autoplay playsinline muted></video><canvas id="faceCamTrack"></canvas></div>
@@ -971,6 +972,15 @@
       <div class="full">
         <label>PIN DE ACCESO (para que el agente inicie sesión)</label>
         <input id="aPin" type="password" inputmode="numeric" maxlength="12" placeholder="Ej: 1234 — déjalo vacío si no tiene acceso" autocomplete="new-password" />
+      </div>
+      <div class="full">
+        <label>MÉTODO DE ENTRADA (cómo inicia sesión en este dispositivo)</label>
+        <select id="aAuth">
+          <option value="pin">🔢 Solo PIN</option>
+          <option value="pin_rostro">🔢+🧬 PIN y rostro (doble seguridad)</option>
+          <option value="rostro">🧬 Solo rostro (botón ENTRAR CON ROSTRO de la bóveda)</option>
+        </select>
+        <button type="button" class="btn btn-ghost btn-sm" id="aFaceTrain" style="margin-top:8px;color:#39ff14;border-color:rgba(57,255,20,.5)">🧬 ENTRENAR ROSTRO DE ESTE AGENTE</button>
       </div>
       <div class="full">
         <label>FRASE SECRETA DE VOZ <span id="aVoiceState" style="color:var(--muted);font-weight:400"></span></label>
@@ -1543,6 +1553,9 @@ function loadAgents(){
   try{ return JSON.parse(localStorage.getItem(LS_AGENTS)) || []; }catch(e){ return []; }
 }
 function saveAgents(a){ persist(LS_AGENTS, a); }
+// método de entrada por agente (vive en ESTE dispositivo, igual que los rostros): pin | pin_rostro | rostro
+function agentAuth(id){ try{ return (JSON.parse(localStorage.getItem("edtu_agent_auth")||"{}"))[id]||"pin"; }catch(e){ return "pin"; } }
+function setAgentAuth(id,m){ try{ const o=JSON.parse(localStorage.getItem("edtu_agent_auth")||"{}"); o[id]=m; localStorage.setItem("edtu_agent_auth",JSON.stringify(o)); }catch(e){} }
 let agents = loadAgents();
 
 /* ---------- usuario actual y permisos ---------- */
@@ -3017,6 +3030,8 @@ function openAgentForm(agent){
   $("aVoice").value     = "";
   $("aVoiceState").textContent = (agent && agent.voice_hash) ? "· configurada ✓" : "· sin configurar";
   $("aNotes").value     = agent ? (agent.notes||"") : "";
+  $("aAuth").value      = agent ? agentAuth(agent.id) : "pin";
+  $("aFaceTrain").style.display = agent ? "block" : "none";   // entrenar rostro: solo con el agente ya guardado
   aPhotoData = agent ? (agent.photo || null) : null;
   paintAvatar($("aPhotoPrev"), aPhotoData, ($("aName").value||"?").charAt(0).toUpperCase());
   $("agentFormBg").classList.add("open");
@@ -3065,6 +3080,7 @@ async function saveAgent(){
   }
   saveAgents(agents);
   Cloud.upsertAgent(data);
+  setAgentAuth(data.id, $("aAuth").value);   // método de entrada (local, como los rostros)
   closeAgentForm();
   renderAgents();
   renderStats();
@@ -5353,6 +5369,9 @@ const Secret={
     const ag=agents.find(a=>a.pin && a.pin===val);
     if(ag){
       if(ag.blocked){ this.vaultDeny("AGENTE BLOQUEADO"); return; }
+      const m=(typeof agentAuth==="function")?agentAuth(ag.id):"pin";
+      if(m==="rostro"){ this.vaultDeny("ESTE AGENTE ENTRA SOLO CON ROSTRO 🧬"); return; }
+      if(m==="pin_rostro"){ this.vaultClose(); this.pin=""; this.renderPin(); this.bioOpen({mode:"agent", id:ag.id, name:ag.name}); return; }
       this.vaultClose(); proceedLogin({type:"agent", id:ag.id}); return;
     }
     if(!stored){   // primera vez: el PIN que pongas queda como PIN de superadmin
@@ -5363,8 +5382,13 @@ const Secret={
     this.vaultDeny("ACCESO DENEGADO");
   },
   // ---- verificación biométrica (cámara + escaneo 3 seg)
-  bioOpen(){
-    $("bioMsg").style.color="var(--ngr)"; $("bioMsg").textContent="CONFIRMA TU IDENTIDAD, AGENTE";
+  bioOpen(target){
+    this._target=target||{mode:"david"};
+    const t=this._target;
+    $("bioMsg").style.color="var(--ngr)";
+    $("bioMsg").textContent = t.mode==="identify" ? "IDENTIFÍCATE — LA IA DIRÁ QUIÉN ERES"
+      : t.mode==="agent" ? "VERIFICACIÓN DE "+((t.name||"AGENTE").toUpperCase())
+      : "CONFIRMA TU IDENTIDAD, AGENTE";
     $("bioStart").style.display="block"; $("bioFrame").classList.remove("scanning");
     $("bioFs").classList.add("show");
     this.loadFaceApi();   // va cargando la IA de reconocimiento mientras el usuario lee
@@ -5393,10 +5417,10 @@ const Secret={
     for(const d of list){ for(let i=0;i<L;i++) out[i]+=d[i]; }
     for(let i=0;i<L;i++) out[i]/=n; return out; },
   // plantillas del rostro de David: VARIAS huellas (ángulos/luces distintas), y sigue aprendiendo
-  _tplLoad(){ try{ const raw=JSON.parse(localStorage.getItem("edtu_face_david")||"null"); if(!raw) return [];
+  _tplLoad(key){ try{ const raw=JSON.parse(localStorage.getItem(key||"edtu_face_david")||"null"); if(!raw) return [];
     if(Array.isArray(raw) && typeof raw[0]==="number") return [raw];   // formato antiguo: 1 sola huella
     return Array.isArray(raw)?raw:[]; }catch(e){ return []; } },
-  _tplSave(tpls){ localStorage.setItem("edtu_face_david",JSON.stringify(tpls.slice(0,8))); },
+  _tplSave(tpls,key){ localStorage.setItem(key||"edtu_face_david",JSON.stringify(tpls.slice(0,8))); },
   _minDist(desc,tpls){ let m=Infinity; for(const t of tpls){ const d=faceapi.euclideanDistance(t,desc); if(d<m) m=d; } return m; },
   // ---- MALLA 3D estilo EMOCA (MediaPipe Face Landmarker: 468 puntos con profundidad + emociones)
   loadMesh(){
@@ -5497,7 +5521,8 @@ const Secret={
               this._tooFar = best.detection.box.width < video.videoWidth*0.20;   // cara muy chica = estás lejos
               if(!this._tooFar && best.detection.score>=0.55){                    // solo muestras de BUENA calidad
                 this._descs.push(best.descriptor);
-                const tpls=this._tplLoad();
+                const tg0=this._target||{mode:"david"};
+                const tpls=tg0.mode==="agent" ? this._tplLoad("edtu_face_"+tg0.id) : (tg0.mode==="identify" ? [] : this._tplLoad());
                 this._liveDist = tpls.length ? this._minDist(best.descriptor,tpls) : null;
               }
               if(!this._meshReady){   // sin malla 3D: sonrisa por expresión clásica (respaldo)
@@ -5562,33 +5587,59 @@ const Secret={
         if(this._face && ++tick%3===0) this.scanBeep(500+p*7);
         if(p>=100){
           clearInterval(ivS); clearInterval(ivF); if(ivM) clearInterval(ivM);
-          // RECONOCIMIENTO: compara la huella medida con la de David guardada
-          let okMsg="✔ IDENTIDAD CONFIRMADA · BIENVENIDO, DAVID", pass=true;
+          // RECONOCIMIENTO según el objetivo: David (25062015) / agente (pin+rostro) / identificar (solo rostro)
+          const tg=this._target||{mode:"david"};
+          let okMsg="✔ IDENTIDAD CONFIRMADA", pass=true, denyMsg="ROSTRO NO RECONOCIDO", loginAs=null;
           if(this._descs.length && window.faceapi){
-            const tpls=this._tplLoad();
-            if(!tpls.length){
-              // PRIMER REGISTRO: guarda hasta 5 muestras distintas del escaneo (ángulos/gestos diferentes)
-              const n=this._descs.length, pick=[...new Set([0,Math.floor(n/4),Math.floor(n/2),Math.floor(3*n/4),n-1])];
-              this._tplSave(pick.map(i=>Array.from(this._descs[i])));
-              okMsg="🆕 ROSTRO DE DAVID REGISTRADO ("+pick.length+" ángulos) · BIENVENIDO";
-            }else{
-              const avg=this._avgDesc(this._descs);
-              const dist=this._minDist(avg,tpls);
-              if(dist>=0.50) pass=false;   // cara distinta a las guardadas (más estricto que antes)
-              else if(dist>0.25 && dist<0.40 && tpls.length<8){ tpls.push(Array.from(avg)); this._tplSave(tpls); }   // solo aprende caras MUY parecidas (anti-contaminación)
+            const avg=this._avgDesc(this._descs);
+            if(tg.mode==="identify"){
+              // ¿QUIÉN ERES? compara contra TODOS los rostros entrenados en este dispositivo
+              let best=null, bd=Infinity;
+              const cands=[{key:"edtu_face_david", who:{type:"admin"}, name:"DAVID", david:true}]
+                .concat(agents.filter(a=>!a.blocked).map(a=>({key:"edtu_face_"+a.id, who:{type:"agent",id:a.id}, name:(a.name||"AGENTE").toUpperCase()})));
+              for(const cd of cands){ const t=this._tplLoad(cd.key); if(!t.length) continue;
+                const d=this._minDist(avg,t); if(d<bd){ bd=d; best=cd; } }
+              if(best && bd<0.50){
+                loginAs=best.who; okMsg="✔ IDENTIFICADO: "+best.name;
+                if(best.david){ const dg=agents.find(a=>(a.name||"").trim().toLowerCase()==="david"); if(dg && !dg.blocked) loginAs={type:"agent",id:dg.id}; }
+              } else { pass=false; denyMsg="ROSTRO NO REGISTRADO EN ESTE DISPOSITIVO"; }
+            } else if(tg.mode==="agent"){
+              const key="edtu_face_"+tg.id, tpls=this._tplLoad(key);
+              if(!tpls.length){ pass=false; denyMsg="ESTE AGENTE NO TIENE ROSTRO ENTRENADO AQUÍ"; }
+              else{
+                const dist=this._minDist(avg,tpls);
+                if(dist>=0.50){ pass=false; denyMsg="ROSTRO NO RECONOCIDO · NO ERES "+((tg.name||"EL AGENTE").toUpperCase()); }
+                else{ loginAs={type:"agent", id:tg.id}; okMsg="✔ BIENVENIDO, "+((tg.name||"AGENTE").toUpperCase());
+                  if(dist>0.25 && dist<0.40 && tpls.length<8){ tpls.push(Array.from(avg)); this._tplSave(tpls,key); } }
+              }
+            } else {   // david (código 25062015)
+              const tpls=this._tplLoad();
+              if(!tpls.length){
+                // PRIMER REGISTRO: guarda hasta 5 muestras distintas del escaneo (ángulos/gestos diferentes)
+                const n=this._descs.length, pick=[...new Set([0,Math.floor(n/4),Math.floor(n/2),Math.floor(3*n/4),n-1])];
+                this._tplSave(pick.map(i=>Array.from(this._descs[i])));
+                okMsg="🆕 ROSTRO DE DAVID REGISTRADO ("+pick.length+" ángulos) · BIENVENIDO";
+              }else{
+                const dist=this._minDist(avg,tpls);
+                if(dist>=0.50){ pass=false; denyMsg="ROSTRO NO RECONOCIDO · NO ERES DAVID"; }
+                else if(dist>0.25 && dist<0.40 && tpls.length<8){ tpls.push(Array.from(avg)); this._tplSave(tpls); }   // anti-contaminación
+              }
+              if(pass){
+                const dg=agents.find(a=>(a.name||"").trim().toLowerCase()==="david");
+                loginAs=(dg && !dg.blocked)?{type:"agent",id:dg.id}:{type:"admin"};
+                if(okMsg==="✔ IDENTIDAD CONFIRMADA") okMsg="✔ IDENTIDAD CONFIRMADA · BIENVENIDO, DAVID";
+              }
             }
           }else pass=false;   // sin huellas medidas por la IA, NO se entra
           if(!pass){
             this.bioStop(); frame.classList.remove("scanning","noface"); $("bioStart").style.display="block";
-            this.bioFail("ROSTRO NO RECONOCIDO · NO ERES DAVID"); return;
+            this.bioFail(denyMsg); return;
           }
           frame.classList.remove("scanning","noface"); frame.classList.add("ok");
           this.okChime();
           msg.textContent=okMsg;
-          setTimeout(()=>{ this.bioClose();
-            const ag=agents.find(a=>(a.name||"").trim().toLowerCase()==="david");   // 25062015 entra como David
-            if(ag && !ag.blocked) accessGranted({type:"agent", id:ag.id}); else accessGranted({type:"admin"});
-          },1100);
+          const who=loginAs||{type:"admin"};
+          setTimeout(()=>{ this.bioClose(); accessGranted(who); },1100);
           return;
         }
         if(Date.now()-t0>25000 && p<100){   // 25 seg y no completó -> denegado (con el motivo real)
@@ -5677,17 +5728,26 @@ document.addEventListener("keydown",e=>{
 /* ============ 🧬 ENTRENADOR DE ROSTRO (subir hasta 8 fotos: sonriendo y serio) ============ */
 const FaceReg={
   items:[],   // {url, ok, desc}
+  target:{key:"edtu_face_david", label:"DAVID"},
   open(){
-    // solo David (o superadmin) puede re-entrenar el rostro
+    // botón de la cabecera: solo David (o superadmin) entrena SU rostro
     let isDavid=false;
     if(currentUser){
       if(currentUser.type==="admin") isDavid=true;
       else{ const ag=(typeof getCurrentAgent==="function"?getCurrentAgent():null)||{}; isDavid=((ag.name||"").trim().toLowerCase()==="david"); }
     }
     if(!isDavid){ toast("⛔ Solo David puede entrenar el rostro"); return; }
-    this.items=[]; this.render(); $("faceMsg").textContent="🧠 Cargando IA...";
+    this.target={key:"edtu_face_david", label:"DAVID"};
+    this._open();
+  },
+  // desde la ficha de un agente: entrena el rostro de ESE agente
+  openFor(key,label){ this.target={key, label:(label||"AGENTE").toUpperCase()}; this._open(); },
+  _open(){
+    this.items=[]; this.render();
+    $("faceSub").textContent="ENTRENANDO A: "+this.target.label+" · 8 FOTOS (SONRIENDO Y SERIO, DISTINTAS LUCES)";
+    $("faceMsg").textContent="🧠 Cargando IA...";
     $("faceFs").classList.add("show");
-    Secret.loadFaceApi().then(ok=>{ $("faceMsg").textContent = ok ? "IA LISTA · elige tus fotos (sonriendo Y serio)" : "⚠ IA no disponible (revisa internet)"; });
+    Secret.loadFaceApi().then(ok=>{ $("faceMsg").textContent = ok ? "IA LISTA · elige o toma las fotos (sonriendo Y serio)" : "⚠ IA no disponible (revisa internet)"; });
   },
   close(){ this.camStop(); $("faceFs").classList.remove("show"); this.items.forEach(i=>{ try{ URL.revokeObjectURL(i.url); }catch(e){} }); this.items=[]; },
   // ---- cámara integrada: tomar las fotos directo desde la app
@@ -5782,11 +5842,11 @@ const FaceReg={
   save(){
     const descs=this.items.filter(i=>i.ok).map(i=>Array.from(i.desc));
     if(!descs.length) return;
-    Secret._tplSave(descs);   // REEMPLAZA las plantillas (borra cualquier cara contaminada)
-    toast("🧬 Rostro entrenado con "+descs.length+" fotos");
-    $("faceMsg").textContent="💾 GUARDADO · "+descs.length+" plantillas activas (reemplazó las anteriores)";
+    Secret._tplSave(descs, this.target.key);   // REEMPLAZA las plantillas de ESTA persona
+    toast("🧬 Rostro de "+this.target.label+" entrenado con "+descs.length+" fotos");
+    $("faceMsg").textContent="💾 GUARDADO · "+descs.length+" plantillas de "+this.target.label+" (reemplazó las anteriores)";
   },
-  wipe(){ localStorage.removeItem("edtu_face_david"); toast("🧹 Rostro guardado borrado"); $("faceMsg").textContent="🧹 BORRADO · entrena de nuevo con fotos o con el escaneo"; }
+  wipe(){ localStorage.removeItem(this.target.key); toast("🧹 Rostro de "+this.target.label+" borrado"); $("faceMsg").textContent="🧹 BORRADO · entrena de nuevo con fotos o cámara"; }
 };
 $("faceBtn").onclick=()=>FaceReg.open();
 $("faceClose").onclick=()=>FaceReg.close();
@@ -5797,6 +5857,15 @@ $("facePick").onclick=()=>$("faceFiles").click();
 $("faceFiles").onchange=e=>{ FaceReg.addFiles(e.target.files); e.target.value=""; };
 $("faceSave").onclick=()=>FaceReg.save();
 $("faceWipe").onclick=()=>FaceReg.wipe();
+// bóveda: ENTRAR CON ROSTRO (la IA identifica quién eres entre los rostros entrenados)
+$("vFace").onclick=()=>{ Secret.vaultClose(); Secret.bioOpen({mode:"identify"}); };
+// ficha de agente: entrenar el rostro de ese agente (abre el entrenador apuntando a él)
+$("aFaceTrain").onclick=()=>{
+  const id=$("aId").value;
+  if(!id){ toast("⚠ Guarda el agente primero"); return; }
+  const ag=agents.find(a=>a.id===id)||{};
+  FaceReg.openFor("edtu_face_"+id, ag.name||"agente");
+};
 
 // al cargar, si la portada está visible, quita el foco del PIN oculto (initLock lo enfoca)
 setTimeout(()=>{ try{ if(Secret.landingVisible() && document.activeElement && document.activeElement.id==="pinInput") document.activeElement.blur(); }catch(e){} },350);
