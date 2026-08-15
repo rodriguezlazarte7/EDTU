@@ -186,6 +186,17 @@
   .face-slot{position:relative;aspect-ratio:1;border-radius:10px;border:1px dashed rgba(0,170,255,.4);background:rgba(0,0,0,.4);overflow:hidden;display:flex;align-items:center;justify-content:center;color:rgba(79,195,255,.6);font-size:20px}
   .face-slot img{width:100%;height:100%;object-fit:cover}
   .face-slot .fs-st{position:absolute;right:3px;bottom:3px;font-size:14px;text-shadow:0 0 6px #000}
+  /* ---------- PALETA RB para TODOS los botones de juegos ---------- */
+  .pickgame{font-size:17px;padding:14px 20px;color:#fff;font-weight:800;letter-spacing:.06em;
+    background:linear-gradient(90deg,#1e2f66,#8a0f1f);border:2px solid #ffd12e;border-radius:12px;cursor:pointer;
+    box-shadow:0 0 14px rgba(30,47,102,.55),inset 0 0 12px rgba(200,16,46,.25);transition:transform .12s,box-shadow .12s}
+  .pickgame:hover{transform:translateY(-3px) scale(1.02);box-shadow:0 8px 18px rgba(0,0,0,.5),0 0 18px rgba(255,209,46,.45)}
+  /* ---------- JUEGO: EDTU STRIKE (shooter en primera persona) ---------- */
+  #fpsFs{position:fixed;inset:0;z-index:120;display:none;background:#000}
+  #fpsFs.open{display:block}
+  #fpsCanvas{width:100%;height:100%;display:block;cursor:crosshair}
+  #fpsFire{position:absolute;right:14px;bottom:max(18px,env(safe-area-inset-bottom));z-index:6;display:none}
+  #fpsFs.touch #fpsFire{display:block}
   /* ---------- JUEGO: F1 RB RUSH ---------- */
   #f1Fs{position:fixed;inset:0;z-index:120;display:none;background:#000}
   #f1Fs.open{display:block}
@@ -1275,12 +1286,28 @@
 <!-- ============ SELECTOR DE JUEGO ============ -->
 <div id="gamePick">
   <div class="gp-card">
-    <h2 style="margin:0 0 4px;letter-spacing:.12em;color:#19ff85">🎮 ELIGE UN JUEGO</h2>
-    <button class="btn btn-primary" id="pickRush" style="font-size:17px;padding:14px 20px">🚀 EDTU RUSH</button>
-    <button class="btn btn-primary" id="pickFoot" style="font-size:17px;padding:14px 20px">⚽ THE FOOTBALL RUSH</button>
-    <button class="btn btn-primary" id="pickMon" style="font-size:17px;padding:14px 20px">➤ SWARM</button>
-    <button class="btn btn-primary" id="pickF1" style="font-size:17px;padding:14px 20px;background:linear-gradient(90deg,#1e2f66,#8a0f1f);border-color:#ffd12e;color:#fff">🏎️ F1 RB RUSH</button>
+    <h2 style="margin:0 0 4px;letter-spacing:.12em;color:#ffd12e;text-shadow:0 0 10px rgba(200,16,46,.6)">🎮 ELIGE UN JUEGO</h2>
+    <button class="btn pickgame" id="pickRush">🚀 EDTU RUSH</button>
+    <button class="btn pickgame" id="pickFoot">⚽ THE FOOTBALL RUSH</button>
+    <button class="btn pickgame" id="pickMon">➤ SWARM</button>
+    <button class="btn pickgame" id="pickF1">🏎️ F1 RB RUSH</button>
+    <button class="btn pickgame" id="pickFps">🔫 EDTU STRIKE (FPS)</button>
     <button class="btn btn-ghost btn-sm" id="pickClose">Cerrar</button>
+  </div>
+</div>
+
+<!-- ============ JUEGO: EDTU STRIKE (FPS) ============ -->
+<div id="fpsFs">
+  <canvas id="fpsCanvas"></canvas>
+  <div class="game-top">
+    <div id="fpsHud" class="mono"></div>
+    <button class="btn btn-ghost btn-sm" id="fpsClose">✕ Salir</button>
+  </div>
+  <button class="foot-touch" id="fpsFire">🔫<br><span>FUEGO</span></button>
+  <div id="fpsOverlay" class="game-overlay">
+    <div id="fpsMsg">🔫 EDTU STRIKE</div>
+    <div id="fpsResult" style="font-size:15px"></div>
+    <button class="btn btn-primary" id="fpsStart" style="font-size:17px;padding:12px 28px">▶ JUGAR</button>
   </div>
 </div>
 
@@ -1756,9 +1783,11 @@ function welcomeVoice(){
     if(pos>=0) msg+=" y eres el número "+(pos+1)+" en el ranking";
     msg+=". ¿Qué sigue?";
     const u=new SpeechSynthesisUtterance(msg);
-    u.lang="es-ES"; u.rate=1.02; u.pitch=1.0;
-    const vs=speechSynthesis.getVoices(), v=vs.find(x=>/^es[-_]?/i.test(x.lang));
-    if(v) u.voice=v;
+    u.lang="es-ES"; u.rate=1.0;
+    const vs=speechSynthesis.getVoices().filter(x=>/^es[-_]?/i.test(x.lang));
+    const male=vs.find(x=>/pablo|ra.l|alvaro|álvaro|jorge|diego|carlos|andr.s|enrique|male|hombre/i.test(x.name));
+    if(male){ u.voice=male; u.pitch=1.0; }        // voz masculina de verdad si existe
+    else{ if(vs[0]) u.voice=vs[0]; u.pitch=0.6; } // si no hay: tono grave para que suene a hombre
     speechSynthesis.cancel(); speechSynthesis.speak(u);
   }catch(e){}
 }
@@ -5332,6 +5361,246 @@ document.querySelectorAll("#monOverlay .gc-opt").forEach(b=>{ b.onclick=()=>{
   if(b.dataset.mmus!=null){ MonMusic.on=(b.dataset.mmus==="1"); if(!MonMusic.on) MonMusic.stop(); }
   if(b.dataset.mskin) Monster.cfg.skin=b.dataset.mskin;
 }; });
+/* ============ 🔫 EDTU STRIKE — shooter en primera persona (raycasting) ============ */
+const FPS={
+  MAP:[
+    "################",
+    "#..............#",
+    "#.##..####..##.#",
+    "#.#..........#.#",
+    "#....##..##....#",
+    "#.#..........#.#",
+    "#.#..#....#..#.#",
+    "#......##......#",
+    "#......##......#",
+    "#.#..#....#..#.#",
+    "#.#..........#.#",
+    "#....##..##....#",
+    "#.#..........#.#",
+    "#.##..####..##.#",
+    "#..............#",
+    "################"],
+  running:false, raf:null, W:0,H:0, ctx:null, keys:{}, zbuf:[],
+  px:8,py:8, ang:0, hp:100, score:0, wave:0, enemies:[], parts:[], flash:0, gunFl:0, best:0,
+  _tPrev:0, _locked:false, _moveId:null,_moveOx:0,_moveOy:0,_mv:{x:0,y:0}, _lookId:null,_lookX:0, _shootEdge:false,
+  FOV:Math.PI/3,
+  wall(x,y){ const r=this.MAP[Math.floor(y)]; return !r || r[Math.floor(x)]==="#"; },
+  open(){
+    $("fpsFs").classList.add("open");
+    if(('ontouchstart' in window)||navigator.maxTouchPoints>0) $("fpsFs").classList.add("touch");
+    this.resize(); window.addEventListener("resize",this._rs=()=>this.resize());
+    this.best=+(localStorage.getItem("edtu_fps_best")||0);
+    $("fpsOverlay").style.display="flex"; $("fpsMsg").textContent="🔫 EDTU STRIKE";
+    $("fpsResult").innerHTML="Robots invasores por oleadas · WASD moverse · mouse o R stick apuntar · clic / espacio / RT disparar<br>Sin sangre: explotan en confeti 🎉 · 🏆 Récord: <b>"+this.best+"</b> pts";
+  },
+  close(){ this.stop(); $("fpsFs").classList.remove("open"); window.removeEventListener("resize",this._rs); try{ document.exitPointerLock(); }catch(e){} },
+  resize(){ const c=$("fpsCanvas"); this.W=c.width=innerWidth; this.H=c.height=innerHeight; this.ctx=c.getContext("2d"); },
+  start(){
+    this.px=8; this.py=8; this.ang=0; this.hp=100; this.score=0; this.wave=0; this.enemies=[]; this.parts=[]; this.flash=0;
+    $("fpsOverlay").style.display="none"; this.running=true; this._tPrev=performance.now();
+    this.nextWave();
+    if(!this.raf){ const f=t=>{ if(!this.running){ this.raf=null; return; } try{ this.tick(t); }catch(e){} this.raf=requestAnimationFrame(f); }; this.raf=requestAnimationFrame(f); }
+  },
+  stop(){ this.running=false; if(this.raf){ cancelAnimationFrame(this.raf); this.raf=null; } },
+  nextWave(){
+    this.wave++;
+    const n=2+this.wave*2;
+    for(let i=0;i<n;i++){
+      let x,y,tries=0;
+      do{ x=1.5+Math.random()*13; y=1.5+Math.random()*13; tries++; }
+      while((this.wall(x,y)||Math.hypot(x-this.px,y-this.py)<4)&&tries<60);
+      this.enemies.push({x,y,hp:1+Math.floor(this.wave/3),spd:0.9+this.wave*0.08+Math.random()*0.3,cd:0});
+    }
+    this.beep(520,0.12,"square"); setTimeout(()=>this.beep(780,0.12,"square"),140);
+  },
+  actx(){ const AC=window.AudioContext||window.webkitAudioContext; if(!AC) return null; if(!this._ac) this._ac=new AC(); if(this._ac.state==="suspended") this._ac.resume(); return this._ac; },
+  beep(f,d,t){ try{ const a=this.actx(); if(!a) return; const o=a.createOscillator(),g=a.createGain();
+    o.type=t||"square"; o.frequency.value=f; g.gain.setValueAtTime(.05,a.currentTime); g.gain.exponentialRampToValueAtTime(.001,a.currentTime+d);
+    o.connect(g); g.connect(a.destination); o.start(); o.stop(a.currentTime+d+.02); }catch(e){} },
+  shoot(){
+    if(!this.running) return;
+    this.gunFl=0.09;
+    const a=this.actx(); if(a){ try{ const o=a.createOscillator(),g=a.createGain(); o.type="square";
+      o.frequency.setValueAtTime(900,a.currentTime); o.frequency.exponentialRampToValueAtTime(220,a.currentTime+.12);
+      g.gain.setValueAtTime(.07,a.currentTime); g.gain.exponentialRampToValueAtTime(.001,a.currentTime+.13);
+      o.connect(g); g.connect(a.destination); o.start(); o.stop(a.currentTime+.15); }catch(e){} }
+    // disparo al centro: el robot más cercano alineado con la mira (y sin pared en medio)
+    const wd=this.castRay(this.ang).d;
+    let hit=null, hd=1e9;
+    for(const e of this.enemies){
+      const dx=e.x-this.px, dy=e.y-this.py, d=Math.hypot(dx,dy); if(d>wd+0.2) continue;
+      let ra=Math.atan2(dy,dx)-this.ang; while(ra>Math.PI)ra-=2*Math.PI; while(ra<-Math.PI)ra+=2*Math.PI;
+      if(Math.abs(ra)<Math.min(0.35,0.28/d+0.05) && d<hd){ hd=d; hit=e; }
+    }
+    if(hit){
+      hit.hp--;
+      if(hit.hp<=0){
+        this.score+=10*this.wave;
+        // 🎉 POOF de confeti (sin sangre)
+        const sp=this.project(hit.x,hit.y);
+        if(sp) for(let i=0;i<26;i++) this.parts.push({x:sp.sx,y:this.H/2,vx:(Math.random()*2-1)*260,vy:-Math.random()*260,g:520,life:.8,col:["#ffd12e","#c8102e","#1e6fff","#2fd0ff","#fff"][i%5]});
+        this.enemies.splice(this.enemies.indexOf(hit),1);
+        this.beep(300,0.15,"triangle");
+        if(!this.enemies.length) setTimeout(()=>{ if(this.running) this.nextWave(); },700);
+      } else this.beep(440,0.07,"sawtooth");
+    }
+  },
+  project(ex,ey){
+    const dx=ex-this.px, dy=ey-this.py, d=Math.hypot(dx,dy);
+    let ra=Math.atan2(dy,dx)-this.ang; while(ra>Math.PI)ra-=2*Math.PI; while(ra<-Math.PI)ra+=2*Math.PI;
+    if(Math.abs(ra)>this.FOV*0.75) return null;
+    return { sx:(0.5+ra/this.FOV)*this.W, d };
+  },
+  castRay(a){
+    // DDA por la cuadrícula
+    const cs=Math.cos(a), sn=Math.sin(a);
+    let mx=Math.floor(this.px), my=Math.floor(this.py);
+    const ddx=Math.abs(1/(cs||1e-9)), ddy=Math.abs(1/(sn||1e-9));
+    let sx,sy,dx,dy;
+    if(cs<0){ sx=-1; dx=(this.px-mx)*ddx; } else { sx=1; dx=(mx+1-this.px)*ddx; }
+    if(sn<0){ sy=-1; dy=(this.py-my)*ddy; } else { sy=1; dy=(my+1-this.py)*ddy; }
+    let side=0;
+    for(let i=0;i<64;i++){
+      if(dx<dy){ dx+=ddx; mx+=sx; side=0; } else { dy+=ddy; my+=sy; side=1; }
+      const row=this.MAP[my]; if(!row||row[mx]==="#") break;
+    }
+    const d=side===0?(dx-ddx):(dy-ddy);
+    return { d:Math.max(0.02,d), side };
+  },
+  input(dt){
+    let f=0,s=0,turn=0,shoot=false;
+    if(this.keys.w||this.keys.W||this.keys.ArrowUp) f+=1;
+    if(this.keys.s||this.keys.S||this.keys.ArrowDown) f-=1;
+    if(this.keys.a||this.keys.A) s-=1;
+    if(this.keys.d||this.keys.D) s+=1;
+    if(this.keys.ArrowLeft) turn-=1;
+    if(this.keys.ArrowRight) turn+=1;
+    if(this.keys[" "]) shoot=true;
+    const gp=(typeof Pad!=="undefined"&&Pad.choosePad)?Pad.choosePad():null;
+    if(gp){
+      const a0=gp.axes[0]||0,a1=gp.axes[1]||0,a2=gp.axes[2]||0;
+      if(Math.abs(a1)>0.25) f-=a1; if(Math.abs(a0)>0.25) s+=a0; if(Math.abs(a2)>0.25) turn+=a2*1.4;
+      const b=i=>!!(gp.buttons[i]&&(gp.buttons[i].pressed||gp.buttons[i].value>0.5));
+      if(b(7)||b(0)) shoot=true;
+    }
+    f+=this._mv.y; s+=this._mv.x;
+    this.ang+=turn*2.4*dt;
+    const sp=3.4*dt, ca=Math.cos(this.ang), sa=Math.sin(this.ang);
+    let nx=this.px+(ca*f-sa*s)*sp, ny=this.py+(sa*f+ca*s)*sp;
+    if(!this.wall(nx+Math.sign(nx-this.px)*0.2,this.py)) this.px=nx;
+    if(!this.wall(this.px,ny+Math.sign(ny-this.py)*0.2)) this.py=ny;
+    if(shoot && !this._shootEdge){ this._shootEdge=true; this.shoot(); }
+    if(!shoot) this._shootEdge=false;
+  },
+  tick(t){
+    const dt=Math.min(0.05,(t-this._tPrev)/1000); this._tPrev=t;
+    this.input(dt);
+    // robots: te persiguen; muy cerca = te dañan
+    for(const e of this.enemies){
+      const dx=this.px-e.x, dy=this.py-e.y, d=Math.hypot(dx,dy)||1;
+      if(d>0.75){
+        const nx=e.x+dx/d*e.spd*dt, ny=e.y+dy/d*e.spd*dt;
+        if(!this.wall(nx,e.y)) e.x=nx;
+        if(!this.wall(e.x,ny)) e.y=ny;
+      } else if(e.cd<=0){ e.cd=1; this.hp-=10; this.flash=0.35; this.beep(140,0.25,"sawtooth");
+        if(navigator.vibrate){ try{ navigator.vibrate(90); }catch(_){} }
+        if(this.hp<=0) return this.gameOver();
+      }
+      e.cd=Math.max(0,e.cd-dt);
+    }
+    for(let i=this.parts.length-1;i>=0;i--){ const p=this.parts[i]; p.x+=p.vx*dt; p.y+=p.vy*dt; p.vy+=p.g*dt; p.life-=dt; if(p.life<=0) this.parts.splice(i,1); }
+    this.flash=Math.max(0,this.flash-dt); this.gunFl=Math.max(0,this.gunFl-dt);
+    this.draw();
+    $("fpsHud").textContent="❤️ "+this.hp+" · 🎯 "+this.score+" · 🌊 Oleada "+this.wave+" · 🤖 "+this.enemies.length;
+  },
+  gameOver(){
+    this.running=false; try{ document.exitPointerLock(); }catch(e){}
+    const rec=this.score>this.best;
+    if(rec){ this.best=this.score; localStorage.setItem("edtu_fps_best",String(this.score)); }
+    $("fpsOverlay").style.display="flex"; $("fpsMsg").textContent="🤖 ¡TE ATRAPARON!";
+    $("fpsResult").innerHTML=(rec?"🏆 ¡NUEVO RÉCORD!<br>":"")+"Puntos: <b>"+this.score+"</b> · Oleada <b>"+this.wave+"</b> · Récord: <b>"+this.best+"</b>";
+    $("fpsStart").textContent="▶ JUGAR OTRA VEZ";
+    if(this.raf){ cancelAnimationFrame(this.raf); this.raf=null; }
+  },
+  draw(){
+    const c=this.ctx; if(!c) return;
+    const W=this.W,H=this.H,STEP=2;
+    // cielo y piso (paleta RB: azul marino profundo)
+    c.fillStyle="#0a1230"; c.fillRect(0,0,W,H/2);
+    c.fillStyle="#07080d"; c.fillRect(0,H/2,W,H/2);
+    // paredes por raycasting
+    this.zbuf.length=Math.ceil(W/STEP);
+    for(let x=0;x<W;x+=STEP){
+      const ra=this.ang+((x/W)-0.5)*this.FOV;
+      const r=this.castRay(ra);
+      const d=r.d*Math.cos(ra-this.ang);
+      this.zbuf[x/STEP|0]=d;
+      const h=Math.min(H,(H*1.1)/d);
+      const fog=Math.max(0,1-d/13);
+      const base=r.side?[30,47,102]:[42,63,130];
+      c.fillStyle="rgb("+(base[0]*fog|0)+","+(base[1]*fog|0)+","+(base[2]*fog|0)+")";
+      c.fillRect(x,(H-h)/2,STEP,h);
+      if(fog>0.25){ c.fillStyle="rgba(200,16,46,"+(fog*0.5)+")"; c.fillRect(x,(H-h)/2,STEP,2); }   // filo rojo RB arriba
+    }
+    // robots (sprites ordenados de lejos a cerca)
+    const sorted=this.enemies.slice().sort((a,b)=>(Math.hypot(b.x-this.px,b.y-this.py))-(Math.hypot(a.x-this.px,a.y-this.py)));
+    for(const e of sorted){
+      const p=this.project(e.x,e.y); if(!p) continue;
+      const col=this.zbuf[(p.sx/STEP)|0];
+      if(col!==undefined && col<p.d-0.25) continue;   // detrás de una pared
+      const size=Math.min(H,(H*0.85)/p.d), sy=H/2+size*0.12;
+      c.save(); c.translate(p.sx,sy);
+      c.fillStyle="#c8102e"; c.beginPath(); c.arc(0,0,size*0.28,0,Math.PI*2); c.fill();            // cuerpo
+      c.fillStyle="#8a0f1f"; c.fillRect(-size*0.3,size*0.16,size*0.6,size*0.14);                    // base
+      c.fillStyle="#ffd12e"; c.beginPath(); c.arc(0,-size*0.06,size*0.09,0,Math.PI*2); c.fill();    // ojo
+      c.fillStyle="#111"; c.beginPath(); c.arc(0,-size*0.06,size*0.04,0,Math.PI*2); c.fill();
+      c.strokeStyle="#1e2f66"; c.lineWidth=Math.max(1,size*0.03);
+      c.beginPath(); c.moveTo(-size*0.28,0); c.lineTo(-size*0.42,size*0.1); c.moveTo(size*0.28,0); c.lineTo(size*0.42,size*0.1); c.stroke();   // brazos
+      c.restore();
+    }
+    // confeti
+    this.parts.forEach(p=>{ c.globalAlpha=Math.max(0,p.life*1.4); c.fillStyle=p.col; c.fillRect(p.x-3,p.y-3,6,6); c.globalAlpha=1; });
+    // mira
+    c.strokeStyle="#ffd12e"; c.lineWidth=2;
+    c.beginPath(); c.moveTo(W/2-12,H/2); c.lineTo(W/2-4,H/2); c.moveTo(W/2+4,H/2); c.lineTo(W/2+12,H/2);
+    c.moveTo(W/2,H/2-12); c.lineTo(W/2,H/2-4); c.moveTo(W/2,H/2+4); c.lineTo(W/2,H/2+12); c.stroke();
+    // arma (bláster RB) abajo al centro
+    const gx=W/2+Math.sin(performance.now()/300)*4, gy=H-0;
+    c.fillStyle="#1e2f66"; c.fillRect(gx-26,gy-92,52,92);
+    c.fillStyle="#c8102e"; c.fillRect(gx-26,gy-92,52,10);
+    c.fillStyle="#0d1430"; c.fillRect(gx-10,gy-116,20,28);
+    if(this.gunFl>0){ c.fillStyle="rgba(255,209,46,.9)"; c.beginPath(); c.arc(gx,H/2+40,26*(this.gunFl/0.09),0,Math.PI*2); c.fill(); }
+    // daño recibido: destello rojo
+    if(this.flash>0){ c.fillStyle="rgba(200,16,46,"+(this.flash*0.9)+")"; c.fillRect(0,0,W,H); }
+  }
+};
+$("pickFps").onclick=()=>{ $("gamePick").classList.remove("open"); FPS.open(); };
+$("fpsClose").onclick=()=>FPS.close();
+$("fpsStart").onclick=()=>FPS.start();
+(function(){ const b=$("fpsFire"), on=e=>{ e.preventDefault(); FPS.shoot(); }; b.addEventListener("pointerdown",on); })();
+$("fpsCanvas").addEventListener("click",()=>{
+  if($("fpsFs").classList.contains("touch")) return;
+  if(!FPS._locked){ try{ $("fpsCanvas").requestPointerLock(); }catch(e){} }
+  else FPS.shoot();
+});
+document.addEventListener("pointerlockchange",()=>{ FPS._locked=(document.pointerLockElement===$("fpsCanvas")); });
+document.addEventListener("mousemove",e=>{ if(FPS._locked && FPS.running) FPS.ang+=e.movementX*0.0032; });
+$("fpsCanvas").addEventListener("pointerdown",e=>{
+  if(!$("fpsFs").classList.contains("touch")) return;
+  if(e.clientX<innerWidth/2 && FPS._moveId==null){ FPS._moveId=e.pointerId; FPS._moveOx=e.clientX; FPS._moveOy=e.clientY; }
+  else if(FPS._lookId==null){ FPS._lookId=e.pointerId; FPS._lookX=e.clientX; }
+});
+$("fpsCanvas").addEventListener("pointermove",e=>{
+  if(e.pointerId===FPS._moveId){ FPS._mv={ x:Math.max(-1,Math.min(1,(e.clientX-FPS._moveOx)/60)), y:Math.max(-1,Math.min(1,(FPS._moveOy-e.clientY)/60)) }; }
+  else if(e.pointerId===FPS._lookId){ FPS.ang+=(e.clientX-FPS._lookX)*0.006; FPS._lookX=e.clientX; }
+});
+["pointerup","pointercancel"].forEach(ev=>$("fpsCanvas").addEventListener(ev,e=>{
+  if(e.pointerId===FPS._moveId){ FPS._moveId=null; FPS._mv={x:0,y:0}; }
+  if(e.pointerId===FPS._lookId) FPS._lookId=null;
+}));
+document.addEventListener("keydown",e=>{ if(!$("fpsFs").classList.contains("open")) return; FPS.keys[e.key]=true; if(e.key===" ") e.preventDefault(); if(e.key==="Escape") FPS.close(); });
+document.addEventListener("keyup",e=>{ FPS.keys[e.key]=false; });
+
 /* ============ 🏎️ F1 RB RUSH — carrera estilo Red Bull ============ */
 const F1={
   running:false, raf:null, W:0,H:0, ctx:null, keys:{},
@@ -6109,7 +6378,7 @@ const Pad={
   // La navegación NO actúa dentro de juegos/robot (ellos usan el mando a su manera)
   navOn(){ const o=id=>{ const e=document.getElementById(id); return e&&e.classList.contains("open"); };
     if(o("monFs") && typeof Monster!=="undefined" && (Monster.shopping||Monster.labOpen)) return true;   // navegar tienda/laboratorio con el mando
-    return !(o("gameFs")||o("footFs")||o("robotFs")||o("monFs")||o("f1Fs")); },
+    return !(o("gameFs")||o("footFs")||o("robotFs")||o("monFs")||o("f1Fs")||o("fpsFs")); },
   isVis(el){ if(!el||el.disabled) return false; if(el.getAttribute&&el.getAttribute("aria-hidden")==="true") return false;
     const s=getComputedStyle(el); if(s.display==="none"||s.visibility==="hidden"||+s.opacity===0||s.pointerEvents==="none") return false;
     const r=el.getBoundingClientRect(); if(r.width<3||r.height<3) return false;
