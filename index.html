@@ -186,6 +186,14 @@
   .face-slot{position:relative;aspect-ratio:1;border-radius:10px;border:1px dashed rgba(0,170,255,.4);background:rgba(0,0,0,.4);overflow:hidden;display:flex;align-items:center;justify-content:center;color:rgba(79,195,255,.6);font-size:20px}
   .face-slot img{width:100%;height:100%;object-fit:cover}
   .face-slot .fs-st{position:absolute;right:3px;bottom:3px;font-size:14px;text-shadow:0 0 6px #000}
+  /* ---------- ESTACIÓN METEOROLÓGICA (botón Clima) ---------- */
+  #wxBg{position:fixed;inset:0;z-index:150;display:none;align-items:center;justify-content:center;background:rgba(0,0,0,.75);backdrop-filter:blur(4px)}
+  #wxBg.open{display:flex}
+  .wx-card{position:relative;width:min(430px,94vw);max-height:90vh;overflow:auto;padding:24px 22px;border-radius:20px;text-align:center;
+    background:var(--panel);border:1px solid rgba(25,255,133,.35);box-shadow:0 0 34px rgba(25,255,133,.15);animation:pop .4s ease}
+  .wx-week{display:flex;flex-direction:column;gap:6px;margin-top:14px}
+  .wx-day{display:grid;grid-template-columns:52px 40px 1fr 1fr 1fr;align-items:center;gap:8px;padding:8px 12px;
+    border:1px solid rgba(25,255,133,.18);border-radius:10px;background:rgba(0,0,0,.25);font-size:14px}
   /* ---------- PALETA RB para TODOS los botones de juegos ---------- */
   .pickgame{font-size:17px;padding:14px 20px;color:#fff;font-weight:800;letter-spacing:.06em;
     background:linear-gradient(90deg,#1e2f66,#8a0f1f);border:2px solid #ffd12e;border-radius:12px;cursor:pointer;
@@ -822,6 +830,7 @@
       <button class="btn btn-ghost btn-sm" id="callBtn">📹 Llamar</button>
       <button class="btn btn-ghost btn-sm" id="statsBtn">📈 Stats</button>
       <button class="btn btn-ghost btn-sm" id="rankBtn">🎖️ Ranking</button>
+      <button class="btn btn-ghost btn-sm" id="wxBtn">🌦️ Clima</button>
       <button class="btn btn-ghost btn-sm" id="clfBtn" style="color:var(--red);border-color:rgba(255,59,91,0.5)">🔴 Clasificadas</button>
       <button class="btn btn-ghost btn-sm" id="gameBtn">🎮 Juego</button>
       <button class="btn btn-ghost btn-sm" id="robotBtn" style="color:#2fd0ff;border-color:rgba(47,208,255,0.5)">🚗 Robot</button>
@@ -1278,6 +1287,14 @@
 </div>
 
 <!-- ============ SELECTOR DE JUEGO ============ -->
+<div id="wxBg">
+  <div class="wx-card">
+    <button class="v-close" id="wxClose" title="Cerrar">✕</button>
+    <h2 class="mono" style="color:var(--cyan);letter-spacing:.2em;margin:0 0 8px;font-size:15px">🌦️ ESTACIÓN METEOROLÓGICA</h2>
+    <div id="wxBody"></div>
+  </div>
+</div>
+
 <div id="gamePick">
   <div class="gp-card">
     <h2 style="margin:0 0 4px;letter-spacing:.12em;color:#ffd12e;text-shadow:0 0 10px rgba(200,16,46,.6)">🎮 ELIGE UN JUEGO</h2>
@@ -5527,6 +5544,52 @@ $("f1Canvas").addEventListener("pointermove",e=>{ if(e.buttons||e.pressure>0) F1
 $("f1Canvas").addEventListener("pointerup",()=>{ F1._touchX=null; });
 document.addEventListener("keydown",e=>{ if(!$("f1Fs").classList.contains("open")) return; F1.keys[e.key]=true; if(e.key===" ") e.preventDefault(); if(e.key==="Escape") F1.close(); });
 document.addEventListener("keyup",e=>{ F1.keys[e.key]=false; });
+
+/* ============ 🌦️ ESTACIÓN METEOROLÓGICA (Open-Meteo, gratis y sin clave) ============ */
+const Wx={
+  CODES:{0:["☀️","Despejado"],1:["🌤️","Casi despejado"],2:["⛅","Parcial nuboso"],3:["☁️","Nublado"],45:["🌫️","Niebla"],48:["🌫️","Niebla"],
+    51:["🌦️","Llovizna"],53:["🌦️","Llovizna"],55:["🌦️","Llovizna"],61:["🌧️","Lluvia"],63:["🌧️","Lluvia"],65:["🌧️","Lluvia fuerte"],
+    71:["🌨️","Nieve"],73:["🌨️","Nieve"],75:["❄️","Nieve fuerte"],80:["🌧️","Chubascos"],81:["🌧️","Chubascos"],82:["⛈️","Chubascos fuertes"],
+    95:["⛈️","Tormenta"],96:["⛈️","Tormenta"],99:["⛈️","Tormenta"]},
+  info(code){ return this.CODES[code]||["🌡️","Clima"]; },
+  open(){
+    $("wxBg").classList.add("open");
+    $("wxBody").innerHTML='<div class="mono" style="padding:30px">📡 Consultando satélites...</div>';
+    const go=(lat,lon,label)=>this.fetch(lat,lon,label);
+    if(navigator.geolocation){
+      navigator.geolocation.getCurrentPosition(
+        p=>go(p.coords.latitude,p.coords.longitude,"📍 TU UBICACIÓN"),
+        ()=>go(-33.45,-70.66,"📍 SANTIAGO, CHILE"),
+        {timeout:6000,maximumAge:600000});
+    } else go(-33.45,-70.66,"📍 SANTIAGO, CHILE");
+  },
+  async fetch(lat,lon,label){
+    try{
+      const r=await fetch("https://api.open-meteo.com/v1/forecast?latitude="+lat+"&longitude="+lon+"&current=temperature_2m,relative_humidity_2m,apparent_temperature,weather_code,wind_speed_10m&daily=weather_code,temperature_2m_max,temperature_2m_min,precipitation_probability_max&timezone=auto&forecast_days=5");
+      const d=await r.json();
+      const cu=d.current, ic=this.info(cu.weather_code);
+      const DAYS=["DOM","LUN","MAR","MIÉ","JUE","VIE","SÁB"];
+      let rows="";
+      (d.daily.time||[]).forEach((t,i)=>{
+        const di=this.info(d.daily.weather_code[i]);
+        const day=i===0?"HOY":DAYS[new Date(t+"T12:00").getDay()];
+        rows+='<div class="wx-day mono"><b>'+day+'</b><span style="font-size:24px">'+di[0]+'</span><span>'+Math.round(d.daily.temperature_2m_max[i])+'°</span><span style="opacity:.55">'+Math.round(d.daily.temperature_2m_min[i])+'°</span><span style="color:#33bbff">💧'+(d.daily.precipitation_probability_max[i]!=null?d.daily.precipitation_probability_max[i]:0)+'%</span></div>';
+      });
+      $("wxBody").innerHTML=
+        '<div class="mono" style="font-size:10px;letter-spacing:.22em;color:var(--muted)">'+label+'</div>'+
+        '<div style="font-size:62px;margin:2px 0">'+ic[0]+'</div>'+
+        '<div style="font-size:44px;font-weight:800">'+Math.round(cu.temperature_2m)+'°C</div>'+
+        '<div style="color:var(--cyan);letter-spacing:.14em;margin:2px 0 10px;font-size:13px">'+ic[1].toUpperCase()+'</div>'+
+        '<div class="mono" style="font-size:12px;opacity:.85">Sensación '+Math.round(cu.apparent_temperature)+'°C · 💨 '+Math.round(cu.wind_speed_10m)+' km/h · 💧 '+cu.relative_humidity_2m+'%</div>'+
+        '<div class="wx-week">'+rows+'</div>';
+    }catch(e){
+      $("wxBody").innerHTML='<div class="mono" style="padding:26px;color:var(--red)">⚠ No pude leer el satélite del clima.<br>Revisa internet e intenta de nuevo.</div>';
+    }
+  }
+};
+$("wxBtn").onclick=()=>Wx.open();
+$("wxClose").onclick=()=>$("wxBg").classList.remove("open");
+$("wxBg").addEventListener("click",e=>{ if(e.target===$("wxBg")) $("wxBg").classList.remove("open"); });
 
 // Portada: solo PLAY a la vista — el login está ESCONDIDO (escribe "hola" o toca H-O-L-A)
 $("lndPlay").onclick=()=>{ $("landing").style.display="none"; Monster._fromLanding=true; Monster.open(); };
