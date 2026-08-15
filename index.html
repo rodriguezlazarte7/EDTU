@@ -5467,26 +5467,15 @@ const Secret={
     const cv=$(cvId); if(!cv || !video.videoWidth) return;
     if(cv.width!==video.videoWidth||cv.height!==video.videoHeight){ cv.width=video.videoWidth; cv.height=video.videoHeight; }
     const c=cv.getContext("2d"); c.clearRect(0,0,cv.width,cv.height);
-    const faces=(res && res.faceLandmarks)||[], W=cv.width, H=cv.height, T=this._meshTess||[];
+    const faces=(res && res.faceLandmarks)||[], W=cv.width, H=cv.height;
     faces.forEach((pts,fi)=>{
       const main=(fi===0);
-      const good=main && this._liveMatch!==false;   // rostro correcto -> malla AZUL · equivocado -> ROJA
-      c.strokeStyle=good?"rgba(0,170,255,.28)":"rgba(255,7,58,.3)"; c.lineWidth=1; c.shadowBlur=0;
-      c.beginPath();
-      for(const e of T){ const a=pts[e.start], b=pts[e.end]; c.moveTo(a.x*W,a.y*H); c.lineTo(b.x*W,b.y*H); }
-      c.stroke();
-      for(const p of pts){
-        const z=Math.max(0,Math.min(1,0.5-(p.z*6)));   // z negativo = más cerca de la cámara
-        c.fillStyle=good?("rgba(0,170,255,"+(0.25+z*0.75).toFixed(2)+")"):"rgba(255,7,58,.6)";
-        const s=1+z*2.2; c.fillRect(p.x*W-s/2,p.y*H-s/2,s,s);
-      }
-      // la MIRA HUD pequeña, anclada AL OJO (lo sigue en vivo)
-      if(main){
-        const a=pts[33]||pts[0], b=pts[133]||pts[0];   // esquinas del ojo derecho
-        const ex=((a.x+b.x)/2)*W, ey=((a.y+b.y)/2)*H;
-        const R=Math.max(18,Math.hypot((b.x-a.x)*W,(b.y-a.y)*H)*1.15);
-        this._drawHud(c, ex, ey, R, performance.now()/1000, good?"rgba(140,215,255,.85)":"rgba(255,60,90,.85)");
-      }
+      const good=main && this._liveMatch!==false;   // tu ojo AZUL · rostro equivocado o extra ROJO
+      // SOLO la MIRA HUD anclada al ojo (sin malla facial)
+      const a=pts[33]||pts[0], b=pts[133]||pts[0];   // esquinas del ojo derecho
+      const ex=((a.x+b.x)/2)*W, ey=((a.y+b.y)/2)*H;
+      const R=Math.max(18,Math.hypot((b.x-a.x)*W,(b.y-a.y)*H)*1.15);
+      this._drawHud(c, ex, ey, R, performance.now()/1000, good?"rgba(140,215,255,.85)":"rgba(255,60,90,.85)");
     });
     // sin rostro: la mira busca en el centro, tenue
     if(!faces.length) this._drawHud(c,W/2,H/2,Math.min(W,H)*0.32,performance.now()/1000,"rgba(120,190,255,.30)");
