@@ -5756,14 +5756,14 @@ const FaceReg={
   items:[],   // {url, ok, desc}
   target:{key:"edtu_face_david", label:"DAVID"},
   open(){
-    // botón de la cabecera: solo David (o superadmin) entrena SU rostro
-    let isDavid=false;
-    if(currentUser){
-      if(currentUser.type==="admin") isDavid=true;
-      else{ const ag=(typeof getCurrentAgent==="function"?getCurrentAgent():null)||{}; isDavid=((ag.name||"").trim().toLowerCase()==="david"); }
+    // botón de la cabecera: CADA UNO entrena SU PROPIO rostro (David el suyo, cada agente el suyo)
+    if(!currentUser){ toast("Inicia sesión primero"); return; }
+    if(currentUser.type==="admin"){ this.target={key:"edtu_face_david", label:"DAVID"}; }
+    else{
+      const ag=(typeof getCurrentAgent==="function"?getCurrentAgent():null)||{};
+      if((ag.name||"").trim().toLowerCase()==="david") this.target={key:"edtu_face_david", label:"DAVID"};
+      else this.target={key:"edtu_face_"+currentUser.id, label:(ag.name||"AGENTE").toUpperCase()};
     }
-    if(!isDavid){ toast("⛔ Solo David puede entrenar el rostro"); return; }
-    this.target={key:"edtu_face_david", label:"DAVID"};
     this._open();
   },
   // desde la ficha de un agente: entrena el rostro de ESE agente
