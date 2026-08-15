@@ -5480,11 +5480,12 @@ const Secret={
         c.fillStyle=good?("rgba(0,170,255,"+(0.25+z*0.75).toFixed(2)+")"):"rgba(255,7,58,.6)";
         const s=1+z*2.2; c.fillRect(p.x*W-s/2,p.y*H-s/2,s,s);
       }
-      // la MIRA HUD centrada en la cara principal (la sigue en vivo)
+      // la MIRA HUD pequeña, anclada AL OJO (lo sigue en vivo)
       if(main){
-        const nose=pts[168]||pts[1]||pts[0], l=pts[234]||pts[0], r=pts[454]||pts[0];
-        const R=Math.max(30,Math.hypot((r.x-l.x)*W,(r.y-l.y)*H)*0.62);
-        this._drawHud(c, nose.x*W, nose.y*H, R, performance.now()/1000, good?"rgba(140,215,255,.85)":"rgba(255,60,90,.85)");
+        const a=pts[33]||pts[0], b=pts[133]||pts[0];   // esquinas del ojo derecho
+        const ex=((a.x+b.x)/2)*W, ey=((a.y+b.y)/2)*H;
+        const R=Math.max(18,Math.hypot((b.x-a.x)*W,(b.y-a.y)*H)*1.15);
+        this._drawHud(c, ex, ey, R, performance.now()/1000, good?"rgba(140,215,255,.85)":"rgba(255,60,90,.85)");
       }
     });
     // sin rostro: la mira busca en el centro, tenue
