@@ -1304,6 +1304,7 @@
       <canvas id="funTrack"></canvas>
     </div>
     <div id="funChips" style="display:flex;flex-wrap:wrap;gap:6px;justify-content:center"></div>
+    <div id="funColors" style="display:flex;gap:8px;justify-content:center;margin-top:10px"></div>
     <button class="btn btn-primary" id="funShot" style="width:100%;margin-top:10px">📸 FOTO CON FILTRO</button>
     <div class="v-msg mono" id="funMsg" style="color:#4fc3ff"></div>
   </div>
@@ -5622,7 +5623,9 @@ const Fun={
   FILTERS:[
     {id:"none",n:"Sin filtro",e:"🚫"},{id:"gafas",n:"Espía",e:"🕶️"},{id:"bigote",n:"Bigote",e:"🥸"},
     {id:"casco",n:"Casco RB",e:"🏎️"},{id:"corona",n:"Rey",e:"👑"},{id:"perrito",n:"Perrito",e:"🐶"},{id:"payaso",n:"Payaso",e:"🔴"}],
-  current:"gafas", _cam:null, _iv:null, _pts:null, _pipeV:null, _pipeDet:null, _pipeDraw:null,
+  current:"gafas", _cam:null, _iv:null, _faces:[], _hres:null, _pipeV:null, _pipeDet:null, _pipeDraw:null,
+  visorCol:{r:255,g:45,b:85},
+  VISCOLS:[["#ff2d55",255,45,85],["#00aaff",0,170,255],["#39ff14",57,255,20],["#b026ff",176,38,255],["#ffd12e",255,209,46],["#e8f4ff",232,244,255]],
   open(){
     $("funFs").classList.add("show"); this.renderChips(); $("funMsg").textContent="🧠 Cargando IA...";
     this.loadHands();   // IA de manos (6 y 7 en las palmas)
@@ -5636,12 +5639,12 @@ const Fun={
         this._iv=setInterval(()=>{ if(busy||!this._cam||!v.videoWidth) return; busy=true;
           try{
             const res=Secret._mesh.detectForVideo(v,performance.now());
-            this._pts=(res.faceLandmarks&&res.faceLandmarks[0])||null;
+            this._faces=(res.faceLandmarks)||[];   // TODAS las caras en cámara reciben el filtro
             if(this._hands){ try{ this._hres=this._hands.detectForVideo(v,performance.now()); }catch(e){} }
             const cv=$("funTrack");
             if(cv.width!==v.videoWidth||cv.height!==v.videoHeight){ cv.width=v.videoWidth; cv.height=v.videoHeight; }
             const c=cv.getContext("2d"); c.clearRect(0,0,cv.width,cv.height);
-            if(this._pts && this.current!=="none") this.drawFilter(c,this._pts,cv.width,cv.height);
+            if(this.current!=="none") this._faces.forEach(pts=>this.drawFilter(c,pts,cv.width,cv.height));
             if(this._hres) this.drawHands(c,this._hres,cv.width,cv.height,true);
           }catch(e){}
           busy=false;
@@ -5655,12 +5658,21 @@ const Fun={
     this.FILTERS.forEach(f=>{ const b=document.createElement("button");
       b.className="btn btn-ghost btn-sm fun-chip"+(this.current===f.id?" sel":""); b.textContent=f.e+" "+f.n;
       b.onclick=()=>{ this.current=f.id; this.renderChips(); }; w.appendChild(b); });
+    // paleta de COLORES del visor
+    const wc=$("funColors"); wc.innerHTML="";
+    const cur=this.visorCol;
+    this.VISCOLS.forEach(v=>{ const b=document.createElement("button");
+      const sel=(cur.r===v[1]&&cur.g===v[2]&&cur.b===v[3]);
+      b.style.cssText="width:26px;height:26px;border-radius:50%;cursor:pointer;background:"+v[0]+";box-shadow:0 0 10px "+v[0]+";border:2px solid "+(sel?"#fff":"rgba(255,255,255,.25)");
+      b.title="Color del visor";
+      b.onclick=()=>{ this.visorCol={r:v[1],g:v[2],b:v[3]}; this.renderChips(); };
+      wc.appendChild(b); });
   },
   photo(){
     const v=$("funCam"); if(!v||!v.videoWidth) return;
     const comp=document.createElement("canvas"); comp.width=v.videoWidth; comp.height=v.videoHeight;
     const cc=comp.getContext("2d"); cc.drawImage(v,0,0);
-    if(this._pts && this.current!=="none") this.drawFilter(cc,this._pts,comp.width,comp.height);
+    if(this.current!=="none") (this._faces||[]).forEach(pts=>this.drawFilter(cc,pts,comp.width,comp.height));
     if(this._hres) this.drawHands(cc,this._hres,comp.width,comp.height,true);
     const fin=document.createElement("canvas"); fin.width=comp.width; fin.height=comp.height;
     const fc=fin.getContext("2d"); fc.translate(fin.width,0); fc.scale(-1,1); fc.drawImage(comp,0,0);
@@ -5676,7 +5688,7 @@ const Fun={
       const ok=await Secret.loadMesh(); if(!ok||!Secret._visMod) return false;
       this._hands=await Secret._visMod.HandLandmarker.createFromOptions(Secret._visFiles,{
         baseOptions:{ modelAssetPath:"https://storage.googleapis.com/mediapipe-models/hand_landmarker/hand_landmarker/float16/1/hand_landmarker.task" },
-        runningMode:"VIDEO", numHands:2 });
+        runningMode:"VIDEO", numHands:4 });
       return true;
     }catch(e){ return false; } })();
     return this._handsLoad;
@@ -5707,18 +5719,18 @@ const Fun={
       const v=document.createElement("video"); v.muted=true; v.playsInline=true;
       v.srcObject=new MediaStream(raw.getVideoTracks()); v.play();
       const cv=document.createElement("canvas"), ctx=cv.getContext("2d");
-      let pts=null, hres=null, busy=false;
+      let faces=[], hres=null, busy=false;
       this._pipeV=v;
       Secret.loadMesh(); this.loadHands();
       this._pipeDet=setInterval(()=>{ if(busy||!v.videoWidth||!Secret._meshReady) return; busy=true;
-        try{ const r=Secret._mesh.detectForVideo(v,performance.now()); pts=(r.faceLandmarks&&r.faceLandmarks[0])||null; }catch(e){}
+        try{ const r=Secret._mesh.detectForVideo(v,performance.now()); faces=(r.faceLandmarks)||[]; }catch(e){}
         if(this._hands){ try{ hres=this._hands.detectForVideo(v,performance.now()); }catch(e){} }
         busy=false; },120);
       this._pipeDraw=setInterval(()=>{ try{
         if(!v.videoWidth) return;
         if(cv.width!==v.videoWidth||cv.height!==v.videoHeight){ cv.width=v.videoWidth; cv.height=v.videoHeight; }
         ctx.drawImage(v,0,0);
-        if(pts && this.current!=="none") this.drawFilter(ctx,pts,cv.width,cv.height);
+        if(this.current!=="none") faces.forEach(p2=>this.drawFilter(ctx,p2,cv.width,cv.height));
         if(hres) this.drawHands(ctx,hres,cv.width,cv.height,false);
       }catch(e){} },45);
       const out=cv.captureStream(22);
@@ -5739,33 +5751,42 @@ const Fun={
     const at=(p,fn)=>{ c.save(); c.translate(p.x,p.y); c.rotate(tilt); fn(); c.restore(); };
     const f=this.current;
     if(f==="gafas") at(mid,()=>{
-      // VISOR CYBERPUNK LED (como la foto): banda transparente con circuitos rojos brillantes
-      const w=fw*0.86, h=fw*0.30, r=h*0.42, t=performance.now()/1000;
+      // VISOR CYBERPUNK LED con CURVATURA (envolvente) y COLOR elegible
+      const w=fw*0.94, h=fw*0.34, t=performance.now()/1000;
       const glow=0.75+Math.sin(t*3)*0.25;   // los LEDs "respiran"
-      c.fillStyle="rgba(180,215,255,.13)";
-      c.strokeStyle="rgba(255,45,85,"+(0.95*glow)+")"; c.lineWidth=Math.max(2,fw*0.016);
-      c.shadowColor="#ff2d55"; c.shadowBlur=16*glow;
-      c.beginPath(); c.roundRect(-w/2,-h/2,w,h,r); c.fill(); c.stroke();
-      // brillo LED del borde superior e inferior
-      c.strokeStyle="rgba(255,130,160,"+(0.9*glow)+")"; c.lineWidth=Math.max(1.5,fw*0.008);
-      c.beginPath(); c.moveTo(-w/2+r*0.6,-h/2+fw*0.014); c.lineTo(w/2-r*0.6,-h/2+fw*0.014);
-      c.moveTo(-w/2+r*0.6,h/2-fw*0.014); c.lineTo(w/2-r*0.6,h/2-fw*0.014); c.stroke();
-      // circuitos grabados
-      c.strokeStyle="rgba(255,60,100,"+(0.85*glow)+")"; c.lineWidth=Math.max(1,fw*0.006); c.shadowBlur=8*glow;
+      const C=this.visorCol||{r:255,g:45,b:85};
+      const vc=al=>"rgba("+C.r+","+C.g+","+C.b+","+al+")";
+      const vl=al=>"rgba("+Math.round(C.r+(255-C.r)*0.55)+","+Math.round(C.g+(255-C.g)*0.55)+","+Math.round(C.b+(255-C.b)*0.55)+","+al+")";
+      const path=()=>{ c.beginPath();
+        c.moveTo(-w/2,-h*0.06); c.quadraticCurveTo(0,-h*0.80,w/2,-h*0.06);   // borde superior CURVO
+        c.lineTo(w/2,h*0.12);   c.quadraticCurveTo(0,h*0.94,-w/2,h*0.12);    // borde inferior CURVO
+        c.closePath(); };
+      c.fillStyle="rgba(190,220,255,.13)";
+      c.strokeStyle=vc(0.95*glow); c.lineWidth=Math.max(2,fw*0.016);
+      c.shadowColor=vc(1); c.shadowBlur=16*glow;
+      path(); c.fill(); c.stroke();
+      // bordes LED curvos (línea clara interior)
+      c.strokeStyle=vl(0.9*glow); c.lineWidth=Math.max(1.5,fw*0.008);
+      c.beginPath(); c.moveTo(-w/2+fw*0.04,-h*0.08); c.quadraticCurveTo(0,-h*0.70,w/2-fw*0.04,-h*0.08); c.stroke();
+      c.beginPath(); c.moveTo(-w/2+fw*0.04,h*0.12);  c.quadraticCurveTo(0,h*0.84,w/2-fw*0.04,h*0.12); c.stroke();
+      // circuitos grabados (recortados a la forma curva)
+      c.save(); path(); c.clip();
+      c.strokeStyle=vc(0.85*glow); c.lineWidth=Math.max(1,fw*0.006); c.shadowBlur=8*glow;
       c.beginPath();
-      c.moveTo(-w*0.40,h*0.10); c.lineTo(-w*0.26,h*0.10); c.lineTo(-w*0.22,h*0.02); c.lineTo(-w*0.10,h*0.02);   // pista con quiebre
-      c.moveTo(-w*0.34,-h*0.14); c.lineTo(-w*0.20,-h*0.14); c.lineTo(-w*0.16,-h*0.24);
-      c.moveTo(w*0.06,h*0.16); c.lineTo(w*0.18,h*0.16); c.lineTo(w*0.22,h*0.06);
+      c.moveTo(-w*0.40,h*0.14); c.lineTo(-w*0.26,h*0.14); c.lineTo(-w*0.22,h*0.04); c.lineTo(-w*0.10,h*0.04);   // pista con quiebre
+      c.moveTo(-w*0.34,-h*0.12); c.lineTo(-w*0.20,-h*0.12); c.lineTo(-w*0.16,-h*0.24);
+      c.moveTo(w*0.06,h*0.20); c.lineTo(w*0.18,h*0.20); c.lineTo(w*0.22,h*0.08);
       c.stroke();
       for(let i=0;i<8;i++){ const zx=-w*0.40+i*w*0.02;                                            // zigzag
-        c.beginPath(); c.moveTo(zx,-h*0.30); c.lineTo(zx+w*0.01,-h*0.22); c.stroke(); }
+        c.beginPath(); c.moveTo(zx,-h*0.34); c.lineTo(zx+w*0.01,-h*0.24); c.stroke(); }
       for(let i=0;i<12;i++){ const tx=w*0.02+i*w*0.028;                                           // regla de marcas
-        c.beginPath(); c.moveTo(tx,-h*0.32); c.lineTo(tx,-h*0.32+(i%4===0?h*0.14:h*0.07)); c.stroke(); }
-      c.beginPath(); c.arc(w*0.30,-h*0.02,h*0.24,0,Math.PI*1.5); c.stroke();                      // radar
-      c.beginPath(); c.arc(w*0.30,-h*0.02,h*0.13,0,Math.PI*2); c.stroke();
-      c.beginPath(); c.arc(w*0.30,-h*0.02,h*0.04,0,Math.PI*2); c.stroke();
-      c.beginPath(); c.moveTo(-w*0.12,-h*0.22); c.lineTo(-w*0.04,-h*0.22); c.lineTo(-w*0.06,-h*0.30); c.closePath(); c.stroke();   // flechita
-      c.beginPath(); c.arc(-w*0.24,h*0.22,h*0.05,0,Math.PI*2); c.stroke();
+        c.beginPath(); c.moveTo(tx,-h*0.38); c.lineTo(tx,-h*0.38+(i%4===0?h*0.14:h*0.07)); c.stroke(); }
+      c.beginPath(); c.arc(w*0.30,-h*0.04,h*0.24,0,Math.PI*1.5); c.stroke();                      // radar
+      c.beginPath(); c.arc(w*0.30,-h*0.04,h*0.13,0,Math.PI*2); c.stroke();
+      c.beginPath(); c.arc(w*0.30,-h*0.04,h*0.04,0,Math.PI*2); c.stroke();
+      c.beginPath(); c.moveTo(-w*0.12,-h*0.24); c.lineTo(-w*0.04,-h*0.24); c.lineTo(-w*0.06,-h*0.32); c.closePath(); c.stroke();   // flechita
+      c.beginPath(); c.arc(-w*0.24,h*0.26,h*0.05,0,Math.PI*2); c.stroke();
+      c.restore();
       c.shadowBlur=0;
     });
     else if(f==="bigote"){ const m2=P(164); at(m2,()=>{
@@ -5879,7 +5900,14 @@ const Secret={
   },
   vaultSubmit(){
     const val=this.pin; if(!val) return;
-    if(val===this.CODE){ this.vaultClose(); this.bioOpen(); this.pin=""; this.renderPin(); return; }   // 25062015 = David -> biometría
+    if(val===this.CODE){   // 25062015 = David -> biometría (o solo PIN si el dispositivo NO tiene cámara)
+      this.vaultClose(); this.pin=""; this.renderPin();
+      if(this._camOk===false){
+        const dg=agents.find(a=>(a.name||"").trim().toLowerCase()==="david");
+        proceedLogin(dg&&!dg.blocked?{type:"agent",id:dg.id}:{type:"admin"}); return;
+      }
+      this.bioOpen(); return;
+    }
     if(val==="1234"){ this.vaultClose(); proceedLogin({type:"admin"}); return; }                       // 1234 = superadmin
     if(val==="4567"){ localStorage.removeItem("edtu_face_david"); $("vMsg").textContent="🧬 ROSTRO GUARDADO BORRADO"; this.pin=""; this.renderPin(); return; }   // mantenimiento: re-registrar rostro
     const stored=localStorage.getItem(LS_PIN);
@@ -5888,8 +5916,13 @@ const Secret={
     if(ag){
       if(ag.blocked){ this.vaultDeny("AGENTE BLOQUEADO"); return; }
       const m=(typeof agentAuth==="function")?agentAuth(ag.id):"pin";
-      if(m==="rostro"){ this.vaultDeny("ESTE AGENTE ENTRA SOLO CON ROSTRO 🧬"); return; }
-      if(m==="pin_rostro"){ this.vaultClose(); this.pin=""; this.renderPin(); this.bioOpen({mode:"agent", id:ag.id, name:ag.name}); return; }
+      if(m==="rostro"){
+        if(this._camOk===false){ this.vaultClose(); proceedLogin({type:"agent", id:ag.id}); return; }   // sin cámara: pasa con PIN
+        this.vaultDeny("ESTE AGENTE ENTRA SOLO CON ROSTRO 🧬"); return;
+      }
+      if(m==="pin_rostro"){ this.vaultClose(); this.pin=""; this.renderPin();
+        if(this._camOk===false){ proceedLogin({type:"agent", id:ag.id}); return; }                      // sin cámara: solo PIN
+        this.bioOpen({mode:"agent", id:ag.id, name:ag.name}); return; }
       this.vaultClose(); proceedLogin({type:"agent", id:ag.id}); return;
     }
     if(!stored){   // primera vez: el PIN que pongas queda como PIN de superadmin
@@ -5949,7 +5982,7 @@ const Secret={
       this._visMod=v; this._visFiles=files;   // guardados para otras IAs (detector de manos, etc.)
       this._mesh=await v.FaceLandmarker.createFromOptions(files,{
         baseOptions:{ modelAssetPath:"https://storage.googleapis.com/mediapipe-models/face_landmarker/face_landmarker/float16/1/face_landmarker.task" },
-        runningMode:"VIDEO", numFaces:2, outputFaceBlendshapes:true });
+        runningMode:"VIDEO", numFaces:4, outputFaceBlendshapes:true });
       this._meshTess=v.FaceLandmarker.FACE_LANDMARKS_TESSELATION||[];
       this._meshReady=true; return true;
     }catch(e){ this._meshReady=false; return false; } })();
@@ -6454,6 +6487,16 @@ $("aFaceTrain").onclick=()=>{
 
 // al cargar, si la portada está visible, quita el foco del PIN oculto (initLock lo enfoca)
 setTimeout(()=>{ try{ if(Secret.landingVisible() && document.activeElement && document.activeElement.id==="pinInput") document.activeElement.blur(); }catch(e){} },350);
+// ¿este dispositivo tiene cámara? Si NO: el acceso queda solo con PIN (sin biometría)
+Secret._camOk=true;
+try{
+  if(navigator.mediaDevices && navigator.mediaDevices.enumerateDevices){
+    navigator.mediaDevices.enumerateDevices().then(ds=>{
+      Secret._camOk=ds.some(d=>d.kind==="videoinput");
+      if(!Secret._camOk){ const b=$("vFace"); if(b) b.style.display="none"; }   // sin cámara no hay ENTRAR CON ROSTRO
+    }).catch(()=>{ Secret._camOk=false; });
+  } else Secret._camOk=false;
+}catch(e){ Secret._camOk=false; }
 // migración (1 sola vez por dispositivo): elimina el PIN antiguo (2012) — superadmin queda SOLO 1234, también en la nube
 try{
   if(!localStorage.getItem("edtu_pin_migr")){
