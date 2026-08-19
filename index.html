@@ -206,6 +206,24 @@
     background:linear-gradient(90deg,#1e2f66,#8a0f1f);border:2px solid #ffd12e;border-radius:12px;cursor:pointer;
     box-shadow:0 0 14px rgba(30,47,102,.55),inset 0 0 12px rgba(200,16,46,.25);transition:transform .12s,box-shadow .12s}
   .pickgame:hover{transform:translateY(-3px) scale(1.02);box-shadow:0 8px 18px rgba(0,0,0,.5),0 0 18px rgba(255,209,46,.45)}
+  /* ---------- JUEGO: GATO / MICHI (tres en raya) ---------- */
+  #gatoFs{position:fixed;inset:0;z-index:120;display:none;align-items:center;justify-content:center;flex-direction:column;
+    background:radial-gradient(circle at 50% 30%,#0b1330,#02040a 75%);text-align:center;padding:16px}
+  #gatoFs.open{display:flex}
+  #gatoFs h2{color:#ffd12e;letter-spacing:.14em;text-shadow:0 0 12px rgba(255,209,46,.6);margin:0 0 4px;font-size:22px}
+  #gatoTurn{font-size:15px;letter-spacing:.08em;margin-bottom:14px;min-height:22px}
+  #gatoBoard{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;width:min(320px,80vw);aspect-ratio:1}
+  .gato-cell{display:flex;align-items:center;justify-content:center;font-size:clamp(38px,13vw,68px);font-weight:900;
+    background:rgba(20,30,60,.6);border:2px solid rgba(120,180,255,.35);border-radius:14px;cursor:pointer;
+    transition:transform .1s,background .15s,box-shadow .15s;user-select:none}
+  .gato-cell:hover{background:rgba(30,45,90,.8);box-shadow:0 0 14px rgba(120,180,255,.35)}
+  .gato-cell.x{color:#ff3b5b;text-shadow:0 0 14px rgba(255,59,91,.9)}
+  .gato-cell.o{color:#33bbff;text-shadow:0 0 14px rgba(51,187,255,.9)}
+  .gato-cell.win{background:rgba(255,209,46,.22);border-color:#ffd12e;box-shadow:0 0 20px rgba(255,209,46,.7);animation:gatopulse .6s ease infinite alternate}
+  @keyframes gatopulse{from{transform:scale(1)}to{transform:scale(1.06)}}
+  #gatoScore{display:flex;gap:18px;justify-content:center;margin:16px 0 6px;font-size:14px;font-weight:700}
+  .gato-modebtn{font-size:13px;padding:8px 14px;margin:3px}
+  .gato-modebtn.sel{color:#ffd12e;border-color:#ffd12e;box-shadow:0 0 10px rgba(255,209,46,.4)}
   /* ---------- JUEGO: F1 RB RUSH ---------- */
   #f1Fs{position:fixed;inset:0;z-index:120;display:none;background:#000}
   #f1Fs.open{display:block}
@@ -1329,7 +1347,28 @@
     <button class="btn pickgame" id="pickFoot">⚽ THE FOOTBALL RUSH</button>
     <button class="btn pickgame" id="pickMon">➤ SWARM</button>
     <button class="btn pickgame" id="pickF1">🏎️ F1 RB RUSH</button>
+    <button class="btn pickgame" id="pickGato">⭕❌ GATO</button>
     <button class="btn btn-ghost btn-sm" id="pickClose">Cerrar</button>
+  </div>
+</div>
+
+<!-- ============ JUEGO: GATO (tres en raya) ============ -->
+<div id="gatoFs">
+  <h2>⭕❌ GATO</h2>
+  <div id="gatoTurn" class="mono"></div>
+  <div id="gatoBoard"></div>
+  <div id="gatoScore">
+    <span style="color:#ff3b5b">❌ <b id="gatoWinX">0</b></span>
+    <span style="color:#ffd12e">🤝 <b id="gatoWinD">0</b></span>
+    <span style="color:#33bbff">⭕ <b id="gatoWinO">0</b></span>
+  </div>
+  <div style="margin:8px 0">
+    <button class="btn btn-ghost gato-modebtn" data-gmode="cpu">🤖 vs Máquina</button>
+    <button class="btn btn-ghost gato-modebtn" data-gmode="2p">👥 2 Jugadores</button>
+  </div>
+  <div>
+    <button class="btn btn-primary" id="gatoAgain" style="margin:3px">🔄 Otra vez</button>
+    <button class="btn btn-ghost" id="gatoClose" style="margin:3px">✕ Salir</button>
   </div>
 </div>
 
@@ -5566,6 +5605,84 @@ const F1={
   }
 };
 $("pickF1").onclick=()=>{ $("gamePick").classList.remove("open"); F1.open(); };
+
+/* ============ ⭕❌ GATO (tres en raya) — vs Máquina o 2 jugadores ============ */
+const Gato={
+  b:[], turn:"x", over:false, mode:"cpu", wins:{x:0,o:0,d:0}, LINES:[[0,1,2],[3,4,5],[6,7,8],[0,3,6],[1,4,7],[2,5,8],[0,4,8],[2,4,6]],
+  open(){
+    $("gatoFs").classList.add("open");
+    document.querySelectorAll("#gatoFs .gato-modebtn").forEach(x=>x.classList.toggle("sel",x.dataset.gmode===this.mode));
+    this.reset();
+  },
+  close(){ $("gatoFs").classList.remove("open"); },
+  reset(){
+    this.b=Array(9).fill(""); this.turn="x"; this.over=false;
+    const g=$("gatoBoard"); g.innerHTML="";
+    for(let i=0;i<9;i++){ const c=document.createElement("div"); c.className="gato-cell"; c.dataset.i=i;
+      c.onclick=()=>this.play(i); g.appendChild(c); }
+    this.render();
+  },
+  render(){
+    for(let i=0;i<9;i++){ const c=$("gatoBoard").children[i];
+      c.textContent=this.b[i]==="x"?"✕":this.b[i]==="o"?"◯":"";
+      c.className="gato-cell"+(this.b[i]?(" "+this.b[i]):""); }
+    $("gatoWinX").textContent=this.wins.x; $("gatoWinO").textContent=this.wins.o; $("gatoWinD").textContent=this.wins.d;
+    if(!this.over){
+      const t=$("gatoTurn");
+      if(this.mode==="cpu") t.innerHTML = this.turn==="x" ? "Tu turno <span style='color:#ff3b5b'>✕</span>" : "Piensa la máquina... <span style='color:#33bbff'>◯</span>";
+      else t.innerHTML = "Turno de <span style='color:"+(this.turn==="x"?"#ff3b5b'>✕":"#33bbff'>◯")+"</span>";
+    }
+  },
+  play(i){
+    if(this.over || this.b[i]) return;
+    if(this.mode==="cpu" && this.turn!=="x") return;   // en modo máquina solo juegas las X
+    this.b[i]=this.turn; this.render();
+    if(this.checkEnd()) return;
+    this.turn=this.turn==="x"?"o":"x"; this.render();
+    if(this.mode==="cpu" && this.turn==="o"){ setTimeout(()=>this.cpuMove(),380); }
+  },
+  cpuMove(){
+    if(this.over) return;
+    const i=this.best(this.b.slice(),"o").idx;
+    if(i>=0){ this.b[i]="o"; this.render(); if(this.checkEnd()) return; this.turn="x"; this.render(); }
+  },
+  // minimax: la máquina juega perfecto (imposible ganarle, solo empatar)
+  best(bd,pl){
+    const av=[]; for(let i=0;i<9;i++) if(!bd[i]) av.push(i);
+    const w=this.winner(bd);
+    if(w==="o") return {score:10}; if(w==="x") return {score:-10}; if(av.length===0) return {score:0};
+    let best = pl==="o" ? {score:-999,idx:-1} : {score:999,idx:-1};
+    for(const i of av){ bd[i]=pl;
+      const r=this.best(bd, pl==="o"?"x":"o"); bd[i]="";
+      if(pl==="o"){ if(r.score>best.score) best={score:r.score,idx:i}; }
+      else       { if(r.score<best.score) best={score:r.score,idx:i}; }
+    }
+    return best;
+  },
+  winner(bd){ for(const L of this.LINES){ const[a,b,c]=L; if(bd[a]&&bd[a]===bd[b]&&bd[a]===bd[c]) return bd[a]; } return null; },
+  checkEnd(){
+    for(const L of this.LINES){ const[a,b,c]=L;
+      if(this.b[a]&&this.b[a]===this.b[b]&&this.b[a]===this.b[c]){
+        this.over=true; L.forEach(k=>$("gatoBoard").children[k].classList.add("win"));
+        this.wins[this.b[a]]++; this.render();
+        const who=this.b[a]==="x"?"✕":"◯";
+        $("gatoTurn").innerHTML = (this.mode==="cpu") ? (this.b[a]==="x"?"🎉 ¡GANASTE!":"🤖 Ganó la máquina") : ("🎉 ¡Ganó "+who+"!");
+        try{ Sfx&&Sfx.on&&null; }catch(e){}
+        return true;
+      }
+    }
+    if(this.b.every(x=>x)){ this.over=true; this.wins.d++; this.render(); $("gatoTurn").textContent="🤝 ¡Empate!"; return true; }
+    return false;
+  }
+};
+$("pickGato").onclick=()=>{ $("gamePick").classList.remove("open"); Gato.open(); };
+$("gatoClose").onclick=()=>Gato.close();
+$("gatoAgain").onclick=()=>Gato.reset();
+document.querySelectorAll("#gatoFs .gato-modebtn").forEach(btn=>btn.onclick=()=>{
+  Gato.mode=btn.dataset.gmode;
+  document.querySelectorAll("#gatoFs .gato-modebtn").forEach(x=>x.classList.toggle("sel",x===btn));
+  Gato.reset();
+});
 $("f1Close").onclick=()=>F1.close();
 $("f1Start").onclick=()=>F1.start();
 (function(){ const b=$("f1Nitro"), on=e=>{ e.preventDefault(); F1._btnNitro=true; }, off=()=>{ F1._btnNitro=false; };
@@ -6555,7 +6672,7 @@ const Pad={
   // La navegación NO actúa dentro de juegos/robot (ellos usan el mando a su manera)
   navOn(){ const o=id=>{ const e=document.getElementById(id); return e&&e.classList.contains("open"); };
     if(o("monFs") && typeof Monster!=="undefined" && (Monster.shopping||Monster.labOpen)) return true;   // navegar tienda/laboratorio con el mando
-    return !(o("gameFs")||o("footFs")||o("robotFs")||o("monFs")||o("f1Fs")); },
+    return !(o("gameFs")||o("footFs")||o("robotFs")||o("monFs")||o("f1Fs")||o("gatoFs")); },
   isVis(el){ if(!el||el.disabled) return false; if(el.getAttribute&&el.getAttribute("aria-hidden")==="true") return false;
     const s=getComputedStyle(el); if(s.display==="none"||s.visibility==="hidden"||+s.opacity===0||s.pointerEvents==="none") return false;
     const r=el.getBoundingClientRect(); if(r.width<3||r.height<3) return false;
