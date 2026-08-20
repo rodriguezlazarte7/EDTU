@@ -4788,10 +4788,10 @@ const Robot = {
   scaryVoice(){
     try{
       if(!("speechSynthesis" in window)){ this.log("⚠ Este dispositivo no puede hablar"); return; }
-      const u=new SpeechSynthesisUtterance("seis siete");
-      u.lang="es-ES"; u.rate=0.7; u.pitch=0.1; u.volume=1;
-      const vs=speechSynthesis.getVoices().filter(v=>/^es/i.test(v.lang));
-      const male=vs.find(v=>/pablo|ra.l|álvaro|alvaro|jorge|diego|carlos|enrique|male|hombre/i.test(v.name));
+      const u=new SpeechSynthesisUtterance("six seven");
+      u.lang="en-US"; u.rate=0.7; u.pitch=0.1; u.volume=1;
+      const vs=speechSynthesis.getVoices().filter(v=>/^en/i.test(v.lang));
+      const male=vs.find(v=>/male|david|mark|guy|george|james|daniel|fred|alex/i.test(v.name));
       if(male) u.voice=male; else if(vs[0]) u.voice=vs[0];
       speechSynthesis.cancel(); speechSynthesis.speak(u);
       this.log("🔢 WALLY: «6... 7»");
