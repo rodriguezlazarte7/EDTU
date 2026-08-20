@@ -1330,8 +1330,7 @@
     <div class="rb-row rb-lights">
       <button class="rb-btn" id="rbFront">🔦 Faros del. <small>(X)</small></button>
       <button class="rb-btn" id="rbRear">🔴 Trasero <small>(B)</small></button>
-      <button class="rb-btn" id="rbTurnL">⬅️ Int. izq <small>(LB)</small></button>
-      <button class="rb-btn" id="rbTurnR">➡️ Int. der <small>(RB)</small></button>
+      <button class="rb-btn" id="rbHorn">📯 Bocina <small>(LB · mantén)</small></button>
     </div>
     <div class="rb-row rb-lights">
       <button class="rb-btn primary" id="rbAllOn">🟢 TODO <small>(RT)</small></button>
@@ -1350,7 +1349,7 @@
     </div>
 
     <div class="rb-help">
-      🎮 <b>Stick L</b> = manejar · <b>A</b> = esquivar · <b>X</b> = faros del. · <b>B</b> = trasero · <b>LB</b>/<b>RB</b> = intermitentes izq/der · <b>RT</b> = TODO · <b>LT</b> = apagar · <b>Y</b> = 🚨 EMERGENCIA<br>
+      🎮 <b>Stick L</b> = manejar · <b>A</b> = esquivar · <b>X</b> = faros del. · <b>B</b> = trasero · <b>LB</b> = 📯 BOCINA (mantén) · <b>RT</b> = TODO · <b>LT</b> = apagar · <b>Y</b> = 🔥 NITRO · <b>L3</b> = 🏁 carrera<br>
       ⌨️ <b>WASD</b>/Flechas = manejar · <b>Espacio</b> = parar · <b>G</b> = esquivar · <b>L</b> = faros · <b>O</b> = todo ON · <b>P</b> = apagar (teclado)<br>
       Requiere <b>Chrome/Edge en PC</b> y el HC-05 emparejado en Windows.<br>
       Ábrela en <b>http://localhost:8080</b> (corre <b>server.ps1</b>) para que el navegador permita el puerto Bluetooth.
@@ -4506,9 +4505,9 @@ const Robot = {
   port:null, writer:null, reader:null, connected:false,
   touchCmd:null, oneShot:null, modeActive:false,
   lastCmd:"", lastAt:0, padVec:{x:0,y:0},
-  _aPrev:false, _bPrev:false, _timer:null, _readAbort:false, _af:null, _run:false, _padId:null, _dbg:"", _frames:0, lightsOn:false, _yPrev:false, _rxbuf:"", speedPct:0, _lastSpd:-1, dispSpeed:0, _lastTickMs:0, nitro:false, temp:0, overheat:false, overheatUntil:0, _t100:0, _padNitro:false, _btnNitro:false, race:false, _l3Prev:false, radarAuto:false, servoAngle:90, _rx:0, _echoDist:0, _echoAng:90, _lastAng:-1, _radAt:0, radarMap:{},
+  _aPrev:false, _bPrev:false, _timer:null, _readAbort:false, _af:null, _run:false, _padId:null, _dbg:"", _frames:0, lightsOn:false, _yPrev:false, _rxbuf:"", speedPct:0, _lastSpd:-1, dispSpeed:0, _lastTickMs:0, nitro:false, temp:0, overheat:false, overheatUntil:0, _t100:0, _padNitro:false, _btnNitro:false, race:false, _l3Prev:false, _padHorn:false, _btnHorn:false, horn:false, radarAuto:false, servoAngle:90, _rx:0, _echoDist:0, _echoAng:90, _lastAng:-1, _radAt:0, radarMap:{},
 
-  open(){ $("robotFs").classList.add("open"); this.startLoop(); this.drawStick(); this._lastSpd=-1; this.temp=0; this.overheat=false; this._t100=0; this._padNitro=false; this._btnNitro=false; this.race=false; this._l3Prev=false; this.setNitro(false); this.updateTemp(performance.now()); this._echoDist=0; this._lastAng=-1; this.radarMap={}; this.drawRadar(); this.drawRing("rgBatt",0,"batt"); this.drawRing("rgSpeed",0,"speed"); },
+  open(){ $("robotFs").classList.add("open"); this.startLoop(); this.drawStick(); this._lastSpd=-1; this.temp=0; this.overheat=false; this._t100=0; this._padNitro=false; this._btnNitro=false; this.race=false; this._l3Prev=false; this._padHorn=false; this._btnHorn=false; this.horn=false; this.setNitro(false); this.updateTemp(performance.now()); this._echoDist=0; this._lastAng=-1; this.radarMap={}; this.drawRadar(); this.drawRing("rgBatt",0,"batt"); this.drawRing("rgSpeed",0,"speed"); },
   close(){
     $("robotFs").classList.remove("open");
     this.touchCmd=null; this.modeActive=false;
@@ -4620,11 +4619,12 @@ const Robot = {
     // Botones del mando (flanco de subida) → comandos:
     //  A(0)=esquivar  B(1)=faro trasero  X(2)=faros delanteros  Y(3)=EMERGENCIA
     //  LB(4)=int.izq  RB(5)=int.der  LT(6)=APAGAR TODO  RT(7)=ENCENDER TODO
-    const BCMD={1:"%E#",2:"%H#",4:"%I#",5:"%D#",6:"%X#",7:"%O#"};   // A(0)=barrido radar, Y(3)=NITRO (aparte)
+    const BCMD={1:"%E#",2:"%H#",6:"%X#",7:"%O#"};   // A(0)=barrido radar, Y(3)=NITRO, LB(4)=BOCINA (aparte)
     if(!this._btnPrev) this._btnPrev={};
     for(let bi=0; bi<=7; bi++){
       const pr=!!(gp.buttons[bi] && (gp.buttons[bi].pressed || gp.buttons[bi].value>0.5));
       if(bi===3){ this._padNitro=pr; }                                  // Y = NITRO (mantener presionado)
+      else if(bi===4){ this._padHorn=pr; }                              // LB = BOCINA (mantener presionado)
       else if(pr && !this._btnPrev[bi]){
         if(bi===0) this.toggleRadarAuto();                              // A = barrido automático del radar
         else if(BCMD[bi]){ this.send(BCMD[bi]); this.log("🎮 "+BCMD[bi]); }
@@ -4672,6 +4672,9 @@ const Robot = {
       if(this.overheat) cmd="S";                                       // bloqueo: robot parado durante el enfriado
     }
     this.updateTemp(now);
+    // ---- 📯 BOCINA grave (mantener LB o el botón en pantalla) ----
+    const wantHorn=(this._padHorn || this._btnHorn);
+    if(wantHorn!==this.horn){ this.horn=wantHorn; this.send(this.horn?"%K1#":"%K0#"); this.log(this.horn?"📯 BOCINA":""); }
 
     const realSpd=(cmd==="S")?0:(this.touchCmd?100:this.speedPct);   // AL ROBOT: instantáneo (ágil, sin rampa)
     const target=realSpd;
@@ -4848,8 +4851,9 @@ $("rbProbe").onclick      = ()=>Robot.probe();
 $("rbMapNext").onclick    = ()=>Robot.mapNext();
 $("rbFront").onclick      = ()=>Robot.cmd("%H#");   // faros delanteros (10+12)
 $("rbRear").onclick       = ()=>Robot.cmd("%E#");   // faro trasero (3)
-$("rbTurnL").onclick      = ()=>Robot.cmd("%I#");   // intermitente izquierdo (13)
-$("rbTurnR").onclick      = ()=>Robot.cmd("%D#");   // intermitente derecho (9)
+(function(){ const b=$("rbHorn"), on=e=>{e.preventDefault(); Robot._btnHorn=true;}, off=()=>{ Robot._btnHorn=false; };
+  b.addEventListener("pointerdown",on); b.addEventListener("pointerup",off); b.addEventListener("pointerleave",off); b.addEventListener("pointercancel",off);
+})();   // 📯 BOCINA = mantener presionado
 $("rbAllOn").onclick      = ()=>Robot.cmd("%O#");   // encender todo
 $("rbAllOff").onclick     = ()=>Robot.cmd("%X#");   // apagar todo
 (function(){ const b=$("rbEmerg"), on=e=>{e.preventDefault(); Robot._btnNitro=true;}, off=()=>{ Robot._btnNitro=false; };
