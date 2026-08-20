@@ -230,17 +230,17 @@
   #chessFs.open{display:flex}
   #chessFs h2{color:#ffd12e;letter-spacing:.14em;text-shadow:0 0 12px rgba(255,209,46,.6);margin:4px 0 2px;font-size:20px}
   #chessTurn{font-size:14px;letter-spacing:.06em;margin-bottom:8px;min-height:20px}
-  #chessBoard{display:grid;grid-template-columns:repeat(8,1fr);width:min(440px,92vw);aspect-ratio:1;
-    border:3px solid #ffd12e;border-radius:6px;overflow:hidden;box-shadow:0 0 22px rgba(255,209,46,.35)}
-  .csq{display:flex;align-items:center;justify-content:center;font-size:clamp(20px,6.2vw,40px);cursor:pointer;position:relative;line-height:1}
-  .csq.light{background:#c9d6e8}
-  .csq.dark{background:#3a5f8a}
-  .csq.sel{box-shadow:inset 0 0 0 3px #ffd12e}
-  .csq.move::after{content:"";position:absolute;width:26%;height:26%;border-radius:50%;background:rgba(57,255,20,.75);box-shadow:0 0 8px rgba(57,255,20,.8)}
-  .csq.cap::after{content:"";position:absolute;inset:6%;border:3px solid rgba(255,59,91,.85);border-radius:50%}
-  .csq .pc{position:relative;z-index:1;filter:drop-shadow(0 1px 1px rgba(0,0,0,.55))}
-  .csq .pc.w{color:#fff;text-shadow:0 0 2px #000,0 0 6px rgba(255,255,255,.5)}
-  .csq .pc.b{color:#111;text-shadow:0 0 3px rgba(255,255,255,.4)}
+  #chessBoard{display:grid;grid-template-columns:repeat(8,1fr);grid-template-rows:repeat(8,1fr);width:min(440px,92vw);aspect-ratio:1;
+    border:7px solid #5b3a1a;border-radius:5px;overflow:hidden;box-shadow:0 8px 24px rgba(0,0,0,.55),inset 0 0 0 2px #3a2410}
+  .csq{display:flex;align-items:center;justify-content:center;font-size:clamp(22px,7vw,44px);cursor:pointer;position:relative;line-height:1}
+  .csq.light{background:#f0d9b5}   /* madera clara */
+  .csq.dark{background:#b58863}    /* madera café */
+  .csq.sel{box-shadow:inset 0 0 0 4px rgba(255,209,46,.95)}
+  .csq.move::after{content:"";position:absolute;width:26%;height:26%;border-radius:50%;background:rgba(40,120,30,.5)}
+  .csq.cap::after{content:"";position:absolute;inset:7%;border:4px solid rgba(180,30,30,.7);border-radius:50%}
+  .csq .pc{position:relative;z-index:1}
+  .csq .pc.w{color:#f8f2e4;-webkit-text-stroke:1.4px #2a1a0d;text-shadow:0 2px 3px rgba(0,0,0,.45)}
+  .csq .pc.b{color:#1c130b;-webkit-text-stroke:1px rgba(245,230,200,.45);text-shadow:0 2px 3px rgba(0,0,0,.4)}
   #chessMsg{margin-top:8px;font-size:14px;min-height:20px;color:#ffd12e}
   /* ---------- MINIJUEGOS (compartido) ---------- */
   .gfull{position:fixed;inset:0;z-index:120;display:none;align-items:center;justify-content:center;flex-direction:column;
