@@ -1330,7 +1330,8 @@
     <div class="rb-row rb-lights">
       <button class="rb-btn" id="rbFront">🔦 Faros del. <small>(X)</small></button>
       <button class="rb-btn" id="rbRear">🔴 Trasero <small>(B)</small></button>
-      <button class="rb-btn" id="rbHorn">📯 Bocina <small>(LB · mantén)</small></button>
+      <button class="rb-btn warn" id="rbScary">🎃 ¡MIEDO! <small>(LB)</small></button>
+      <button class="rb-btn" id="rbHorn">📯 Bocina <small>(RB · mantén)</small></button>
     </div>
     <div class="rb-row rb-lights">
       <button class="rb-btn primary" id="rbAllOn">🟢 TODO <small>(RT)</small></button>
@@ -1349,7 +1350,7 @@
     </div>
 
     <div class="rb-help">
-      🎮 <b>Stick L</b> = manejar · <b>A</b> = esquivar · <b>X</b> = faros del. · <b>B</b> = trasero · <b>LB</b> = 📯 BOCINA (mantén) · <b>RT</b> = TODO · <b>LT</b> = apagar · <b>Y</b> = 🔥 NITRO · <b>L3</b> = 🏁 carrera<br>
+      🎮 <b>Stick L</b> = manejar · <b>A</b> = esquivar · <b>X</b> = faros del. · <b>B</b> = trasero · <b>LB</b> = 🎃 VOZ DE MIEDO · <b>RB</b> = 📯 BOCINA (mantén) · <b>RT</b> = TODO · <b>LT</b> = apagar · <b>Y</b> = 🔥 NITRO · <b>L3</b> = 🏁 carrera<br>
       ⌨️ <b>WASD</b>/Flechas = manejar · <b>Espacio</b> = parar · <b>G</b> = esquivar · <b>L</b> = faros · <b>O</b> = todo ON · <b>P</b> = apagar (teclado)<br>
       Requiere <b>Chrome/Edge en PC</b> y el HC-05 emparejado en Windows.<br>
       Ábrela en <b>http://localhost:8080</b> (corre <b>server.ps1</b>) para que el navegador permita el puerto Bluetooth.
@@ -4624,7 +4625,8 @@ const Robot = {
     for(let bi=0; bi<=7; bi++){
       const pr=!!(gp.buttons[bi] && (gp.buttons[bi].pressed || gp.buttons[bi].value>0.5));
       if(bi===3){ this._padNitro=pr; }                                  // Y = NITRO (mantener presionado)
-      else if(bi===4){ this._padHorn=pr; }                              // LB = BOCINA (mantener presionado)
+      else if(bi===4){ if(pr && !this._btnPrev[4]) this.scaryVoice(); } // LB = VOZ DE MIEDO (al presionar)
+      else if(bi===5){ this._padHorn=pr; }                              // RB = BOCINA (mantener presionado)
       else if(pr && !this._btnPrev[bi]){
         if(bi===0) this.toggleRadarAuto();                              // A = barrido automático del radar
         else if(BCMD[bi]){ this.send(BCMD[bi]); this.log("🎮 "+BCMD[bi]); }
@@ -4782,6 +4784,19 @@ const Robot = {
     }
     c.shadowBlur=0;
   },
+  // 🎃 VOZ DE MIEDO DE WALLY (habla el dispositivo: grave, lento y robótico = amenazante)
+  scaryVoice(){
+    try{
+      if(!("speechSynthesis" in window)){ this.log("⚠ Este dispositivo no puede hablar"); return; }
+      const u=new SpeechSynthesisUtterance("Deberías tenerme miedo");
+      u.lang="es-ES"; u.rate=0.62; u.pitch=0.1; u.volume=1;
+      const vs=speechSynthesis.getVoices().filter(v=>/^es/i.test(v.lang));
+      const male=vs.find(v=>/pablo|ra.l|álvaro|alvaro|jorge|diego|carlos|enrique|male|hombre/i.test(v.name));
+      if(male) u.voice=male; else if(vs[0]) u.voice=vs[0];
+      speechSynthesis.cancel(); speechSynthesis.speak(u);
+      this.log("🎃 WALLY: «Deberías tenerme miedo»");
+    }catch(e){}
+  },
   setNitro(v,quiet){
     if(this.nitro===v) return;
     this.nitro=v;
@@ -4851,6 +4866,7 @@ $("rbProbe").onclick      = ()=>Robot.probe();
 $("rbMapNext").onclick    = ()=>Robot.mapNext();
 $("rbFront").onclick      = ()=>Robot.cmd("%H#");   // faros delanteros (10+12)
 $("rbRear").onclick       = ()=>Robot.cmd("%E#");   // faro trasero (3)
+$("rbScary").onclick = ()=>Robot.scaryVoice();   // 🎃 VOZ DE MIEDO de WALLY
 (function(){ const b=$("rbHorn"), on=e=>{e.preventDefault(); Robot._btnHorn=true;}, off=()=>{ Robot._btnHorn=false; };
   b.addEventListener("pointerdown",on); b.addEventListener("pointerup",off); b.addEventListener("pointerleave",off); b.addEventListener("pointercancel",off);
 })();   // 📯 BOCINA = mantener presionado
