@@ -1,0 +1,321 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover,user-scalable=no"/>
+<meta name="theme-color" content="#020207"/>
+<title>NOT A GAME</title>
+<style>
+  *{margin:0;padding:0;box-sizing:border-box;-webkit-user-select:none;user-select:none;-webkit-tap-highlight-color:transparent}
+  html,body{height:100%;overflow:hidden;background:#020207;font-family:"Segoe UI",system-ui,sans-serif;color:#e8e2d8}
+  #c{display:block;width:100%;height:100%;touch-action:none}
+  body.playing{cursor:none}
+  /* HUD */
+  #hud{position:fixed;top:0;left:0;right:0;z-index:5;display:flex;justify-content:space-between;align-items:flex-start;padding:12px 16px;
+    font-family:"Consolas",monospace;font-size:15px;font-weight:700;pointer-events:none;text-shadow:0 0 8px #000}
+  #hpwrap{width:150px}
+  #hpbar{height:12px;border:1px solid #7a1420;border-radius:6px;background:rgba(0,0,0,.5);overflow:hidden;margin-top:3px}
+  #hpbar b{display:block;height:100%;width:100%;background:linear-gradient(90deg,#b81028,#ff3b5b);transition:width .2s}
+  #hud .z{color:#7dff6a;text-shadow:0 0 8px #1e5e14}
+  #cross{position:fixed;left:50%;top:50%;width:20px;height:20px;transform:translate(-50%,-50%);z-index:5;pointer-events:none;opacity:.6}
+  #cross::before,#cross::after{content:"";position:absolute;background:#c8c2b6}
+  #cross::before{left:9px;top:0;width:2px;height:20px}#cross::after{top:9px;left:0;height:2px;width:20px}
+  #flash{position:fixed;inset:0;z-index:4;background:#fff;opacity:0;pointer-events:none}
+  #hurt{position:fixed;inset:0;z-index:4;box-shadow:inset 0 0 120px 30px rgba(180,10,30,0);pointer-events:none;transition:box-shadow .15s}
+  #story{position:fixed;left:50%;bottom:80px;transform:translateX(-50%);z-index:6;max-width:88vw;text-align:center;
+    background:rgba(8,4,6,.85);border:1px solid #5a1020;border-radius:10px;padding:12px 18px;color:#ffd7c0;font-size:14px;
+    display:none;text-shadow:0 0 6px #000}
+  /* pantallas */
+  .screen{position:fixed;inset:0;z-index:10;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;
+    background:radial-gradient(circle at 50% 30%,#180608,#020204 78%);padding:26px;overflow:auto}
+  .screen.hide{display:none}
+  .logo{font-family:"Consolas",monospace;font-weight:900;letter-spacing:.05em;line-height:1;
+    font-size:clamp(34px,10vw,80px);color:#e8e2d8;text-shadow:0 0 16px #b81028,0 0 40px #4a0810}
+  .logo b{color:#ff3b5b}
+  .sub{margin-top:8px;color:#a05050;letter-spacing:.32em;font-family:"Consolas",monospace;font-size:11px}
+  .case{margin:18px 0;max-width:460px;color:#c9beb2;font-size:14px;line-height:1.75;text-align:left;
+    border-left:3px solid #7a1420;padding:4px 14px;background:rgba(20,6,8,.4)}
+  .case b{color:#ff3b5b}.case .k{color:#ffd12e}
+  .ctrls{color:#8a94a8;font-size:12.5px;line-height:1.7;margin-bottom:14px}
+  .ctrls b{color:#e8e2d8}
+  .big{font-size:clamp(28px,8vw,58px);font-weight:900;text-shadow:0 0 20px currentColor;font-family:"Consolas",monospace}
+  .win{color:#7dff6a}.lose{color:#ff3b5b}
+  .btn{margin-top:6px;font-family:"Consolas",monospace;font-size:19px;font-weight:800;letter-spacing:.18em;color:#fff;cursor:pointer;
+    padding:14px 32px;border-radius:10px;border:2px solid #b81028;background:linear-gradient(90deg,rgba(184,16,40,.2),rgba(80,8,16,.2));
+    box-shadow:0 0 20px rgba(184,16,40,.4);animation:pulse 1.8s ease-in-out infinite}
+  @keyframes pulse{50%{box-shadow:0 0 34px rgba(255,59,91,.6)}}
+  /* táctil */
+  #touch{position:fixed;inset:0;z-index:4;display:none}
+  #touch.on{display:block}
+  #stick{position:absolute;left:24px;bottom:26px;width:128px;height:128px;border-radius:50%;border:2px solid rgba(200,200,200,.25);background:rgba(255,255,255,.04)}
+  #nub{position:absolute;left:39px;top:39px;width:50px;height:50px;border-radius:50%;background:rgba(220,220,220,.4);box-shadow:0 0 12px rgba(255,255,255,.3)}
+  #fire{position:absolute;right:24px;bottom:40px;width:90px;height:90px;border-radius:50%;border:2px solid #ff3b5b;background:rgba(184,16,40,.18);
+    color:#fff;font-weight:800;font-family:"Consolas",monospace;font-size:15px}
+  .hint{position:fixed;bottom:14px;left:0;right:0;z-index:5;text-align:center;color:#5a5048;font-size:12px;font-family:"Consolas",monospace;pointer-events:none}
+</style>
+</head>
+<body>
+<canvas id="c"></canvas>
+<div id="cross"></div>
+<div id="flash"></div>
+<div id="hurt"></div>
+<div id="hud">
+  <div id="hpwrap">❤ VIDA<div id="hpbar"><b></b></div></div>
+  <div style="text-align:right">
+    <div class="z">🧟 INFECTADOS: <span id="zleft">0</span></div>
+    <div>🔎 PISTAS: <span id="clues">0</span>/3</div>
+  </div>
+</div>
+<div id="story"></div>
+<div id="touch"><div id="stick"><div id="nub"></div></div><button id="fire">🔫<br>FUEGO</button></div>
+<div class="hint" id="hint"></div>
+
+<div class="screen" id="start">
+  <div class="logo">NOT&nbsp;A&nbsp;<b>GAME</b></div>
+  <div class="sub">EXPEDIENTE · CASA 13</div>
+  <div class="case">
+    Todo estaba tranquilo, una noche común. Hacía un poco de frío.<br>
+    Pero en la <b>CASA 13</b> se oyó un <b>grito</b>. 🩸<br><br>
+    Al entrar, la policía encontró a un niño de 14 años con un
+    <span class="k">pinchazo de jeringa</span> en la frente, desmayado.
+    En el hospital descubrieron que el líquido era un <b>VIRUS ZOMBIE</b>. 🧟<br><br>
+    <span class="k">Tu misión:</span> recorre la ciudad, reúne las <b>3 pistas</b>
+    y <b>elimina a todos los infectados</b> antes de que te contagien.
+  </div>
+  <div class="ctrls">
+    🖥️ <b>PC:</b> mueve el mouse para mirar · <b>WASD</b> caminar · <b>clic</b> disparar · <b>ESPACIO</b> saltar<br>
+    📱 <b>Celu:</b> joystick mover · arrastra para mirar · botón <b>FUEGO</b>
+  </div>
+  <button class="btn" id="play">▶ INVESTIGAR</button>
+</div>
+
+<div class="screen hide" id="end">
+  <div class="big" id="endTitle">—</div>
+  <div class="case" id="endInfo" style="text-align:center;border:none;background:none"></div>
+  <button class="btn" id="again">↺ REINTENTAR</button>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<script>
+(function(){
+const canvas=document.getElementById("c");
+const isTouch=("ontouchstart" in window)||navigator.maxTouchPoints>0;
+
+const renderer=new THREE.WebGLRenderer({canvas,antialias:true});
+renderer.setPixelRatio(Math.min(devicePixelRatio,2));
+const scene=new THREE.Scene();
+scene.background=new THREE.Color(0x03030a);
+scene.fog=new THREE.FogExp2(0x050308,0.05);
+const camera=new THREE.PerspectiveCamera(75,1,0.1,120);
+camera.rotation.order="YXZ";
+scene.add(camera);
+function resize(){ renderer.setSize(innerWidth,innerHeight); camera.aspect=innerWidth/innerHeight; camera.updateProjectionMatrix(); }
+addEventListener("resize",resize); resize();
+
+// luz: noche + linterna
+scene.add(new THREE.AmbientLight(0x252033,0.35));
+const moon=new THREE.DirectionalLight(0x3344aa,0.25); moon.position.set(-8,20,-6); scene.add(moon);
+const flash=new THREE.SpotLight(0xfff0d0,2.4,32,0.6,0.55,1.2); flash.position.set(0,0,0.3); camera.add(flash);
+const ftarget=new THREE.Object3D(); ftarget.position.set(0,-0.12,-1); camera.add(ftarget); flash.target=ftarget;
+
+// ---------- ciudad ----------
+const ARENA=30;
+const floor=new THREE.Mesh(new THREE.PlaneGeometry(ARENA*2,ARENA*2),
+  new THREE.MeshStandardMaterial({color:0x0a0a10,metalness:.2,roughness:.95}));
+floor.rotation.x=-Math.PI/2; scene.add(floor);
+const grid=new THREE.GridHelper(ARENA*2,30,0x1a1420,0x120c16); scene.add(grid);
+// edificios (bloques oscuros)
+const buildings=[];
+for(let i=0;i<26;i++){
+  const a=Math.random()*Math.PI*2, r=6+Math.random()*(ARENA-7);
+  const bx=Math.cos(a)*r, bz=Math.sin(a)*r;
+  const w=2+Math.random()*3, d=2+Math.random()*3, h=3+Math.random()*9;
+  const b=new THREE.Mesh(new THREE.BoxGeometry(w,h,d),
+    new THREE.MeshStandardMaterial({color:0x0d0d15,emissive:0x05040a,metalness:.3,roughness:.85}));
+  b.position.set(bx,h/2,bz); scene.add(b);
+  // ventanas tenues
+  if(Math.random()<0.5){ const win=new THREE.Mesh(new THREE.PlaneGeometry(0.5,0.6),
+    new THREE.MeshBasicMaterial({color:0xffcf7a,transparent:true,opacity:.5}));
+    win.position.set(bx+(Math.random()-.5)*w,1+Math.random()*(h-2),bz+d/2+0.02); scene.add(win); }
+  buildings.push({x:bx,z:bz,rw:w/2+0.5,rd:d/2+0.5});
+}
+// CASA 13 (marcada)
+const casa=new THREE.Mesh(new THREE.BoxGeometry(4,4,4),
+  new THREE.MeshStandardMaterial({color:0x160a0c,emissive:0x3a0810,emissiveIntensity:.5,roughness:.8}));
+casa.position.set(0,2,-ARENA+6); scene.add(casa);
+buildings.push({x:0,z:-ARENA+6,rw:2.6,rd:2.6});
+const sign=new THREE.Mesh(new THREE.PlaneGeometry(1.4,1.4),
+  new THREE.MeshBasicMaterial({color:0xff3b5b}));
+sign.position.set(0,3.2,-ARENA+6+2.02); scene.add(sign);
+// niebla-partículas (motas)
+const motGeo=new THREE.BufferGeometry(),mv=[];
+for(let i=0;i<300;i++) mv.push((Math.random()-.5)*ARENA*2,Math.random()*8,(Math.random()-.5)*ARENA*2);
+motGeo.setAttribute("position",new THREE.Float32BufferAttribute(mv,3));
+scene.add(new THREE.Points(motGeo,new THREE.PointsMaterial({color:0x556070,size:0.06,transparent:true,opacity:.5})));
+
+// ---------- pistas ----------
+const CLUE_INFO=[
+  "💉 JERINGA: contiene restos de un virus desconocido.",
+  "📄 INFORME: la víctima tiene 14 años, sigue en coma.",
+  "🩸 MUESTRA: el virus reanima tejido... son zombies."
+];
+const clues=[]; const clueGeo=new THREE.OctahedronGeometry(0.4,0);
+for(let i=0;i<3;i++){
+  const a=Math.random()*Math.PI*2, r=8+Math.random()*(ARENA-12);
+  const m=new THREE.Mesh(clueGeo,new THREE.MeshStandardMaterial({color:0xffd12e,emissive:0xffd12e,emissiveIntensity:1,roughness:.3}));
+  m.position.set(Math.cos(a)*r,1.1,Math.sin(a)*r);
+  m.add(new THREE.PointLight(0xffd12e,0.8,6));
+  scene.add(m); clues.push({mesh:m,got:false,info:CLUE_INFO[i]});
+}
+
+// ---------- zombies ----------
+function makeZombie(){
+  const g=new THREE.Group();
+  const bodyMat=new THREE.MeshStandardMaterial({color:0x1b3a1e,emissive:0x0c2410,emissiveIntensity:.5,roughness:.85});
+  const body=new THREE.Mesh(new THREE.BoxGeometry(0.7,1.1,0.4),bodyMat); body.position.y=0.55; g.add(body);
+  const head=new THREE.Mesh(new THREE.BoxGeometry(0.5,0.5,0.5),bodyMat); head.position.y=1.35; g.add(head);
+  const eyeMat=new THREE.MeshBasicMaterial({color:0xff2020});
+  for(const dx of [-0.12,0.12]){ const e=new THREE.Mesh(new THREE.SphereGeometry(0.06,8,8),eyeMat); e.position.set(dx,1.4,0.26); g.add(e); }
+  for(const dx of [-0.45,0.45]){ const arm=new THREE.Mesh(new THREE.BoxGeometry(0.16,0.7,0.16),bodyMat); arm.position.set(dx,0.75,0.18); arm.rotation.x=-1.1; g.add(arm); }
+  return g;
+}
+const zombies=[];
+function spawnZombies(n){
+  for(let i=0;i<n;i++){
+    const a=Math.random()*Math.PI*2, r=12+Math.random()*(ARENA-14);
+    const g=makeZombie(); g.position.set(Math.cos(a)*r,0,Math.sin(a)*r); scene.add(g);
+    zombies.push({grp:g,hp:2,dead:false,sp:1.1+Math.random()*0.7,ph:Math.random()*6});
+  }
+}
+
+// ---------- jugador ----------
+const P={x:0,z:ARENA-5,y:1.7,vy:0,onGround:true,speed:6.5,hp:100};
+let yaw=0, pitch=0, running=false, gameOver=false, tPrev=0, cluesGot=0, zLeft=0, muzzle=0, shootCd=0;
+
+// ---------- input ----------
+const keys={};
+addEventListener("keydown",e=>{ keys[e.code]=true; if(e.code==="Space"&&P.onGround&&running){P.vy=6.2;P.onGround=false;} });
+addEventListener("keyup",e=>{ keys[e.code]=false; });
+document.addEventListener("pointerlockchange",()=>{
+  if(running && !isTouch && document.pointerLockElement!==canvas){ document.getElementById("hint").textContent="clic para volver a mirar"; }
+  else if(running){ document.getElementById("hint").textContent=""; }
+});
+addEventListener("mousemove",e=>{ if(document.pointerLockElement===canvas){ yaw-=e.movementX*0.0021; pitch-=e.movementY*0.0021; pitch=Math.max(-1.3,Math.min(1.3,pitch)); } });
+canvas.addEventListener("mousedown",e=>{
+  if(isTouch) return;
+  if(document.pointerLockElement!==canvas){ canvas.requestPointerLock(); return; }
+  shoot();
+});
+// táctil
+let stickId=null,stickBase={x:0,y:0},moveV={x:0,y:0},lookId=null,lookLast={x:0,y:0};
+const nub=document.getElementById("nub"),stickEl=document.getElementById("stick");
+function tStart(e){ for(const t of e.changedTouches){
+  if(t.clientX<innerWidth*0.5 && stickId===null){ stickId=t.identifier; const r=stickEl.getBoundingClientRect(); stickBase={x:r.left+r.width/2,y:r.top+r.height/2}; }
+  else if(lookId===null){ lookId=t.identifier; lookLast={x:t.clientX,y:t.clientY}; } } }
+function tMove(e){ for(const t of e.changedTouches){
+  if(t.identifier===stickId){ let dx=t.clientX-stickBase.x,dy=t.clientY-stickBase.y; const d=Math.hypot(dx,dy),mx=52; if(d>mx){dx*=mx/d;dy*=mx/d;} nub.style.left=(39+dx)+"px"; nub.style.top=(39+dy)+"px"; moveV={x:dx/mx,y:dy/mx}; }
+  else if(t.identifier===lookId){ yaw-=(t.clientX-lookLast.x)*0.005; pitch-=(t.clientY-lookLast.y)*0.005; pitch=Math.max(-1.3,Math.min(1.3,pitch)); lookLast={x:t.clientX,y:t.clientY}; } } }
+function tEnd(e){ for(const t of e.changedTouches){ if(t.identifier===stickId){stickId=null;moveV={x:0,y:0};nub.style.left="39px";nub.style.top="39px";} if(t.identifier===lookId){lookId=null;} } }
+canvas.addEventListener("touchstart",e=>{e.preventDefault();tStart(e);},{passive:false});
+canvas.addEventListener("touchmove",e=>{e.preventDefault();tMove(e);},{passive:false});
+canvas.addEventListener("touchend",tEnd); canvas.addEventListener("touchcancel",tEnd);
+document.getElementById("fire").addEventListener("touchstart",e=>{e.preventDefault();shoot();});
+
+// ---------- sonido ----------
+let AC=null;
+function snd(freq,type,dur,vol){ try{ AC=AC||new (window.AudioContext||window.webkitAudioContext)(); if(AC.state==="suspended")AC.resume();
+  const o=AC.createOscillator(),g=AC.createGain(); o.type=type||"square"; o.frequency.value=freq;
+  g.gain.setValueAtTime(vol||.08,AC.currentTime); g.gain.exponentialRampToValueAtTime(.001,AC.currentTime+(dur||.15));
+  o.connect(g); g.connect(AC.destination); o.start(); o.stop(AC.currentTime+(dur||.15)+.02); }catch(e){} }
+
+function shoot(){
+  if(!running||gameOver||shootCd>0) return; shootCd=0.22;
+  muzzle=0.07; snd(180,"square",0.09,0.12); snd(90,"sawtooth",0.14,0.1);
+  const fwd=new THREE.Vector3(); camera.getWorldDirection(fwd);
+  let best=null,bestD=1e9;
+  for(const z of zombies){ if(z.dead) continue;
+    const to=new THREE.Vector3(z.grp.position.x-P.x,(z.grp.position.y+0.9)-P.y,z.grp.position.z-P.z);
+    const dist=to.length(); if(dist>36) continue; to.normalize();
+    if(to.dot(fwd)>0.985 && dist<bestD){ bestD=dist; best=z; } }
+  if(best){ best.hp--; snd(400,"square",0.06,0.06);
+    if(best.hp<=0){ best.dead=true; best.grp.visible=false; zLeft--; document.getElementById("zleft").textContent=zLeft; snd(70,"sawtooth",0.4,0.12);
+      if(zLeft<=0 && cluesGot>=3) endGame(true);
+      else if(zLeft<=0) showStory("Todos los infectados eliminados. Faltan pistas por reunir.");
+    } }
+}
+function showStory(txt){ const s=document.getElementById("story"); s.textContent=txt; s.style.display="block"; clearTimeout(s._t); s._t=setTimeout(()=>s.style.display="none",3400); }
+
+function collide(nx,nz){ for(const b of buildings){ if(Math.abs(nx-b.x)<b.rw && Math.abs(nz-b.z)<b.rd) return true; } return false; }
+
+function startGame(){
+  P.x=0;P.z=ARENA-5;P.y=1.7;P.vy=0;P.onGround=true;P.hp=100; yaw=0;pitch=0;
+  cluesGot=0; gameOver=false; muzzle=0; shootCd=0;
+  clues.forEach(c=>{c.got=false;c.mesh.visible=true;});
+  zombies.forEach(z=>scene.remove(z.grp)); zombies.length=0; spawnZombies(7); zLeft=7;
+  document.getElementById("zleft").textContent="7"; document.getElementById("clues").textContent="0";
+  document.querySelector("#hpbar b").style.width="100%";
+  document.getElementById("start").classList.add("hide"); document.getElementById("end").classList.add("hide");
+  document.body.classList.add("playing");
+  if(isTouch){ document.getElementById("touch").classList.add("on"); document.getElementById("hint").textContent=""; }
+  else { document.getElementById("hint").textContent=""; }
+  running=true; tPrev=performance.now();
+  showStory("Estás en la calle frente a la CASA 13. Investiga...");
+}
+function endGame(win){
+  running=false; gameOver=true; document.body.classList.remove("playing");
+  try{ document.exitPointerLock(); }catch(e){}
+  document.getElementById("touch").classList.remove("on"); document.getElementById("hint").textContent="";
+  const t=document.getElementById("endTitle"),inf=document.getElementById("endInfo");
+  if(win){ t.textContent="✓ CASO RESUELTO"; t.className="big win"; inf.innerHTML="Reuniste las pistas y eliminaste el brote.<br>La ciudad está a salvo. 🏙️"; snd(660,"triangle",0.3,0.1); }
+  else { t.textContent="✕ TE INFECTARON"; t.className="big lose"; inf.innerHTML="Los zombies te alcanzaron en la oscuridad.<br>Pistas: <b>"+cluesGot+"/3</b> · Infectados restantes: <b>"+zLeft+"</b>"; snd(60,"sawtooth",0.6,0.12); }
+  document.getElementById("end").classList.remove("hide");
+}
+
+function update(dt){
+  // mover (W = adelante, corregido)
+  let f=0,s=0;
+  if(keys["KeyW"]||keys["ArrowUp"])f+=1; if(keys["KeyS"]||keys["ArrowDown"])f-=1;
+  if(keys["KeyA"]||keys["ArrowLeft"])s-=1; if(keys["KeyD"]||keys["ArrowRight"])s+=1;
+  if(isTouch){ f-=moveV.y; s+=moveV.x; }
+  const len=Math.hypot(f,s); if(len>1){f/=len;s/=len;}
+  const sin=Math.sin(yaw),cos=Math.cos(yaw);
+  let dx=(f*(-sin)+s*cos)*P.speed*dt, dz=(f*(-cos)+s*(-sin))*P.speed*dt;
+  const lim=ARENA-1;
+  let nx=Math.max(-lim,Math.min(lim,P.x+dx)), nz=Math.max(-lim,Math.min(lim,P.z+dz));
+  if(!collide(nx,P.z)) P.x=nx;
+  if(!collide(P.x,nz)) P.z=nz;
+  // salto
+  P.vy-=15*dt; P.y+=P.vy*dt; if(P.y<=1.7){P.y=1.7;P.vy=0;P.onGround=true;}
+  camera.position.set(P.x,P.y,P.z); camera.rotation.y=yaw; camera.rotation.x=pitch;
+  if(shootCd>0) shootCd-=dt;
+  const now=performance.now()/1000;
+  // pistas
+  clues.forEach(c=>{ if(c.got)return; c.mesh.rotation.y+=dt*2; c.mesh.position.y=1.1+Math.sin(now*2)*0.2;
+    if(Math.hypot(P.x-c.mesh.position.x,P.z-c.mesh.position.z)<1.4){ c.got=true; c.mesh.visible=false; cluesGot++;
+      document.getElementById("clues").textContent=cluesGot; snd(880,"triangle",0.2,0.08); showStory(c.info);
+      if(cluesGot>=3 && zLeft<=0) endGame(true); } });
+  // zombies
+  let hurt=false;
+  zombies.forEach(z=>{ if(z.dead)return;
+    const dxz=P.x-z.grp.position.x, dzz=P.z-z.grp.position.z, d=Math.hypot(dxz,dzz);
+    if(d>0.9){ z.grp.position.x+=dxz/d*z.sp*dt; z.grp.position.z+=dzz/d*z.sp*dt; }
+    z.grp.rotation.y=Math.atan2(dxz,dzz);
+    z.grp.position.y=Math.abs(Math.sin(now*4+z.ph))*0.08;   // bamboleo
+    if(d<1.2){ P.hp-=22*dt; hurt=true; }
+  });
+  if(P.hp<=0){ P.hp=0; endGame(false); }
+  document.querySelector("#hpbar b").style.width=P.hp+"%";
+  document.getElementById("hurt").style.boxShadow="inset 0 0 120px 30px rgba(180,10,30,"+(hurt?0.5:0)+")";
+  // muzzle flash
+  if(muzzle>0){ muzzle-=dt; document.getElementById("flash").style.opacity=Math.max(0,muzzle*4); }
+}
+
+function loop(t){ const dt=Math.min(0.05,(t-tPrev)/1000); tPrev=t; if(running) update(dt); renderer.render(scene,camera); requestAnimationFrame(loop); }
+requestAnimationFrame(loop);
+
+document.getElementById("play").onclick=()=>{ startGame(); if(!isTouch) canvas.requestPointerLock(); };
+document.getElementById("again").onclick=()=>{ startGame(); if(!isTouch) canvas.requestPointerLock(); };
+})();
+</script>
+</body>
+</html>
