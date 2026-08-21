@@ -61,7 +61,7 @@
 <div id="flash"></div>
 <div id="hurt"></div>
 <div id="hud">
-  <div id="hpwrap">❤ VIDA<div id="hpbar"><b></b></div></div>
+  <div id="hpwrap" style="color:#ff3b5b;text-shadow:0 0 12px #ff3b5b;animation:pulse 1.2s infinite">☠ 1 TOQUE = MUERTE</div>
   <div style="text-align:right">
     <div class="z">🧟 INFECTADOS: <span id="zleft">0</span></div>
     <div>🔎 PISTAS: <span id="clues">0</span>/3</div>
@@ -208,13 +208,41 @@ function spawnZombies(n){
   }
 }
 
+// ---------- ascensor + plataformas (te suben) ----------
+const platforms=[];
+const elev={ mesh:box(12,-12,3,0.3,3,new THREE.MeshStandardMaterial({color:0x2a3a52,emissive:0x0a2436,emissiveIntensity:.6,metalness:.6,roughness:.3})),
+  pf:{x:12,z:-12,w:3,d:3,y:0.2}, lo:0.2, hi:5.6, t:0 };
+platforms.push(elev.pf);
+const ledge=box(12,-16.2,7,0.3,6,new THREE.MeshStandardMaterial({color:0x1a1a26,roughness:.8})); ledge.position.y=5.45;
+platforms.push({x:12,z:-16.2,w:7,d:6,y:5.6});
+const elevLight=new THREE.PointLight(0x33bbff,0.8,12); elevLight.position.set(12,3.5,-12); scene.add(elevLight);
+
+// ---------- cajones que se abren ----------
+const drawers=[];
+function addDrawer(cx,cz,note){
+  const m=box(cx,cz,1.3,0.55,0.18,new THREE.MeshStandardMaterial({color:0x3a2a1a,emissive:0x160e06,emissiveIntensity:.4,roughness:.85}));
+  m.position.y=0.65;
+  const knob=new THREE.Mesh(new THREE.SphereGeometry(0.055,8,8),new THREE.MeshBasicMaterial({color:0xffd12e})); knob.position.set(0,0,0.1); m.add(knob);
+  drawers.push({mesh:m,cx,cz,closedZ:cz,openZ:cz+0.6,open:false,note});
+}
+addDrawer(0,-ARENA+11,"🗄️ Cajón: marcas de arañazos por dentro...");
+addDrawer(-16,7,"🗄️ Cajón: una foto rota de la víctima.");
+addDrawer(15,6,"🗄️ Cajón: frascos vacíos etiquetados 'VZ-13'.");
+addDrawer(-4,-4,"🗄️ Cajón: una nota que dice 'ya es tarde para él'.");
+function tryDrawer(){ let best=null,bd=2.4; for(const d of drawers){ if(d.open)continue; const dist=Math.hypot(P.x-d.cx,P.z-d.cz); if(dist<bd){bd=dist;best=d;} } if(best){ best.open=true; snd(300,"square",0.12,0.07); showStory(best.note); } }
+
+// ---------- láser trazador del disparo ----------
+const tracer=new THREE.Line(new THREE.BufferGeometry().setFromPoints([new THREE.Vector3(),new THREE.Vector3()]),
+  new THREE.LineBasicMaterial({color:0xffe066,transparent:true,opacity:0}));
+scene.add(tracer); let tracerT=0;
+
 // ---------- jugador ----------
 const P={x:0,z:ARENA-5,y:1.7,vy:0,onGround:true,speed:6.5,hp:100};
 let yaw=0, pitch=0, running=false, gameOver=false, tPrev=0, cluesGot=0, zLeft=0, muzzle=0, shootCd=0;
 
 // ---------- input ----------
 const keys={};
-addEventListener("keydown",e=>{ keys[e.code]=true; if(e.code==="Space"&&P.onGround&&running){P.vy=6.2;P.onGround=false;} });
+addEventListener("keydown",e=>{ keys[e.code]=true; if(e.code==="Space"&&P.onGround&&running){P.vy=6.2;P.onGround=false;} if(e.code==="KeyE"&&running) tryDrawer(); });
 addEventListener("keyup",e=>{ keys[e.code]=false; });
 document.addEventListener("pointerlockchange",()=>{
   if(running && !isTouch && document.pointerLockElement!==canvas){ document.getElementById("hint").textContent="clic para volver a mirar"; }
@@ -251,14 +279,19 @@ function snd(freq,type,dur,vol){ try{ AC=AC||new (window.AudioContext||window.we
   o.connect(g); g.connect(AC.destination); o.start(); o.stop(AC.currentTime+(dur||.15)+.02); }catch(e){} }
 
 function shoot(){
-  if(!running||gameOver||shootCd>0) return; shootCd=0.22;
-  muzzle=0.07; snd(180,"square",0.09,0.12); snd(90,"sawtooth",0.14,0.1);
+  if(!running||gameOver||shootCd>0) return; shootCd=0.18;
+  muzzle=0.07; snd(210,"square",0.08,0.12); snd(90,"sawtooth",0.14,0.1);
   const fwd=new THREE.Vector3(); camera.getWorldDirection(fwd);
+  const origin=new THREE.Vector3(P.x,P.y-0.15,P.z);
   let best=null,bestD=1e9;
   for(const z of zombies){ if(z.dead) continue;
-    const to=new THREE.Vector3(z.grp.position.x-P.x,(z.grp.position.y+0.9)-P.y,z.grp.position.z-P.z);
-    const dist=to.length(); if(dist>36) continue; to.normalize();
-    if(to.dot(fwd)>0.985 && dist<bestD){ bestD=dist; best=z; } }
+    const to=new THREE.Vector3(z.grp.position.x-origin.x,(z.grp.position.y+0.9)-origin.y,z.grp.position.z-origin.z);
+    const dist=to.length(); if(dist>80) continue; to.normalize();      // dispara LEJOS (todo el mapa)
+    if(to.dot(fwd)>0.975 && dist<bestD){ bestD=dist; best=z; } }
+  // láser visible hasta el impacto (o lejos si fallas)
+  const end = best ? new THREE.Vector3(best.grp.position.x,best.grp.position.y+0.9,best.grp.position.z)
+                   : origin.clone().add(fwd.clone().multiplyScalar(80));
+  tracer.geometry.setFromPoints([origin,end]); tracer.material.opacity=0.9; tracerT=0.06;
   if(best){ best.hp--; snd(400,"square",0.06,0.06);
     if(best.hp<=0){ best.dead=true; best.grp.visible=false; zLeft--; document.getElementById("zleft").textContent=zLeft; snd(70,"sawtooth",0.4,0.12);
       if(zLeft<=0 && cluesGot>=3) endGame(true);
@@ -275,7 +308,7 @@ function startGame(){
   clues.forEach(c=>{c.got=false;c.mesh.visible=true;});
   zombies.forEach(z=>scene.remove(z.grp)); zombies.length=0; spawnZombies(11); zLeft=11;
   document.getElementById("zleft").textContent="11"; document.getElementById("clues").textContent="0";
-  document.querySelector("#hpbar b").style.width="100%";
+  drawers.forEach(d=>{ d.open=false; d.mesh.position.z=d.closedZ; }); elev.t=0;
   document.getElementById("start").classList.add("hide"); document.getElementById("end").classList.add("hide");
   document.body.classList.add("playing");
   if(touchUI) document.getElementById("touch").classList.add("on");
@@ -306,9 +339,18 @@ function update(dt){
   let nx=Math.max(-lim,Math.min(lim,P.x+dx)), nz=Math.max(-lim,Math.min(lim,P.z+dz));
   if(!collide(nx,P.z)) P.x=nx;
   if(!collide(P.x,nz)) P.z=nz;
-  // salto
-  P.vy-=15*dt; P.y+=P.vy*dt; if(P.y<=1.7){P.y=1.7;P.vy=0;P.onGround=true;}
+  // ascensor sube/baja solo
+  elev.t+=dt; elev.pf.y=elev.lo+(elev.hi-elev.lo)*(0.5-0.5*Math.cos(elev.t*0.5)); elev.mesh.position.y=elev.pf.y-0.15;
+  // gravedad + plataformas (te suben si estás encima)
+  P.vy-=15*dt; P.y+=P.vy*dt;
+  const foot=P.y-1.7; let g=0;
+  for(const pf of platforms){ if(Math.abs(P.x-pf.x)<pf.w/2 && Math.abs(P.z-pf.z)<pf.d/2 && pf.y<=foot+0.6 && pf.y>g) g=pf.y; }
+  if(foot<=g){ P.y=g+1.7; if(P.vy<0)P.vy=0; P.onGround=true; } else P.onGround=false;
   camera.position.set(P.x,P.y,P.z); camera.rotation.y=yaw; camera.rotation.x=pitch;
+  // cajones: se abren al acercarte + animación de deslizar
+  for(const d of drawers){ if(!d.open && Math.hypot(P.x-d.cx,P.z-d.cz)<1.3){ d.open=true; snd(300,"square",0.12,0.07); showStory(d.note); }
+    const tz=d.open?d.openZ:d.closedZ; d.mesh.position.z+=(tz-d.mesh.position.z)*Math.min(1,dt*6); }
+  if(tracerT>0){ tracerT-=dt; tracer.material.opacity=Math.max(0,tracerT*14); }
   if(shootCd>0) shootCd-=dt;
   const now=performance.now()/1000;
   // pistas
@@ -316,20 +358,19 @@ function update(dt){
     if(Math.hypot(P.x-c.mesh.position.x,P.z-c.mesh.position.z)<1.4){ c.got=true; c.mesh.visible=false; cluesGot++;
       document.getElementById("clues").textContent=cluesGot; snd(880,"triangle",0.2,0.08); showStory(c.info);
       if(cluesGot>=3 && zLeft<=0) endGame(true); } });
-  // zombies
-  let hurt=false;
+  // zombies: ¡un toque = muerte! (a menos que estés arriba, en el ascensor/techo)
+  let danger=false;
   zombies.forEach(z=>{ if(z.dead)return;
     const dxz=P.x-z.grp.position.x, dzz=P.z-z.grp.position.z, d=Math.hypot(dxz,dzz);
     if(d>0.9){ const nx=z.grp.position.x+dxz/d*z.sp*dt, nz=z.grp.position.z+dzz/d*z.sp*dt;   // chocan con paredes
       if(!collide(nx,z.grp.position.z)) z.grp.position.x=nx;
       if(!collide(z.grp.position.x,nz)) z.grp.position.z=nz; }
     z.grp.rotation.y=Math.atan2(dxz,dzz);
-    z.grp.position.y=Math.abs(Math.sin(now*4+z.ph))*0.08;   // bamboleo
-    if(d<1.2){ P.hp-=30*dt; hurt=true; }                    // más daño
+    z.grp.position.y=Math.abs(Math.sin(now*4+z.ph))*0.08;
+    if(d<3.5) danger=true;
+    if(d<1.15 && !gameOver && foot<1.5){ endGame(false); }
   });
-  if(P.hp<=0){ P.hp=0; endGame(false); }
-  document.querySelector("#hpbar b").style.width=P.hp+"%";
-  document.getElementById("hurt").style.boxShadow="inset 0 0 120px 30px rgba(180,10,30,"+(hurt?0.5:0)+")";
+  document.getElementById("hurt").style.boxShadow="inset 0 0 120px 30px rgba(180,10,30,"+(danger?0.4:0)+")";
   // muzzle flash
   if(muzzle>0){ muzzle-=dt; document.getElementById("flash").style.opacity=Math.max(0,muzzle*4); }
 }
