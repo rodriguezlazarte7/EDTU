@@ -200,11 +200,14 @@ document.addEventListener("pointerlockchange",()=>{
   if(running && !isTouch && document.pointerLockElement!==canvas){ document.getElementById("hint").textContent="clic para volver a mirar"; }
   else if(running){ document.getElementById("hint").textContent=""; }
 });
-addEventListener("mousemove",e=>{ if(document.pointerLockElement===canvas){ yaw-=e.movementX*0.0021; pitch-=e.movementY*0.0021; pitch=Math.max(-1.3,Math.min(1.3,pitch)); } });
+// mirar con el mouse SIEMPRE (funcione o no la "captura" del cursor)
+addEventListener("mousemove",e=>{ if(!running||isTouch) return;
+  yaw-=(e.movementX||0)*0.0022; pitch-=(e.movementY||0)*0.0022; pitch=Math.max(-1.3,Math.min(1.3,pitch)); });
+// clic = disparar SIEMPRE (y de paso intenta ocultar/capturar el cursor)
 canvas.addEventListener("mousedown",e=>{
   if(isTouch) return;
-  if(document.pointerLockElement!==canvas){ canvas.requestPointerLock(); return; }
   shoot();
+  if(document.pointerLockElement!==canvas){ try{ canvas.requestPointerLock(); }catch(_){} }
 });
 // táctil
 let stickId=null,stickBase={x:0,y:0},moveV={x:0,y:0},lookId=null,lookLast={x:0,y:0};
