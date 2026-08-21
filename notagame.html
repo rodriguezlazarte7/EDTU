@@ -128,29 +128,44 @@ const floor=new THREE.Mesh(new THREE.PlaneGeometry(ARENA*2,ARENA*2),
   new THREE.MeshStandardMaterial({color:0x0a0a10,metalness:.2,roughness:.95}));
 floor.rotation.x=-Math.PI/2; scene.add(floor);
 const grid=new THREE.GridHelper(ARENA*2,30,0x1a1420,0x120c16); scene.add(grid);
-// edificios (bloques oscuros)
-const buildings=[];
-for(let i=0;i<26;i++){
-  const a=Math.random()*Math.PI*2, r=6+Math.random()*(ARENA-7);
-  const bx=Math.cos(a)*r, bz=Math.sin(a)*r;
-  const w=2+Math.random()*3, d=2+Math.random()*3, h=3+Math.random()*9;
-  const b=new THREE.Mesh(new THREE.BoxGeometry(w,h,d),
-    new THREE.MeshStandardMaterial({color:0x0d0d15,emissive:0x05040a,metalness:.3,roughness:.85}));
-  b.position.set(bx,h/2,bz); scene.add(b);
-  // ventanas tenues
-  if(Math.random()<0.5){ const win=new THREE.Mesh(new THREE.PlaneGeometry(0.5,0.6),
-    new THREE.MeshBasicMaterial({color:0xffcf7a,transparent:true,opacity:.5}));
+// ---- muros con colisión por cajas (AABB) ----
+const walls=[];
+function addWall(x0,x1,z0,z1){ walls.push({x0:Math.min(x0,x1),x1:Math.max(x0,x1),z0:Math.min(z0,z1),z1:Math.max(z0,z1)}); }
+function box(x,z,w,h,d,mat){ const m=new THREE.Mesh(new THREE.BoxGeometry(w,h,d),mat); m.position.set(x,h/2,z); scene.add(m); return m; }
+const cityMat=new THREE.MeshStandardMaterial({color:0x0d0d15,emissive:0x05040a,metalness:.3,roughness:.85});
+const houseMat=new THREE.MeshStandardMaterial({color:0x20160f,roughness:.85,metalness:.1});
+const furnMat=new THREE.MeshStandardMaterial({color:0x2a1c12,roughness:.9});
+
+// edificios SÓLIDOS (no se entra)
+for(let i=0;i<15;i++){
+  const a=Math.random()*Math.PI*2, r=9+Math.random()*(ARENA-11);
+  const bx=Math.cos(a)*r, bz=Math.sin(a)*r, w=2.5+Math.random()*3, d=2.5+Math.random()*3, h=4+Math.random()*10;
+  box(bx,bz,w,h,d,cityMat); addWall(bx-w/2,bx+w/2,bz-d/2,bz+d/2);
+  if(Math.random()<0.6){ const win=new THREE.Mesh(new THREE.PlaneGeometry(0.5,0.6),new THREE.MeshBasicMaterial({color:0xffcf7a,transparent:true,opacity:.5}));
     win.position.set(bx+(Math.random()-.5)*w,1+Math.random()*(h-2),bz+d/2+0.02); scene.add(win); }
-  buildings.push({x:bx,z:bz,rw:w/2+0.5,rd:d/2+0.5});
 }
-// CASA 13 (marcada)
-const casa=new THREE.Mesh(new THREE.BoxGeometry(4,4,4),
-  new THREE.MeshStandardMaterial({color:0x160a0c,emissive:0x3a0810,emissiveIntensity:.5,roughness:.8}));
-casa.position.set(0,2,-ARENA+6); scene.add(casa);
-buildings.push({x:0,z:-ARENA+6,rw:2.6,rd:2.6});
-const sign=new THREE.Mesh(new THREE.PlaneGeometry(1.4,1.4),
-  new THREE.MeshBasicMaterial({color:0xff3b5b}));
-sign.position.set(0,3.2,-ARENA+6+2.02); scene.add(sign);
+// CASAS que SÍ se entran (grandes, con luz adentro y una puerta)
+function buildHouse(cx,cz,S,label){
+  const H=4.2,t=0.35,dw=2.6;
+  const fl=new THREE.Mesh(new THREE.PlaneGeometry(S,S),new THREE.MeshStandardMaterial({color:0x1c1208,roughness:.9}));
+  fl.rotation.x=-Math.PI/2; fl.position.set(cx,0.03,cz); scene.add(fl);
+  box(cx,cz,S+0.5,0.3,S+0.5,houseMat).position.y=H;                                   // techo
+  box(cx,cz-S/2,S,H,t,houseMat); addWall(cx-S/2,cx+S/2,cz-S/2-t/2,cz-S/2+t/2);        // pared trasera
+  box(cx-S/2,cz,t,H,S,houseMat); addWall(cx-S/2-t/2,cx-S/2+t/2,cz-S/2,cz+S/2);        // izquierda
+  box(cx+S/2,cz,t,H,S,houseMat); addWall(cx+S/2-t/2,cx+S/2+t/2,cz-S/2,cz+S/2);        // derecha
+  const seg=(S-dw)/2;                                                                 // pared delantera CON PUERTA
+  box(cx-(dw/2+seg/2),cz+S/2,seg,H,t,houseMat); addWall(cx-S/2,cx-dw/2,cz+S/2-t/2,cz+S/2+t/2);
+  box(cx+(dw/2+seg/2),cz+S/2,seg,H,t,houseMat); addWall(cx+dw/2,cx+S/2,cz+S/2-t/2,cz+S/2+t/2);
+  const lamp=new THREE.PointLight(0xffcf7a,1.7,S*2.4); lamp.position.set(cx,H-0.5,cz); scene.add(lamp);   // ALUMBRADO interior
+  const bulb=new THREE.Mesh(new THREE.SphereGeometry(0.16,8,8),new THREE.MeshBasicMaterial({color:0xffe6b0})); bulb.position.set(cx,H-0.4,cz); scene.add(bulb);
+  box(cx-S/4,cz-S/4,1.6,0.8,1.0,furnMat); addWall(cx-S/4-0.8,cx-S/4+0.8,cz-S/4-0.5,cz-S/4+0.5);          // mueble
+  box(cx+S/4,cz+S/5,1.2,0.6,2.0,furnMat); addWall(cx+S/4-0.6,cx+S/4+0.6,cz+S/5-1.0,cz+S/5+1.0);          // cama
+  if(label){ const sg=new THREE.Mesh(new THREE.PlaneGeometry(1.3,1.3),new THREE.MeshBasicMaterial({color:0xff3b5b})); sg.position.set(cx,H*0.65,cz+S/2+0.03); scene.add(sg); }
+}
+buildHouse(0,-ARENA+8,10,true);   // CASA 13 (escena del crimen)
+buildHouse(-16,4,9,false);
+buildHouse(15,3,9,false);
+buildHouse(-4,-7,9,false);
 // niebla-partículas (motas)
 const motGeo=new THREE.BufferGeometry(),mv=[];
 for(let i=0;i<300;i++) mv.push((Math.random()-.5)*ARENA*2,Math.random()*8,(Math.random()-.5)*ARENA*2);
@@ -171,6 +186,7 @@ for(let i=0;i<3;i++){
   m.add(new THREE.PointLight(0xffd12e,0.8,6));
   scene.add(m); clues.push({mesh:m,got:false,info:CLUE_INFO[i]});
 }
+clues[0].mesh.position.set(0,1.1,-ARENA+8);   // la JERINGA está DENTRO de la Casa 13 (hay que entrar)
 
 // ---------- zombies ----------
 function makeZombie(){
@@ -188,7 +204,7 @@ function spawnZombies(n){
   for(let i=0;i<n;i++){
     const a=Math.random()*Math.PI*2, r=12+Math.random()*(ARENA-14);
     const g=makeZombie(); g.position.set(Math.cos(a)*r,0,Math.sin(a)*r); scene.add(g);
-    zombies.push({grp:g,hp:2,dead:false,sp:1.1+Math.random()*0.7,ph:Math.random()*6});
+    zombies.push({grp:g,hp:2,dead:false,sp:1.7+Math.random()*1.3,ph:Math.random()*6});
   }
 }
 
@@ -251,14 +267,14 @@ function shoot(){
 }
 function showStory(txt){ const s=document.getElementById("story"); s.textContent=txt; s.style.display="block"; clearTimeout(s._t); s._t=setTimeout(()=>s.style.display="none",3400); }
 
-function collide(nx,nz){ for(const b of buildings){ if(Math.abs(nx-b.x)<b.rw && Math.abs(nz-b.z)<b.rd) return true; } return false; }
+function collide(nx,nz){ const pr=0.35; for(const w of walls){ if(nx>w.x0-pr&&nx<w.x1+pr&&nz>w.z0-pr&&nz<w.z1+pr) return true; } return false; }
 
 function startGame(){
   P.x=0;P.z=ARENA-5;P.y=1.7;P.vy=0;P.onGround=true;P.hp=100; yaw=0;pitch=0;
   cluesGot=0; gameOver=false; muzzle=0; shootCd=0;
   clues.forEach(c=>{c.got=false;c.mesh.visible=true;});
-  zombies.forEach(z=>scene.remove(z.grp)); zombies.length=0; spawnZombies(7); zLeft=7;
-  document.getElementById("zleft").textContent="7"; document.getElementById("clues").textContent="0";
+  zombies.forEach(z=>scene.remove(z.grp)); zombies.length=0; spawnZombies(11); zLeft=11;
+  document.getElementById("zleft").textContent="11"; document.getElementById("clues").textContent="0";
   document.querySelector("#hpbar b").style.width="100%";
   document.getElementById("start").classList.add("hide"); document.getElementById("end").classList.add("hide");
   document.body.classList.add("playing");
@@ -304,10 +320,12 @@ function update(dt){
   let hurt=false;
   zombies.forEach(z=>{ if(z.dead)return;
     const dxz=P.x-z.grp.position.x, dzz=P.z-z.grp.position.z, d=Math.hypot(dxz,dzz);
-    if(d>0.9){ z.grp.position.x+=dxz/d*z.sp*dt; z.grp.position.z+=dzz/d*z.sp*dt; }
+    if(d>0.9){ const nx=z.grp.position.x+dxz/d*z.sp*dt, nz=z.grp.position.z+dzz/d*z.sp*dt;   // chocan con paredes
+      if(!collide(nx,z.grp.position.z)) z.grp.position.x=nx;
+      if(!collide(z.grp.position.x,nz)) z.grp.position.z=nz; }
     z.grp.rotation.y=Math.atan2(dxz,dzz);
     z.grp.position.y=Math.abs(Math.sin(now*4+z.ph))*0.08;   // bamboleo
-    if(d<1.2){ P.hp-=22*dt; hurt=true; }
+    if(d<1.2){ P.hp-=30*dt; hurt=true; }                    // más daño
   });
   if(P.hp<=0){ P.hp=0; endGame(false); }
   document.querySelector("#hpbar b").style.width=P.hp+"%";
