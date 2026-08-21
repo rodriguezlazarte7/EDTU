@@ -63,8 +63,9 @@
 <div id="hud">
   <div id="hpwrap" style="color:#ff3b5b;text-shadow:0 0 12px #ff3b5b;animation:pulse 1.2s infinite">☠ 1 TOQUE = MUERTE</div>
   <div style="text-align:right">
+    <div id="daynight">🌙 NOCHE</div>
     <div class="z">🧟 INFECTADOS: <span id="zleft">0</span></div>
-    <div>🔎 PISTAS: <span id="clues">0</span>/3</div>
+    <div>🔎 PISTAS: <span id="clues">0</span>/7</div>
   </div>
 </div>
 <div id="story"></div>
@@ -117,8 +118,10 @@ function resize(){ renderer.setSize(innerWidth,innerHeight); camera.aspect=inner
 addEventListener("resize",resize); resize();
 
 // luz: noche + linterna
-scene.add(new THREE.AmbientLight(0x252033,0.35));
-const moon=new THREE.DirectionalLight(0x3344aa,0.25); moon.position.set(-8,20,-6); scene.add(moon);
+const ambient=new THREE.AmbientLight(0x252033,0.35); scene.add(ambient);
+const moon=new THREE.DirectionalLight(0x3344aa,0.6); moon.position.set(-8,20,-6); scene.add(moon);
+const bgNight=new THREE.Color(0x03030a), bgDay=new THREE.Color(0x5a7290);
+const moonNight=new THREE.Color(0x3344aa), moonDay=new THREE.Color(0xfff2d0);
 const flash=new THREE.SpotLight(0xfff0d0,2.4,32,0.6,0.55,1.2); flash.position.set(0,0,0.3); camera.add(flash);
 const ftarget=new THREE.Object3D(); ftarget.position.set(0,-0.12,-1); camera.add(ftarget); flash.target=ftarget;
 
@@ -173,20 +176,7 @@ motGeo.setAttribute("position",new THREE.Float32BufferAttribute(mv,3));
 scene.add(new THREE.Points(motGeo,new THREE.PointsMaterial({color:0x556070,size:0.06,transparent:true,opacity:.5})));
 
 // ---------- pistas ----------
-const CLUE_INFO=[
-  "💉 JERINGA: contiene restos de un virus desconocido.",
-  "📄 INFORME: la víctima tiene 14 años, sigue en coma.",
-  "🩸 MUESTRA: el virus reanima tejido... son zombies."
-];
-const clues=[]; const clueGeo=new THREE.OctahedronGeometry(0.4,0);
-for(let i=0;i<3;i++){
-  const a=Math.random()*Math.PI*2, r=8+Math.random()*(ARENA-12);
-  const m=new THREE.Mesh(clueGeo,new THREE.MeshStandardMaterial({color:0xffd12e,emissive:0xffd12e,emissiveIntensity:1,roughness:.3}));
-  m.position.set(Math.cos(a)*r,1.1,Math.sin(a)*r);
-  m.add(new THREE.PointLight(0xffd12e,0.8,6));
-  scene.add(m); clues.push({mesh:m,got:false,info:CLUE_INFO[i]});
-}
-clues[0].mesh.position.set(0,1.1,-ARENA+8);   // la JERINGA está DENTRO de la Casa 13 (hay que entrar)
+// (las 7 pistas ahora son los CAJONES que abres — ver más abajo)
 
 // ---------- zombies ----------
 function makeZombie(){
@@ -220,16 +210,27 @@ const elevLight=new THREE.PointLight(0x33bbff,0.8,12); elevLight.position.set(12
 // ---------- cajones que se abren ----------
 const drawers=[];
 function addDrawer(cx,cz,note){
-  const m=box(cx,cz,1.3,0.55,0.18,new THREE.MeshStandardMaterial({color:0x3a2a1a,emissive:0x160e06,emissiveIntensity:.4,roughness:.85}));
+  const m=box(cx,cz,1.3,0.55,0.18,new THREE.MeshStandardMaterial({color:0x3a2a1a,emissive:0x2a1c0a,emissiveIntensity:.5,roughness:.85}));
   m.position.y=0.65;
-  const knob=new THREE.Mesh(new THREE.SphereGeometry(0.055,8,8),new THREE.MeshBasicMaterial({color:0xffd12e})); knob.position.set(0,0,0.1); m.add(knob);
+  const knob=new THREE.Mesh(new THREE.SphereGeometry(0.09,10,10),new THREE.MeshBasicMaterial({color:0xffe066})); knob.position.set(0,0,0.11); m.add(knob);   // perilla que brilla (se ve en la oscuridad)
+  const halo=new THREE.Mesh(new THREE.SphereGeometry(0.2,10,10),new THREE.MeshBasicMaterial({color:0xffd12e,transparent:true,opacity:.25})); halo.position.set(0,0,0.11); m.add(halo);
   drawers.push({mesh:m,cx,cz,closedZ:cz,openZ:cz+0.6,open:false,note});
 }
-addDrawer(0,-ARENA+11,"🗄️ Cajón: marcas de arañazos por dentro...");
-addDrawer(-16,7,"🗄️ Cajón: una foto rota de la víctima.");
-addDrawer(15,6,"🗄️ Cajón: frascos vacíos etiquetados 'VZ-13'.");
-addDrawer(-4,-4,"🗄️ Cajón: una nota que dice 'ya es tarde para él'.");
-function tryDrawer(){ let best=null,bd=2.4; for(const d of drawers){ if(d.open)continue; const dist=Math.hypot(P.x-d.cx,P.z-d.cz); if(dist<bd){bd=dist;best=d;} } if(best){ best.open=true; snd(300,"square",0.12,0.07); showStory(best.note); } }
+// 7 cajones = 7 pistas (colocados en las casas y el centro, sin quedar dentro de edificios)
+addDrawer(-1.6,-ARENA+11,"💉 PISTA 1: una jeringa con restos de un virus (VZ-13).");
+addDrawer(1.6,-ARENA+11,"🔦 PISTA 2: había alguien más en la Casa 13 esa noche.");
+addDrawer(-16,7,"📷 PISTA 3: una foto: vigilaban al niño desde la calle.");
+addDrawer(15,6,"🧪 PISTA 4: el laboratorio del virus estaba en el sótano.");
+addDrawer(-4,-4,"🗝️ PISTA 5: una llave del sótano de la Casa 13.");
+addDrawer(3,3,"📓 PISTA 6: un diario: 'el paciente cero se creó aquí'.");
+addDrawer(-3,6,"🩸 PISTA 7: el virus reanima el tejido... son zombies.");
+function openDrawer(d){
+  if(d.open) return; d.open=true; cluesGot++;
+  document.getElementById("clues").textContent=cluesGot; snd(880,"triangle",0.2,0.08); snd(300,"square",0.12,0.06); showStory(d.note);
+  if(cluesGot>=7 && zLeft<=0) endGame(true);
+  else if(cluesGot>=7) showStory("🔎 ¡7 pistas reunidas! Ahora elimina a los infectados.");
+}
+function tryDrawer(){ let best=null,bd=2.4; for(const d of drawers){ if(d.open)continue; const dist=Math.hypot(P.x-d.cx,P.z-d.cz); if(dist<bd){bd=dist;best=d;} } if(best) openDrawer(best); }
 
 // ---------- láser trazador del disparo ----------
 const tracer=new THREE.Line(new THREE.BufferGeometry().setFromPoints([new THREE.Vector3(),new THREE.Vector3()]),
@@ -238,7 +239,7 @@ scene.add(tracer); let tracerT=0;
 
 // ---------- jugador ----------
 const P={x:0,z:ARENA-5,y:1.7,vy:0,onGround:true,speed:6.5,hp:100};
-let yaw=0, pitch=0, running=false, gameOver=false, tPrev=0, cluesGot=0, zLeft=0, muzzle=0, shootCd=0;
+let yaw=0, pitch=0, running=false, gameOver=false, tPrev=0, cluesGot=0, zLeft=0, muzzle=0, shootCd=0, startT=0;
 
 // ---------- input ----------
 const keys={};
@@ -294,7 +295,7 @@ function shoot(){
   tracer.geometry.setFromPoints([origin,end]); tracer.material.opacity=0.9; tracerT=0.06;
   if(best){ best.hp--; snd(400,"square",0.06,0.06);
     if(best.hp<=0){ best.dead=true; best.grp.visible=false; zLeft--; document.getElementById("zleft").textContent=zLeft; snd(70,"sawtooth",0.4,0.12);
-      if(zLeft<=0 && cluesGot>=3) endGame(true);
+      if(zLeft<=0 && cluesGot>=7) endGame(true);
       else if(zLeft<=0) showStory("Todos los infectados eliminados. Faltan pistas por reunir.");
     } }
 }
@@ -305,7 +306,7 @@ function collide(nx,nz){ const pr=0.35; for(const w of walls){ if(nx>w.x0-pr&&nx
 function startGame(){
   P.x=0;P.z=ARENA-5;P.y=1.7;P.vy=0;P.onGround=true;P.hp=100; yaw=0;pitch=0;
   cluesGot=0; gameOver=false; muzzle=0; shootCd=0;
-  clues.forEach(c=>{c.got=false;c.mesh.visible=true;});
+  startT=performance.now()/1000;   // reinicia el ciclo día/noche (empieza de noche)
   zombies.forEach(z=>scene.remove(z.grp)); zombies.length=0; spawnZombies(11); zLeft=11;
   document.getElementById("zleft").textContent="11"; document.getElementById("clues").textContent="0";
   drawers.forEach(d=>{ d.open=false; d.mesh.position.z=d.closedZ; }); elev.t=0;
@@ -348,16 +349,21 @@ function update(dt){
   if(foot<=g){ P.y=g+1.7; if(P.vy<0)P.vy=0; P.onGround=true; } else P.onGround=false;
   camera.position.set(P.x,P.y,P.z); camera.rotation.y=yaw; camera.rotation.x=pitch;
   // cajones: se abren al acercarte + animación de deslizar
-  for(const d of drawers){ if(!d.open && Math.hypot(P.x-d.cx,P.z-d.cz)<1.3){ d.open=true; snd(300,"square",0.12,0.07); showStory(d.note); }
+  for(const d of drawers){ if(!d.open && Math.hypot(P.x-d.cx,P.z-d.cz)<1.3){ openDrawer(d); }
     const tz=d.open?d.openZ:d.closedZ; d.mesh.position.z+=(tz-d.mesh.position.z)*Math.min(1,dt*6); }
   if(tracerT>0){ tracerT-=dt; tracer.material.opacity=Math.max(0,tracerT*14); }
   if(shootCd>0) shootCd-=dt;
   const now=performance.now()/1000;
-  // pistas
-  clues.forEach(c=>{ if(c.got)return; c.mesh.rotation.y+=dt*2; c.mesh.position.y=1.1+Math.sin(now*2)*0.2;
-    if(Math.hypot(P.x-c.mesh.position.x,P.z-c.mesh.position.z)<1.4){ c.got=true; c.mesh.visible=false; cluesGot++;
-      document.getElementById("clues").textContent=cluesGot; snd(880,"triangle",0.2,0.08); showStory(c.info);
-      if(cluesGot>=3 && zLeft<=0) endGame(true); } });
+  // 🌗 ciclo DÍA/NOCHE (3 min noche + 3 min día)
+  const sm=(a,b,x)=>{ x=Math.max(0,Math.min(1,(x-a)/(b-a))); return x*x*(3-2*x); };
+  const ph=(((now-startT)%360)+360)%360/360;
+  const dayF = ph<0.5 ? sm(0.44,0.5,ph) : 1-sm(0.94,1,ph);
+  ambient.intensity=0.3+dayF*0.75;
+  moon.intensity=0.5+dayF*0.9; moon.color.copy(moonNight).lerp(moonDay,dayF);
+  flash.intensity=2.4-dayF*1.7;
+  scene.fog.density=0.05-dayF*0.038;
+  scene.background.copy(bgNight).lerp(bgDay,dayF);
+  const dn=document.getElementById("daynight"); if(dn) dn.textContent = dayF>0.5 ? "☀️ DÍA" : "🌙 NOCHE";
   // zombies: ¡un toque = muerte! (a menos que estés arriba, en el ascensor/techo)
   let danger=false;
   zombies.forEach(z=>{ if(z.dead)return;
