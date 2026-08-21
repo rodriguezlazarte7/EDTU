@@ -45,8 +45,9 @@
     box-shadow:0 0 20px rgba(184,16,40,.4);animation:pulse 1.8s ease-in-out infinite}
   @keyframes pulse{50%{box-shadow:0 0 34px rgba(255,59,91,.6)}}
   /* táctil */
-  #touch{position:fixed;inset:0;z-index:4;display:none}
+  #touch{position:fixed;inset:0;z-index:4;display:none;pointer-events:none}   /* la capa NO bloquea el mouse */
   #touch.on{display:block}
+  #stick,#fire{pointer-events:auto}   /* solo el joystick y FUEGO reciben toques */
   #stick{position:absolute;left:24px;bottom:26px;width:128px;height:128px;border-radius:50%;border:2px solid rgba(200,200,200,.25);background:rgba(255,255,255,.04)}
   #nub{position:absolute;left:39px;top:39px;width:50px;height:50px;border-radius:50%;background:rgba(220,220,220,.4);box-shadow:0 0 12px rgba(255,255,255,.3)}
   #fire{position:absolute;right:24px;bottom:40px;width:90px;height:90px;border-radius:50%;border:2px solid #ff3b5b;background:rgba(184,16,40,.18);
@@ -100,6 +101,9 @@
 (function(){
 const canvas=document.getElementById("c");
 const isTouch=("ontouchstart" in window)||navigator.maxTouchPoints>0;
+// mostrar el joystick SOLO en dispositivos táctiles primarios (celu/tablet), no en laptops con pantalla táctil
+let touchUI=false; try{ touchUI=window.matchMedia && !matchMedia("(pointer:fine)").matches; }catch(e){ touchUI=isTouch; }
+addEventListener("touchstart",()=>{ document.getElementById("touch").classList.add("on"); },{once:true});
 
 const renderer=new THREE.WebGLRenderer({canvas,antialias:true});
 renderer.setPixelRatio(Math.min(devicePixelRatio,2));
@@ -200,12 +204,11 @@ document.addEventListener("pointerlockchange",()=>{
   if(running && !isTouch && document.pointerLockElement!==canvas){ document.getElementById("hint").textContent="clic para volver a mirar"; }
   else if(running){ document.getElementById("hint").textContent=""; }
 });
-// mirar con el mouse SIEMPRE (funcione o no la "captura" del cursor)
-addEventListener("mousemove",e=>{ if(!running||isTouch) return;
+// mirar con el mouse SIEMPRE (aunque el equipo tenga pantalla táctil)
+addEventListener("mousemove",e=>{ if(!running) return;
   yaw-=(e.movementX||0)*0.0022; pitch-=(e.movementY||0)*0.0022; pitch=Math.max(-1.3,Math.min(1.3,pitch)); });
-// clic = disparar SIEMPRE (y de paso intenta ocultar/capturar el cursor)
+// clic = disparar SIEMPRE (los toques reales no disparan aquí porque touchstart hace preventDefault)
 canvas.addEventListener("mousedown",e=>{
-  if(isTouch) return;
   shoot();
   if(document.pointerLockElement!==canvas){ try{ canvas.requestPointerLock(); }catch(_){} }
 });
@@ -259,8 +262,8 @@ function startGame(){
   document.querySelector("#hpbar b").style.width="100%";
   document.getElementById("start").classList.add("hide"); document.getElementById("end").classList.add("hide");
   document.body.classList.add("playing");
-  if(isTouch){ document.getElementById("touch").classList.add("on"); document.getElementById("hint").textContent=""; }
-  else { document.getElementById("hint").textContent=""; }
+  if(touchUI) document.getElementById("touch").classList.add("on");
+  document.getElementById("hint").textContent = touchUI ? "" : "Mueve el mouse para mirar · clic para disparar";
   running=true; tPrev=performance.now();
   showStory("Estás en la calle frente a la CASA 13. Investiga...");
 }
@@ -279,7 +282,7 @@ function update(dt){
   let f=0,s=0;
   if(keys["KeyW"]||keys["ArrowUp"])f+=1; if(keys["KeyS"]||keys["ArrowDown"])f-=1;
   if(keys["KeyA"]||keys["ArrowLeft"])s-=1; if(keys["KeyD"]||keys["ArrowRight"])s+=1;
-  if(isTouch){ f-=moveV.y; s+=moveV.x; }
+  f-=moveV.y; s+=moveV.x;   // joystick táctil (0 si no tocas) — coexiste con WASD
   const len=Math.hypot(f,s); if(len>1){f/=len;s/=len;}
   const sin=Math.sin(yaw),cos=Math.cos(yaw);
   let dx=(f*(-sin)+s*cos)*P.speed*dt, dz=(f*(-cos)+s*(-sin))*P.speed*dt;
@@ -316,8 +319,8 @@ function update(dt){
 function loop(t){ const dt=Math.min(0.05,(t-tPrev)/1000); tPrev=t; if(running) update(dt); renderer.render(scene,camera); requestAnimationFrame(loop); }
 requestAnimationFrame(loop);
 
-document.getElementById("play").onclick=()=>{ startGame(); if(!isTouch) canvas.requestPointerLock(); };
-document.getElementById("again").onclick=()=>{ startGame(); if(!isTouch) canvas.requestPointerLock(); };
+document.getElementById("play").onclick=()=>{ startGame(); try{ canvas.requestPointerLock(); }catch(_){} };
+document.getElementById("again").onclick=()=>{ startGame(); try{ canvas.requestPointerLock(); }catch(_){} };
 })();
 </script>
 </body>
