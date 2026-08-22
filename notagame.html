@@ -65,7 +65,7 @@
   <div id="hpwrap" style="color:#ff3b5b;text-shadow:0 0 12px #ff3b5b;animation:pulse 1.2s infinite">☠ 1 TOQUE = MUERTE</div>
   <div style="text-align:right">
     <div id="daynight">🌙 NOCHE</div>
-    <div class="z">🧟 INFECTADOS: <span id="zleft">0</span></div>
+    <div class="z">🧟 ELIMINADOS: <span id="kills">0</span></div>
     <div>🔎 PISTAS: <span id="clues">0</span>/7</div>
   </div>
 </div>
@@ -180,6 +180,7 @@ function buildHouse(cx,cz,S,label){
 }
 houseCenters.push({x:12,z:-14,r:6}); houseCenters.push({x:0,z:ARENA-5,r:5});   // reserva ascensor e inicio
 houseCenters.push({x:20,z:11,r:8}); houseCenters.push({x:-20,z:11,r:8});        // reserva escaleras hacia arriba
+houseCenters.push({x:14,z:16,r:9});                                             // reserva torre del helicóptero
 buildHouse(0,-ARENA+8,10,true);                                                  // CASA 13 (escena del crimen)
 for(let i=0;i<10;i++){ const s=freeSpot(8,ARENA-6,4); buildHouse(s.x,s.z,7+Math.random()*4,false); }   // TODOS los edificios se pueden entrar
 for(let i=0;i<20;i++){ const s=freeSpot(5,ARENA-2,2.2); makeTree(s.x,s.z); }                            // árboles
@@ -242,13 +243,12 @@ function makeZombie(){
   return g;
 }
 const zombies=[];
+function zPos(){ const a=Math.random()*Math.PI*2, r=16+Math.random()*(ARENA-17); return {x:Math.cos(a)*r,z:Math.sin(a)*r}; }
 function spawnZombies(n){
-  for(let i=0;i<n;i++){
-    const a=Math.random()*Math.PI*2, r=12+Math.random()*(ARENA-14);
-    const g=makeZombie(); g.position.set(Math.cos(a)*r,0,Math.sin(a)*r); scene.add(g);
-    zombies.push({grp:g,hp:2,dead:false,sp:1.7+Math.random()*1.3,ph:Math.random()*6});
-  }
+  for(let i=0;i<n;i++){ const p=zPos(); const g=makeZombie(); g.position.set(p.x,0,p.z); scene.add(g);
+    zombies.push({grp:g,hp:2,dead:false,sp:1.7+Math.random()*1.3,ph:Math.random()*6}); }
 }
+function respawnZombie(z){ const p=zPos(); z.grp.position.set(p.x,0,p.z); z.hp=2+Math.floor(kills/12); z.sp=1.7+Math.random()*1.3+Math.min(1.5,kills*0.02); }   // ∞: vuelve más fuerte
 
 // ---------- ascensor (te sube) ----------
 const elev={ mesh:box(12,-12,3,0.3,3,new THREE.MeshStandardMaterial({color:0x2a3a52,emissive:0x0a2436,emissiveIntensity:.6,metalness:.6,roughness:.3})),
@@ -269,6 +269,34 @@ function buildStairsUp(cx,cz){
   const rl=new THREE.PointLight(0xffcf7a,0.7,10); rl.position.set(cx,topY+2,roofZ); scene.add(rl);
 }
 buildStairsUp(20,11); buildStairsUp(-20,11);
+// ---------- TORRE con escalera INTERNA + HELICÓPTERO en la azotea ----------
+let heliRotor=null; const heliSpot={x:0,z:0,y:0};
+function buildHeliTower(cx,cz){
+  const S=9, H=8, t=0.4;
+  box(cx,cz-S/2,S,H,t,houseMat); addWall(cx-S/2,cx+S/2,cz-S/2-t/2,cz-S/2+t/2);   // pared trasera
+  box(cx-S/2,cz,t,H,S,houseMat); addWall(cx-S/2-t/2,cx-S/2+t/2,cz-S/2,cz+S/2);   // izq
+  box(cx+S/2,cz,t,H,S,houseMat); addWall(cx+S/2-t/2,cx+S/2+t/2,cz-S/2,cz+S/2);   // der
+  const seg=(S-2.6)/2;                                                            // frente con puerta
+  box(cx-(1.3+seg/2),cz+S/2,seg,H,t,houseMat); addWall(cx-S/2,cx-1.3,cz+S/2-t/2,cz+S/2+t/2);
+  box(cx+(1.3+seg/2),cz+S/2,seg,H,t,houseMat); addWall(cx+1.3,cx+S/2,cz+S/2-t/2,cz+S/2+t/2);
+  // escalera INTERNA (recta, pegada a la pared izquierda) hasta la azotea
+  const steps=16, sh=0.5, sd=0.45;
+  for(let i=0;i<steps;i++){ const y=(i+1)*sh, zz=cz+S/2-1-i*sd;
+    box(cx-S/2+1.3,zz,1.9,0.18,sd+0.1,new THREE.MeshStandardMaterial({color:0x2a2a34,roughness:.9})).position.y=y-0.09;
+    platforms.push({x:cx-S/2+1.3,z:zz,w:1.9,d:sd+0.35,y:y}); }
+  box(cx,cz,S+0.6,0.3,S+0.6,new THREE.MeshStandardMaterial({color:0x20202c,roughness:.8})).position.y=H;   // azotea
+  platforms.push({x:cx,z:cz,w:S+0.6,d:S+0.6,y:H});
+  // HELICÓPTERO
+  const hy=H+0.95;
+  const body=new THREE.Mesh(new THREE.SphereGeometry(1.1,12,10),new THREE.MeshStandardMaterial({color:0x1e2f66,metalness:.5,roughness:.4})); body.scale.set(1,0.8,1.6); body.position.set(cx,hy,cz); scene.add(body);
+  const tail=new THREE.Mesh(new THREE.BoxGeometry(0.3,0.3,2.6),new THREE.MeshStandardMaterial({color:0x162350})); tail.position.set(cx,hy+0.2,cz+2.3); scene.add(tail);
+  for(const sx of [-0.7,0.7]){ const sk=new THREE.Mesh(new THREE.BoxGeometry(0.1,0.1,2.4),new THREE.MeshStandardMaterial({color:0x333})); sk.position.set(cx+sx,hy-1,cz); scene.add(sk); }
+  const mast=new THREE.Mesh(new THREE.CylinderGeometry(0.08,0.08,0.4),new THREE.MeshStandardMaterial({color:0x333})); mast.position.set(cx,hy+1,cz); scene.add(mast);
+  heliRotor=new THREE.Mesh(new THREE.BoxGeometry(6.5,0.08,0.4),new THREE.MeshStandardMaterial({color:0x111})); heliRotor.position.set(cx,hy+1.2,cz); scene.add(heliRotor);
+  const pl=new THREE.PointLight(0xff3b5b,0.9,12); pl.position.set(cx,hy+1,cz); scene.add(pl);
+  heliSpot.x=cx; heliSpot.z=cz; heliSpot.y=H;
+}
+buildHeliTower(14,16);
 
 // ---------- cajones que se abren ----------
 const drawers=[];
@@ -294,8 +322,7 @@ addDrawer(DRAINX-3,DRAINZ-14,CLUE_NOTES[5]); addDrawer(DRAINX+3,DRAINZ+14,CLUE_N
 function openDrawer(d){
   if(d.open) return; d.open=true; cluesGot++;
   document.getElementById("clues").textContent=cluesGot; snd(880,"triangle",0.2,0.08); snd(300,"square",0.12,0.06); showStory(d.note);
-  if(cluesGot>=7 && zLeft<=0) endGame(true);
-  else if(cluesGot>=7) showStory("🔎 ¡7 pistas reunidas! Ahora elimina a los infectados.");
+  if(cluesGot>=7) endGame(true);   // caso resuelto al reunir las 7 pistas (los zombies son infinitos)
 }
 function tryDrawer(){ let best=null,bd=2.4; for(const d of drawers){ if(d.open)continue; const dist=Math.hypot(P.x-d.cx,P.z-d.cz); if(dist<bd){bd=dist;best=d;} } if(best) openDrawer(best); }
 
@@ -306,7 +333,7 @@ scene.add(tracer); let tracerT=0;
 
 // ---------- jugador ----------
 const P={x:0,z:ARENA-5,y:1.7,vy:0,onGround:true,speed:6.5,hp:100};
-let yaw=0, pitch=0, running=false, gameOver=false, tPrev=0, cluesGot=0, zLeft=0, muzzle=0, shootCd=0, startT=0, level="surface";
+let yaw=0, pitch=0, running=false, gameOver=false, tPrev=0, cluesGot=0, kills=0, muzzle=0, shootCd=0, startT=0, level="surface", heliMode=false;
 
 // ---------- input ----------
 const keys={};
@@ -347,24 +374,22 @@ function snd(freq,type,dur,vol){ try{ AC=AC||new (window.AudioContext||window.we
   o.connect(g); g.connect(AC.destination); o.start(); o.stop(AC.currentTime+(dur||.15)+.02); }catch(e){} }
 
 function shoot(){
-  if(!running||gameOver||shootCd>0) return; shootCd=0.18;
+  if(!running||gameOver||shootCd>0) return; shootCd=heliMode?0.07:0.18;   // metralla en el helicóptero
   muzzle=0.07; snd(210,"square",0.08,0.12); snd(90,"sawtooth",0.14,0.1);
   const fwd=new THREE.Vector3(); camera.getWorldDirection(fwd);
   const origin=new THREE.Vector3(P.x,P.y-0.15,P.z);
   let best=null,bestD=1e9;
   for(const z of zombies){ if(z.dead) continue;
     const to=new THREE.Vector3(z.grp.position.x-origin.x,(z.grp.position.y+0.9)-origin.y,z.grp.position.z-origin.z);
-    const dist=to.length(); if(dist>80) continue; to.normalize();      // dispara LEJOS (todo el mapa)
-    if(to.dot(fwd)>0.975 && dist<bestD){ bestD=dist; best=z; } }
+    const dist=to.length(); if(dist>90) continue; to.normalize();      // dispara LEJOS (todo el mapa)
+    if(to.dot(fwd)>(heliMode?0.96:0.975) && dist<bestD){ bestD=dist; best=z; } }   // mira más ancha en el heli
   // láser visible hasta el impacto (o lejos si fallas)
   const end = best ? new THREE.Vector3(best.grp.position.x,best.grp.position.y+0.9,best.grp.position.z)
-                   : origin.clone().add(fwd.clone().multiplyScalar(80));
+                   : origin.clone().add(fwd.clone().multiplyScalar(90));
   tracer.geometry.setFromPoints([origin,end]); tracer.material.opacity=0.9; tracerT=0.06;
   if(best){ best.hp--; snd(400,"square",0.06,0.06);
-    if(best.hp<=0){ best.dead=true; best.grp.visible=false; zLeft--; document.getElementById("zleft").textContent=zLeft; snd(70,"sawtooth",0.4,0.12);
-      if(zLeft<=0 && cluesGot>=7) endGame(true);
-      else if(zLeft<=0) showStory("Todos los infectados eliminados. Faltan pistas por reunir.");
-    } }
+    if(best.hp<=0){ kills++; document.getElementById("kills").textContent=kills; snd(70,"sawtooth",0.4,0.12); respawnZombie(best); }   // ∞: reaparece otro
+  }
 }
 function showStory(txt){ const s=document.getElementById("story"); s.textContent=txt; s.style.display="block"; clearTimeout(s._t); s._t=setTimeout(()=>s.style.display="none",3400); }
 
@@ -374,8 +399,8 @@ function startGame(){
   P.x=0;P.z=ARENA-5;P.y=1.7;P.vy=0;P.onGround=true;P.hp=100; yaw=0;pitch=0;
   cluesGot=0; gameOver=false; muzzle=0; shootCd=0;
   startT=performance.now()/1000;   // reinicia el ciclo día/noche (empieza de noche)
-  zombies.forEach(z=>scene.remove(z.grp)); zombies.length=0; spawnZombies(11); zLeft=11;
-  document.getElementById("zleft").textContent="11"; document.getElementById("clues").textContent="0";
+  zombies.forEach(z=>scene.remove(z.grp)); zombies.length=0; spawnZombies(12); kills=0; heliMode=false;
+  document.getElementById("kills").textContent="0"; document.getElementById("clues").textContent="0";
   drawers.forEach(d=>{ d.open=false; d.mesh.position.z=d.closedZ; }); elev.t=0; level="surface";
   document.getElementById("start").classList.add("hide"); document.getElementById("end").classList.add("hide");
   document.body.classList.add("playing");
@@ -390,7 +415,7 @@ function endGame(win){
   document.getElementById("touch").classList.remove("on"); document.getElementById("hint").textContent="";
   const t=document.getElementById("endTitle"),inf=document.getElementById("endInfo");
   if(win){ t.textContent="✓ CASO RESUELTO"; t.className="big win"; inf.innerHTML="Reuniste las pistas y eliminaste el brote.<br>La ciudad está a salvo. 🏙️"; snd(660,"triangle",0.3,0.1); }
-  else { t.textContent="✕ TE INFECTARON"; t.className="big lose"; inf.innerHTML="Los zombies te alcanzaron en la oscuridad.<br>Pistas: <b>"+cluesGot+"/7</b> · Infectados restantes: <b>"+zLeft+"</b>"; snd(60,"sawtooth",0.6,0.12); }
+  else { t.textContent="✕ TE INFECTARON"; t.className="big lose"; inf.innerHTML="Los zombies te alcanzaron en la oscuridad.<br>Pistas: <b>"+cluesGot+"/7</b> · Eliminados: <b>"+kills+"</b>"; snd(60,"sawtooth",0.6,0.12); }
   document.getElementById("end").classList.remove("hide");
 }
 
@@ -427,6 +452,10 @@ function update(dt){
   // escaleras: bajar al drenaje (en cada casa) / subir por la salida verde
   if(level==="surface"){ for(const s of stairDowns){ if(Math.hypot(P.x-s.x,P.z-s.z)<1.8){ goDrain(); break; } } }
   else if(Math.hypot(P.x-EXIT.x,P.z-EXIT.z)<1.8 && P.y>EXIT.y+0.6){ goSurface(); }   // hay que SUBIR la escalera
+  // 🚁 helicóptero: al subir a la azotea y acercarte, disparas en modo metralla
+  heliMode = level==="surface" && heliRotor!=null && Math.hypot(P.x-heliSpot.x,P.z-heliSpot.z)<3 && P.y>heliSpot.y+0.4;
+  if(heliRotor) heliRotor.rotation.y += (heliMode?45:12)*dt;
+  const hh=document.getElementById("hint"); if(hh) hh.textContent = heliMode ? "🚁 HELICÓPTERO — ¡dispara a los zombies de abajo!" : (hh.textContent.startsWith("🚁")?"":hh.textContent);
   if(shootCd>0) shootCd-=dt;
   const now=performance.now()/1000;
   // 🌗 ciclo DÍA/NOCHE (3 min noche + 3 min día)
