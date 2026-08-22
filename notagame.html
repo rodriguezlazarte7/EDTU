@@ -420,9 +420,10 @@ function endGame(win){
 }
 
 // transición entre superficie y drenaje (con fundido)
+function safeSpot(x,z){ if(!collide(x,z)) return {x,z}; for(let r=0.8;r<=12;r+=0.6){ for(let a=0;a<6.28;a+=0.5){ const nx=x+Math.cos(a)*r, nz=z+Math.sin(a)*r; if(!collide(nx,nz)) return {x:nx,z:nz}; } } return {x,z}; }
 function fadeDo(fn){ const f=document.getElementById("fade"); if(f){ f.style.opacity="1"; setTimeout(()=>{ fn(); f.style.opacity="0"; },220); } else fn(); }
-function goDrain(){ if(level!=="surface")return; level="drain"; fadeDo(()=>{ P.x=DRAIN_ENTRY.x; P.z=DRAIN_ENTRY.z; P.y=1.7; P.vy=0; yaw=Math.PI; showStory("🕳️ DRENAJE — recorre el túnel: 2 pistas y la escalera verde al fondo"); }); }
-function goSurface(){ if(level!=="drain")return; level="surface"; fadeDo(()=>{ P.x=0; P.z=ARENA-6; P.y=1.7; P.vy=0; yaw=0; showStory("De vuelta en la superficie."); }); }
+function goDrain(){ if(level!=="surface")return; level="drain"; fadeDo(()=>{ const sp=safeSpot(DRAIN_ENTRY.x,DRAIN_ENTRY.z); P.x=sp.x; P.z=sp.z; P.y=1.7; P.vy=0; yaw=Math.PI; showStory("🕳️ DRENAJE — recorre el túnel: 2 pistas y la escalera verde al fondo"); }); }
+function goSurface(){ if(level!=="drain")return; level="surface"; fadeDo(()=>{ const sp=safeSpot(0,ARENA-6); P.x=sp.x; P.z=sp.z; P.y=1.7; P.vy=0; yaw=0; showStory("De vuelta en la superficie."); }); }
 
 function update(dt){
   // mover (W = adelante, corregido)
