@@ -23,6 +23,8 @@
   #ammo{position:absolute;top:108px;right:12px;font-size:14px;font-weight:800;color:#a9ffdc;text-align:right;text-shadow:0 0 8px #000}
   #fire{position:fixed;right:24px;bottom:120px;z-index:6;width:78px;height:78px;border-radius:50%;background:rgba(60,180,140,.28);border:3px solid rgba(120,255,210,.6);color:#eafff5;font-size:26px;cursor:pointer;pointer-events:auto}
   #fire:active{transform:scale(.9);background:rgba(120,255,210,.5)}
+  #jump{position:fixed;right:112px;bottom:120px;z-index:6;width:70px;height:70px;border-radius:50%;background:rgba(90,140,220,.28);border:3px solid rgba(150,190,255,.6);color:#eaf2ff;font-size:24px;cursor:pointer;pointer-events:auto}
+  #jump:active{transform:scale(.9);background:rgba(150,190,255,.5)}
   #hint{position:absolute;bottom:96px;left:0;right:0;text-align:center;font-size:14px;color:#eaffd8;text-shadow:0 0 8px #000}
   #story{position:absolute;bottom:150px;left:50%;transform:translateX(-50%);max-width:80%;background:rgba(8,16,4,.82);border:1px solid #4a7a2a;border-radius:10px;padding:8px 14px;font-size:13px;color:#e6ffcf;display:none;text-align:center}
   #hurt{position:absolute;inset:0;box-shadow:inset 0 0 120px 30px rgba(180,10,30,0);pointer-events:none;transition:box-shadow .12s}
@@ -76,6 +78,7 @@
 </div>
 
 <div id="touch" class="hide"><div id="stick"><div id="nub"></div></div></div>
+<button id="jump" class="hide">🦘</button>
 <button id="fire" class="hide">🎯</button>
 <div id="fade"></div>
 
@@ -94,7 +97,7 @@ Pero hay algo que no sabes... No todos los dinosaurios liberados estaban registr
 SOBREVIVE 7 DÍAS. ENCUENTRA UNA FORMA DE PEDIR RESCATE. Y NO DEJES QUE TE ENCUENTREN.
 
 DÍA 1 — 00:00 · La radio se enciende... «...¿hay alguien ahí?...» La señal desaparece. Entonces escuchas un rugido a lo lejos. El parque ya no está bajo control.</div>
-  <p style="color:#9fbf80;font-size:12px;max-width:540px">🎮 WASD/joystick moverte · ratón mirar · <b>clic/🎯/espacio = disparar el DARDO tranquilizante</b> 💉 (duérmelos) · recoge 💧🥫🪵🔋💉 · <b>[B] o toca 🪵 = poner bloques</b> · los herbívoros 🦕 NO te persiguen · refúgiate en la CABAÑA (con puerta 🚪) o en las <b style="color:#7dff5a">ZONAS SEGURAS</b> 🟢 · lleva 3 🔋 a la TORRE DE RADIO para pedir rescate</p>
+  <p style="color:#9fbf80;font-size:12px;max-width:540px">🎮 WASD/joystick moverte · ratón mirar · <b>clic/🎯/F = DARDO tranquilizante ∞</b> 💉 (duérmelos) · <b>espacio/🦘 = SALTAR</b> · <b>[B]/🪵 = poner bloques ∞</b> · recoge 💧🥫🔋 · los herbívoros 🦕 NO te persiguen · refúgiate en la CABAÑA (con puerta 🚪) o en las <b style="color:#7dff5a">ZONAS SEGURAS</b> 🟢 · lleva 3 🔋 a la TORRE DE RADIO para pedir rescate</p>
   <button class="btn" id="startBtn">▶ EMPEZAR A SOBREVIVIR</button>
 </div>
 
@@ -226,7 +229,7 @@ function spawnPickup(kind){ let x,z,tries=0; do{ const a=Math.random()*6.28,r=8+
   let m; if(kind==="water"||kind==="food"||kind==="dart"){ m=new THREE.Mesh(new THREE.CylinderGeometry(0.3,0.3,0.9,10),new THREE.MeshStandardMaterial({color:KIND[kind].c,roughness:.5,metalness:.3,emissive:kind==="dart"?0x5a0a3a:0x000000,emissiveIntensity:.5})); }
   else { m=new THREE.Mesh(new THREE.BoxGeometry(0.7,0.7,0.7),new THREE.MeshStandardMaterial({color:KIND[kind].c,roughness:.6,emissive:kind==="batt"?0x0a3a12:0x000000,emissiveIntensity:.6})); }
   m.position.set(x,0.7,z); scene.add(m); pickups.push({mesh:m,kind:kind}); }
-function seedPickups(){ for(let i=0;i<16;i++) spawnPickup("water"); for(let i=0;i<16;i++) spawnPickup("food"); for(let i=0;i<14;i++) spawnPickup("wood"); for(let i=0;i<6;i++) spawnPickup("batt"); for(let i=0;i<10;i++) spawnPickup("dart"); }
+function seedPickups(){ for(let i=0;i<18;i++) spawnPickup("water"); for(let i=0;i<18;i++) spawnPickup("food"); for(let i=0;i<8;i++) spawnPickup("batt"); }   // madera y dardos son infinitos
 
 // ---------- dinosaurios ----------
 const DTYPE={
@@ -262,7 +265,8 @@ function spawnDinos(){
 }
 
 // ---------- jugador / estado ----------
-const P={x:0,z:22,y:1.7,speed:7.2};
+const P={x:0,z:22,y:1.7,vy:0,onGround:true,speed:7.2};
+function jump(){ if(running && !gameOver && P.onGround){ P.vy=7.2; P.onGround=false; snd(420,"sine",0.1,0.06); } }
 let yaw=0,pitch=0,running=false,gameOver=false,tPrev=0,elapsed=0;
 let hp=100,hunger=100,thirst=100,invT=0,flashBatt=100,darts=6,dartCd=0,placeCd=0;
 const inv={water:2,food:2,wood:0,batt:0}; let radioOn=false;
@@ -272,7 +276,7 @@ const keys={}; const moveV={x:0,y:0};
 let touchUI = window.matchMedia && !matchMedia("(pointer:fine)").matches;
 
 // input
-addEventListener("keydown",e=>{ keys[e.code]=true; if(e.code==="Digit1") useWater(); if(e.code==="Digit2") useFood(); if(e.code==="Digit3") chargeFlash(); if(e.code==="KeyB") placeWood(); if(e.code==="Space"){ fireDart(); e.preventDefault(); } },true);
+addEventListener("keydown",e=>{ keys[e.code]=true; if(e.code==="Digit1") useWater(); if(e.code==="Digit2") useFood(); if(e.code==="Digit3") chargeFlash(); if(e.code==="KeyB") placeWood(); if(e.code==="KeyF") fireDart(); if(e.code==="Space"){ jump(); e.preventDefault(); } },true);
 addEventListener("keyup",e=>{ keys[e.code]=false; },true);
 addEventListener("mousemove",e=>{ if(!running) return; yaw-=(e.movementX||0)*0.0022; pitch=Math.max(-1.3,Math.min(1.3,pitch-(e.movementY||0)*0.0022)); });
 canvas.addEventListener("mousedown",()=>{ if(!running) return; if(document.pointerLockElement!==canvas){ try{ canvas.requestPointerLock(); }catch(_){} } else { fireDart(); } });
@@ -291,15 +295,15 @@ canvas.addEventListener("pointerup",e=>{ if(e.pointerId===lookId) lookId=null; }
 function useWater(){ if(inv.water>0 && thirst<100){ inv.water--; thirst=Math.min(100,thirst+34); snd(600,"sine",0.15,0.08); updInv(); } }
 function useFood(){ if(inv.food>0 && hunger<100){ inv.food--; hunger=Math.min(100,hunger+40); snd(300,"square",0.15,0.08); updInv(); } }
 function chargeFlash(){ if(inv.batt>0 && flashBatt<100){ inv.batt--; flashBatt=Math.min(100,flashBatt+55); snd(720,"triangle",0.15,0.08); updInv(); showStory("🔦 Linterna recargada"); } }
-function placeWood(){ if(!running||gameOver||inv.wood<=0||placeCd>0) return; placeCd=0.28;
+function placeWood(){ if(!running||gameOver||placeCd>0) return; placeCd=0.28;   // madera INFINITA
   const fwd=new THREE.Vector3(); camera.getWorldDirection(fwd); fwd.y=0; if(fwd.lengthSq()<0.01){ return; } fwd.normalize();
   const bx=P.x+fwd.x*2.3, bz=P.z+fwd.z*2.3; if(inLake(bx,bz,0)) return;
   box(bx,0.6,bz,1.2,1.2,1.2,new THREE.MeshStandardMaterial({map:barkTex,roughness:1})); addWall(bx-0.6,bx+0.6,bz-0.6,bz+0.6);
-  inv.wood--; updInv(); snd(200,"square",0.1,0.08); showStory("🪵 Bloque colocado"); }
+  snd(200,"square",0.1,0.08); showStory("🪵 Bloque colocado"); }
 $("sWater").onclick=useWater; $("sFood").onclick=useFood; $("sBatt").onclick=chargeFlash; $("sWood").onclick=placeWood;
-function updAmmo(){ $("ammo").textContent="💉 DARDOS: "+darts; }
-function fireDart(){ if(!running||gameOver||dartCd>0) return; if(darts<=0){ showStory("💉 Sin dardos — busca más 💉"); dartCd=0.4; return; }
-  darts--; dartCd=0.5; updAmmo(); snd(320,"square",0.07,0.08);
+function updAmmo(){ $("ammo").textContent="💉 DARDOS: ∞"; }
+function fireDart(){ if(!running||gameOver||dartCd>0) return;
+  dartCd=0.3; snd(320,"square",0.07,0.08);   // dardos INFINITOS
   const fwd=new THREE.Vector3(); camera.getWorldDirection(fwd); const origin=new THREE.Vector3(P.x,P.y-0.1,P.z);
   let best=null,bd=1e9; for(const d of dinos){ if(d.sleep>0) continue; const to=new THREE.Vector3(d.grp.position.x-origin.x,(d.grp.position.y+2.6)-origin.y,d.grp.position.z-origin.z); const dist=to.length(); if(dist>75) continue; to.normalize(); if(to.dot(fwd)>0.983 && dist<bd){ bd=dist; best=d; } }
   const end = best?new THREE.Vector3(best.grp.position.x,best.grp.position.y+2.6,best.grp.position.z):origin.clone().add(fwd.clone().multiplyScalar(75));
@@ -307,21 +311,21 @@ function fireDart(){ if(!running||gameOver||dartCd>0) return; if(darts<=0){ show
   if(best){ best.tranq++; snd(520,"sine",0.1,0.07); const need=best.T.passive?1:(best.type==="exor"||best.type==="indo"?3:2);
     if(best.tranq>=need){ best.sleep=14; best.tranq=0; showStory("💤 "+best.T.name+" dormido por unos segundos"); }
     else showStory("🎯 Dardo en "+best.T.name+" ("+best.tranq+"/"+need+")"); } }
-$("fire").onclick=fireDart;
-function updInv(){ $("nWater").textContent=inv.water; $("nFood").textContent=inv.food; $("nWood").textContent=inv.wood; $("nBatt").textContent=inv.batt; $("radio").innerHTML="📻 Radio: "+(radioOn?"<b style='color:#7dff5a'>ENCENDIDA</b>":"APAGADA")+"<br>🔋 baterías: "+inv.batt+"/3"; }
+$("fire").onclick=fireDart; $("jump").onclick=jump;
+function updInv(){ $("nWater").textContent=inv.water; $("nFood").textContent=inv.food; $("nWood").textContent="∞"; $("nBatt").textContent=inv.batt; $("radio").innerHTML="📻 Radio: "+(radioOn?"<b style='color:#7dff5a'>ENCENDIDA</b>":"APAGADA")+"<br>🔋 baterías: "+inv.batt+"/3"; }
 
 function showStory(txt){ const s=$("story"); s.textContent=txt; s.style.display="block"; clearTimeout(s._t); s._t=setTimeout(()=>s.style.display="none",4200); }
 
 // ---------- inicio / fin ----------
 function start(){ $("start").classList.add("hide"); $("end").classList.add("hide"); $("hud").classList.remove("hide"); $("bar").classList.remove("hide");
-  if(touchUI){ $("touch").classList.add("on"); $("fire").classList.remove("hide"); }
-  P.x=0; P.z=22; yaw=Math.PI; pitch=0; hp=100; hunger=100; thirst=100; flashBatt=100; darts=6; elapsed=0; radioOn=false; inv.water=2; inv.food=2; inv.wood=0; inv.batt=0; updAmmo();
+  if(touchUI){ $("touch").classList.add("on"); $("fire").classList.remove("hide"); $("jump").classList.remove("hide"); }
+  P.x=0; P.z=22; P.y=1.7; P.vy=0; P.onGround=true; yaw=Math.PI; pitch=0; hp=100; hunger=100; thirst=100; flashBatt=100; darts=6; elapsed=0; radioOn=false; inv.water=2; inv.food=2; inv.wood=0; inv.batt=0; updAmmo();
   pickups.forEach(p=>scene.remove(p.mesh)); pickups.length=0; seedPickups();
   dinos.forEach(d=>scene.remove(d.grp)); dinos.length=0; if(mosa){scene.remove(mosa.grp);mosa=null;} spawnDinos();
   running=true; gameOver=false; tPrev=performance.now(); updInv();
   showStory("«...¿hay alguien ahí?...» — la señal desaparece. Escuchas un rugido a lo lejos.");
 }
-function endGame(win,info){ running=false; gameOver=true; try{document.exitPointerLock();}catch(e){} $("touch").classList.remove("on"); $("fire").classList.add("hide");
+function endGame(win,info){ running=false; gameOver=true; try{document.exitPointerLock();}catch(e){} $("touch").classList.remove("on"); $("fire").classList.add("hide"); $("jump").classList.add("hide");
   $("end").classList.remove("hide"); const t=$("endTitle"); if(win){ t.textContent="✓ RESCATADO"; t.className="big win"; } else { t.textContent="✕ NO SOBREVIVISTE"; t.className="big lose"; }
   $("endInfo").innerHTML=info; snd(win?660:70,win?"triangle":"sawtooth",0.5,0.12);
 }
@@ -346,6 +350,8 @@ function update(dt){
   const rr=Math.hypot(nx,nz); if(rr>ISLR-3){ nx*=(ISLR-3)/rr; nz*=(ISLR-3)/rr; }   // no salir de la isla
   if(!collide(nx,P.z)) P.x=nx;
   if(!collide(P.x,nz)) P.z=nz;
+  // salto + gravedad
+  P.vy-=20*dt; P.y+=P.vy*dt; if(P.y<=1.7){ P.y=1.7; P.vy=0; P.onGround=true; } else P.onGround=false;
   camera.position.set(P.x,P.y,P.z); camera.rotation.y=yaw; camera.rotation.x=pitch;
 
   // tiempo / día-noche
@@ -381,7 +387,7 @@ function update(dt){
   // pickups
   for(let i=pickups.length-1;i>=0;i--){ const p=pickups[i]; p.mesh.rotation.y+=dt*1.5; p.mesh.position.y=0.7+Math.sin(elapsed*2+i)*0.12;
     if(Math.hypot(P.x-p.mesh.position.x,P.z-p.mesh.position.z)<1.6){ if(p.kind==="dart"){ darts+=2; updAmmo(); } else inv[p.kind]++; snd(880,"triangle",0.12,0.07); scene.remove(p.mesh); pickups.splice(i,1); updInv(); showStory("Recogiste "+KIND[p.kind].ic); } }
-  if(pickups.length<44 && Math.random()<dt*0.5){ const r=Math.random(); spawnPickup(r<0.3?"water":r<0.55?"food":r<0.72?"wood":r<0.86?"batt":"dart"); }
+  if(pickups.length<44 && Math.random()<dt*0.5){ const r=Math.random(); spawnPickup(r<0.42?"water":r<0.82?"food":"batt"); }
   if(tracerT>0){ tracerT-=dt; tracer.material.opacity=Math.max(0,tracerT*10); }
 
   // radio: 3 baterías en la torre -> encender
