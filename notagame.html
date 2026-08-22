@@ -451,7 +451,7 @@ function update(dt){
     const tz=d.open?d.openZ:d.closedZ; d.mesh.position.z+=(tz-d.mesh.position.z)*Math.min(1,dt*6); }
   if(tracerT>0){ tracerT-=dt; tracer.material.opacity=Math.max(0,tracerT*14); }
   // escaleras: bajar al drenaje (en cada casa) / subir por la salida verde
-  if(level==="surface"){ for(const s of stairDowns){ if(Math.hypot(P.x-s.x,P.z-s.z)<1.8){ goDrain(); break; } } }
+  if(level==="surface" && foot<1.0){ for(const s of stairDowns){ if(Math.hypot(P.x-s.x,P.z-s.z)<1.8){ goDrain(); break; } } }   // solo se baja desde el SUELO (no desde una azotea)
   else if(Math.hypot(P.x-EXIT.x,P.z-EXIT.z)<1.8 && P.y>EXIT.y+0.6){ goSurface(); }   // hay que SUBIR la escalera
   // 🚁 helicóptero: al subir a la azotea y acercarte, disparas en modo metralla
   heliMode = level==="surface" && heliRotor!=null && Math.hypot(P.x-heliSpot.x,P.z-heliSpot.z)<3.6 && P.y>heliSpot.y+0.3;
