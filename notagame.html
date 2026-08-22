@@ -408,8 +408,8 @@ function update(dt){
   const len=Math.hypot(f,s); if(len>1){f/=len;s/=len;}
   const sin=Math.sin(yaw),cos=Math.cos(yaw);
   let dx=(f*(-sin)+s*cos)*P.speed*dt, dz=(f*(-cos)+s*(-sin))*P.speed*dt;
-  const lim=ARENA-1;
-  let nx=Math.max(-lim,Math.min(lim,P.x+dx)), nz=Math.max(-lim,Math.min(lim,P.z+dz));
+  let nx=P.x+dx, nz=P.z+dz;
+  if(level==="surface"){ const lim=ARENA-1; nx=Math.max(-lim,Math.min(lim,nx)); nz=Math.max(-lim,Math.min(lim,nz)); }   // el límite de la ciudad NO aplica en el drenaje
   if(!collide(nx,P.z)) P.x=nx;
   if(!collide(P.x,nz)) P.z=nz;
   // ascensor sube/baja solo
