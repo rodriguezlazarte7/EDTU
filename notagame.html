@@ -123,8 +123,9 @@ const ambient=new THREE.AmbientLight(0x252033,0.35); scene.add(ambient);
 const moon=new THREE.DirectionalLight(0x3344aa,0.6); moon.position.set(-8,20,-6); scene.add(moon);
 const bgNight=new THREE.Color(0x03030a), bgDay=new THREE.Color(0x5a7290);
 const moonNight=new THREE.Color(0x3344aa), moonDay=new THREE.Color(0xfff2d0);
-const flash=new THREE.SpotLight(0xfff0d0,2.4,32,0.6,0.55,1.2); flash.position.set(0,0,0.3); camera.add(flash);
+const flash=new THREE.SpotLight(0xfff6e0,4.5,60,0.75,0.35,0.9); flash.position.set(0,0,0.3); camera.add(flash);
 const ftarget=new THREE.Object3D(); ftarget.position.set(0,-0.12,-1); camera.add(ftarget); flash.target=ftarget;
+const flashGlow=new THREE.PointLight(0xfff2d0,0.8,8); camera.add(flashGlow);   // halo cercano de la linterna
 
 // ---------- ciudad ----------
 const ARENA=44;   // ciudad más grande
@@ -566,17 +567,19 @@ function update(dt){
   if(shootCd>0) shootCd-=dt;
   const now=performance.now()/1000;
   const dn=document.getElementById("daynight");
-  if(level==="hospital"){   // 🏥 OSCURIDAD TOTAL: la linterna es el único foco de luz
-    ambient.intensity=0.05; moon.intensity=0; flash.intensity=3.6; scene.fog.density=0.075; scene.background.setHex(0x000000);
+  if(level==="hospital"){   // 🏥 OSCURIDAD TOTAL: la linterna es el único foco de luz (MUY potente)
+    ambient.intensity=0.05; moon.intensity=0; scene.background.setHex(0x000000); scene.fog.density=0.045;
+    flash.intensity=11; flash.distance=90; flash.angle=0.85; flashGlow.intensity=1.4;
     if(dn) dn.textContent="🏥 HOSPITAL";
   } else {
+    flash.distance=60; flash.angle=0.75; flashGlow.intensity=0.8;
     // 🌗 ciclo DÍA/NOCHE (3 min noche + 3 min día)
     const sm=(a,b,x)=>{ x=Math.max(0,Math.min(1,(x-a)/(b-a))); return x*x*(3-2*x); };
     const ph=(((now-startT)%360)+360)%360/360;
     const dayF = ph<0.5 ? sm(0.44,0.5,ph) : 1-sm(0.94,1,ph);
     ambient.intensity=0.3+dayF*0.75;
     moon.intensity=0.5+dayF*0.9; moon.color.copy(moonNight).lerp(moonDay,dayF);
-    flash.intensity=2.4-dayF*1.7;
+    flash.intensity=5-dayF*3.6;
     scene.fog.density=0.05-dayF*0.038;
     scene.background.copy(bgNight).lerp(bgDay,dayF);
     if(dn) dn.textContent = dayF>0.5 ? "☀️ DÍA" : "🌙 NOCHE";
