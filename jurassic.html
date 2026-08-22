@@ -106,6 +106,7 @@ const $=id=>document.getElementById(id);
 const canvas=$("c");
 const renderer=new THREE.WebGLRenderer({canvas,antialias:true});
 renderer.setPixelRatio(Math.min(devicePixelRatio,2));
+renderer.outputEncoding=THREE.sRGBEncoding;   // colores más ricos
 const scene=new THREE.Scene();
 scene.background=new THREE.Color(0x87b6d6);
 scene.fog=new THREE.FogExp2(0x9ec4dc,0.012);
@@ -114,8 +115,19 @@ function resize(){ renderer.setSize(innerWidth,innerHeight); camera.aspect=inner
 addEventListener("resize",resize); resize();
 function snd(f,t,d,v){ try{ const a=snd.ctx||(snd.ctx=new (AudioContext||webkitAudioContext)()); const o=a.createOscillator(),g=a.createGain(); o.type=t||"sine"; o.frequency.value=f; o.connect(g); g.connect(a.destination); g.gain.value=v||0.1; o.start(); g.gain.exponentialRampToValueAtTime(0.0001,a.currentTime+(d||0.2)); o.stop(a.currentTime+(d||0.2)); }catch(e){} }
 
+// ---------- texturas procedurales (sin archivos externos) ----------
+function tex(draw,rep){ const c=document.createElement("canvas"); c.width=c.height=256; const x=c.getContext("2d"); draw(x); const t=new THREE.CanvasTexture(c); t.wrapS=t.wrapT=THREE.RepeatWrapping; t.encoding=THREE.sRGBEncoding; if(rep) t.repeat.set(rep,rep); t.anisotropy=4; return t; }
+const grassTex=tex(x=>{ x.fillStyle="#2c5220"; x.fillRect(0,0,256,256);
+  for(let i=0;i<160;i++){ x.fillStyle=`rgba(${20+Math.random()*30|0},${70+Math.random()*70|0},${20+Math.random()*30|0},.5)`; x.fillRect(Math.random()*256,Math.random()*256,3+Math.random()*8,3+Math.random()*8); }
+  for(let i=0;i<2600;i++){ const gx=Math.random()*256, gy=Math.random()*256, gl=100+Math.random()*100|0; x.strokeStyle=`rgba(${25+Math.random()*40|0},${gl},${25+Math.random()*35|0},.7)`; x.lineWidth=1; x.beginPath(); x.moveTo(gx,gy); x.lineTo(gx+(Math.random()*2-1)*2.5, gy-3-Math.random()*4); x.stroke(); } },44);
+const sandTex=tex(x=>{ x.fillStyle="#cdb684"; x.fillRect(0,0,256,256); for(let i=0;i<4000;i++){ const g=Math.random(); x.fillStyle=`rgba(${g>.5?200:150},${g>.5?180:140},${g>.5?130:100},.35)`; x.fillRect(Math.random()*256,Math.random()*256,2,2); } },30);
+const barkTex=tex(x=>{ x.fillStyle="#5a3a1e"; x.fillRect(0,0,256,256); for(let i=0;i<70;i++){ x.strokeStyle=`rgba(${40+Math.random()*40|0},${25+Math.random()*30|0},10,.6)`; x.lineWidth=1+Math.random()*3; x.beginPath(); const gx=Math.random()*256; x.moveTo(gx,0); x.bezierCurveTo(gx+10,80,gx-10,170,gx+5,256); x.stroke(); } },1);
+const rockTex=tex(x=>{ x.fillStyle="#6b6b6b"; x.fillRect(0,0,256,256); for(let i=0;i<2600;i++){ const g=100+Math.random()*90|0; x.fillStyle=`rgba(${g},${g},${g},.4)`; x.fillRect(Math.random()*256,Math.random()*256,2+Math.random()*4,2+Math.random()*4); } },2);
+const wallTex=tex(x=>{ x.fillStyle="#8a8f86"; x.fillRect(0,0,256,256); x.strokeStyle="rgba(60,65,60,.5)"; x.lineWidth=2; for(let y=0;y<256;y+=32){ x.beginPath();x.moveTo(0,y);x.lineTo(256,y);x.stroke(); for(let bx=(y/32)%2?0:32; bx<256; bx+=64){ x.beginPath();x.moveTo(bx,y);x.lineTo(bx,y+32);x.stroke(); } } for(let i=0;i<1400;i++){ x.fillStyle=`rgba(0,0,0,.05)`; x.fillRect(Math.random()*256,Math.random()*256,3,3); } },3);
+
 // ---------- luces ----------
-const ambient=new THREE.AmbientLight(0x9fb0c0,0.7); scene.add(ambient);
+const ambient=new THREE.AmbientLight(0x9fb0c0,0.55); scene.add(ambient);
+const hemi=new THREE.HemisphereLight(0xbfe0ff,0x3a5a2a,0.6); scene.add(hemi);
 const sun=new THREE.DirectionalLight(0xffe6b0,1.0); sun.position.set(40,80,20); scene.add(sun);
 const bgDay=new THREE.Color(0x87b6d6), bgNight=new THREE.Color(0x060a14);
 const flash=new THREE.SpotLight(0xfff4d6,3,70,0.8,0.35,0.9); flash.position.set(0,0,0.3); camera.add(flash);
@@ -130,16 +142,20 @@ function collide(nx,nz){ const pr=0.4; for(const w of walls){ if(nx>w.x0-pr&&nx<
 
 // océano + suelo isla
 const ocean=new THREE.Mesh(new THREE.CircleGeometry(560,48),new THREE.MeshStandardMaterial({color:0x14406a,roughness:.4,metalness:.2})); ocean.rotation.x=-Math.PI/2; ocean.position.y=-0.6; scene.add(ocean);
-const ground=new THREE.Mesh(new THREE.CircleGeometry(ISLR,64),new THREE.MeshStandardMaterial({color:0x2f5a24,roughness:1})); ground.rotation.x=-Math.PI/2; ground.position.y=0; scene.add(ground);
-const beach=new THREE.Mesh(new THREE.RingGeometry(ISLR-8,ISLR,64),new THREE.MeshStandardMaterial({color:0xc9b384,roughness:1})); beach.rotation.x=-Math.PI/2; beach.position.y=0.02; scene.add(beach);
+const ground=new THREE.Mesh(new THREE.CircleGeometry(ISLR,64),new THREE.MeshStandardMaterial({map:grassTex,roughness:1})); ground.rotation.x=-Math.PI/2; ground.position.y=0; scene.add(ground);
+const beach=new THREE.Mesh(new THREE.RingGeometry(ISLR-8,ISLR,64),new THREE.MeshStandardMaterial({map:sandTex,roughness:1})); beach.rotation.x=-Math.PI/2; beach.position.y=0.02; scene.add(beach);
 // LAGO (con Mosasaurus)
 const LAKE={x:70,z:-40,r:34};
 const lake=new THREE.Mesh(new THREE.CircleGeometry(LAKE.r,40),new THREE.MeshStandardMaterial({color:0x1d6f8a,roughness:.35,metalness:.2,transparent:true,opacity:.92})); lake.rotation.x=-Math.PI/2; lake.position.set(LAKE.x,0.05,LAKE.z); scene.add(lake);
 
 // árboles
+const trunkMat=new THREE.MeshStandardMaterial({map:barkTex,roughness:1});
 function makeTree(x,z){ const h=5+Math.random()*5;
-  const tr=new THREE.Mesh(new THREE.CylinderGeometry(0.4,0.6,h,6),new THREE.MeshStandardMaterial({color:0x5a3a1e,roughness:1})); tr.position.set(x,h/2,z); scene.add(tr);
-  const cr=new THREE.Mesh(new THREE.ConeGeometry(2.6+Math.random()*1.5,4+Math.random()*3,8),new THREE.MeshStandardMaterial({color:0x1f5a1e,roughness:1})); cr.position.set(x,h+1.5,z); scene.add(cr);
+  const tr=new THREE.Mesh(new THREE.CylinderGeometry(0.4,0.6,h,8),trunkMat); tr.position.set(x,h/2,z); scene.add(tr);
+  const gt=0x184a18+((Math.random()*0x0a2a0a)|0);
+  const cMat=new THREE.MeshStandardMaterial({color:gt,roughness:1});
+  const cr=new THREE.Mesh(new THREE.ConeGeometry(2.6+Math.random()*1.5,4+Math.random()*3,9),cMat); cr.position.set(x,h+1.5,z); scene.add(cr);
+  const cr2=new THREE.Mesh(new THREE.ConeGeometry(2+Math.random()*1.2,3+Math.random()*2,9),cMat); cr2.position.set(x,h+3.4,z); scene.add(cr2);
   addWall(x-0.5,x+0.5,z-0.5,z+0.5);
 }
 function inLake(x,z,m){ return Math.hypot(x-LAKE.x,z-LAKE.z) < LAKE.r+(m||0); }
@@ -147,10 +163,10 @@ for(let i=0;i<160;i++){ const a=Math.random()*6.28, r=Math.random()*(ISLR-14); c
 
 // rocas
 for(let i=0;i<30;i++){ const a=Math.random()*6.28, r=Math.random()*(ISLR-14); const x=Math.cos(a)*r, z=Math.sin(a)*r; if(inLake(x,z,4))continue;
-  const s=1+Math.random()*2.5; const rk=new THREE.Mesh(new THREE.DodecahedronGeometry(s),new THREE.MeshStandardMaterial({color:0x6b6b6b,roughness:1})); rk.position.set(x,s*0.5,z); scene.add(rk); addWall(x-s*0.6,x+s*0.6,z-s*0.6,z+s*0.6); }
+  const s=1+Math.random()*2.5; const rk=new THREE.Mesh(new THREE.DodecahedronGeometry(s),new THREE.MeshStandardMaterial({map:rockTex,roughness:1})); rk.position.set(x,s*0.5,z); scene.add(rk); addWall(x-s*0.6,x+s*0.6,z-s*0.6,z+s*0.6); }
 
 // ---------- edificios abandonados ----------
-const buildMat=new THREE.MeshStandardMaterial({color:0x8a8f86,roughness:.95});
+const buildMat=new THREE.MeshStandardMaterial({map:wallTex,roughness:.95});
 function ruin(cx,cz,S){ const H=6,t=0.5;
   box(cx,H/2,cz-S/2,S,H,t,buildMat); addWall(cx-S/2,cx+S/2,cz-S/2-t/2,cz-S/2+t/2);
   box(cx,H/2,cz+S/2,S,H,t,buildMat); addWall(cx-S/2,cx+S/2,cz+S/2-t/2,cz+S/2+t/2);
@@ -303,7 +319,7 @@ function update(dt){
   scene.fog.density=0.02-lightF*0.009; scene.background.copy(bgNight).lerp(bgDay,lightF);
   // 🔦 batería de la linterna: se gasta cuando alumbra fuerte (de noche); si se agota, casi no ilumina
   const want=3.4-lightF*2.4;                         // cuánta luz querría dar según la hora
-  flashBatt=Math.max(0, flashBatt - dt*(1-lightF)*3.2);   // de noche gasta ~3.2%/s
+  flashBatt=Math.max(0, flashBatt - dt*(1-lightF)*0.5);   // dura MUCHO más (~0.5%/s de noche)
   const fb=flashBatt/100;
   flash.intensity = want * (flashBatt>0 ? (0.25+0.75*fb) : 0.06);   // sin batería queda casi apagada
   $("flF").style.width=flashBatt+"%"; $("flTxt").textContent="🔦 LINTERNA "+Math.round(flashBatt)+"%";
@@ -312,7 +328,7 @@ function update(dt){
   if(day!==lastRadio){ lastRadio=day; if(day>1) showStory("📻 "+radioMsgs[(day-2)%radioMsgs.length]); }
 
   // hambre / sed bajan (más rápido de noche); si están en 0, baja la vida
-  hunger=Math.max(0,hunger-dt*(1.1)); thirst=Math.max(0,thirst-dt*(1.6));
+  hunger=Math.max(0,hunger-dt*0.22); thirst=Math.max(0,thirst-dt*0.3);   // bajan MUCHO más lento
   if(inLake(P.x,P.z,1)){ thirst=Math.min(100,thirst+dt*8); }   // beber del lago (¡pero cuidado!)
   if(hunger<=0||thirst<=0) hp=Math.max(0,hp-dt*4);
   else if(hp<100 && hunger>25 && thirst>25) hp=Math.min(100,hp+dt*1.5);
