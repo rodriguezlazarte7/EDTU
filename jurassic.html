@@ -20,6 +20,9 @@
   .bar>span{position:absolute;left:6px;top:-1px;font-size:10px;font-weight:800;color:#fff;text-shadow:0 0 3px #000}
   #hpF{background:linear-gradient(90deg,#ff2d55,#ff6b8a)} #huF{background:linear-gradient(90deg,#ff9f1c,#ffcf6a)} #thF{background:linear-gradient(90deg,#2ea6ff,#7fd0ff)} #flF{background:linear-gradient(90deg,#e8c400,#fff08a)}
   #radio{position:absolute;top:64px;right:12px;font-size:12px;color:#9fe6ff;text-align:right;text-shadow:0 0 8px #000}
+  #ammo{position:absolute;top:108px;right:12px;font-size:14px;font-weight:800;color:#a9ffdc;text-align:right;text-shadow:0 0 8px #000}
+  #fire{position:fixed;right:24px;bottom:120px;z-index:6;width:78px;height:78px;border-radius:50%;background:rgba(60,180,140,.28);border:3px solid rgba(120,255,210,.6);color:#eafff5;font-size:26px;cursor:pointer;pointer-events:auto}
+  #fire:active{transform:scale(.9);background:rgba(120,255,210,.5)}
   #hint{position:absolute;bottom:96px;left:0;right:0;text-align:center;font-size:14px;color:#eaffd8;text-shadow:0 0 8px #000}
   #story{position:absolute;bottom:150px;left:50%;transform:translateX(-50%);max-width:80%;background:rgba(8,16,4,.82);border:1px solid #4a7a2a;border-radius:10px;padding:8px 14px;font-size:13px;color:#e6ffcf;display:none;text-align:center}
   #hurt{position:absolute;inset:0;box-shadow:inset 0 0 120px 30px rgba(180,10,30,0);pointer-events:none;transition:box-shadow .12s}
@@ -58,6 +61,7 @@
     <div class="bar"><i id="flF"></i><span id="flTxt">🔦 LINTERNA 100%</span></div>
   </div>
   <div id="radio">📻 Radio: APAGADA<br>🔋 baterías: 0/3</div>
+  <div id="ammo">💉 DARDOS: 6</div>
   <div id="hint"></div>
   <div id="story"></div>
   <div id="hurt"></div>
@@ -67,11 +71,12 @@
 <div id="bar" class="hide">
   <div class="slot" id="sWater"><div class="ic">💧</div><div class="n" id="nWater">0</div><div class="k">[1] beber</div></div>
   <div class="slot" id="sFood"><div class="ic">🥫</div><div class="n" id="nFood">0</div><div class="k">[2] comer</div></div>
-  <div class="slot" id="sWood"><div class="ic">🪵</div><div class="n" id="nWood">0</div><div class="k">madera</div></div>
+  <div class="slot" id="sWood"><div class="ic">🪵</div><div class="n" id="nWood">0</div><div class="k">[B] poner</div></div>
   <div class="slot" id="sBatt"><div class="ic">🔋</div><div class="n" id="nBatt">0</div><div class="k">[3] cargar</div></div>
 </div>
 
 <div id="touch" class="hide"><div id="stick"><div id="nub"></div></div></div>
+<button id="fire" class="hide">🎯</button>
 <div id="fade"></div>
 
 <div id="start">
@@ -89,7 +94,7 @@ Pero hay algo que no sabes... No todos los dinosaurios liberados estaban registr
 SOBREVIVE 7 DÍAS. ENCUENTRA UNA FORMA DE PEDIR RESCATE. Y NO DEJES QUE TE ENCUENTREN.
 
 DÍA 1 — 00:00 · La radio se enciende... «...¿hay alguien ahí?...» La señal desaparece. Entonces escuchas un rugido a lo lejos. El parque ya no está bajo control.</div>
-  <p style="color:#9fbf80;font-size:12px;max-width:520px">🎮 WASD/joystick moverte · ratón mirar · corre de los dinos · recoge 💧🥫🪵🔋 · métete en la CABAÑA de noche · lleva 3 🔋 a la TORRE DE RADIO para pedir rescate</p>
+  <p style="color:#9fbf80;font-size:12px;max-width:540px">🎮 WASD/joystick moverte · ratón mirar · <b>clic/🎯/espacio = disparar el DARDO tranquilizante</b> 💉 (duérmelos) · recoge 💧🥫🪵🔋💉 · <b>[B] o toca 🪵 = poner bloques</b> · los herbívoros 🦕 NO te persiguen · refúgiate en la CABAÑA (con puerta 🚪) o en las <b style="color:#7dff5a">ZONAS SEGURAS</b> 🟢 · lleva 3 🔋 a la TORRE DE RADIO para pedir rescate</p>
   <button class="btn" id="startBtn">▶ EMPEZAR A SOBREVIVIR</button>
 </div>
 
@@ -178,8 +183,9 @@ ruin(-60,60,16); ruin(40,90,14); ruin(-90,-30,18);
 for(const px of [-6,6]){ box(px,5,-120,4,10,4,new THREE.MeshStandardMaterial({color:0x3a2a1a})); addWall(px-2,px+2,-122,-118); }
 
 // ---------- CABAÑA REFUGIO (segura) ----------
-const SH={x:0,z:14};
-(function shelter(){ const S=10,H=4.5,t=0.4,cx=SH.x,cz=SH.z, wood=new THREE.MeshStandardMaterial({color:0x6b4526,roughness:1});
+const SH={x:0,z:14}; let shDoor=null; const shDoorWall={x0:99990,x1:99991,z0:99990,z1:99991}; walls.push(shDoorWall); const shDoorPos={x:0,z:19};
+(function shelter(){ const S=10,H=4.5,t=0.4,cx=SH.x,cz=SH.z, wood=new THREE.MeshStandardMaterial({map:barkTex,roughness:1});
+  shDoorPos.z=cz+S/2;
   box(cx,H/2,cz-S/2,S,H,t,wood); addWall(cx-S/2,cx+S/2,cz-S/2-t/2,cz-S/2+t/2);
   box(cx-S/2,H/2,cz,t,H,S,wood); addWall(cx-S/2-t/2,cx-S/2+t/2,cz-S/2,cz+S/2);
   box(cx+S/2,H/2,cz,t,H,S,wood); addWall(cx+S/2-t/2,cx+S/2+t/2,cz-S/2,cz+S/2);
@@ -188,8 +194,20 @@ const SH={x:0,z:14};
   box(cx+(1.3+seg/2),H/2,cz+S/2,seg,H,t,wood); addWall(cx+1.3,cx+S/2,cz+S/2-t/2,cz+S/2+t/2);
   box(cx,H+0.2,cz,S+0.6,0.4,S+0.6,wood);   // techo
   const gl=new THREE.PointLight(0xffcf7a,1.1,14); gl.position.set(cx,H-0.6,cz); scene.add(gl);
+  shDoor=box(cx,H/2,cz+S/2,2.6,H,0.28,new THREE.MeshStandardMaterial({color:0x8a5a30,roughness:.8}));   // 🚪 PUERTA
 })();
-function inShelter(){ return Math.abs(P.x-SH.x)<5 && Math.abs(P.z-SH.z)<5; }
+// ---------- ZONAS SEGURAS (los dinos NO entran) ----------
+const safeZones=[{x:SH.x,z:SH.z,r:7}];   // la cabaña
+function addSafeZone(x,z,r){ safeZones.push({x,z,r});
+  const ring=new THREE.Mesh(new THREE.RingGeometry(r-0.6,r,36),new THREE.MeshBasicMaterial({color:0x39ff5a,transparent:true,opacity:.55,side:THREE.DoubleSide})); ring.rotation.x=-Math.PI/2; ring.position.set(x,0.07,z); scene.add(ring);
+  const ring2=new THREE.Mesh(new THREE.RingGeometry(r-3,r-2.5,36),new THREE.MeshBasicMaterial({color:0x39ff5a,transparent:true,opacity:.3,side:THREE.DoubleSide})); ring2.rotation.x=-Math.PI/2; ring2.position.set(x,0.07,z); scene.add(ring2);
+  const gl=new THREE.PointLight(0x39ff8a,0.9,r*3); gl.position.set(x,3,z); scene.add(gl);
+  const pole=new THREE.Mesh(new THREE.CylinderGeometry(0.16,0.16,4.5,8),new THREE.MeshStandardMaterial({color:0x2a6a3a})); pole.position.set(x,2.25,z); scene.add(pole);
+  const sign=new THREE.Mesh(new THREE.BoxGeometry(2.4,1.1,0.2),new THREE.MeshBasicMaterial({color:0x0c4a1a})); sign.position.set(x,4,z); scene.add(sign);
+  const beac=new THREE.Mesh(new THREE.SphereGeometry(0.3,8,8),new THREE.MeshBasicMaterial({color:0x8dff6a})); beac.position.set(x,4.7,z); scene.add(beac);
+}
+addSafeZone(-62,-66,10); addSafeZone(92,26,10); addSafeZone(-28,102,10);
+function inSafe(x,z){ for(const s of safeZones){ if(Math.hypot(x-s.x,z-s.z)<s.r) return true; } return false; }
 
 // ---------- TORRE DE RADIO ----------
 const RADIO={x:-100,z:80}; let radioLight;
@@ -203,20 +221,25 @@ const RADIO={x:-100,z:80}; let radioLight;
 })();
 
 // ---------- pickups (inventario tipo Minecraft) ----------
-const pickups=[]; const KIND={water:{c:0x2ea6ff,ic:"💧"},food:{c:0x9a9a9a,ic:"🥫"},wood:{c:0x7a4a22,ic:"🪵"},batt:{c:0x39ff5a,ic:"🔋"}};
+const pickups=[]; const KIND={water:{c:0x2ea6ff,ic:"💧"},food:{c:0x9a9a9a,ic:"🥫"},wood:{c:0x7a4a22,ic:"🪵"},batt:{c:0x39ff5a,ic:"🔋"},dart:{c:0xff6ad0,ic:"💉"}};
 function spawnPickup(kind){ let x,z,tries=0; do{ const a=Math.random()*6.28,r=8+Math.random()*(ISLR-20); x=Math.cos(a)*r; z=Math.sin(a)*r; tries++; }while((inLake(x,z,3)||collide(x,z))&&tries<20);
-  let m; if(kind==="water"||kind==="food"){ m=new THREE.Mesh(new THREE.CylinderGeometry(0.35,0.35,0.9,10),new THREE.MeshStandardMaterial({color:KIND[kind].c,roughness:.5,metalness:.3})); }
+  let m; if(kind==="water"||kind==="food"||kind==="dart"){ m=new THREE.Mesh(new THREE.CylinderGeometry(0.3,0.3,0.9,10),new THREE.MeshStandardMaterial({color:KIND[kind].c,roughness:.5,metalness:.3,emissive:kind==="dart"?0x5a0a3a:0x000000,emissiveIntensity:.5})); }
   else { m=new THREE.Mesh(new THREE.BoxGeometry(0.7,0.7,0.7),new THREE.MeshStandardMaterial({color:KIND[kind].c,roughness:.6,emissive:kind==="batt"?0x0a3a12:0x000000,emissiveIntensity:.6})); }
-  m.position.set(x,0.7,z); scene.add(m); pickups.push({mesh:m,kind:x!==undefined?kind:kind}); }
-function seedPickups(){ for(let i=0;i<16;i++) spawnPickup("water"); for(let i=0;i<16;i++) spawnPickup("food"); for(let i=0;i<14;i++) spawnPickup("wood"); for(let i=0;i<6;i++) spawnPickup("batt"); }
+  m.position.set(x,0.7,z); scene.add(m); pickups.push({mesh:m,kind:kind}); }
+function seedPickups(){ for(let i=0;i<16;i++) spawnPickup("water"); for(let i=0;i<16;i++) spawnPickup("food"); for(let i=0;i<14;i++) spawnPickup("wood"); for(let i=0;i<6;i++) spawnPickup("batt"); for(let i=0;i<10;i++) spawnPickup("dart"); }
 
 // ---------- dinosaurios ----------
 const DTYPE={
+  // CARNÍVOROS (te persiguen)
   trex:{name:"T-Rex",c:0x6b5a2a,sc:1.5,sp:5.0,det:42,dmg:55},
   indo:{name:"Indominus Rex",c:0xb8b8bf,sc:1.7,sp:5.4,det:50,dmg:60},
   disto:{name:"Distortus Rex",c:0x7a2a2a,sc:1.6,sp:4.6,det:44,dmg:55},
   exor:{name:"Exorpius Rex",c:0x3a1a4a,sc:1.8,sp:6.0,det:56,dmg:70},
-  mosa:{name:"Mosasaurus",c:0x244a5a,sc:2.4,sp:6.5,det:40,dmg:80}
+  mosa:{name:"Mosasaurus",c:0x244a5a,sc:2.4,sp:6.5,det:40,dmg:80},
+  // HERBÍVOROS (pacíficos: NO te persiguen ni atacan)
+  braq:{name:"Brachiosaurus",c:0x5a7a4a,sc:2.8,sp:2.0,det:0,dmg:0,passive:true},
+  tric:{name:"Triceratops",c:0x6a5a44,sc:1.6,sp:2.6,det:0,dmg:0,passive:true},
+  gali:{name:"Gallimimus",c:0xa88a5a,sc:1.0,sp:5.5,det:0,dmg:0,passive:true}
 };
 function makeDino(type){ const T=DTYPE[type], g=new THREE.Group(); const mat=new THREE.MeshStandardMaterial({color:T.c,roughness:.8,emissive:0x0a0500,emissiveIntensity:.2});
   const body=new THREE.Mesh(new THREE.SphereGeometry(1.2,12,10),mat); body.scale.set(1,1,2); body.position.y=2.2; g.add(body);
@@ -232,26 +255,27 @@ function makeDino(type){ const T=DTYPE[type], g=new THREE.Group(); const mat=new
 }
 const dinos=[]; let mosa=null;
 function spawnDinos(){
-  const kinds=["trex","indo","disto","exor","trex","exor"];
-  for(const k of kinds){ let x,z; do{ const a=Math.random()*6.28,r=50+Math.random()*(ISLR-60); x=Math.cos(a)*r; z=Math.sin(a)*r; }while(inLake(x,z,6));
-    const g=makeDino(k); g.position.set(x,0,z); dinos.push({grp:g,type:k,T:DTYPE[k],x,z,tx:x,tz:z,rt:0,hitCd:0}); }
-  const mg=makeDino("mosa"); mg.position.set(LAKE.x,-0.3,LAKE.z); mosa={grp:mg,type:"mosa",T:DTYPE.mosa,hitCd:0};
+  const kinds=["trex","indo","disto","exor","braq","tric","gali","braq","tric","gali"];   // 4 carnívoros + 6 pacíficos
+  for(const k of kinds){ let x,z; do{ const a=Math.random()*6.28,r=50+Math.random()*(ISLR-60); x=Math.cos(a)*r; z=Math.sin(a)*r; }while(inLake(x,z,6)||inSafe(x,z));
+    const g=makeDino(k); g.position.set(x,0,z); dinos.push({grp:g,type:k,T:DTYPE[k],x,z,tx:x,tz:z,rt:0,hitCd:0,tranq:0,sleep:0}); }
+  const mg=makeDino("mosa"); mg.position.set(LAKE.x,-3,LAKE.z); mg.visible=false; mosa={grp:mg,type:"mosa",T:DTYPE.mosa,hitCd:0};   // invisible bajo el agua
 }
 
 // ---------- jugador / estado ----------
 const P={x:0,z:22,y:1.7,speed:7.2};
 let yaw=0,pitch=0,running=false,gameOver=false,tPrev=0,elapsed=0;
-let hp=100,hunger=100,thirst=100,invT=0,flashBatt=100;
+let hp=100,hunger=100,thirst=100,invT=0,flashBatt=100,darts=6,dartCd=0,placeCd=0;
 const inv={water:2,food:2,wood:0,batt:0}; let radioOn=false;
+const tracer=new THREE.Line(new THREE.BufferGeometry().setFromPoints([new THREE.Vector3(),new THREE.Vector3()]),new THREE.LineBasicMaterial({color:0x7fffd8,transparent:true,opacity:0})); scene.add(tracer); let tracerT=0;
 const DAY_LEN=48;                       // seg por día (día+noche). 7 días ≈ 5.6 min
 const keys={}; const moveV={x:0,y:0};
 let touchUI = window.matchMedia && !matchMedia("(pointer:fine)").matches;
 
 // input
-addEventListener("keydown",e=>{ keys[e.code]=true; if(e.code==="Digit1") useWater(); if(e.code==="Digit2") useFood(); if(e.code==="Digit3") chargeFlash(); },true);
+addEventListener("keydown",e=>{ keys[e.code]=true; if(e.code==="Digit1") useWater(); if(e.code==="Digit2") useFood(); if(e.code==="Digit3") chargeFlash(); if(e.code==="KeyB") placeWood(); if(e.code==="Space"){ fireDart(); e.preventDefault(); } },true);
 addEventListener("keyup",e=>{ keys[e.code]=false; },true);
 addEventListener("mousemove",e=>{ if(!running) return; yaw-=(e.movementX||0)*0.0022; pitch=Math.max(-1.3,Math.min(1.3,pitch-(e.movementY||0)*0.0022)); });
-canvas.addEventListener("mousedown",()=>{ if(running && document.pointerLockElement!==canvas){ try{ canvas.requestPointerLock(); }catch(_){} } });
+canvas.addEventListener("mousedown",()=>{ if(!running) return; if(document.pointerLockElement!==canvas){ try{ canvas.requestPointerLock(); }catch(_){} } else { fireDart(); } });
 // touch joystick
 const stick=$("stick"),nub=$("nub"); let stId=null,stC={x:0,y:0};
 if(stick){ stick.addEventListener("pointerdown",e=>{ stId=e.pointerId; const r=stick.getBoundingClientRect(); stC={x:r.left+r.width/2,y:r.top+r.height/2}; e.preventDefault(); });
@@ -267,21 +291,37 @@ canvas.addEventListener("pointerup",e=>{ if(e.pointerId===lookId) lookId=null; }
 function useWater(){ if(inv.water>0 && thirst<100){ inv.water--; thirst=Math.min(100,thirst+34); snd(600,"sine",0.15,0.08); updInv(); } }
 function useFood(){ if(inv.food>0 && hunger<100){ inv.food--; hunger=Math.min(100,hunger+40); snd(300,"square",0.15,0.08); updInv(); } }
 function chargeFlash(){ if(inv.batt>0 && flashBatt<100){ inv.batt--; flashBatt=Math.min(100,flashBatt+55); snd(720,"triangle",0.15,0.08); updInv(); showStory("🔦 Linterna recargada"); } }
-$("sWater").onclick=useWater; $("sFood").onclick=useFood; $("sBatt").onclick=chargeFlash;
+function placeWood(){ if(!running||gameOver||inv.wood<=0||placeCd>0) return; placeCd=0.28;
+  const fwd=new THREE.Vector3(); camera.getWorldDirection(fwd); fwd.y=0; if(fwd.lengthSq()<0.01){ return; } fwd.normalize();
+  const bx=P.x+fwd.x*2.3, bz=P.z+fwd.z*2.3; if(inLake(bx,bz,0)) return;
+  box(bx,0.6,bz,1.2,1.2,1.2,new THREE.MeshStandardMaterial({map:barkTex,roughness:1})); addWall(bx-0.6,bx+0.6,bz-0.6,bz+0.6);
+  inv.wood--; updInv(); snd(200,"square",0.1,0.08); showStory("🪵 Bloque colocado"); }
+$("sWater").onclick=useWater; $("sFood").onclick=useFood; $("sBatt").onclick=chargeFlash; $("sWood").onclick=placeWood;
+function updAmmo(){ $("ammo").textContent="💉 DARDOS: "+darts; }
+function fireDart(){ if(!running||gameOver||dartCd>0) return; if(darts<=0){ showStory("💉 Sin dardos — busca más 💉"); dartCd=0.4; return; }
+  darts--; dartCd=0.5; updAmmo(); snd(320,"square",0.07,0.08);
+  const fwd=new THREE.Vector3(); camera.getWorldDirection(fwd); const origin=new THREE.Vector3(P.x,P.y-0.1,P.z);
+  let best=null,bd=1e9; for(const d of dinos){ if(d.sleep>0) continue; const to=new THREE.Vector3(d.grp.position.x-origin.x,(d.grp.position.y+2.6)-origin.y,d.grp.position.z-origin.z); const dist=to.length(); if(dist>75) continue; to.normalize(); if(to.dot(fwd)>0.983 && dist<bd){ bd=dist; best=d; } }
+  const end = best?new THREE.Vector3(best.grp.position.x,best.grp.position.y+2.6,best.grp.position.z):origin.clone().add(fwd.clone().multiplyScalar(75));
+  tracer.geometry.setFromPoints([origin,end]); tracer.material.opacity=0.9; tracerT=0.09;
+  if(best){ best.tranq++; snd(520,"sine",0.1,0.07); const need=best.T.passive?1:(best.type==="exor"||best.type==="indo"?3:2);
+    if(best.tranq>=need){ best.sleep=14; best.tranq=0; showStory("💤 "+best.T.name+" dormido por unos segundos"); }
+    else showStory("🎯 Dardo en "+best.T.name+" ("+best.tranq+"/"+need+")"); } }
+$("fire").onclick=fireDart;
 function updInv(){ $("nWater").textContent=inv.water; $("nFood").textContent=inv.food; $("nWood").textContent=inv.wood; $("nBatt").textContent=inv.batt; $("radio").innerHTML="📻 Radio: "+(radioOn?"<b style='color:#7dff5a'>ENCENDIDA</b>":"APAGADA")+"<br>🔋 baterías: "+inv.batt+"/3"; }
 
 function showStory(txt){ const s=$("story"); s.textContent=txt; s.style.display="block"; clearTimeout(s._t); s._t=setTimeout(()=>s.style.display="none",4200); }
 
 // ---------- inicio / fin ----------
 function start(){ $("start").classList.add("hide"); $("end").classList.add("hide"); $("hud").classList.remove("hide"); $("bar").classList.remove("hide");
-  if(touchUI) $("touch").classList.add("on");
-  P.x=0; P.z=22; yaw=Math.PI; pitch=0; hp=100; hunger=100; thirst=100; flashBatt=100; elapsed=0; radioOn=false; inv.water=2; inv.food=2; inv.wood=0; inv.batt=0;
+  if(touchUI){ $("touch").classList.add("on"); $("fire").classList.remove("hide"); }
+  P.x=0; P.z=22; yaw=Math.PI; pitch=0; hp=100; hunger=100; thirst=100; flashBatt=100; darts=6; elapsed=0; radioOn=false; inv.water=2; inv.food=2; inv.wood=0; inv.batt=0; updAmmo();
   pickups.forEach(p=>scene.remove(p.mesh)); pickups.length=0; seedPickups();
   dinos.forEach(d=>scene.remove(d.grp)); dinos.length=0; if(mosa){scene.remove(mosa.grp);mosa=null;} spawnDinos();
   running=true; gameOver=false; tPrev=performance.now(); updInv();
   showStory("«...¿hay alguien ahí?...» — la señal desaparece. Escuchas un rugido a lo lejos.");
 }
-function endGame(win,info){ running=false; gameOver=true; try{document.exitPointerLock();}catch(e){} $("touch").classList.remove("on");
+function endGame(win,info){ running=false; gameOver=true; try{document.exitPointerLock();}catch(e){} $("touch").classList.remove("on"); $("fire").classList.add("hide");
   $("end").classList.remove("hide"); const t=$("endTitle"); if(win){ t.textContent="✓ RESCATADO"; t.className="big win"; } else { t.textContent="✕ NO SOBREVIVISTE"; t.className="big lose"; }
   $("endInfo").innerHTML=info; snd(win?660:70,win?"triangle":"sawtooth",0.5,0.12);
 }
@@ -332,44 +372,50 @@ function update(dt){
   if(inLake(P.x,P.z,1)){ thirst=Math.min(100,thirst+dt*8); }   // beber del lago (¡pero cuidado!)
   if(hunger<=0||thirst<=0) hp=Math.max(0,hp-dt*4);
   else if(hp<100 && hunger>25 && thirst>25) hp=Math.min(100,hp+dt*1.5);
-  if(invT>0) invT-=dt;
+  if(invT>0) invT-=dt; if(dartCd>0) dartCd-=dt; if(placeCd>0) placeCd-=dt;
+  // 🚪 puerta de la cabaña: se abre al acercarte y se cierra sola
+  if(shDoor){ const nearDoor=Math.hypot(P.x-shDoorPos.x,P.z-shDoorPos.z)<3.6; const ty=nearDoor?-2.6:2.25; shDoor.position.y+=(ty-shDoor.position.y)*Math.min(1,dt*8);
+    if(nearDoor){ shDoorWall.x0=99990;shDoorWall.x1=99991;shDoorWall.z0=99990;shDoorWall.z1=99991; }
+    else { shDoorWall.x0=shDoorPos.x-1.3; shDoorWall.x1=shDoorPos.x+1.3; shDoorWall.z0=shDoorPos.z-0.25; shDoorWall.z1=shDoorPos.z+0.25; } }
 
   // pickups
   for(let i=pickups.length-1;i>=0;i--){ const p=pickups[i]; p.mesh.rotation.y+=dt*1.5; p.mesh.position.y=0.7+Math.sin(elapsed*2+i)*0.12;
-    if(Math.hypot(P.x-p.mesh.position.x,P.z-p.mesh.position.z)<1.6){ inv[p.kind==="batt"?"batt":p.kind]++; snd(880,"triangle",0.12,0.07); scene.remove(p.mesh); pickups.splice(i,1); updInv(); showStory("Recogiste "+KIND[p.kind].ic); } }
-  if(pickups.length<40 && Math.random()<dt*0.5){ const r=Math.random(); spawnPickup(r<0.35?"water":r<0.7?"food":r<0.9?"wood":"batt"); }
+    if(Math.hypot(P.x-p.mesh.position.x,P.z-p.mesh.position.z)<1.6){ if(p.kind==="dart"){ darts+=2; updAmmo(); } else inv[p.kind]++; snd(880,"triangle",0.12,0.07); scene.remove(p.mesh); pickups.splice(i,1); updInv(); showStory("Recogiste "+KIND[p.kind].ic); } }
+  if(pickups.length<44 && Math.random()<dt*0.5){ const r=Math.random(); spawnPickup(r<0.3?"water":r<0.55?"food":r<0.72?"wood":r<0.86?"batt":"dart"); }
+  if(tracerT>0){ tracerT-=dt; tracer.material.opacity=Math.max(0,tracerT*10); }
 
   // radio: 3 baterías en la torre -> encender
   if(!radioOn && inv.batt>=3 && Math.hypot(P.x-RADIO.x,P.z-RADIO.z)<7){ radioOn=true; inv.batt-=3; updInv(); showStory("📻 ¡RADIO ENCENDIDA! Pediste rescate. Ahora sobrevive hasta el día 7."); snd(520,"triangle",0.4,0.1); }
 
   // dinos
-  let danger=false; const safe=inShelter();
+  let danger=false; const safe=inSafe(P.x,P.z);
   const detMul = isNight?1.4:1;
   for(const d of dinos){ const dxz=P.x-d.grp.position.x, dzz=P.z-d.grp.position.z, dd=Math.hypot(dxz,dzz);
-    const sees = dd < d.T.det*detMul && !safe;
+    if(d.sleep>0){ d.sleep-=dt; d.grp.rotation.z=1.4;   // 💤 dormido por el tranquilizante
+      d.grp.children.forEach(ch=>{}); if(d.sleep<=0){ d.grp.rotation.z=0; showStory(d.T.name+" despertó"); } continue; }
+    const sees = !d.T.passive && dd < d.T.det*detMul && !safe;   // los HERBÍVOROS nunca persiguen
     if(sees){ const nx2=d.grp.position.x+dxz/dd*d.T.sp*dt, nz2=d.grp.position.z+dzz/dd*d.T.sp*dt;
-      if(!inLake(nx2,nz2,-2) && !collide(nx2,d.grp.position.z)) d.grp.position.x=nx2;
-      if(!inLake(nx2,nz2,-2) && !collide(d.grp.position.x,nz2)) d.grp.position.z=nz2;
+      if(!inLake(nx2,nz2,-2) && !inSafe(nx2,d.grp.position.z) && !collide(nx2,d.grp.position.z)) d.grp.position.x=nx2;
+      if(!inLake(nx2,nz2,-2) && !inSafe(d.grp.position.x,nz2) && !collide(d.grp.position.x,nz2)) d.grp.position.z=nz2;
       d.grp.rotation.y=Math.atan2(dxz,dzz); if(dd<28) danger=true;
     } else { d.rt-=dt; if(d.rt<=0){ d.rt=2+Math.random()*4; const a=Math.random()*6.28; d.tx=d.grp.position.x+Math.cos(a)*14; d.tz=d.grp.position.z+Math.sin(a)*14; }
       const tdx=d.tx-d.grp.position.x, tdz=d.tz-d.grp.position.z, td=Math.hypot(tdx,tdz)||1;
       const nx2=d.grp.position.x+tdx/td*d.T.sp*0.4*dt, nz2=d.grp.position.z+tdz/td*d.T.sp*0.4*dt;
-      if(!inLake(nx2,nz2,-2)&&!collide(nx2,nz2)&&Math.hypot(nx2,nz2)<ISLR-5){ d.grp.position.x=nx2; d.grp.position.z=nz2; d.grp.rotation.y=Math.atan2(tdx,tdz); } }
+      if(!inLake(nx2,nz2,-2)&&!inSafe(nx2,nz2)&&!collide(nx2,nz2)&&Math.hypot(nx2,nz2)<ISLR-5){ d.grp.position.x=nx2; d.grp.position.z=nz2; d.grp.rotation.y=Math.atan2(tdx,tdz); } }
     if(d.grp.userData.legs) d.grp.userData.legs.forEach((lg,k)=> lg.rotation.x=Math.sin(elapsed*7+k*3)*0.5);
     if(d.hitCd>0) d.hitCd-=dt;
-    if(dd<2.6 && d.hitCd<=0 && !safe){ d.hitCd=1.1; hurt(d.T.dmg, d.T.name); }
+    if(!d.T.passive && dd<2.6 && d.hitCd<=0 && !safe){ d.hitCd=1.1; hurt(d.T.dmg, d.T.name); }
   }
-  // mosasaurus en el lago
-  if(mosa){ mosa.grp.position.y=-0.3+Math.sin(elapsed*1.5)*0.3; mosa.grp.rotation.y+=dt*0.3;
-    if(inLake(P.x,P.z,2)){ const dxz=P.x-mosa.grp.position.x, dzz=P.z-mosa.grp.position.z, dd=Math.hypot(dxz,dzz)||1;
-      mosa.grp.position.x+=dxz/dd*mosa.T.sp*dt; mosa.grp.position.z+=dzz/dd*mosa.T.sp*dt; mosa.grp.rotation.y=Math.atan2(dxz,dzz); danger=true;
-      if(mosa.hitCd>0) mosa.hitCd-=dt; if(dd<4 && mosa.hitCd<=0){ mosa.hitCd=1; hurt(mosa.T.dmg,"Mosasaurus"); } }
+  // mosasaurus: INVISIBLE bajo el agua (solo lo notas si te ataca en el lago)
+  if(mosa){ if(inLake(P.x,P.z,2)){ const dxz=P.x-mosa.grp.position.x, dzz=P.z-mosa.grp.position.z, dd=Math.hypot(dxz,dzz)||1;
+      mosa.grp.position.x+=dxz/dd*mosa.T.sp*dt; mosa.grp.position.z+=dzz/dd*mosa.T.sp*dt; danger=true;
+      if(mosa.hitCd>0) mosa.hitCd-=dt; if(dd<5 && mosa.hitCd<=0){ mosa.hitCd=1; hurt(mosa.T.dmg,"algo en el agua"); } }
     else { mosa.grp.position.x+=(LAKE.x-mosa.grp.position.x)*dt*0.6; mosa.grp.position.z+=(LAKE.z-mosa.grp.position.z)*dt*0.6; } }
 
   // HUD barras
   $("hpF").style.width=hp+"%"; $("huF").style.width=hunger+"%"; $("thF").style.width=thirst+"%";
   $("hurt").style.boxShadow="inset 0 0 120px 30px rgba(180,10,30,"+(danger?0.35:0)+(hp<30?0.3:0)+")";
-  const hint=$("hint"); hint.textContent = danger?"⚠ ¡Un dinosaurio te persigue! ¡Corre o escóndete!":(safe?"🏠 Estás a salvo en la cabaña":(flashBatt<25&&isNight?(inv.batt>0?"🔦 ¡Batería baja! pulsa [3] o toca 🔋 para recargar":"🔦 ¡Batería baja! busca una 🔋"):(inv.batt>=3?"🔋 Lleva las baterías a la TORRE DE RADIO":"")));
+  const hint=$("hint"); hint.textContent = danger?"⚠ ¡Un dinosaurio te persigue! ¡Corre o escóndete!":(safe?"🟢 Estás en una ZONA SEGURA (los dinos no entran)":(flashBatt<25&&isNight?(inv.batt>0?"🔦 ¡Batería baja! pulsa [3] o toca 🔋 para recargar":"🔦 ¡Batería baja! busca una 🔋"):(inv.batt>=3?"🔋 Lleva las baterías a la TORRE DE RADIO":"")));
 
   // muerte
   if(hp<=0 && !gameOver){ endGame(false,"Caíste en la isla el DÍA "+Math.min(day,7)+".<br>Sobreviviste "+((elapsed/DAY_LEN).toFixed(1))+" días. La isla te reclamó. 🦖"); }
