@@ -214,10 +214,11 @@ const EXIT={x:DRAINX,z:landZ,y:landY}, DRAIN_ENTRY={x:DRAINX,z:z0+4};
 // ---------- escaleras al drenaje: una en CADA casa ----------
 const stairDowns=[];
 houses.forEach(h=>{
-  const sx=h.x+h.S*0.28, sz=h.z-h.S*0.28;
-  box(sx,sz,1.7,0.08,1.7,new THREE.MeshBasicMaterial({color:0x000000})).position.y=0.05;   // hueco oscuro
-  const ring=new THREE.Mesh(new THREE.TorusGeometry(0.5,0.09,8,20),new THREE.MeshBasicMaterial({color:0x2fd8c0})); ring.rotation.x=-Math.PI/2; ring.position.set(sx,0.13,sz); scene.add(ring);
-  const rl=new THREE.PointLight(0x2fd8c0,0.5,3.5); rl.position.set(sx,0.6,sz); scene.add(rl);
+  const sx=h.x, sz=h.z;   // AL CENTRO de la casa (fácil de pisar)
+  box(sx,sz,2.2,0.08,2.2,new THREE.MeshBasicMaterial({color:0x001014})).position.y=0.05;   // hueco oscuro
+  const ring=new THREE.Mesh(new THREE.TorusGeometry(0.75,0.13,8,24),new THREE.MeshBasicMaterial({color:0x2fd8c0})); ring.rotation.x=-Math.PI/2; ring.position.set(sx,0.14,sz); scene.add(ring);
+  const ring2=new THREE.Mesh(new THREE.TorusGeometry(0.4,0.09,8,20),new THREE.MeshBasicMaterial({color:0x39ff14})); ring2.rotation.x=-Math.PI/2; ring2.position.set(sx,0.16,sz); scene.add(ring2);
+  const rl=new THREE.PointLight(0x2fd8c0,0.9,5); rl.position.set(sx,0.8,sz); scene.add(rl);
   stairDowns.push({x:sx,z:sz});
 });
 // niebla-partículas (motas)
@@ -424,7 +425,7 @@ function update(dt){
     const tz=d.open?d.openZ:d.closedZ; d.mesh.position.z+=(tz-d.mesh.position.z)*Math.min(1,dt*6); }
   if(tracerT>0){ tracerT-=dt; tracer.material.opacity=Math.max(0,tracerT*14); }
   // escaleras: bajar al drenaje (en cada casa) / subir por la salida verde
-  if(level==="surface"){ for(const s of stairDowns){ if(Math.hypot(P.x-s.x,P.z-s.z)<1.0){ goDrain(); break; } } }
+  if(level==="surface"){ for(const s of stairDowns){ if(Math.hypot(P.x-s.x,P.z-s.z)<1.8){ goDrain(); break; } } }
   else if(Math.hypot(P.x-EXIT.x,P.z-EXIT.z)<1.8 && P.y>EXIT.y+0.6){ goSurface(); }   // hay que SUBIR la escalera
   if(shootCd>0) shootCd-=dt;
   const now=performance.now()/1000;
