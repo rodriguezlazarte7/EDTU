@@ -270,7 +270,7 @@ function buildStairsUp(cx,cz){
 }
 buildStairsUp(20,11); buildStairsUp(-20,11);
 // ---------- TORRE con escalera INTERNA + HELICÓPTERO en la azotea ----------
-let heliRotor=null; const heliSpot={x:0,z:0,y:0};
+let heliRotor=null, boarded=false, boardCd=0; const heliSpot={x:0,z:0,y:0}, heliPad={x:0,z:0}, heliDown={x:0,z:0};
 function buildHeliTower(cx,cz){
   const S=11, H=8, t=0.4;
   box(cx,cz-S/2,S,H,t,houseMat); addWall(cx-S/2,cx+S/2,cz-S/2-t/2,cz-S/2+t/2);   // pared trasera
@@ -295,6 +295,19 @@ function buildHeliTower(cx,cz){
   heliRotor=new THREE.Mesh(new THREE.BoxGeometry(6.5,0.08,0.4),new THREE.MeshStandardMaterial({color:0x111})); heliRotor.position.set(cx,hy+1.2,cz); scene.add(heliRotor);
   const pl=new THREE.PointLight(0xff3b5b,0.9,12); pl.position.set(cx,hy+1,cz); scene.add(pl);
   heliSpot.x=cx; heliSpot.z=cz; heliSpot.y=H;
+  // 🚁 PLATAFORMA DE ABORDAJE (en el suelo, frente a la torre) — la pisas y subes al heli
+  const pz=cz+S/2+2.5; heliPad.x=cx; heliPad.z=pz;
+  box(cx,pz,3.2,0.1,3.2,new THREE.MeshBasicMaterial({color:0x06222e})).position.y=0.06;
+  const pring=new THREE.Mesh(new THREE.TorusGeometry(1.2,0.16,10,26),new THREE.MeshBasicMaterial({color:0x00e0ff})); pring.rotation.x=-Math.PI/2; pring.position.set(cx,0.16,pz); scene.add(pring);
+  const pring2=new THREE.Mesh(new THREE.TorusGeometry(0.7,0.1,8,20),new THREE.MeshBasicMaterial({color:0xff3b5b})); pring2.rotation.x=-Math.PI/2; pring2.position.set(cx,0.18,pz); scene.add(pring2);
+  const padL=new THREE.PointLight(0x00e0ff,1.2,7); padL.position.set(cx,1,pz); scene.add(padL);
+  // ⬇ anillo para BAJAR (en la azotea)
+  heliDown.x=cx; heliDown.z=cz+3.4;
+  const dring=new THREE.Mesh(new THREE.TorusGeometry(0.7,0.11,8,20),new THREE.MeshBasicMaterial({color:0x39ff14})); dring.rotation.x=-Math.PI/2; dring.position.set(heliDown.x,H+0.16,heliDown.z); scene.add(dring);
+  // 🔴 FARO rojo alto para ver la torre de lejos
+  const beacon=new THREE.Mesh(new THREE.SphereGeometry(0.4,10,10),new THREE.MeshBasicMaterial({color:0xff2020})); beacon.position.set(cx,H+3.2,cz); scene.add(beacon);
+  const bpole=new THREE.Mesh(new THREE.CylinderGeometry(0.06,0.06,3),new THREE.MeshStandardMaterial({color:0x222})); bpole.position.set(cx,H+1.8,cz); scene.add(bpole);
+  const bl=new THREE.PointLight(0xff2020,1.4,40); bl.position.set(cx,H+3.2,cz); scene.add(bl);
 }
 buildHeliTower(14,16);
 
@@ -453,10 +466,23 @@ function update(dt){
   // escaleras: bajar al drenaje (en cada casa) / subir por la salida verde
   if(level==="surface" && foot<1.0){ for(const s of stairDowns){ if(Math.hypot(P.x-s.x,P.z-s.z)<1.8){ goDrain(); break; } } }   // solo se baja desde el SUELO (no desde una azotea)
   else if(Math.hypot(P.x-EXIT.x,P.z-EXIT.z)<1.8 && P.y>EXIT.y+0.6){ goSurface(); }   // hay que SUBIR la escalera
-  // 🚁 helicóptero: al subir a la azotea y acercarte, disparas en modo metralla
-  heliMode = level==="surface" && heliRotor!=null && Math.hypot(P.x-heliSpot.x,P.z-heliSpot.z)<3.6 && P.y>heliSpot.y+0.3;
+  // 🚁 ABORDAR/BAJAR del helicóptero con las plataformas marcadas
+  if(boardCd>0) boardCd-=dt;
+  if(level==="surface" && heliRotor!=null && boardCd<=0){
+    if(!boarded && foot<1.2 && Math.hypot(P.x-heliPad.x,P.z-heliPad.z)<2.0){   // pisas el anillo azul del suelo -> SUBES
+      P.x=heliSpot.x; P.z=heliSpot.z+1.6; P.y=heliSpot.y+1.7; P.vy=0; boarded=true; boardCd=0.8;
+      showStory("🚁 ¡Abordaste el helicóptero! Dispara a los zombies de abajo.");
+    } else if(boarded && foot>heliSpot.y-1 && Math.hypot(P.x-heliDown.x,P.z-heliDown.z)<1.8){   // pisas el anillo verde de arriba -> BAJAS
+      const sp=safeSpot(heliPad.x,heliPad.z+3.5); P.x=sp.x; P.z=sp.z; P.y=1.7; P.vy=0; boarded=false; boardCd=0.8;
+      showStory("Bajaste a tierra.");
+    }
+  }
+  if(foot<1.2) boarded=false;   // si estás en el suelo, no estás abordado
+  // modo metralla: al estar en la azotea junto al heli
+  heliMode = level==="surface" && heliRotor!=null && Math.hypot(P.x-heliSpot.x,P.z-heliSpot.z)<4.2 && P.y>heliSpot.y+0.3;
   if(heliRotor) heliRotor.rotation.y += (heliMode?45:12)*dt;
-  const hh=document.getElementById("hint"); if(hh) hh.textContent = heliMode ? "🚁 HELICÓPTERO — ¡dispara a los zombies de abajo!" : (hh.textContent.startsWith("🚁")?"":hh.textContent);
+  const nearPad = level==="surface" && !boarded && foot<1.2 && Math.hypot(P.x-heliPad.x,P.z-heliPad.z)<4;
+  const hh=document.getElementById("hint"); if(hh) hh.textContent = heliMode ? "🚁 HELICÓPTERO — ¡dispara! (pisa el anillo verde para bajar)" : (nearPad ? "🚁 pisa el anillo azul para SUBIR al helicóptero" : (hh.textContent.startsWith("🚁")?"":hh.textContent));
   if(shootCd>0) shootCd-=dt;
   const now=performance.now()/1000;
   // 🌗 ciclo DÍA/NOCHE (3 min noche + 3 min día)
