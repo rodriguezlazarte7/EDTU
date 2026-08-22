@@ -57,6 +57,7 @@
 </head>
 <body>
 <canvas id="c"></canvas>
+<div id="fade" style="position:fixed;inset:0;z-index:9;background:#000;opacity:0;pointer-events:none;transition:opacity .22s"></div>
 <div id="cross"></div>
 <div id="flash"></div>
 <div id="hurt"></div>
@@ -140,7 +141,7 @@ const houseMat=new THREE.MeshStandardMaterial({color:0x20160f,roughness:.85,meta
 const furnMat=new THREE.MeshStandardMaterial({color:0x2a1c12,roughness:.9});
 
 // zonas ocupadas (para no encimar casas/árboles/cajones)
-const houseCenters=[];
+const houseCenters=[], houses=[];
 function freeSpot(minR,maxR,clearR){ let last=null;
   for(let k=0;k<50;k++){ const a=Math.random()*Math.PI*2, r=minR+Math.random()*(maxR-minR), x=Math.cos(a)*r, z=Math.sin(a)*r;
     last={x,z}; let ok=true; for(const h of houseCenters){ if(Math.hypot(x-h.x,z-h.z)<h.r+clearR){ ok=false; break; } }
@@ -175,12 +176,42 @@ function buildHouse(cx,cz,S,label){
   box(cx-S/4,cz-S/4,1.6,0.8,1.0,furnMat); addWall(cx-S/4-0.8,cx-S/4+0.8,cz-S/4-0.5,cz-S/4+0.5);          // mueble
   box(cx+S/4,cz+S/5,1.2,0.6,2.0,furnMat); addWall(cx+S/4-0.6,cx+S/4+0.6,cz+S/5-1.0,cz+S/5+1.0);          // cama
   if(label){ const sg=new THREE.Mesh(new THREE.PlaneGeometry(1.3,1.3),new THREE.MeshBasicMaterial({color:0xff3b5b})); sg.position.set(cx,H*0.65,cz+S/2+0.03); scene.add(sg); }
-  houseCenters.push({x:cx,z:cz,r:S/2+1.8});
+  houseCenters.push({x:cx,z:cz,r:S/2+1.8}); houses.push({x:cx,z:cz,S});
 }
 houseCenters.push({x:12,z:-14,r:6}); houseCenters.push({x:0,z:ARENA-5,r:5});   // reserva ascensor e inicio
+houseCenters.push({x:20,z:11,r:8}); houseCenters.push({x:-20,z:11,r:8});        // reserva escaleras hacia arriba
 buildHouse(0,-ARENA+8,10,true);                                                  // CASA 13 (escena del crimen)
 for(let i=0;i<10;i++){ const s=freeSpot(8,ARENA-6,4); buildHouse(s.x,s.z,7+Math.random()*4,false); }   // TODOS los edificios se pueden entrar
 for(let i=0;i<20;i++){ const s=freeSpot(5,ARENA-2,2.2); makeTree(s.x,s.z); }                            // árboles
+
+// ---------- DRENAJE subterráneo (alcantarilla de concreto, lejos y cerrado) ----------
+const DRAINX=0, DRAINZ=200, DW=46, DD=46;
+const concMat=new THREE.MeshStandardMaterial({color:0x2a2e33,roughness:.95});
+const concDark=new THREE.MeshStandardMaterial({color:0x1a1e22,roughness:.95});
+box(DRAINX,DRAINZ,DW,0.4,DD,concMat).position.y=-0.2;                        // piso
+box(DRAINX,DRAINZ,DW+1,0.4,DD+1,concDark).position.y=6.5;                    // techo
+box(DRAINX,DRAINZ-DD/2,DW,7,0.6,concMat).position.y=3.5; addWall(DRAINX-DW/2,DRAINX+DW/2,DRAINZ-DD/2-0.3,DRAINZ-DD/2+0.3);
+box(DRAINX,DRAINZ+DD/2,DW,7,0.6,concMat).position.y=3.5; addWall(DRAINX-DW/2,DRAINX+DW/2,DRAINZ+DD/2-0.3,DRAINZ+DD/2+0.3);
+box(DRAINX-DW/2,DRAINZ,0.6,7,DD,concMat).position.y=3.5; addWall(DRAINX-DW/2-0.3,DRAINX-DW/2+0.3,DRAINZ-DD/2,DRAINZ+DD/2);
+box(DRAINX+DW/2,DRAINZ,0.6,7,DD,concMat).position.y=3.5; addWall(DRAINX+DW/2-0.3,DRAINX+DW/2+0.3,DRAINZ-DD/2,DRAINZ+DD/2);
+box(DRAINX,DRAINZ,4,0.1,DD-4,new THREE.MeshStandardMaterial({color:0x0a2836,emissive:0x06202c,emissiveIntensity:.5,metalness:.8,roughness:.2})).position.y=0.05;   // canal de agua
+const pipeMat=new THREE.MeshStandardMaterial({color:0x3a3f45,metalness:.7,roughness:.5});
+for(const sx of [-1,1]){ const p=new THREE.Mesh(new THREE.CylinderGeometry(0.6,0.6,DD-2,12),pipeMat); p.rotation.x=Math.PI/2; p.position.set(DRAINX+sx*(DW/2-1.5),4.6,DRAINZ); scene.add(p); }
+for(let i=0;i<6;i++){ const px=DRAINX+(Math.random()-.5)*(DW-8), pz=DRAINZ+(Math.random()-.5)*(DD-8); box(px,pz,1.2,7,1.2,concDark).position.y=3.5; addWall(px-0.6,px+0.6,pz-0.6,pz+0.6); }
+for(const off of [-14,0,14]){ const dl=new THREE.PointLight(0x2fd8c0,0.9,22); dl.position.set(DRAINX,4.5,DRAINZ+off); scene.add(dl); }
+box(DRAINX,DRAINZ+DD/2-3,2.2,0.2,2.2,new THREE.MeshBasicMaterial({color:0x39ff14})).position.y=0.12;   // salida (verde)
+const exl=new THREE.PointLight(0x39ff14,1.3,9); exl.position.set(DRAINX,1.6,DRAINZ+DD/2-3); scene.add(exl);
+const EXIT={x:DRAINX,z:DRAINZ+DD/2-3}, DRAIN_ENTRY={x:DRAINX,z:DRAINZ-DD/2+4};
+
+// ---------- escaleras al drenaje: una en CADA casa ----------
+const stairDowns=[];
+houses.forEach(h=>{
+  const sx=h.x+h.S*0.28, sz=h.z-h.S*0.28;
+  box(sx,sz,1.7,0.08,1.7,new THREE.MeshBasicMaterial({color:0x000000})).position.y=0.05;   // hueco oscuro
+  const ring=new THREE.Mesh(new THREE.TorusGeometry(0.5,0.09,8,20),new THREE.MeshBasicMaterial({color:0x2fd8c0})); ring.rotation.x=-Math.PI/2; ring.position.set(sx,0.13,sz); scene.add(ring);
+  const rl=new THREE.PointLight(0x2fd8c0,0.5,3.5); rl.position.set(sx,0.6,sz); scene.add(rl);
+  stairDowns.push({x:sx,z:sz});
+});
 // niebla-partículas (motas)
 const motGeo=new THREE.BufferGeometry(),mv=[];
 for(let i=0;i<300;i++) mv.push((Math.random()-.5)*ARENA*2,Math.random()*8,(Math.random()-.5)*ARENA*2);
@@ -218,6 +249,18 @@ platforms.push(elev.pf);
 const ledge=box(12,-16.2,7,0.3,6,new THREE.MeshStandardMaterial({color:0x1a1a26,roughness:.8})); ledge.position.y=5.45;
 platforms.push({x:12,z:-16.2,w:7,d:6,y:5.6});
 const elevLight=new THREE.PointLight(0x33bbff,0.8,12); elevLight.position.set(12,3.5,-12); scene.add(elevLight);
+// ESCALERAS hacia arriba (a azoteas seguras)
+function buildStairsUp(cx,cz){
+  const steps=8,sh=0.5,sd=0.7;
+  for(let i=0;i<steps;i++){ const y=(i+1)*sh, zz=cz-i*sd;
+    box(cx,zz,2.2,0.22,sd+0.1,new THREE.MeshStandardMaterial({color:0x2a2a34,roughness:.9})).position.y=y-0.11;
+    platforms.push({x:cx,z:zz,w:2.2,d:sd+0.35,y:y}); }
+  const topY=steps*sh, roofZ=cz-steps*sd-2.5;
+  box(cx,roofZ,6,0.3,6,new THREE.MeshStandardMaterial({color:0x20202c,roughness:.8})).position.y=topY-0.15;
+  platforms.push({x:cx,z:roofZ,w:6,d:6,y:topY});
+  const rl=new THREE.PointLight(0xffcf7a,0.7,10); rl.position.set(cx,topY+2,roofZ); scene.add(rl);
+}
+buildStairsUp(20,11); buildStairsUp(-20,11);
 
 // ---------- cajones que se abren ----------
 const drawers=[];
@@ -238,7 +281,8 @@ const CLUE_NOTES=[
  "📓 PISTA 6: un diario dice: 'el paciente cero se creó aquí'.",
  "🩸 PISTA 7: el virus reanima el tejido... son zombies."
 ];
-for(let i=0;i<7;i++){ const s=freeSpot(6,ARENA-4,2.4); addDrawer(s.x,s.z,CLUE_NOTES[i]); }   // 7 pistas repartidas en el pasto
+for(let i=0;i<5;i++){ const s=freeSpot(6,ARENA-4,2.4); addDrawer(s.x,s.z,CLUE_NOTES[i]); }   // 5 pistas en la ciudad
+addDrawer(DRAINX-9,DRAINZ,CLUE_NOTES[5]); addDrawer(DRAINX+9,DRAINZ,CLUE_NOTES[6]);         // 2 pistas en el DRENAJE
 function openDrawer(d){
   if(d.open) return; d.open=true; cluesGot++;
   document.getElementById("clues").textContent=cluesGot; snd(880,"triangle",0.2,0.08); snd(300,"square",0.12,0.06); showStory(d.note);
@@ -254,7 +298,7 @@ scene.add(tracer); let tracerT=0;
 
 // ---------- jugador ----------
 const P={x:0,z:ARENA-5,y:1.7,vy:0,onGround:true,speed:6.5,hp:100};
-let yaw=0, pitch=0, running=false, gameOver=false, tPrev=0, cluesGot=0, zLeft=0, muzzle=0, shootCd=0, startT=0;
+let yaw=0, pitch=0, running=false, gameOver=false, tPrev=0, cluesGot=0, zLeft=0, muzzle=0, shootCd=0, startT=0, level="surface";
 
 // ---------- input ----------
 const keys={};
@@ -324,7 +368,7 @@ function startGame(){
   startT=performance.now()/1000;   // reinicia el ciclo día/noche (empieza de noche)
   zombies.forEach(z=>scene.remove(z.grp)); zombies.length=0; spawnZombies(11); zLeft=11;
   document.getElementById("zleft").textContent="11"; document.getElementById("clues").textContent="0";
-  drawers.forEach(d=>{ d.open=false; d.mesh.position.z=d.closedZ; }); elev.t=0;
+  drawers.forEach(d=>{ d.open=false; d.mesh.position.z=d.closedZ; }); elev.t=0; level="surface";
   document.getElementById("start").classList.add("hide"); document.getElementById("end").classList.add("hide");
   document.body.classList.add("playing");
   if(touchUI) document.getElementById("touch").classList.add("on");
@@ -338,9 +382,14 @@ function endGame(win){
   document.getElementById("touch").classList.remove("on"); document.getElementById("hint").textContent="";
   const t=document.getElementById("endTitle"),inf=document.getElementById("endInfo");
   if(win){ t.textContent="✓ CASO RESUELTO"; t.className="big win"; inf.innerHTML="Reuniste las pistas y eliminaste el brote.<br>La ciudad está a salvo. 🏙️"; snd(660,"triangle",0.3,0.1); }
-  else { t.textContent="✕ TE INFECTARON"; t.className="big lose"; inf.innerHTML="Los zombies te alcanzaron en la oscuridad.<br>Pistas: <b>"+cluesGot+"/3</b> · Infectados restantes: <b>"+zLeft+"</b>"; snd(60,"sawtooth",0.6,0.12); }
+  else { t.textContent="✕ TE INFECTARON"; t.className="big lose"; inf.innerHTML="Los zombies te alcanzaron en la oscuridad.<br>Pistas: <b>"+cluesGot+"/7</b> · Infectados restantes: <b>"+zLeft+"</b>"; snd(60,"sawtooth",0.6,0.12); }
   document.getElementById("end").classList.remove("hide");
 }
+
+// transición entre superficie y drenaje (con fundido)
+function fadeDo(fn){ const f=document.getElementById("fade"); if(f){ f.style.opacity="1"; setTimeout(()=>{ fn(); f.style.opacity="0"; },220); } else fn(); }
+function goDrain(){ if(level!=="surface")return; level="drain"; fadeDo(()=>{ P.x=DRAIN_ENTRY.x; P.z=DRAIN_ENTRY.z; P.y=1.7; P.vy=0; yaw=0; showStory("🕳️ DRENAJE — busca las pistas y la salida verde"); }); }
+function goSurface(){ if(level!=="drain")return; level="surface"; fadeDo(()=>{ P.x=0; P.z=ARENA-6; P.y=1.7; P.vy=0; yaw=0; showStory("De vuelta en la superficie."); }); }
 
 function update(dt){
   // mover (W = adelante, corregido)
@@ -367,6 +416,9 @@ function update(dt){
   for(const d of drawers){ if(!d.open && Math.hypot(P.x-d.cx,P.z-d.cz)<1.3){ openDrawer(d); }
     const tz=d.open?d.openZ:d.closedZ; d.mesh.position.z+=(tz-d.mesh.position.z)*Math.min(1,dt*6); }
   if(tracerT>0){ tracerT-=dt; tracer.material.opacity=Math.max(0,tracerT*14); }
+  // escaleras: bajar al drenaje (en cada casa) / subir por la salida verde
+  if(level==="surface"){ for(const s of stairDowns){ if(Math.hypot(P.x-s.x,P.z-s.z)<1.0){ goDrain(); break; } } }
+  else if(Math.hypot(P.x-EXIT.x,P.z-EXIT.z)<1.4){ goSurface(); }
   if(shootCd>0) shootCd-=dt;
   const now=performance.now()/1000;
   // 🌗 ciclo DÍA/NOCHE (3 min noche + 3 min día)
@@ -379,9 +431,9 @@ function update(dt){
   scene.fog.density=0.05-dayF*0.038;
   scene.background.copy(bgNight).lerp(bgDay,dayF);
   const dn=document.getElementById("daynight"); if(dn) dn.textContent = dayF>0.5 ? "☀️ DÍA" : "🌙 NOCHE";
-  // zombies: ¡un toque = muerte! (a menos que estés arriba, en el ascensor/techo)
+  // zombies: ¡un toque = muerte! (solo en la SUPERFICIE; el drenaje es refugio)
   let danger=false;
-  zombies.forEach(z=>{ if(z.dead)return;
+  if(level==="surface") zombies.forEach(z=>{ if(z.dead)return;
     const dxz=P.x-z.grp.position.x, dzz=P.z-z.grp.position.z, d=Math.hypot(dxz,dzz);
     if(d>0.9){ const nx=z.grp.position.x+dxz/d*z.sp*dt, nz=z.grp.position.z+dzz/d*z.sp*dt;   // chocan con paredes
       if(!collide(nx,z.grp.position.z)) z.grp.position.x=nx;
