@@ -134,7 +134,7 @@ floor.rotation.x=-Math.PI/2; scene.add(floor);
 const grid=new THREE.GridHelper(ARENA*2,30,0x2c5c22,0x24491c); scene.add(grid);   // líneas de pasto
 // ---- muros con colisión por cajas (AABB) ----
 const walls=[];
-function addWall(x0,x1,z0,z1){ walls.push({x0:Math.min(x0,x1),x1:Math.max(x0,x1),z0:Math.min(z0,z1),z1:Math.max(z0,z1)}); }
+function addWall(x0,x1,z0,z1){ const w={x0:Math.min(x0,x1),x1:Math.max(x0,x1),z0:Math.min(z0,z1),z1:Math.max(z0,z1)}; walls.push(w); return w; }
 function box(x,z,w,h,d,mat){ const m=new THREE.Mesh(new THREE.BoxGeometry(w,h,d),mat); m.position.set(x,h/2,z); scene.add(m); return m; }
 const cityMat=new THREE.MeshStandardMaterial({color:0x0d0d15,emissive:0x05040a,metalness:.3,roughness:.85});
 const houseMat=new THREE.MeshStandardMaterial({color:0x20160f,roughness:.85,metalness:.1});
@@ -311,6 +311,83 @@ function buildHeliTower(cx,cz){
 }
 buildHeliTower(14,16);
 
+// ================= 🏥 HOSPITAL (nivel de la ARAÑA gigante) =================
+// Más grande que TODA la ciudad. Sin luz: tu linterna es el único foco.
+const HOSPX=0, HOSPZ=-400, HH=52, HHY=9;          // 104x104 (la ciudad mide ~88)
+const HOSP_ENTRY={x:HOSPX, z:HOSPZ+HH-7};
+let spider=null, spiderDead=false, gasOn=false, gasT=0, doorClosed=false, doorTimer=0, hospitalVisited=false;
+const chamber={x0:0,x1:0,z0:0,z1:0}; let doorMesh=null, doorWall=null, gasMesh=null; const leverPad={x:0,z:0};
+function makeSpider(){
+  const g=new THREE.Group();
+  const mat=new THREE.MeshStandardMaterial({color:0x1a0d12,roughness:.7,emissive:0x120206,emissiveIntensity:.4});
+  const abdomen=new THREE.Mesh(new THREE.SphereGeometry(1.7,14,12),mat); abdomen.scale.set(1,0.85,1.25); abdomen.position.set(0,1.7,-0.9); g.add(abdomen);
+  const head=new THREE.Mesh(new THREE.SphereGeometry(1.05,12,10),mat); head.position.set(0,1.5,1.1); g.add(head);
+  const em=new THREE.MeshBasicMaterial({color:0xff2b2b});
+  for(const ex of [-0.4,0.4]){ const e=new THREE.Mesh(new THREE.SphereGeometry(0.16,8,8),em); e.position.set(ex,1.75,1.9); g.add(e); }
+  g.legs=[];
+  for(let s=0;s<2;s++)for(let i=0;i<4;i++){ const side=s?1:-1;
+    const leg=new THREE.Mesh(new THREE.BoxGeometry(0.18,0.18,3.4),mat); leg.position.set(side*1.2,1.4,0.6-i*0.6);
+    leg.rotation.y=side*(0.5+i*0.18); leg.rotation.z=side*0.5; leg.userData.base=side*0.5; g.add(leg); g.legs.push(leg); }
+  scene.add(g);
+  return {grp:g, sp:3.2, legs:g.legs};
+}
+function buildHospital(){
+  const wallM=new THREE.MeshStandardMaterial({color:0x1a2026,roughness:.9});
+  const dark=new THREE.MeshStandardMaterial({color:0x0c1014,roughness:.98});
+  const fl=new THREE.Mesh(new THREE.PlaneGeometry(HH*2,HH*2),new THREE.MeshStandardMaterial({color:0x0a0d10,roughness:1})); fl.rotation.x=-Math.PI/2; fl.position.set(HOSPX,0.01,HOSPZ); scene.add(fl);
+  const ceil=new THREE.Mesh(new THREE.PlaneGeometry(HH*2,HH*2),dark); ceil.rotation.x=Math.PI/2; ceil.position.set(HOSPX,HHY,HOSPZ); scene.add(ceil);
+  const t=0.6;
+  box(HOSPX,HOSPZ-HH,HH*2,HHY,t,wallM); addWall(HOSPX-HH,HOSPX+HH,HOSPZ-HH-t/2,HOSPZ-HH+t/2);
+  box(HOSPX,HOSPZ+HH,HH*2,HHY,t,wallM); addWall(HOSPX-HH,HOSPX+HH,HOSPZ+HH-t/2,HOSPZ+HH+t/2);
+  box(HOSPX-HH,HOSPZ,t,HHY,HH*2,wallM); addWall(HOSPX-HH-t/2,HOSPX-HH+t/2,HOSPZ-HH,HOSPZ+HH);
+  box(HOSPX+HH,HOSPZ,t,HHY,HH*2,wallM); addWall(HOSPX+HH-t/2,HOSPX+HH+t/2,HOSPZ-HH,HOSPZ+HH);
+  // salas con camas (paredes en U abiertas al centro) + camillas sueltas
+  const roomM=new THREE.MeshStandardMaterial({color:0x141a20,roughness:.9}), bedM=new THREE.MeshStandardMaterial({color:0x223040,roughness:.7});
+  function room(cx,cz,open){ const w=13,dp=11,h=4;
+    box(cx,cz-dp/2,w,h,0.4,roomM); addWall(cx-w/2,cx+w/2,cz-dp/2-0.2,cz-dp/2+0.2);
+    if(open!=="L"){ box(cx-w/2,cz,0.4,h,dp,roomM); addWall(cx-w/2-0.2,cx-w/2+0.2,cz-dp/2,cz+dp/2); }
+    if(open!=="R"){ box(cx+w/2,cz,0.4,h,dp,roomM); addWall(cx+w/2-0.2,cx+w/2+0.2,cz-dp/2,cz+dp/2); }
+    box(cx,cz,2.2,1,4.6,bedM).position.y=0.5; addWall(cx-1.1,cx+1.1,cz-2.3,cz+2.3);   // cama
+  }
+  room(HOSPX-HH+12,HOSPZ-HH+16,"R"); room(HOSPX-HH+12,HOSPZ+HH-16,"R");
+  room(HOSPX+HH-12,HOSPZ-HH+16,"L"); room(HOSPX+HH-12,HOSPZ+HH-16,"L");
+  room(HOSPX-HH+12,HOSPZ,"R"); room(HOSPX+HH-12,HOSPZ,"L");
+  // columnas centrales (obstáculos para esquivar a la araña)
+  for(const px of [-16,16])for(const pz of [-18,18]){ box(HOSPX+px,HOSPZ+pz,2,HHY,2,wallM); addWall(HOSPX+px-1,HOSPX+px+1,HOSPZ+pz-1,HOSPZ+pz+1); }
+  // luces de emergencia MUY tenues (rojas) — casi no alumbran
+  for(const px of [-30,0,30])for(const pz of [-30,30]){ const el=new THREE.PointLight(0x330006,0.5,16); el.position.set(HOSPX+px,7,HOSPZ+pz); scene.add(el);
+    const b=new THREE.Mesh(new THREE.SphereGeometry(0.14,6,6),new THREE.MeshBasicMaterial({color:0x661020})); b.position.set(HOSPX+px,6.8,HOSPZ+pz); scene.add(b); }
+  // ☣️ CÁMARA DE GAS (esquina del fondo-izq) con una puerta y palanca
+  const cCX=HOSPX-HH+13, cCZ=HOSPZ-HH+13, cs=7;               // media-anchura de la cámara
+  chamber.x0=cCX-cs; chamber.x1=cCX+cs; chamber.z0=cCZ-cs; chamber.z1=cCZ+cs;
+  const gm=new THREE.MeshStandardMaterial({color:0x1c2a20,roughness:.85,emissive:0x0a1a0c,emissiveIntensity:.4});
+  box(cCX,cCZ-cs,cs*2,5,0.5,gm); addWall(cCX-cs,cCX+cs,cCZ-cs-0.25,cCZ-cs+0.25);   // fondo
+  box(cCX-cs,cCZ,0.5,5,cs*2,gm); addWall(cCX-cs-0.25,cCX-cs+0.25,cCZ-cs,cCZ+cs);   // izq
+  box(cCX+cs,cCZ,0.5,5,cs*2,gm); addWall(cCX+cs-0.25,cCX+cs+0.25,cCZ-cs,cCZ+cs);   // der
+  // pared del frente (+z) con HUECO de puerta (1.6 de ancho al centro)
+  const gap=1.6, seg=(cs*2-gap*2)/2;
+  box(cCX-(gap+seg/2),cCZ+cs,seg,5,0.5,gm); addWall(cCX-cs,cCX-gap,cCZ+cs-0.25,cCZ+cs+0.25);
+  box(cCX+(gap+seg/2),cCZ+cs,seg,5,0.5,gm); addWall(cCX+gap,cCX+cs,cCZ+cs-0.25,cCZ+cs+0.25);
+  // PUERTA (empieza abierta)
+  doorMesh=box(cCX,cCZ+cs,gap*2,5,0.5,new THREE.MeshStandardMaterial({color:0x3a4a3a,metalness:.5,roughness:.5})); doorMesh.visible=false;
+  doorWall={x0:99990,x1:99991,z0:99990,z1:99991}; walls.push(doorWall);   // sin colisión mientras está abierta
+  // nube de gas verde (oculta hasta activar)
+  gasMesh=new THREE.Mesh(new THREE.BoxGeometry(cs*2-0.6,4.6,cs*2-0.6),new THREE.MeshBasicMaterial({color:0x39ff5a,transparent:true,opacity:0})); gasMesh.position.set(cCX,2.3,cCZ); gasMesh.visible=false; scene.add(gasMesh);
+  // cartel/valvulas verdes de la cámara
+  const cl=new THREE.PointLight(0x39ff5a,0.7,10); cl.position.set(cCX,3,cCZ); scene.add(cl);
+  // PALANCA (pad rojo justo AFUERA de la puerta): pisarlo cierra la puerta y suelta el gas
+  leverPad.x=cCX; leverPad.z=cCZ+cs+2.4;
+  box(leverPad.x,leverPad.z,2.4,0.1,2.4,new THREE.MeshBasicMaterial({color:0x2a0006})).position.y=0.06;
+  const lr=new THREE.Mesh(new THREE.TorusGeometry(0.9,0.14,8,22),new THREE.MeshBasicMaterial({color:0xff2b2b})); lr.rotation.x=-Math.PI/2; lr.position.set(leverPad.x,0.16,leverPad.z); scene.add(lr);
+  const lrl=new THREE.PointLight(0xff2b2b,1,6); lrl.position.set(leverPad.x,1,leverPad.z); scene.add(lrl);
+  // ARAÑA (al fondo, lejos de la entrada)
+  spider=makeSpider(); spider.grp.position.set(HOSPX, 0, HOSPZ-HH+22);
+}
+buildHospital();
+function closeDoor(){ if(doorMesh) doorMesh.visible=true; if(doorWall){ doorWall.x0=chamber.x0; doorWall.x1=chamber.x1; doorWall.z0=chamber.z1-0.3; doorWall.z1=chamber.z1+0.3; } }
+function openDoor(){ if(doorMesh) doorMesh.visible=false; if(doorWall){ doorWall.x0=99990; doorWall.x1=99991; doorWall.z0=99990; doorWall.z1=99991; } if(gasMesh){ gasMesh.visible=false; gasMesh.material.opacity=0; } gasOn=false; gasT=0; }
+function goHospital(){ if(level==="hospital")return; hospitalVisited=true; level="hospital"; fadeDo(()=>{ const sp=safeSpot(HOSP_ENTRY.x,HOSP_ENTRY.z); P.x=sp.x; P.z=sp.z; P.y=1.7; P.vy=0; yaw=Math.PI; showStory("🏥 HOSPITAL — sin luz. Encierra a la ARAÑA (error de laboratorio) en la CÁMARA DE GAS: atráela adentro y pisa el anillo rojo. ¡No la enfrentes con balas!"); }); }
+
 // ---------- cajones que se abren ----------
 const drawers=[];
 function addDrawer(cx,cz,note){
@@ -335,6 +412,7 @@ addDrawer(DRAINX-3,DRAINZ-14,CLUE_NOTES[5]); addDrawer(DRAINX+3,DRAINZ+14,CLUE_N
 function openDrawer(d){
   if(d.open) return; d.open=true; cluesGot++;
   document.getElementById("clues").textContent=cluesGot; snd(880,"triangle",0.2,0.08); snd(300,"square",0.12,0.06); showStory(d.note);
+  if(cluesGot===3 && !hospitalVisited){ goHospital(); return; }   // 3 pistas -> te llevan al HOSPITAL
   if(cluesGot>=7) endGame(true);   // caso resuelto al reunir las 7 pistas (los zombies son infinitos)
 }
 function tryDrawer(){ let best=null,bd=2.4; for(const d of drawers){ if(d.open)continue; const dist=Math.hypot(P.x-d.cx,P.z-d.cz); if(dist<bd){bd=dist;best=d;} } if(best) openDrawer(best); }
@@ -415,6 +493,8 @@ function startGame(){
   zombies.forEach(z=>scene.remove(z.grp)); zombies.length=0; spawnZombies(12); kills=0; heliMode=false;
   document.getElementById("kills").textContent="0"; document.getElementById("clues").textContent="0";
   drawers.forEach(d=>{ d.open=false; d.mesh.position.z=d.closedZ; }); elev.t=0; level="surface";
+  hospitalVisited=false; spiderDead=false; gasOn=false; gasT=0; doorClosed=false; doorTimer=0; boarded=false; boardCd=0;
+  openDoor(); if(spider){ spider.grp.visible=true; spider.grp.position.set(HOSPX,0,HOSPZ-HH+22); }   // reset hospital
   document.getElementById("start").classList.add("hide"); document.getElementById("end").classList.add("hide");
   document.body.classList.add("playing");
   if(touchUI) document.getElementById("touch").classList.add("on");
@@ -422,13 +502,13 @@ function startGame(){
   running=true; tPrev=performance.now();
   showStory("Estás en la calle frente a la CASA 13. Investiga...");
 }
-function endGame(win){
+function endGame(win,customInfo){
   running=false; gameOver=true; document.body.classList.remove("playing");
   try{ document.exitPointerLock(); }catch(e){}
   document.getElementById("touch").classList.remove("on"); document.getElementById("hint").textContent="";
   const t=document.getElementById("endTitle"),inf=document.getElementById("endInfo");
-  if(win){ t.textContent="✓ CASO RESUELTO"; t.className="big win"; inf.innerHTML="Reuniste las pistas y eliminaste el brote.<br>La ciudad está a salvo. 🏙️"; snd(660,"triangle",0.3,0.1); }
-  else { t.textContent="✕ TE INFECTARON"; t.className="big lose"; inf.innerHTML="Los zombies te alcanzaron en la oscuridad.<br>Pistas: <b>"+cluesGot+"/7</b> · Eliminados: <b>"+kills+"</b>"; snd(60,"sawtooth",0.6,0.12); }
+  if(win){ t.textContent="✓ CASO RESUELTO"; t.className="big win"; inf.innerHTML=customInfo||"Reuniste las pistas y eliminaste el brote.<br>La ciudad está a salvo. 🏙️"; snd(660,"triangle",0.3,0.1); }
+  else { t.textContent="✕ FIN"; t.className="big lose"; inf.innerHTML=customInfo||("Los zombies te alcanzaron en la oscuridad.<br>Pistas: <b>"+cluesGot+"/7</b> · Eliminados: <b>"+kills+"</b>"); snd(60,"sawtooth",0.6,0.12); }
   document.getElementById("end").classList.remove("hide");
 }
 
@@ -485,16 +565,22 @@ function update(dt){
   const hh=document.getElementById("hint"); if(hh) hh.textContent = heliMode ? "🚁 HELICÓPTERO — ¡dispara! (pisa el anillo verde para bajar)" : (nearPad ? "🚁 pisa el anillo azul para SUBIR al helicóptero" : (hh.textContent.startsWith("🚁")?"":hh.textContent));
   if(shootCd>0) shootCd-=dt;
   const now=performance.now()/1000;
-  // 🌗 ciclo DÍA/NOCHE (3 min noche + 3 min día)
-  const sm=(a,b,x)=>{ x=Math.max(0,Math.min(1,(x-a)/(b-a))); return x*x*(3-2*x); };
-  const ph=(((now-startT)%360)+360)%360/360;
-  const dayF = ph<0.5 ? sm(0.44,0.5,ph) : 1-sm(0.94,1,ph);
-  ambient.intensity=0.3+dayF*0.75;
-  moon.intensity=0.5+dayF*0.9; moon.color.copy(moonNight).lerp(moonDay,dayF);
-  flash.intensity=2.4-dayF*1.7;
-  scene.fog.density=0.05-dayF*0.038;
-  scene.background.copy(bgNight).lerp(bgDay,dayF);
-  const dn=document.getElementById("daynight"); if(dn) dn.textContent = dayF>0.5 ? "☀️ DÍA" : "🌙 NOCHE";
+  const dn=document.getElementById("daynight");
+  if(level==="hospital"){   // 🏥 OSCURIDAD TOTAL: la linterna es el único foco de luz
+    ambient.intensity=0.05; moon.intensity=0; flash.intensity=3.6; scene.fog.density=0.075; scene.background.setHex(0x000000);
+    if(dn) dn.textContent="🏥 HOSPITAL";
+  } else {
+    // 🌗 ciclo DÍA/NOCHE (3 min noche + 3 min día)
+    const sm=(a,b,x)=>{ x=Math.max(0,Math.min(1,(x-a)/(b-a))); return x*x*(3-2*x); };
+    const ph=(((now-startT)%360)+360)%360/360;
+    const dayF = ph<0.5 ? sm(0.44,0.5,ph) : 1-sm(0.94,1,ph);
+    ambient.intensity=0.3+dayF*0.75;
+    moon.intensity=0.5+dayF*0.9; moon.color.copy(moonNight).lerp(moonDay,dayF);
+    flash.intensity=2.4-dayF*1.7;
+    scene.fog.density=0.05-dayF*0.038;
+    scene.background.copy(bgNight).lerp(bgDay,dayF);
+    if(dn) dn.textContent = dayF>0.5 ? "☀️ DÍA" : "🌙 NOCHE";
+  }
   // zombies: ¡un toque = muerte! (solo en la SUPERFICIE; el drenaje es refugio)
   let danger=false;
   if(level==="surface") zombies.forEach(z=>{ if(z.dead)return;
@@ -507,6 +593,30 @@ function update(dt){
     if(d<3.5) danger=true;
     if(d<1.15 && !gameOver && foot<1.5){ endGame(false); }
   });
+  // 🕷️ HOSPITAL: la araña persigue; la trampa de gas la mata
+  if(level==="hospital" && spider){
+    const sx=P.x-spider.grp.position.x, sz=P.z-spider.grp.position.z, sd=Math.hypot(sx,sz);
+    if(!spiderDead && sd>1.2){ const nx=spider.grp.position.x+sx/sd*spider.sp*dt, nz=spider.grp.position.z+sz/sd*spider.sp*dt;
+      if(!collide(nx,spider.grp.position.z)) spider.grp.position.x=nx;
+      if(!collide(spider.grp.position.x,nz)) spider.grp.position.z=nz; }
+    spider.grp.rotation.y=Math.atan2(sx,sz);
+    spider.legs.forEach((lg,i)=>{ lg.rotation.x=Math.sin(now*9+i)*0.25; });
+    if(sd<8) danger=true;
+    if(!spiderDead && sd<1.8 && !gameOver){ endGame(false,"🕷️ La araña gigante te atrapó en la oscuridad."); }
+    const sIn = spider.grp.position.x>chamber.x0 && spider.grp.position.x<chamber.x1 && spider.grp.position.z>chamber.z0 && spider.grp.position.z<chamber.z1;
+    const pIn = P.x>chamber.x0 && P.x<chamber.x1 && P.z>chamber.z0 && P.z<chamber.z1;
+    if(!doorClosed && Math.hypot(P.x-leverPad.x,P.z-leverPad.z)<1.8){   // pisar el anillo rojo = accionar la palanca
+      doorClosed=true; closeDoor(); snd(120,"square",0.3,0.12);
+      if(sIn){ gasOn=true; gasT=0; showStory("☠️ ¡Palanca activada! Gas venenoso llenando la cámara..."); }
+      else { doorTimer=2.6; showStory("⚠ La araña NO está dentro. La puerta se reabrirá — vuelve a atraerla."); }
+    }
+    if(gasOn && !spiderDead){ gasT+=dt; gasMesh.visible=true; gasMesh.material.opacity=Math.min(0.55,gasT*0.35);
+      if(pIn && !gameOver){ endGame(false,"☠️ Quedaste dentro con el gas venenoso."); }
+      if(gasT>2.8){ spiderDead=true; spider.grp.visible=false; endGame(true,"Atrapaste a la ARAÑA gigante en la cámara y la ahogaste con gas venenoso. 🕷️☠️<br>El error de laboratorio fue neutralizado."); } }
+    if(doorTimer>0){ doorTimer-=dt; if(doorTimer<=0){ doorClosed=false; openDoor(); } }
+    const hh2=document.getElementById("hint");
+    if(hh2 && !gasOn){ hh2.textContent = sIn ? "☠️ ¡La araña está DENTRO! Sal y pisa el anillo ROJO" : "🕷️ Atrae a la araña a la cámara de gas (anillo verde) y encierrala"; }
+  }
   document.getElementById("hurt").style.boxShadow="inset 0 0 120px 30px rgba(180,10,30,"+(danger?0.4:0)+")";
   // muzzle flash
   if(muzzle>0){ muzzle-=dt; document.getElementById("flash").style.opacity=Math.max(0,muzzle*4); }
