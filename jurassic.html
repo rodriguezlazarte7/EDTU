@@ -1,0 +1,371 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover,user-scalable=no"/>
+<meta name="theme-color" content="#0a1206"/>
+<title>JURASSIC — Sobrevive 7 días</title>
+<style>
+  *{margin:0;padding:0;box-sizing:border-box;-webkit-user-select:none;user-select:none;-webkit-tap-highlight-color:transparent}
+  html,body{height:100%;overflow:hidden;background:#0a1206;font-family:"Segoe UI",system-ui,sans-serif;color:#eafbe0}
+  #c{display:block;width:100%;height:100%;touch-action:none}
+  .hide{display:none!important}
+  /* HUD */
+  #hud{position:fixed;inset:0;z-index:5;pointer-events:none;font-family:"Consolas",monospace}
+  #clock{position:absolute;top:10px;left:0;right:0;text-align:center;font-size:22px;font-weight:900;color:#ffe08a;text-shadow:0 0 10px rgba(0,0,0,.8)}
+  #obj{position:absolute;top:40px;left:0;right:0;text-align:center;font-size:12px;color:#bfe6a8;text-shadow:0 0 8px #000}
+  #bars{position:absolute;top:10px;left:12px;width:190px;display:flex;flex-direction:column;gap:5px}
+  .bar{height:14px;background:rgba(0,0,0,.45);border:1px solid rgba(255,255,255,.25);border-radius:8px;overflow:hidden;position:relative}
+  .bar>i{display:block;height:100%;width:100%;transition:width .2s}
+  .bar>span{position:absolute;left:6px;top:-1px;font-size:10px;font-weight:800;color:#fff;text-shadow:0 0 3px #000}
+  #hpF{background:linear-gradient(90deg,#ff2d55,#ff6b8a)} #huF{background:linear-gradient(90deg,#ff9f1c,#ffcf6a)} #thF{background:linear-gradient(90deg,#2ea6ff,#7fd0ff)} #flF{background:linear-gradient(90deg,#e8c400,#fff08a)}
+  #radio{position:absolute;top:64px;right:12px;font-size:12px;color:#9fe6ff;text-align:right;text-shadow:0 0 8px #000}
+  #hint{position:absolute;bottom:96px;left:0;right:0;text-align:center;font-size:14px;color:#eaffd8;text-shadow:0 0 8px #000}
+  #story{position:absolute;bottom:150px;left:50%;transform:translateX(-50%);max-width:80%;background:rgba(8,16,4,.82);border:1px solid #4a7a2a;border-radius:10px;padding:8px 14px;font-size:13px;color:#e6ffcf;display:none;text-align:center}
+  #hurt{position:absolute;inset:0;box-shadow:inset 0 0 120px 30px rgba(180,10,30,0);pointer-events:none;transition:box-shadow .12s}
+  #cross{position:absolute;top:50%;left:50%;width:5px;height:5px;margin:-2.5px;border-radius:50%;background:rgba(230,255,200,.5)}
+  /* hotbar */
+  #bar{position:fixed;left:0;right:0;bottom:calc(8px + env(safe-area-inset-bottom));z-index:6;display:flex;gap:6px;justify-content:center}
+  .slot{pointer-events:auto;width:58px;height:52px;background:rgba(10,20,6,.7);border:2px solid rgba(150,200,120,.4);border-radius:10px;display:flex;flex-direction:column;align-items:center;justify-content:center;cursor:pointer}
+  .slot .ic{font-size:20px;line-height:1}.slot .n{font-size:11px;font-weight:800;color:#dfffc4}.slot .k{font-size:9px;color:#8fbf70}
+  .slot:active{transform:scale(.92);border-color:#8fff5a}
+  /* touch */
+  #touch{position:fixed;inset:0;z-index:4;pointer-events:none}
+  #stick{position:absolute;left:20px;bottom:96px;width:120px;height:120px;border-radius:50%;background:rgba(255,255,255,.06);border:2px solid rgba(255,255,255,.18);pointer-events:auto}
+  #nub{position:absolute;left:35px;top:35px;width:50px;height:50px;border-radius:50%;background:rgba(255,255,255,.28)}
+  #touch.on{}
+  /* fade + pantallas */
+  #fade{position:fixed;inset:0;background:#000;opacity:0;pointer-events:none;transition:opacity .25s;z-index:8}
+  #start,#end{position:fixed;inset:0;z-index:10;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;padding:22px;overflow:auto;
+    background:radial-gradient(circle at 50% 25%,#122706,#050a03 78%)}
+  #start h1{font-family:"Consolas",monospace;font-size:clamp(28px,8vw,54px);color:#ffcf3a;text-shadow:0 0 14px #a05a00,0 0 40px #5a2a00;letter-spacing:.05em}
+  #start .lore{max-width:560px;color:#cfe6b8;line-height:1.55;font-size:13px;margin:12px 0;text-align:left;white-space:pre-line}
+  .big{font-family:"Consolas",monospace;font-size:clamp(26px,7vw,46px);font-weight:900}
+  .win{color:#7dff5a;text-shadow:0 0 18px #2a8a00}.lose{color:#ff4a5a;text-shadow:0 0 18px #8a0018}
+  .btn{pointer-events:auto;font-family:"Consolas",monospace;font-weight:800;letter-spacing:.05em;font-size:16px;color:#06210a;cursor:pointer;padding:13px 26px;border-radius:12px;border:none;background:linear-gradient(90deg,#7dff5a,#ffe14a);margin-top:8px}
+</style>
+</head>
+<body>
+<canvas id="c"></canvas>
+
+<div id="hud" class="hide">
+  <div id="clock">DÍA 1 — 00:00</div>
+  <div id="obj">Sobrevive 7 días · enciende la radio para pedir rescate</div>
+  <div id="bars">
+    <div class="bar"><i id="hpF"></i><span>❤ VIDA</span></div>
+    <div class="bar"><i id="huF"></i><span>🍖 HAMBRE</span></div>
+    <div class="bar"><i id="thF"></i><span>💧 SED</span></div>
+    <div class="bar"><i id="flF"></i><span id="flTxt">🔦 LINTERNA 100%</span></div>
+  </div>
+  <div id="radio">📻 Radio: APAGADA<br>🔋 baterías: 0/3</div>
+  <div id="hint"></div>
+  <div id="story"></div>
+  <div id="hurt"></div>
+  <div id="cross"></div>
+</div>
+
+<div id="bar" class="hide">
+  <div class="slot" id="sWater"><div class="ic">💧</div><div class="n" id="nWater">0</div><div class="k">[1] beber</div></div>
+  <div class="slot" id="sFood"><div class="ic">🥫</div><div class="n" id="nFood">0</div><div class="k">[2] comer</div></div>
+  <div class="slot" id="sWood"><div class="ic">🪵</div><div class="n" id="nWood">0</div><div class="k">madera</div></div>
+  <div class="slot" id="sBatt"><div class="ic">🔋</div><div class="n" id="nBatt">0</div><div class="k">[3] cargar</div></div>
+</div>
+
+<div id="touch" class="hide"><div id="stick"><div id="nub"></div></div></div>
+<div id="fade"></div>
+
+<div id="start">
+  <h1>🦖 JURASSIC PARK</h1>
+  <div class="lore">Tú eres un trabajador del parque y hubo un fallo en el sistema de seguridad.
+Las puertas de los recintos se abrieron. Los dinosaurios escaparon.
+Las comunicaciones dejaron de funcionar y el parque quedó completamente aislado.
+
+Tu equipo de rescate debería llegar en 7 días... pero tendrás que sobrevivir hasta entonces.
+
+Estás solo, perdido en una enorme isla llena de bosques, lagos y zonas abandonadas del parque. Solo tienes una linterna, algunos suministros y una radio que funciona de manera intermitente.
+
+Pero hay algo que no sabes... No todos los dinosaurios liberados estaban registrados en el sistema. Entre ellos hay T‑Rex, Mosasaurus, Indominus Rex, Distortus Rex y Exorpius Rex. Y algunos son mucho más peligrosos de lo que imaginabas.
+
+SOBREVIVE 7 DÍAS. ENCUENTRA UNA FORMA DE PEDIR RESCATE. Y NO DEJES QUE TE ENCUENTREN.
+
+DÍA 1 — 00:00 · La radio se enciende... «...¿hay alguien ahí?...» La señal desaparece. Entonces escuchas un rugido a lo lejos. El parque ya no está bajo control.</div>
+  <p style="color:#9fbf80;font-size:12px;max-width:520px">🎮 WASD/joystick moverte · ratón mirar · corre de los dinos · recoge 💧🥫🪵🔋 · métete en la CABAÑA de noche · lleva 3 🔋 a la TORRE DE RADIO para pedir rescate</p>
+  <button class="btn" id="startBtn">▶ EMPEZAR A SOBREVIVIR</button>
+</div>
+
+<div id="end" class="hide">
+  <div id="endTitle" class="big"></div>
+  <div id="endInfo" style="margin:12px 0;color:#cfe6b8;max-width:460px"></div>
+  <button class="btn" id="againBtn">↺ Reintentar</button>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<script>
+(function(){
+const $=id=>document.getElementById(id);
+const canvas=$("c");
+const renderer=new THREE.WebGLRenderer({canvas,antialias:true});
+renderer.setPixelRatio(Math.min(devicePixelRatio,2));
+const scene=new THREE.Scene();
+scene.background=new THREE.Color(0x87b6d6);
+scene.fog=new THREE.FogExp2(0x9ec4dc,0.012);
+const camera=new THREE.PerspectiveCamera(75,1,0.1,600); camera.rotation.order="YXZ"; scene.add(camera);
+function resize(){ renderer.setSize(innerWidth,innerHeight); camera.aspect=innerWidth/innerHeight; camera.updateProjectionMatrix(); }
+addEventListener("resize",resize); resize();
+function snd(f,t,d,v){ try{ const a=snd.ctx||(snd.ctx=new (AudioContext||webkitAudioContext)()); const o=a.createOscillator(),g=a.createGain(); o.type=t||"sine"; o.frequency.value=f; o.connect(g); g.connect(a.destination); g.gain.value=v||0.1; o.start(); g.gain.exponentialRampToValueAtTime(0.0001,a.currentTime+(d||0.2)); o.stop(a.currentTime+(d||0.2)); }catch(e){} }
+
+// ---------- luces ----------
+const ambient=new THREE.AmbientLight(0x9fb0c0,0.7); scene.add(ambient);
+const sun=new THREE.DirectionalLight(0xffe6b0,1.0); sun.position.set(40,80,20); scene.add(sun);
+const bgDay=new THREE.Color(0x87b6d6), bgNight=new THREE.Color(0x060a14);
+const flash=new THREE.SpotLight(0xfff4d6,3,70,0.8,0.35,0.9); flash.position.set(0,0,0.3); camera.add(flash);
+const ft=new THREE.Object3D(); ft.position.set(0,-0.1,-1); camera.add(ft); flash.target=ft;
+
+// ---------- mundo ----------
+const ISLR=150;                         // isla enorme (300 de ancho, ~8x la ciudad)
+const walls=[];
+function addWall(x0,x1,z0,z1){ walls.push({x0:Math.min(x0,x1),x1:Math.max(x0,x1),z0:Math.min(z0,z1),z1:Math.max(z0,z1)}); }
+function box(x,y,z,w,h,d,mat){ const m=new THREE.Mesh(new THREE.BoxGeometry(w,h,d),mat); m.position.set(x,y,z); scene.add(m); return m; }
+function collide(nx,nz){ const pr=0.4; for(const w of walls){ if(nx>w.x0-pr&&nx<w.x1+pr&&nz>w.z0-pr&&nz<w.z1+pr) return true; } return false; }
+
+// océano + suelo isla
+const ocean=new THREE.Mesh(new THREE.CircleGeometry(560,48),new THREE.MeshStandardMaterial({color:0x14406a,roughness:.4,metalness:.2})); ocean.rotation.x=-Math.PI/2; ocean.position.y=-0.6; scene.add(ocean);
+const ground=new THREE.Mesh(new THREE.CircleGeometry(ISLR,64),new THREE.MeshStandardMaterial({color:0x2f5a24,roughness:1})); ground.rotation.x=-Math.PI/2; ground.position.y=0; scene.add(ground);
+const beach=new THREE.Mesh(new THREE.RingGeometry(ISLR-8,ISLR,64),new THREE.MeshStandardMaterial({color:0xc9b384,roughness:1})); beach.rotation.x=-Math.PI/2; beach.position.y=0.02; scene.add(beach);
+// LAGO (con Mosasaurus)
+const LAKE={x:70,z:-40,r:34};
+const lake=new THREE.Mesh(new THREE.CircleGeometry(LAKE.r,40),new THREE.MeshStandardMaterial({color:0x1d6f8a,roughness:.35,metalness:.2,transparent:true,opacity:.92})); lake.rotation.x=-Math.PI/2; lake.position.set(LAKE.x,0.05,LAKE.z); scene.add(lake);
+
+// árboles
+function makeTree(x,z){ const h=5+Math.random()*5;
+  const tr=new THREE.Mesh(new THREE.CylinderGeometry(0.4,0.6,h,6),new THREE.MeshStandardMaterial({color:0x5a3a1e,roughness:1})); tr.position.set(x,h/2,z); scene.add(tr);
+  const cr=new THREE.Mesh(new THREE.ConeGeometry(2.6+Math.random()*1.5,4+Math.random()*3,8),new THREE.MeshStandardMaterial({color:0x1f5a1e,roughness:1})); cr.position.set(x,h+1.5,z); scene.add(cr);
+  addWall(x-0.5,x+0.5,z-0.5,z+0.5);
+}
+function inLake(x,z,m){ return Math.hypot(x-LAKE.x,z-LAKE.z) < LAKE.r+(m||0); }
+for(let i=0;i<160;i++){ const a=Math.random()*6.28, r=Math.random()*(ISLR-14); const x=Math.cos(a)*r, z=Math.sin(a)*r; if(inLake(x,z,6)) continue; if(Math.hypot(x,z)<10) continue; makeTree(x,z); }
+
+// rocas
+for(let i=0;i<30;i++){ const a=Math.random()*6.28, r=Math.random()*(ISLR-14); const x=Math.cos(a)*r, z=Math.sin(a)*r; if(inLake(x,z,4))continue;
+  const s=1+Math.random()*2.5; const rk=new THREE.Mesh(new THREE.DodecahedronGeometry(s),new THREE.MeshStandardMaterial({color:0x6b6b6b,roughness:1})); rk.position.set(x,s*0.5,z); scene.add(rk); addWall(x-s*0.6,x+s*0.6,z-s*0.6,z+s*0.6); }
+
+// ---------- edificios abandonados ----------
+const buildMat=new THREE.MeshStandardMaterial({color:0x8a8f86,roughness:.95});
+function ruin(cx,cz,S){ const H=6,t=0.5;
+  box(cx,H/2,cz-S/2,S,H,t,buildMat); addWall(cx-S/2,cx+S/2,cz-S/2-t/2,cz-S/2+t/2);
+  box(cx,H/2,cz+S/2,S,H,t,buildMat); addWall(cx-S/2,cx+S/2,cz+S/2-t/2,cz+S/2+t/2);
+  box(cx-S/2,H/2,cz,t,H,S,buildMat); addWall(cx-S/2-t/2,cx-S/2+t/2,cz-S/2,cz+S/2);
+  box(cx+S/2,H/2,cz,t,H,S,buildMat); addWall(cx+S/2-t/2,cx+S/2+t/2,cz-S/2,cz+S/2);
+}
+ruin(-60,60,16); ruin(40,90,14); ruin(-90,-30,18);
+// portón "JP" (dos torres)
+for(const px of [-6,6]){ box(px,5,-120,4,10,4,new THREE.MeshStandardMaterial({color:0x3a2a1a})); addWall(px-2,px+2,-122,-118); }
+
+// ---------- CABAÑA REFUGIO (segura) ----------
+const SH={x:0,z:14};
+(function shelter(){ const S=10,H=4.5,t=0.4,cx=SH.x,cz=SH.z, wood=new THREE.MeshStandardMaterial({color:0x6b4526,roughness:1});
+  box(cx,H/2,cz-S/2,S,H,t,wood); addWall(cx-S/2,cx+S/2,cz-S/2-t/2,cz-S/2+t/2);
+  box(cx-S/2,H/2,cz,t,H,S,wood); addWall(cx-S/2-t/2,cx-S/2+t/2,cz-S/2,cz+S/2);
+  box(cx+S/2,H/2,cz,t,H,S,wood); addWall(cx+S/2-t/2,cx+S/2+t/2,cz-S/2,cz+S/2);
+  const seg=(S-2.6)/2;   // frente con puerta
+  box(cx-(1.3+seg/2),H/2,cz+S/2,seg,H,t,wood); addWall(cx-S/2,cx-1.3,cz+S/2-t/2,cz+S/2+t/2);
+  box(cx+(1.3+seg/2),H/2,cz+S/2,seg,H,t,wood); addWall(cx+1.3,cx+S/2,cz+S/2-t/2,cz+S/2+t/2);
+  box(cx,H+0.2,cz,S+0.6,0.4,S+0.6,wood);   // techo
+  const gl=new THREE.PointLight(0xffcf7a,1.1,14); gl.position.set(cx,H-0.6,cz); scene.add(gl);
+})();
+function inShelter(){ return Math.abs(P.x-SH.x)<5 && Math.abs(P.z-SH.z)<5; }
+
+// ---------- TORRE DE RADIO ----------
+const RADIO={x:-100,z:80};
+(function radioTower(){ const cx=RADIO.x,cz=RADIO.z;
+  for(const dx of [-3,3])for(const dz of [-3,3]){ box(cx+dx,7,cz+dz,0.5,14,0.5,new THREE.MeshStandardMaterial({color:0x556}) ); }
+  box(cx,14,cz,7,0.4,7,new THREE.MeshStandardMaterial({color:0x667}));
+  const dish=new THREE.Mesh(new THREE.SphereGeometry(2.4,16,8,0,6.28,0,1.2),new THREE.MeshStandardMaterial({color:0xcfd6dc,metalness:.4,roughness:.5,side:THREE.DoubleSide})); dish.position.set(cx,16,cz); dish.rotation.x=-0.6; scene.add(dish);
+  radioLight=new THREE.PointLight(0xff3b3b,1.2,30); radioLight.position.set(cx,17,cz); scene.add(radioLight);
+  const b=new THREE.Mesh(new THREE.SphereGeometry(0.4,8,8),new THREE.MeshBasicMaterial({color:0xff3b3b})); b.position.set(cx,17,cz); scene.add(b);
+  addWall(cx-4,cx+4,cz-4,cz+4);
+})();
+let radioLight;
+
+// ---------- pickups (inventario tipo Minecraft) ----------
+const pickups=[]; const KIND={water:{c:0x2ea6ff,ic:"💧"},food:{c:0x9a9a9a,ic:"🥫"},wood:{c:0x7a4a22,ic:"🪵"},batt:{c:0x39ff5a,ic:"🔋"}};
+function spawnPickup(kind){ let x,z,tries=0; do{ const a=Math.random()*6.28,r=8+Math.random()*(ISLR-20); x=Math.cos(a)*r; z=Math.sin(a)*r; tries++; }while((inLake(x,z,3)||collide(x,z))&&tries<20);
+  let m; if(kind==="water"||kind==="food"){ m=new THREE.Mesh(new THREE.CylinderGeometry(0.35,0.35,0.9,10),new THREE.MeshStandardMaterial({color:KIND[kind].c,roughness:.5,metalness:.3})); }
+  else { m=new THREE.Mesh(new THREE.BoxGeometry(0.7,0.7,0.7),new THREE.MeshStandardMaterial({color:KIND[kind].c,roughness:.6,emissive:kind==="batt"?0x0a3a12:0x000000,emissiveIntensity:.6})); }
+  m.position.set(x,0.7,z); scene.add(m); pickups.push({mesh:m,kind:x!==undefined?kind:kind}); }
+function seedPickups(){ for(let i=0;i<16;i++) spawnPickup("water"); for(let i=0;i<16;i++) spawnPickup("food"); for(let i=0;i<14;i++) spawnPickup("wood"); for(let i=0;i<6;i++) spawnPickup("batt"); }
+
+// ---------- dinosaurios ----------
+const DTYPE={
+  trex:{name:"T-Rex",c:0x6b5a2a,sc:1.5,sp:5.0,det:42,dmg:55},
+  indo:{name:"Indominus Rex",c:0xb8b8bf,sc:1.7,sp:5.4,det:50,dmg:60},
+  disto:{name:"Distortus Rex",c:0x7a2a2a,sc:1.6,sp:4.6,det:44,dmg:55},
+  exor:{name:"Exorpius Rex",c:0x3a1a4a,sc:1.8,sp:6.0,det:56,dmg:70},
+  mosa:{name:"Mosasaurus",c:0x244a5a,sc:2.4,sp:6.5,det:40,dmg:80}
+};
+function makeDino(type){ const T=DTYPE[type], g=new THREE.Group(); const mat=new THREE.MeshStandardMaterial({color:T.c,roughness:.8,emissive:0x0a0500,emissiveIntensity:.2});
+  const body=new THREE.Mesh(new THREE.SphereGeometry(1.2,12,10),mat); body.scale.set(1,1,2); body.position.y=2.2; g.add(body);
+  const neck=new THREE.Mesh(new THREE.CylinderGeometry(0.5,0.7,1.6,8),mat); neck.position.set(0,3.1,1.4); neck.rotation.x=0.5; g.add(neck);
+  const head=new THREE.Mesh(new THREE.BoxGeometry(0.9,0.9,1.6),mat); head.position.set(0,3.6,2.2); g.add(head);
+  const jaw=new THREE.Mesh(new THREE.BoxGeometry(0.8,0.3,1.3),mat); jaw.position.set(0,3.2,2.3); g.add(jaw);
+  const em=new THREE.MeshBasicMaterial({color:0xffe000}); for(const ex of [-0.35,0.35]){ const e=new THREE.Mesh(new THREE.SphereGeometry(0.14,8,8),em); e.position.set(ex,3.8,2.7); g.add(e); }
+  const tail=new THREE.Mesh(new THREE.ConeGeometry(0.7,3.5,8),mat); tail.rotation.x=-Math.PI/2; tail.position.set(0,2.1,-2.2); g.add(tail);
+  const legs=[]; for(const lx of [-0.7,0.7]){ const lg=new THREE.Mesh(new THREE.BoxGeometry(0.5,2.2,0.6),mat); lg.position.set(lx,1.1,0.2); g.add(lg); legs.push(lg); }
+  if(type==="indo"){ for(let i=0;i<6;i++){ const sp=new THREE.Mesh(new THREE.ConeGeometry(0.18,0.7,5),mat); sp.position.set(0,3.3,1.6-i*0.7); g.add(sp);} }
+  g.scale.setScalar(T.sc); scene.add(g); g.userData.legs=legs;
+  return g;
+}
+const dinos=[]; let mosa=null;
+function spawnDinos(){
+  const kinds=["trex","indo","disto","exor","trex","exor"];
+  for(const k of kinds){ let x,z; do{ const a=Math.random()*6.28,r=50+Math.random()*(ISLR-60); x=Math.cos(a)*r; z=Math.sin(a)*r; }while(inLake(x,z,6));
+    const g=makeDino(k); g.position.set(x,0,z); dinos.push({grp:g,type:k,T:DTYPE[k],x,z,tx:x,tz:z,rt:0,hitCd:0}); }
+  const mg=makeDino("mosa"); mg.position.set(LAKE.x,-0.3,LAKE.z); mosa={grp:mg,type:"mosa",T:DTYPE.mosa,hitCd:0};
+}
+
+// ---------- jugador / estado ----------
+const P={x:0,z:22,y:1.7,speed:7.2};
+let yaw=0,pitch=0,running=false,gameOver=false,tPrev=0,elapsed=0;
+let hp=100,hunger=100,thirst=100,invT=0,flashBatt=100;
+const inv={water:2,food:2,wood:0,batt:0}; let radioOn=false;
+const DAY_LEN=48;                       // seg por día (día+noche). 7 días ≈ 5.6 min
+const keys={}; const moveV={x:0,y:0};
+let touchUI = window.matchMedia && !matchMedia("(pointer:fine)").matches;
+
+// input
+addEventListener("keydown",e=>{ keys[e.code]=true; if(e.code==="Digit1") useWater(); if(e.code==="Digit2") useFood(); if(e.code==="Digit3") chargeFlash(); },true);
+addEventListener("keyup",e=>{ keys[e.code]=false; },true);
+addEventListener("mousemove",e=>{ if(!running) return; yaw-=(e.movementX||0)*0.0022; pitch=Math.max(-1.3,Math.min(1.3,pitch-(e.movementY||0)*0.0022)); });
+canvas.addEventListener("mousedown",()=>{ if(running && document.pointerLockElement!==canvas){ try{ canvas.requestPointerLock(); }catch(_){} } });
+// touch joystick
+const stick=$("stick"),nub=$("nub"); let stId=null,stC={x:0,y:0};
+if(stick){ stick.addEventListener("pointerdown",e=>{ stId=e.pointerId; const r=stick.getBoundingClientRect(); stC={x:r.left+r.width/2,y:r.top+r.height/2}; e.preventDefault(); });
+  addEventListener("pointermove",e=>{ if(e.pointerId!==stId)return; let dx=e.clientX-stC.x,dy=e.clientY-stC.y; const mx=48,d=Math.hypot(dx,dy); if(d>mx){dx*=mx/d;dy*=mx/d;} nub.style.transform=`translate(${dx}px,${dy}px)`; moveV.x=dx/mx; moveV.y=dy/mx; });
+  addEventListener("pointerup",e=>{ if(e.pointerId!==stId)return; stId=null; nub.style.transform=""; moveV.x=0;moveV.y=0; }); }
+// mirar con dedo (lado derecho)
+let lookId=null,lx=0,ly=0;
+canvas.addEventListener("pointerdown",e=>{ if(e.clientX>innerWidth*0.4){ lookId=e.pointerId; lx=e.clientX; ly=e.clientY; } });
+canvas.addEventListener("pointermove",e=>{ if(e.pointerId!==lookId)return; yaw-=(e.clientX-lx)*0.005; pitch=Math.max(-1.3,Math.min(1.3,pitch-(e.clientY-ly)*0.005)); lx=e.clientX; ly=e.clientY; });
+canvas.addEventListener("pointerup",e=>{ if(e.pointerId===lookId) lookId=null; });
+
+// inventario: usar
+function useWater(){ if(inv.water>0 && thirst<100){ inv.water--; thirst=Math.min(100,thirst+34); snd(600,"sine",0.15,0.08); updInv(); } }
+function useFood(){ if(inv.food>0 && hunger<100){ inv.food--; hunger=Math.min(100,hunger+40); snd(300,"square",0.15,0.08); updInv(); } }
+function chargeFlash(){ if(inv.batt>0 && flashBatt<100){ inv.batt--; flashBatt=Math.min(100,flashBatt+55); snd(720,"triangle",0.15,0.08); updInv(); showStory("🔦 Linterna recargada"); } }
+$("sWater").onclick=useWater; $("sFood").onclick=useFood; $("sBatt").onclick=chargeFlash;
+function updInv(){ $("nWater").textContent=inv.water; $("nFood").textContent=inv.food; $("nWood").textContent=inv.wood; $("nBatt").textContent=inv.batt; $("radio").innerHTML="📻 Radio: "+(radioOn?"<b style='color:#7dff5a'>ENCENDIDA</b>":"APAGADA")+"<br>🔋 baterías: "+inv.batt+"/3"; }
+
+function showStory(txt){ const s=$("story"); s.textContent=txt; s.style.display="block"; clearTimeout(s._t); s._t=setTimeout(()=>s.style.display="none",4200); }
+
+// ---------- inicio / fin ----------
+function start(){ $("start").classList.add("hide"); $("end").classList.add("hide"); $("hud").classList.remove("hide"); $("bar").classList.remove("hide");
+  if(touchUI) $("touch").classList.add("on");
+  P.x=0; P.z=22; yaw=Math.PI; pitch=0; hp=100; hunger=100; thirst=100; flashBatt=100; elapsed=0; radioOn=false; inv.water=2; inv.food=2; inv.wood=0; inv.batt=0;
+  pickups.forEach(p=>scene.remove(p.mesh)); pickups.length=0; seedPickups();
+  dinos.forEach(d=>scene.remove(d.grp)); dinos.length=0; if(mosa){scene.remove(mosa.grp);mosa=null;} spawnDinos();
+  running=true; gameOver=false; tPrev=performance.now(); updInv();
+  showStory("«...¿hay alguien ahí?...» — la señal desaparece. Escuchas un rugido a lo lejos.");
+}
+function endGame(win,info){ running=false; gameOver=true; try{document.exitPointerLock();}catch(e){} $("touch").classList.remove("on");
+  $("end").classList.remove("hide"); const t=$("endTitle"); if(win){ t.textContent="✓ RESCATADO"; t.className="big win"; } else { t.textContent="✕ NO SOBREVIVISTE"; t.className="big lose"; }
+  $("endInfo").innerHTML=info; snd(win?660:70,win?"triangle":"sawtooth",0.5,0.12);
+}
+$("startBtn").onclick=start; $("againBtn").onclick=start;
+
+// ---------- fundido ----------
+function fade(fn){ const f=$("fade"); f.style.opacity="1"; setTimeout(()=>{ fn&&fn(); f.style.opacity="0"; },250); }
+
+// ---------- update ----------
+const radioMsgs=["«...si alguien escucha... resistan...»","«...la señal es débil... día tras día...»","«...evita el agua de noche...»","«...no todos los especímenes están en el registro...»","«...aguanta... vamos por ti...»"];
+let lastRadio=-1;
+function update(dt){
+  // mover
+  let f=0,s=0;
+  if(keys["KeyW"]||keys["ArrowUp"])f+=1; if(keys["KeyS"]||keys["ArrowDown"])f-=1;
+  if(keys["KeyA"]||keys["ArrowLeft"])s-=1; if(keys["KeyD"]||keys["ArrowRight"])s+=1;
+  f-=moveV.y; s+=moveV.x; const len=Math.hypot(f,s); if(len>1){f/=len;s/=len;}
+  const sin=Math.sin(yaw),cos=Math.cos(yaw);
+  let sp=P.speed*(inLake(P.x,P.z,0)?0.55:1);   // el agua frena
+  let dx=(f*(-sin)+s*cos)*sp*dt, dz=(f*(-cos)+s*(-sin))*sp*dt;
+  let nx=P.x+dx, nz=P.z+dz;
+  const rr=Math.hypot(nx,nz); if(rr>ISLR-3){ nx*=(ISLR-3)/rr; nz*=(ISLR-3)/rr; }   // no salir de la isla
+  if(!collide(nx,P.z)) P.x=nx;
+  if(!collide(P.x,nz)) P.z=nz;
+  camera.position.set(P.x,P.y,P.z); camera.rotation.y=yaw; camera.rotation.x=pitch;
+
+  // tiempo / día-noche
+  elapsed+=dt;
+  const day=Math.floor(elapsed/DAY_LEN)+1;
+  const df=(elapsed%DAY_LEN)/DAY_LEN;                 // 0..1 dentro del día
+  const hh=Math.floor(df*24), mm=Math.floor((df*24*60)%60);
+  const isNight = df>0.5;
+  const lightF = df<0.5 ? Math.min(1,df/0.12) : Math.max(0,1-(df-0.5)/0.12);  // sube al amanecer, baja al anochecer
+  ambient.intensity=0.12+lightF*0.7; sun.intensity=lightF*1.1;
+  scene.fog.density=0.02-lightF*0.009; scene.background.copy(bgNight).lerp(bgDay,lightF);
+  // 🔦 batería de la linterna: se gasta cuando alumbra fuerte (de noche); si se agota, casi no ilumina
+  const want=3.4-lightF*2.4;                         // cuánta luz querría dar según la hora
+  flashBatt=Math.max(0, flashBatt - dt*(1-lightF)*3.2);   // de noche gasta ~3.2%/s
+  const fb=flashBatt/100;
+  flash.intensity = want * (flashBatt>0 ? (0.25+0.75*fb) : 0.06);   // sin batería queda casi apagada
+  $("flF").style.width=flashBatt+"%"; $("flTxt").textContent="🔦 LINTERNA "+Math.round(flashBatt)+"%";
+  $("clock").textContent="DÍA "+Math.min(day,7)+" — "+String(hh).padStart(2,"0")+":"+String(mm).padStart(2,"0")+(isNight?" 🌙":" ☀️");
+  // radio intermitente (una vez por día aprox)
+  if(day!==lastRadio){ lastRadio=day; if(day>1) showStory("📻 "+radioMsgs[(day-2)%radioMsgs.length]); }
+
+  // hambre / sed bajan (más rápido de noche); si están en 0, baja la vida
+  hunger=Math.max(0,hunger-dt*(1.1)); thirst=Math.max(0,thirst-dt*(1.6));
+  if(inLake(P.x,P.z,1)){ thirst=Math.min(100,thirst+dt*8); }   // beber del lago (¡pero cuidado!)
+  if(hunger<=0||thirst<=0) hp=Math.max(0,hp-dt*4);
+  else if(hp<100 && hunger>25 && thirst>25) hp=Math.min(100,hp+dt*1.5);
+  if(invT>0) invT-=dt;
+
+  // pickups
+  for(let i=pickups.length-1;i>=0;i--){ const p=pickups[i]; p.mesh.rotation.y+=dt*1.5; p.mesh.position.y=0.7+Math.sin(elapsed*2+i)*0.12;
+    if(Math.hypot(P.x-p.mesh.position.x,P.z-p.mesh.position.z)<1.6){ inv[p.kind==="batt"?"batt":p.kind]++; snd(880,"triangle",0.12,0.07); scene.remove(p.mesh); pickups.splice(i,1); updInv(); showStory("Recogiste "+KIND[p.kind].ic); } }
+  if(pickups.length<40 && Math.random()<dt*0.5){ const r=Math.random(); spawnPickup(r<0.35?"water":r<0.7?"food":r<0.9?"wood":"batt"); }
+
+  // radio: 3 baterías en la torre -> encender
+  if(!radioOn && inv.batt>=3 && Math.hypot(P.x-RADIO.x,P.z-RADIO.z)<7){ radioOn=true; inv.batt-=3; updInv(); showStory("📻 ¡RADIO ENCENDIDA! Pediste rescate. Ahora sobrevive hasta el día 7."); snd(520,"triangle",0.4,0.1); }
+
+  // dinos
+  let danger=false; const safe=inShelter();
+  const detMul = isNight?1.4:1;
+  for(const d of dinos){ const dxz=P.x-d.grp.position.x, dzz=P.z-d.grp.position.z, dd=Math.hypot(dxz,dzz);
+    const sees = dd < d.T.det*detMul && !safe;
+    if(sees){ const nx2=d.grp.position.x+dxz/dd*d.T.sp*dt, nz2=d.grp.position.z+dzz/dd*d.T.sp*dt;
+      if(!inLake(nx2,nz2,-2) && !collide(nx2,d.grp.position.z)) d.grp.position.x=nx2;
+      if(!inLake(nx2,nz2,-2) && !collide(d.grp.position.x,nz2)) d.grp.position.z=nz2;
+      d.grp.rotation.y=Math.atan2(dxz,dzz); if(dd<28) danger=true;
+    } else { d.rt-=dt; if(d.rt<=0){ d.rt=2+Math.random()*4; const a=Math.random()*6.28; d.tx=d.grp.position.x+Math.cos(a)*14; d.tz=d.grp.position.z+Math.sin(a)*14; }
+      const tdx=d.tx-d.grp.position.x, tdz=d.tz-d.grp.position.z, td=Math.hypot(tdx,tdz)||1;
+      const nx2=d.grp.position.x+tdx/td*d.T.sp*0.4*dt, nz2=d.grp.position.z+tdz/td*d.T.sp*0.4*dt;
+      if(!inLake(nx2,nz2,-2)&&!collide(nx2,nz2)&&Math.hypot(nx2,nz2)<ISLR-5){ d.grp.position.x=nx2; d.grp.position.z=nz2; d.grp.rotation.y=Math.atan2(tdx,tdz); } }
+    if(d.grp.userData.legs) d.grp.userData.legs.forEach((lg,k)=> lg.rotation.x=Math.sin(elapsed*7+k*3)*0.5);
+    if(d.hitCd>0) d.hitCd-=dt;
+    if(dd<2.6 && d.hitCd<=0 && !safe){ d.hitCd=1.1; hurt(d.T.dmg, d.T.name); }
+  }
+  // mosasaurus en el lago
+  if(mosa){ mosa.grp.position.y=-0.3+Math.sin(elapsed*1.5)*0.3; mosa.grp.rotation.y+=dt*0.3;
+    if(inLake(P.x,P.z,2)){ const dxz=P.x-mosa.grp.position.x, dzz=P.z-mosa.grp.position.z, dd=Math.hypot(dxz,dzz)||1;
+      mosa.grp.position.x+=dxz/dd*mosa.T.sp*dt; mosa.grp.position.z+=dzz/dd*mosa.T.sp*dt; mosa.grp.rotation.y=Math.atan2(dxz,dzz); danger=true;
+      if(mosa.hitCd>0) mosa.hitCd-=dt; if(dd<4 && mosa.hitCd<=0){ mosa.hitCd=1; hurt(mosa.T.dmg,"Mosasaurus"); } }
+    else { mosa.grp.position.x+=(LAKE.x-mosa.grp.position.x)*dt*0.6; mosa.grp.position.z+=(LAKE.z-mosa.grp.position.z)*dt*0.6; } }
+
+  // HUD barras
+  $("hpF").style.width=hp+"%"; $("huF").style.width=hunger+"%"; $("thF").style.width=thirst+"%";
+  $("hurt").style.boxShadow="inset 0 0 120px 30px rgba(180,10,30,"+(danger?0.35:0)+(hp<30?0.3:0)+")";
+  const hint=$("hint"); hint.textContent = danger?"⚠ ¡Un dinosaurio te persigue! ¡Corre o escóndete!":(safe?"🏠 Estás a salvo en la cabaña":(flashBatt<25&&isNight?(inv.batt>0?"🔦 ¡Batería baja! pulsa [3] o toca 🔋 para recargar":"🔦 ¡Batería baja! busca una 🔋"):(inv.batt>=3?"🔋 Lleva las baterías a la TORRE DE RADIO":"")));
+
+  // muerte
+  if(hp<=0 && !gameOver){ endGame(false,"Caíste en la isla el DÍA "+Math.min(day,7)+".<br>Sobreviviste "+((elapsed/DAY_LEN).toFixed(1))+" días. La isla te reclamó. 🦖"); }
+  // victoria: sobrevivir 7 días
+  if(elapsed>=7*DAY_LEN && !gameOver){ const good=radioOn; endGame(true, good ? "🚁 El helicóptero de rescate te encontró gracias a la radio.<br>¡SOBREVIVISTE LOS 7 DÍAS Y ESCAPASTE DE LA ISLA!" : "🚁 Aguantaste 7 días. El rescate te halló de milagro (¡la próxima enciende la radio!).<br>¡SOBREVIVISTE!"); }
+}
+function hurt(dmg,name){ if(invT>0) return; invT=0.6; hp=Math.max(0,hp-dmg*0.35); snd(90,"sawtooth",0.25,0.12); showStory("¡"+name+" te atacó!"); }
+
+function loop(t){ const dt=Math.min(0.05,(t-tPrev)/1000); tPrev=t; if(running) update(dt); renderer.render(scene,camera); requestAnimationFrame(loop); }
+seedPickups(); spawnDinos(); requestAnimationFrame(loop);
+})();
+</script>
+</body>
+</html>
