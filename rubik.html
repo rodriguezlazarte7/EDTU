@@ -1,0 +1,197 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover,user-scalable=no"/>
+<meta name="theme-color" content="#0a0f1e"/>
+<title>CUBO 3x3 · CARRERA</title>
+<style>
+  *{margin:0;padding:0;box-sizing:border-box;-webkit-user-select:none;user-select:none;-webkit-tap-highlight-color:transparent}
+  html,body{height:100%;overflow:hidden;background:#0a0f1e;font-family:"Segoe UI",system-ui,sans-serif;color:#eaf2ff}
+  #c{display:block;width:100%;height:100%;touch-action:none}
+  #top{position:fixed;top:0;left:0;right:0;z-index:5;display:flex;justify-content:space-between;align-items:center;padding:10px 16px;pointer-events:none;font-family:"Consolas",monospace}
+  #timer{font-size:26px;font-weight:900;color:#ffd12e;text-shadow:0 0 12px rgba(255,209,46,.6)}
+  #labels{position:fixed;top:46px;left:0;right:0;z-index:5;display:flex;justify-content:space-between;padding:0 4vw;font-family:"Consolas",monospace;font-size:13px;pointer-events:none;color:#8fb3ff}
+  #labels .ai{color:#ff7ba3}
+  #msg{position:fixed;top:50%;left:50%;transform:translate(-50%,-50%);z-index:6;font-size:clamp(20px,5vw,36px);font-weight:900;text-align:center;pointer-events:none;text-shadow:0 0 16px currentColor;display:none}
+  /* controles */
+  #ctrl{position:fixed;left:0;right:0;bottom:0;z-index:6;background:linear-gradient(180deg,rgba(10,15,30,0),rgba(10,15,30,.92) 30%);padding:8px 8px calc(10px + env(safe-area-inset-bottom));text-align:center}
+  #moves{display:flex;flex-wrap:wrap;gap:5px;justify-content:center;max-width:520px;margin:0 auto 8px}
+  .mv{font-family:"Consolas",monospace;font-weight:800;font-size:15px;color:#fff;background:rgba(30,60,120,.55);border:1px solid rgba(120,180,255,.4);border-radius:9px;padding:9px 11px;cursor:pointer;min-width:42px}
+  .mv:active{transform:scale(.9);background:rgba(0,224,255,.35)}
+  .row{display:flex;gap:8px;justify-content:center;flex-wrap:wrap;margin-top:4px}
+  .btn{font-family:"Consolas",monospace;font-weight:800;letter-spacing:.06em;font-size:15px;color:#fff;cursor:pointer;padding:11px 18px;border-radius:11px;border:2px solid #00e0ff;background:linear-gradient(90deg,rgba(0,224,255,.18),rgba(122,43,255,.18))}
+  .btn.go{border-color:#39ff14}.btn.done{border-color:#ffd12e}
+  .diff{font-family:"Consolas",monospace;font-weight:700;font-size:13px;color:#cfe0ff;cursor:pointer;padding:8px 14px;border-radius:10px;border:1px solid rgba(120,180,255,.4);background:rgba(30,60,120,.4)}
+  .diff.sel{border-color:#ffd12e;color:#ffd12e;box-shadow:0 0 10px rgba(255,209,46,.4)}
+  /* intro */
+  #intro{position:fixed;inset:0;z-index:10;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;
+    background:radial-gradient(circle at 50% 30%,#12204a,#070b18 75%);padding:24px}
+  #intro.hide{display:none}
+  #intro h1{font-family:"Consolas",monospace;font-size:clamp(30px,8vw,58px);color:#fff;text-shadow:0 0 16px #00e0ff,0 0 40px #7a2bff;letter-spacing:.04em}
+  #intro p{color:#a9c3ff;max-width:440px;margin:12px 0;line-height:1.6;font-size:14px}
+</style>
+</head>
+<body>
+<canvas id="c"></canvas>
+<div id="top"><div id="timer">0.0s</div><div style="pointer-events:auto" id="diffs"></div></div>
+<div id="labels"><div>🧑 TÚ</div><div class="ai">🤖 IA (en vivo)</div></div>
+<div id="msg"></div>
+
+<div id="ctrl">
+  <div id="moves"></div>
+  <div class="row">
+    <button class="btn go" id="startBtn">▶ EMPEZAR CARRERA</button>
+    <button class="btn done" id="listoBtn">✅ LISTO</button>
+  </div>
+</div>
+
+<div id="intro">
+  <h1>🧩 CUBO 3x3</h1>
+  <p>Carrera contra la IA: los dos empiezan con el <b>mismo revuelto</b>. Arma tu cubo girando las caras. Cuando termines, aprieta <b>✅ LISTO</b>.</p>
+  <p>👀 Ves el cubo de la <b style="color:#ff7ba3">IA resolviéndose en tiempo real</b> a la derecha.<br>🖱️ Arrastra para girar la vista · botones para mover las caras.</p>
+  <div class="row" id="introDiffs" style="margin:10px 0"></div>
+  <button class="btn go" id="introStart">▶ EMPEZAR</button>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<script>
+(function(){
+const canvas=document.getElementById("c");
+const renderer=new THREE.WebGLRenderer({canvas,antialias:true});
+renderer.setPixelRatio(Math.min(devicePixelRatio,2));
+renderer.setScissorTest(true);
+const scene=new THREE.Scene(); scene.background=new THREE.Color(0x0a0f1e);
+scene.add(new THREE.AmbientLight(0xffffff,0.9));
+const dl=new THREE.DirectionalLight(0xffffff,0.5); dl.position.set(5,8,6); scene.add(dl);
+
+// dos cámaras (split): izq = tú, der = IA
+const camP=new THREE.PerspectiveCamera(45,1,0.1,100);
+const camA=new THREE.PerspectiveCamera(45,1,0.1,100);
+let W=0,H=0;
+function resize(){ W=innerWidth; H=innerHeight; renderer.setSize(W,H); } addEventListener("resize",resize); resize();
+
+const COL={ r:0xd11e1e, o:0xff8000, w:0xf6f6f6, y:0xffe100, g:0x1ea81e, b:0x1e5ad1, k:0x141416 };
+function makeCube(ox){
+  const group=new THREE.Group(); group.position.x=ox; scene.add(group);
+  const cubies=[];
+  for(let x=-1;x<=1;x++)for(let y=-1;y<=1;y++)for(let z=-1;z<=1;z++){
+    const cx=x===1?COL.r:COL.k, cxm=x===-1?COL.o:COL.k, cy=y===1?COL.w:COL.k, cym=y===-1?COL.y:COL.k, cz=z===1?COL.g:COL.k, czm=z===-1?COL.b:COL.k;
+    const mats=[cx,cxm,cy,cym,cz,czm].map(c=>new THREE.MeshBasicMaterial({color:c}));
+    const m=new THREE.Mesh(new THREE.BoxGeometry(0.95,0.95,0.95),mats);
+    m.position.set(x,y,z); group.add(m);
+    m.userData.f=[{n:new THREE.Vector3(1,0,0),c:cx},{n:new THREE.Vector3(-1,0,0),c:cxm},{n:new THREE.Vector3(0,1,0),c:cy},{n:new THREE.Vector3(0,-1,0),c:cym},{n:new THREE.Vector3(0,0,1),c:cz},{n:new THREE.Vector3(0,0,-1),c:czm}];
+    // borde negro
+    const edges=new THREE.LineSegments(new THREE.EdgesGeometry(m.geometry),new THREE.LineBasicMaterial({color:0x000000})); m.add(edges);
+    cubies.push(m);
+  }
+  return {group,cubies,busy:false};
+}
+const player=makeCube(0), ai=makeCube(1000);
+camA.position.set(1000+5,5,7); camA.lookAt(1000,0,0);
+
+// ---- girar una capa (con animación) ----
+function rotateLayer(cube,axis,layer,dir,dur,onDone){
+  if(cube.busy){ if(onDone) onDone(); return; }
+  const pivot=new THREE.Group(); cube.group.add(pivot);
+  const sel=cube.cubies.filter(c=>Math.round(c.position[axis])===layer);
+  sel.forEach(c=>pivot.attach(c));
+  const target=dir*Math.PI/2;
+  const bake=()=>{ pivot.rotation[axis]=target; sel.forEach(c=>{ cube.group.attach(c); c.position.x=Math.round(c.position.x); c.position.y=Math.round(c.position.y); c.position.z=Math.round(c.position.z); }); cube.group.remove(pivot); cube.busy=false; if(onDone) onDone(); };
+  if(dur<=0){ bake(); return; }
+  cube.busy=true; const t0=performance.now();
+  (function anim(){ const t=Math.min(1,(performance.now()-t0)/dur); pivot.rotation[axis]=target*(t<1?(t*t*(3-2*t)):1); if(t<1) requestAnimationFrame(anim); else bake(); })();
+}
+// mapa de caras -> (axis,layer)
+const FACES={ U:['y',1], D:['y',-1], L:['x',-1], R:['x',1], F:['z',1], B:['z',-1] };
+function move(cube,face,dir,dur,onDone){ const a=FACES[face]; rotateLayer(cube,a[0],a[1],dir,dur,onDone); }
+
+function faceColor(cubie,dv){ for(const f of cubie.userData.f){ if(f.n.clone().applyQuaternion(cubie.quaternion).dot(dv)>0.9) return f.c; } return -1; }
+function isSolved(cube){
+  const dirs=[['x',1],['x',-1],['y',1],['y',-1],['z',1],['z',-1]];
+  for(const d of dirs){ const dv=new THREE.Vector3(d[0]==='x'?d[1]:0,d[0]==='y'?d[1]:0,d[0]==='z'?d[1]:0); let col=null;
+    for(const c of cube.cubies){ if(Math.round(c.position[d[0]])!==d[1]) continue; const fc=faceColor(c,dv); if(fc===COL.k||fc<0) continue; if(col===null) col=fc; else if(col!==fc) return false; } }
+  return true;
+}
+
+// ---- estado del juego ----
+let diff="medio", DIFF={facil:{scr:6,pace:1.0},medio:{scr:12,pace:0.5},dificil:{scr:18,pace:0.25}};
+let state="idle", raceStart=0, ended=false, scramble=[], aiQueue=[], aiTimer=null;
+const FACE_LIST=["U","D","L","R","F","B"];
+function randMove(){ return {face:FACE_LIST[(Math.random()*6)|0], dir:Math.random()<0.5?1:-1}; }
+
+function newScramble(){
+  // resetear ambos cubos (recrearlos es lo más simple y seguro)
+  [player,ai].forEach(cu=>{ cu.cubies.forEach(c=>{ c.rotation.set(0,0,0); }); });
+  resetCube(player); resetCube(ai);
+  scramble=[]; const n=DIFF[diff].scr; let last=-1;
+  for(let i=0;i<n;i++){ let m; do{ m=randMove(); }while(m.face===last); last=m.face; scramble.push(m); move(player,m.face,m.dir,0); move(ai,m.face,m.dir,0); }
+}
+function resetCube(cu){ // vuelve cada cubie a su posición/orientación resuelta
+  let i=0; for(let x=-1;x<=1;x++)for(let y=-1;y<=1;y++)for(let z=-1;z<=1;z++){ const c=cu.cubies[i++]; c.position.set(x,y,z); c.rotation.set(0,0,0); c.updateMatrix(); } cu.busy=false;
+}
+
+function startRace(){
+  document.getElementById("intro").classList.add("hide");
+  ended=false; state="race";
+  newScramble();
+  raceStart=performance.now();
+  showMsg("");
+  // IA resuelve deshaciendo el revuelto (en vivo)
+  aiQueue=scramble.slice().reverse().map(m=>({face:m.face,dir:-m.dir}));
+  clearTimeout(aiTimer); aiStep();
+}
+function aiStep(){
+  if(ended) return;
+  if(aiQueue.length===0){ if(isSolved(ai)) finish("ai"); return; }
+  const m=aiQueue.shift(); const pace=DIFF[diff].pace, dur=Math.min(pace*0.6,260);
+  move(ai,m.face,m.dir,Math.min(pace*600,260),()=>{ if(!ended) aiTimer=setTimeout(aiStep, Math.max(40,pace*1000-260)); });
+}
+function playerMove(face,dir){ if(state!=="race"||player.busy) return; move(player,face,dir,150,()=>{ if(!ended && isSolved(player)) finish("player"); }); }
+
+function finish(who){
+  if(ended) return; ended=true; state="done"; clearTimeout(aiTimer);
+  const t=((performance.now()-raceStart)/1000).toFixed(1);
+  if(who==="player") showMsg("🎉 ¡GANASTE!\n"+t+"s","#39ff14");
+  else showMsg("🤖 Ganó la IA\nTu tiempo corre aún...","#ff7ba3");
+}
+function tryListo(){
+  if(state!=="race") return;
+  if(isSolved(player)) finish("player");
+  else showMsg("⚠ Aún no está resuelto",""), setTimeout(()=>{ if(state==="race") showMsg(""); },1400);
+}
+function showMsg(txt,color){ const m=document.getElementById("msg"); if(!txt){ m.style.display="none"; return; } m.style.display="block"; m.style.color=color||"#fff"; m.innerHTML=txt.replace(/\n/g,"<br>"); }
+
+// ---- botones de movimiento ----
+const movesDiv=document.getElementById("moves");
+FACE_LIST.forEach(face=>{
+  [["",1],["'",-1]].forEach(([suf,dir])=>{ const b=document.createElement("button"); b.className="mv"; b.textContent=face+suf; b.onclick=()=>playerMove(face,dir); movesDiv.appendChild(b); });
+});
+document.getElementById("startBtn").onclick=startRace;
+document.getElementById("listoBtn").onclick=tryListo;
+document.getElementById("introStart").onclick=startRace;
+// selector de dificultad (arriba y en el intro)
+function buildDiffs(container){ container.innerHTML=""; [["facil","🟢 Fácil"],["medio","🟡 Medio"],["dificil","🔴 Difícil"]].forEach(([k,lbl])=>{ const b=document.createElement("button"); b.className="diff"+(diff===k?" sel":""); b.textContent=lbl; b.onclick=()=>{ diff=k; buildDiffs(document.getElementById("diffs")); buildDiffs(document.getElementById("introDiffs")); }; container.appendChild(b); }); }
+buildDiffs(document.getElementById("diffs")); buildDiffs(document.getElementById("introDiffs"));
+
+// ---- orbitar la vista del jugador ----
+let camYaw=0.6, camPitch=0.5, dragId=null, lastX=0, lastY=0;
+function updCam(){ const r=6.5; camP.position.set(Math.sin(camYaw)*Math.cos(camPitch)*r, Math.sin(camPitch)*r, Math.cos(camYaw)*Math.cos(camPitch)*r); camP.lookAt(0,0,0); }
+updCam();
+canvas.addEventListener("pointerdown",e=>{ if(e.clientX<W*0.68){ dragId=e.pointerId; lastX=e.clientX; lastY=e.clientY; } });
+canvas.addEventListener("pointermove",e=>{ if(e.pointerId!==dragId) return; camYaw-=(e.clientX-lastX)*0.008; camPitch=Math.max(-1.3,Math.min(1.3,camPitch+(e.clientY-lastY)*0.008)); lastX=e.clientX; lastY=e.clientY; updCam(); });
+["pointerup","pointercancel"].forEach(ev=>canvas.addEventListener(ev,e=>{ if(e.pointerId===dragId) dragId=null; }));
+
+function loop(){
+  if(state==="race" && !ended){ document.getElementById("timer").textContent=((performance.now()-raceStart)/1000).toFixed(1)+"s"; }
+  // render split
+  const lw=Math.floor(W*0.68);
+  renderer.setViewport(0,0,lw,H); renderer.setScissor(0,0,lw,H); camP.aspect=lw/H; camP.updateProjectionMatrix(); renderer.render(scene,camP);
+  renderer.setViewport(lw,0,W-lw,H); renderer.setScissor(lw,0,W-lw,H); camA.aspect=(W-lw)/H; camA.updateProjectionMatrix(); renderer.render(scene,camA);
+  requestAnimationFrame(loop);
+}
+requestAnimationFrame(loop);
+})();
+</script>
+</body>
+</html>
