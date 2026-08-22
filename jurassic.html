@@ -176,7 +176,7 @@ const SH={x:0,z:14};
 function inShelter(){ return Math.abs(P.x-SH.x)<5 && Math.abs(P.z-SH.z)<5; }
 
 // ---------- TORRE DE RADIO ----------
-const RADIO={x:-100,z:80};
+const RADIO={x:-100,z:80}; let radioLight;
 (function radioTower(){ const cx=RADIO.x,cz=RADIO.z;
   for(const dx of [-3,3])for(const dz of [-3,3]){ box(cx+dx,7,cz+dz,0.5,14,0.5,new THREE.MeshStandardMaterial({color:0x556}) ); }
   box(cx,14,cz,7,0.4,7,new THREE.MeshStandardMaterial({color:0x667}));
@@ -185,7 +185,6 @@ const RADIO={x:-100,z:80};
   const b=new THREE.Mesh(new THREE.SphereGeometry(0.4,8,8),new THREE.MeshBasicMaterial({color:0xff3b3b})); b.position.set(cx,17,cz); scene.add(b);
   addWall(cx-4,cx+4,cz-4,cz+4);
 })();
-let radioLight;
 
 // ---------- pickups (inventario tipo Minecraft) ----------
 const pickups=[]; const KIND={water:{c:0x2ea6ff,ic:"💧"},food:{c:0x9a9a9a,ic:"🥫"},wood:{c:0x7a4a22,ic:"🪵"},batt:{c:0x39ff5a,ic:"🔋"}};
