@@ -303,6 +303,11 @@
   #jpFrame{width:100%;height:100%;border:none;display:block}
   #jpCloseBtn{position:fixed;top:8px;right:12px;z-index:201;background:rgba(0,0,0,.6);color:#fff;border:1px solid #7dff5a;
     border-radius:8px;padding:7px 13px;font-family:"Consolas",monospace;font-weight:700;cursor:pointer}
+  #scrFs{position:fixed;inset:0;z-index:200;display:none;background:#000}
+  #scrFs.open{display:block}
+  #scrFrame{width:100%;height:100%;border:none;display:block}
+  #scrCloseBtn{position:fixed;top:8px;right:12px;z-index:201;background:rgba(0,0,0,.6);color:#fff;border:1px solid #ff2b3a;
+    border-radius:8px;padding:7px 13px;font-family:"Consolas",monospace;font-weight:700;cursor:pointer}
   /* ---------- JUEGO: F1 RB RUSH ---------- */
   #f1Fs{position:fixed;inset:0;z-index:120;display:none;background:#000}
   #f1Fs.open{display:block}
@@ -1444,6 +1449,7 @@
     <button class="btn pickgame" id="pickNag" style="background:linear-gradient(90deg,#1a0608,#3a0810);border-color:#ff2d55">🧟 NOT A GAME (terror 3D)</button>
     <button class="btn pickgame" id="pickRk" style="background:linear-gradient(90deg,#06121a,#082438);border-color:#00e0ff">🧩 CUBO 3x3 (carrera vs IA)</button>
     <button class="btn pickgame" id="pickJp" style="background:linear-gradient(90deg,#0a1a06,#183a10);border-color:#7dff5a">🦖 JURASSIC (sobrevive 7 días)</button>
+    <button class="btn pickgame" id="pickScr" style="background:linear-gradient(90deg,#1a0308,#3a0810);border-color:#ff2b3a">🕷️ SCREAM (la araña · terror)</button>
     <button class="btn btn-ghost btn-sm" id="pickClose">Cerrar</button>
   </div>
 </div>
@@ -1456,6 +1462,9 @@
 
 <!-- ============ JURASSIC (supervivencia 3D en iframe) ============ -->
 <div id="jpFs"><iframe id="jpFrame" allow="fullscreen; pointer-lock; autoplay" title="JURASSIC"></iframe><button id="jpCloseBtn">✕ Salir</button></div>
+
+<!-- ============ SCREAM (terror araña 3D en iframe) ============ -->
+<div id="scrFs"><iframe id="scrFrame" allow="fullscreen; pointer-lock; autoplay" title="SCREAM"></iframe><button id="scrCloseBtn">✕ Salir</button></div>
 
 <!-- ============ 12 MINIJUEGOS ============ -->
 <div id="snakeFs" class="gfull"><h2>🐍 SNAKE</h2><div class="ghud" id="snakeHud"></div><canvas id="snakeCv"></canvas><div class="gover" id="snakeOver"></div><div style="margin-top:8px"><button class="btn btn-primary" id="snakeStart">▶ Jugar</button><button class="btn btn-ghost" id="snakeClose" style="margin-left:6px">✕ Salir</button></div></div>
@@ -6238,6 +6247,8 @@ $("pickRk").onclick=()=>{ $("gamePick").classList.remove("open"); $("rkFrame").s
 $("rkCloseBtn").onclick=()=>{ $("rkFs").classList.remove("open"); $("rkFrame").src="about:blank"; };
 $("pickJp").onclick=()=>{ $("gamePick").classList.remove("open"); $("jpFrame").src="jurassic.html"; $("jpFs").classList.add("open"); };
 $("jpCloseBtn").onclick=()=>{ $("jpFs").classList.remove("open"); $("jpFrame").src="about:blank"; };
+$("pickScr").onclick=()=>{ $("gamePick").classList.remove("open"); $("scrFrame").src="scream.html"; $("scrFs").classList.add("open"); };
+$("scrCloseBtn").onclick=()=>{ $("scrFs").classList.remove("open"); $("scrFrame").src="about:blank"; };
 /* controles: teclado + puntero + swipe */
 document.addEventListener("keydown",e=>{ GK[e.key]=true;
   if($("snakeFs").classList.contains("open")){ const k=e.key; if(k==="ArrowUp")Snake.turn(0,-1);else if(k==="ArrowDown")Snake.turn(0,1);else if(k==="ArrowLeft")Snake.turn(-1,0);else if(k==="ArrowRight")Snake.turn(1,0);else return; e.preventDefault(); }
@@ -7244,7 +7255,7 @@ const Pad={
   navOn(){ const o=id=>{ const e=document.getElementById(id); return e&&e.classList.contains("open"); };
     if(o("monFs") && typeof Monster!=="undefined" && (Monster.shopping||Monster.labOpen)) return true;   // navegar tienda/laboratorio con el mando
     if(document.querySelector(".gfull.open")) return false;   // dentro de un minijuego el mando no navega menús
-    return !(o("gameFs")||o("footFs")||o("robotFs")||o("monFs")||o("f1Fs")||o("gatoFs")||o("chessFs")||o("nagFs")||o("rkFs")||o("jpFs")); },
+    return !(o("gameFs")||o("footFs")||o("robotFs")||o("monFs")||o("f1Fs")||o("gatoFs")||o("chessFs")||o("nagFs")||o("rkFs")||o("jpFs")||o("scrFs")); },
   isVis(el){ if(!el||el.disabled) return false; if(el.getAttribute&&el.getAttribute("aria-hidden")==="true") return false;
     const s=getComputedStyle(el); if(s.display==="none"||s.visibility==="hidden"||+s.opacity===0||s.pointerEvents==="none") return false;
     const r=el.getBoundingClientRect(); if(r.width<3||r.height<3) return false;
