@@ -107,7 +107,8 @@ renderer.setPixelRatio(Math.min(devicePixelRatio,2));
 renderer.outputEncoding=THREE.sRGBEncoding;
 const scene=new THREE.Scene(); scene.background=new THREE.Color(0x000000);
 scene.fog=new THREE.FogExp2(0x000000,0.045);
-const camera=new THREE.PerspectiveCamera(78,1,0.1,300); camera.rotation.order="YXZ"; scene.add(camera);
+let CURP=scene; const ROOT=scene, floorGroups=[];   // CURP = destino actual (grupo del piso); solo se renderiza el piso actual
+const camera=new THREE.PerspectiveCamera(78,1,0.1,300); camera.rotation.order="YXZ"; CURP.add(camera);
 function resize(){ renderer.setSize(innerWidth,innerHeight); camera.aspect=innerWidth/innerHeight; camera.updateProjectionMatrix(); }
 addEventListener("resize",resize); resize();
 function snd(f,t,d,v){ try{ const a=snd.ctx||(snd.ctx=new (AudioContext||webkitAudioContext)()); const o=a.createOscillator(),g=a.createGain(); o.type=t||"sine"; o.frequency.value=f; o.connect(g); g.connect(a.destination); g.gain.value=v||0.1; o.start(); g.gain.exponentialRampToValueAtTime(0.0001,a.currentTime+(d||0.2)); o.stop(a.currentTime+(d||0.2)); }catch(e){} }
@@ -126,7 +127,7 @@ const webTex=tex(x=>{ x.clearRect(0,0,256,256); x.translate(128,128); const N=14
   x.setTransform(1,0,0,1,0,0); });
 
 // ---------- luces ----------
-const ambient=new THREE.AmbientLight(0x241018,0.05); scene.add(ambient);
+const ambient=new THREE.AmbientLight(0x241018,0.05); CURP.add(ambient);
 const flash=new THREE.SpotLight(0xfff4e0,11,90,0.85,0.35,0.9); flash.position.set(0,0,0.3); camera.add(flash);
 const ft=new THREE.Object3D(); ft.position.set(0,-0.1,-1); camera.add(ft); flash.target=ft;
 const flashGlow=new THREE.PointLight(0xfff2d0,1.2,10); camera.add(flashGlow);
@@ -137,7 +138,7 @@ const FLOORNAME=["PLANTA BAJA","PISO 1","PISO 2","PISO 3","PISO 4","PISO 5","PIS
 const STAIRX=HH-16, STAIRZ=0;                       // hueco de escaleras (mismo XZ en todos los pisos)
 const walls=[]; const pr=0.4;
 function addWall(x0,x1,z0,z1,fl){ const w={x0:Math.min(x0,x1),x1:Math.max(x0,x1),z0:Math.min(z0,z1),z1:Math.max(z0,z1),f:fl}; walls.push(w); return w; }
-function box(x,y,z,w,h,d,mat){ const m=new THREE.Mesh(new THREE.BoxGeometry(w,h,d),mat); m.position.set(x,y,z); scene.add(m); return m; }
+function box(x,y,z,w,h,d,mat){ const m=new THREE.Mesh(new THREE.BoxGeometry(w,h,d),mat); m.position.set(x,y,z); CURP.add(m); return m; }
 function collide(nx,nz,fl){ for(const w of walls){ if(w.f!==fl) continue; if(nx>w.x0-pr&&nx<w.x1+pr&&nz>w.z0-pr&&nz<w.z1+pr) return true; } return false; }
 function safeSpotF(x,z,fl){ if(!collide(x,z,fl)) return {x,z}; for(let r=0.8;r<=14;r+=0.6){ for(let a=0;a<6.28;a+=0.5){ const nx=x+Math.cos(a)*r, nz=z+Math.sin(a)*r; if(!collide(nx,nz,fl)) return {x:nx,z:nz}; } } return {x,z}; }
 
@@ -156,64 +157,77 @@ const valves=[], samples=[]; let valvesGot=0, samplesGot=0, craftT=0, timeLeft=1
 const safeZone={x:-HH+16,z:HH-16,r:9,f:0}; const MACHINE={x:-HH+16,z:HH-16};
 const flick=[];                                    // luces que parpadean
 const floorLights=[];                              // luces que SOLO se encienden en su piso
-function flight(l,fl){ l.userData.fl=fl; scene.add(l); floorLights.push(l); return l; }
+function flight(l,fl){ l.userData.fl=fl; CURP.add(l); floorLights.push(l); return l; }
 
 function room(cx,cz,open,by,fl){ const w=13,dp=11,h=4;
   box(cx,by+h/2,cz-dp/2,w,h,0.4,roomM); addWall(cx-w/2,cx+w/2,cz-dp/2-0.2,cz-dp/2+0.2,fl);
   if(open!=="L"){ box(cx-w/2,by+h/2,cz,0.4,h,dp,roomM); addWall(cx-w/2-0.2,cx-w/2+0.2,cz-dp/2,cz+dp/2,fl); }
   if(open!=="R"){ box(cx+w/2,by+h/2,cz,0.4,h,dp,roomM); addWall(cx+w/2-0.2,cx+w/2+0.2,cz-dp/2,cz+dp/2,fl); }
   box(cx,by+0.5,cz,2.2,1,4.6,bedM); addWall(cx-1.1,cx+1.1,cz-2.3,cz+2.3,fl);
-  const iv=new THREE.Mesh(new THREE.CylinderGeometry(0.05,0.05,2.4,6),bedM); iv.position.set(cx+1.4,by+1.2,cz+1.8); scene.add(iv);   // suero
+  const iv=new THREE.Mesh(new THREE.CylinderGeometry(0.05,0.05,2.4,6),bedM); iv.position.set(cx+1.4,by+1.2,cz+1.8); CURP.add(iv);   // suero
+}
+// cuarto que abre hacia +z/-z (contra las paredes frontales)
+function roomH(cx,cz,openZ,by,fl){ const w=11,dp=11,h=4;
+  box(cx-w/2,by+h/2,cz,0.4,h,dp,roomM); addWall(cx-w/2-0.2,cx-w/2+0.2,cz-dp/2,cz+dp/2,fl);
+  box(cx+w/2,by+h/2,cz,0.4,h,dp,roomM); addWall(cx+w/2-0.2,cx+w/2+0.2,cz-dp/2,cz+dp/2,fl);
+  if(openZ!=="F"){ box(cx,by+h/2,cz-dp/2,w,h,0.4,roomM); addWall(cx-w/2,cx+w/2,cz-dp/2-0.2,cz-dp/2+0.2,fl); }
+  if(openZ!=="B"){ box(cx,by+h/2,cz+dp/2,w,h,0.4,roomM); addWall(cx-w/2,cx+w/2,cz+dp/2-0.2,cz+dp/2+0.2,fl); }
+  box(cx,by+0.5,cz,4.6,1,2.2,bedM); addWall(cx-2.3,cx+2.3,cz-1.1,cz+1.1,fl);
 }
 function buildFloor(fl){
   const by=fl*FLOOR_H, t=0.6;
-  const flo=new THREE.Mesh(new THREE.PlaneGeometry(HH*2,HH*2),floorMats[fl]); flo.rotation.x=-Math.PI/2; flo.position.y=by+0.01; scene.add(flo);
-  const ceil=new THREE.Mesh(new THREE.PlaneGeometry(HH*2,HH*2),new THREE.MeshStandardMaterial({color:0x0a0d12,roughness:1})); ceil.rotation.x=Math.PI/2; ceil.position.y=by+HHY; scene.add(ceil);
+  const fg=new THREE.Group(); ROOT.add(fg); floorGroups[fl]=fg; CURP=fg;   // todo lo del piso va a su grupo (culling)
+  const flo=new THREE.Mesh(new THREE.PlaneGeometry(HH*2,HH*2),floorMats[fl]); flo.rotation.x=-Math.PI/2; flo.position.y=by+0.01; CURP.add(flo);
+  const ceil=new THREE.Mesh(new THREE.PlaneGeometry(HH*2,HH*2),new THREE.MeshStandardMaterial({color:0x0a0d12,roughness:1})); ceil.rotation.x=Math.PI/2; ceil.position.y=by+HHY; CURP.add(ceil);
   box(0,by+HHY/2,-HH,HH*2,HHY,t,wallM); addWall(-HH,HH,-HH-t/2,-HH+t/2,fl);
   box(0,by+HHY/2,HH,HH*2,HHY,t,wallM); addWall(-HH,HH,HH-t/2,HH+t/2,fl);
   box(-HH,by+HHY/2,0,t,HHY,HH*2,wallM); addWall(-HH-t/2,-HH+t/2,-HH,HH,fl);
   box(HH,by+HHY/2,0,t,HHY,HH*2,wallM); addWall(HH-t/2,HH+t/2,-HH,HH,fl);
-  // salas con camas
-  const rz=[-HH+16,-HH+40,0,HH-40,HH-16];
+  // 🏥 CUARTOS densos pegados a las paredes izq/der
+  const rz=[-HH+14,-HH+29,-HH+44,HH-44,HH-29,HH-14];
   for(const cz of rz){ room(-HH+12,cz,"R",by,fl); room(HH-12,cz,"L",by,fl); }
-  // columnas del pasillo central
-  for(const px of [-24,24])for(const pz of [-30,0,30]){ box(px,by+HHY/2,pz,2,HHY,2,wallM); addWall(px-1,px+1,pz-1,pz+1,fl); }
+  // cuartos frontales (contra la pared -z), abiertos al centro
+  for(const cx of [-30,-10,10,30]){ roomH(cx,-HH+8,"B",by,fl); }
+  // 🚪 muros de PASILLO (puerta central + pasos laterales) → hospital laberíntico
+  for(const zp of [-16,16]){ box(-21,by+2,zp,22,4,0.5,wallM); addWall(-32,-10,zp-.25,zp+.25,fl); box(21,by+2,zp,22,4,0.5,wallM); addWall(10,32,zp-.25,zp+.25,fl); }
+  // muros verticales del pasillo central (forman una sala central)
+  for(const xp of [-16,16]){ box(xp,by+2,0,0.5,4,20,wallM); addWall(xp-.25,xp+.25,-10,10,fl); }
   // luces de emergencia: muchos PUNTOS baratos (emisivos) + pocas luces reales (rendimiento)
-  for(const px of [-38,-12,12,38])for(const pz of [-38,-12,12,38]){ const b=new THREE.Mesh(new THREE.SphereGeometry(0.16,6,6),new THREE.MeshBasicMaterial({color:FLTINT[fl]})); b.position.set(px,by+6.8,pz); scene.add(b); }
+  for(const px of [-38,-12,12,38])for(const pz of [-38,-12,12,38]){ const b=new THREE.Mesh(new THREE.SphereGeometry(0.16,6,6),new THREE.MeshBasicMaterial({color:FLTINT[fl]})); b.position.set(px,by+6.8,pz); CURP.add(b); }
   for(const p of [[-28,-28],[28,-28],[0,28]]){ const el=new THREE.PointLight(FLTINT[fl],0.7,30); el.position.set(p[0],by+7,p[1]); flight(el,fl); flick.push({l:el,base:0.7}); }
   // 🕸️ TELARAÑAS de alta calidad (textura de red) + hilos colgantes
   const webMat=new THREE.MeshBasicMaterial({map:webTex,transparent:true,opacity:0.55,side:THREE.DoubleSide,depthWrite:false});
   const strandMat=new THREE.MeshBasicMaterial({color:0xdfe6e6,transparent:true,opacity:0.35});
   const cocoonMat=new THREE.MeshStandardMaterial({color:0xd8d2c4,roughness:.95,transparent:true,opacity:0.85});
   for(let i=0;i<22;i++){ const a=Math.random()*6.28,r=Math.random()*(HH-6); const sz=4+Math.random()*7;
-    const web=new THREE.Mesh(new THREE.PlaneGeometry(sz,sz),webMat); web.position.set(Math.cos(a)*r,by+4.5+Math.random()*3.5,Math.sin(a)*r); web.rotation.set(Math.random()*0.6,Math.random()*6.28,Math.random()*0.6); scene.add(web); }
+    const web=new THREE.Mesh(new THREE.PlaneGeometry(sz,sz),webMat); web.position.set(Math.cos(a)*r,by+4.5+Math.random()*3.5,Math.sin(a)*r); web.rotation.set(Math.random()*0.6,Math.random()*6.28,Math.random()*0.6); CURP.add(web); }
   // telarañas grandes en las 4 esquinas del techo
-  for(const cx of [-HH+6,HH-6])for(const cz of [-HH+6,HH-6]){ const web=new THREE.Mesh(new THREE.PlaneGeometry(12,12),webMat); web.position.set(cx,by+HHY-1.5,cz); web.lookAt(0,by+2,0); scene.add(web); }
+  for(const cx of [-HH+6,HH-6])for(const cz of [-HH+6,HH-6]){ const web=new THREE.Mesh(new THREE.PlaneGeometry(12,12),webMat); web.position.set(cx,by+HHY-1.5,cz); web.lookAt(0,by+2,0); CURP.add(web); }
   // hilos colgantes del techo
-  for(let i=0;i<18;i++){ const a=Math.random()*6.28,r=Math.random()*(HH-6),len=2+Math.random()*4; const st=new THREE.Mesh(new THREE.CylinderGeometry(0.02,0.02,len,4),strandMat); st.position.set(Math.cos(a)*r,by+HHY-len/2,Math.sin(a)*r); scene.add(st); }
+  for(let i=0;i<18;i++){ const a=Math.random()*6.28,r=Math.random()*(HH-6),len=2+Math.random()*4; const st=new THREE.Mesh(new THREE.CylinderGeometry(0.02,0.02,len,4),strandMat); st.position.set(Math.cos(a)*r,by+HHY-len/2,Math.sin(a)*r); CURP.add(st); }
   for(let i=0;i<7;i++){ const a=Math.random()*6.28,r=12+Math.random()*(HH-18); const cx2=Math.cos(a)*r,cz2=Math.sin(a)*r;
-    const coc=new THREE.Mesh(new THREE.CylinderGeometry(0.55,0.75,3.2,10),cocoonMat); coc.position.set(cx2,by+3.4,cz2); coc.rotation.z=0.3+Math.random()*0.5; scene.add(coc);
-    const chead=new THREE.Mesh(new THREE.SphereGeometry(0.55,10,8),cocoonMat); chead.position.set(cx2,by+5,cz2); scene.add(chead); }
+    const coc=new THREE.Mesh(new THREE.CylinderGeometry(0.55,0.75,3.2,10),cocoonMat); coc.position.set(cx2,by+3.4,cz2); coc.rotation.z=0.3+Math.random()*0.5; CURP.add(coc);
+    const chead=new THREE.Mesh(new THREE.SphereGeometry(0.55,10,8),cocoonMat); chead.position.set(cx2,by+5,cz2); CURP.add(chead); }
   // gurneys (camillas metálicas sueltas) — props de calidad
   for(let i=0;i<5;i++){ const a=Math.random()*6.28,r=8+Math.random()*(HH-16); const gx=Math.cos(a)*r,gz=Math.sin(a)*r;
-    box(gx,by+0.7,gz,1.2,0.2,2.4,bedM); for(const c of [[-.5,-1],[.5,-1],[-.5,1],[.5,1]]){ const wl=new THREE.Mesh(new THREE.CylinderGeometry(0.04,0.04,0.6,6),bedM); wl.position.set(gx+c[0],by+0.35,gz+c[1]); scene.add(wl);} }
+    box(gx,by+0.7,gz,1.2,0.2,2.4,bedM); for(const c of [[-.5,-1],[.5,-1],[-.5,1],[.5,1]]){ const wl=new THREE.Mesh(new THREE.CylinderGeometry(0.04,0.04,0.6,6),bedM); wl.position.set(gx+c[0],by+0.35,gz+c[1]); CURP.add(wl);} }
   // ESCALERAS (marcadores): subir (verde) / bajar (azul)
-  if(fl<FLOORS-1){ const rup=new THREE.Mesh(new THREE.TorusGeometry(1.1,0.16,10,26),new THREE.MeshBasicMaterial({color:0x39ff5a})); rup.rotation.x=-Math.PI/2; rup.position.set(STAIRX,by+0.15,STAIRZ-3); scene.add(rup);
+  if(fl<FLOORS-1){ const rup=new THREE.Mesh(new THREE.TorusGeometry(1.1,0.16,10,26),new THREE.MeshBasicMaterial({color:0x39ff5a})); rup.rotation.x=-Math.PI/2; rup.position.set(STAIRX,by+0.15,STAIRZ-3); CURP.add(rup);
     const lu=new THREE.PointLight(0x39ff5a,0.9,10); lu.position.set(STAIRX,by+1.4,STAIRZ-3); flight(lu,fl);
     for(let s=0;s<6;s++){ box(STAIRX,by+0.4+s*0.5,STAIRZ-3-s*0.4,3,0.3,0.5,wallM); } }
-  if(fl>0){ const rdn=new THREE.Mesh(new THREE.TorusGeometry(1.1,0.16,10,26),new THREE.MeshBasicMaterial({color:0x2ea6ff})); rdn.rotation.x=-Math.PI/2; rdn.position.set(STAIRX,by+0.15,STAIRZ+3); scene.add(rdn);
+  if(fl>0){ const rdn=new THREE.Mesh(new THREE.TorusGeometry(1.1,0.16,10,26),new THREE.MeshBasicMaterial({color:0x2ea6ff})); rdn.rotation.x=-Math.PI/2; rdn.position.set(STAIRX,by+0.15,STAIRZ+3); CURP.add(rdn);
     const ld=new THREE.PointLight(0x2ea6ff,0.9,10); ld.position.set(STAIRX,by+1.4,STAIRZ+3); flight(ld,fl); }
   // per-piso especiales
   if(fl===0){
     // ZONA SEGURA (bunker marcado)
-    const sz=safeZone; const rz2=new THREE.Mesh(new THREE.RingGeometry(sz.r-0.7,sz.r,40),new THREE.MeshBasicMaterial({color:0x39ff5a,transparent:true,opacity:.5,side:THREE.DoubleSide})); rz2.rotation.x=-Math.PI/2; rz2.position.set(sz.x,0.06,sz.z); scene.add(rz2);
+    const sz=safeZone; const rz2=new THREE.Mesh(new THREE.RingGeometry(sz.r-0.7,sz.r,40),new THREE.MeshBasicMaterial({color:0x39ff5a,transparent:true,opacity:.5,side:THREE.DoubleSide})); rz2.rotation.x=-Math.PI/2; rz2.position.set(sz.x,0.06,sz.z); CURP.add(rz2);
     const szl=new THREE.PointLight(0x39ff8a,1.1,sz.r*3); szl.position.set(sz.x,3,sz.z); flight(szl,0);
-    const pole=new THREE.Mesh(new THREE.CylinderGeometry(0.16,0.16,4.5,8),new THREE.MeshStandardMaterial({color:0x2a6a3a})); pole.position.set(sz.x,2.25,sz.z); scene.add(pole);
+    const pole=new THREE.Mesh(new THREE.CylinderGeometry(0.16,0.16,4.5,8),new THREE.MeshStandardMaterial({color:0x2a6a3a})); pole.position.set(sz.x,2.25,sz.z); CURP.add(pole);
     // 🧪 MÁQUINA DE ANTÍDOTOS (en la zona segura)
     const mx=MACHINE.x, mz=MACHINE.z;
     box(mx,1,mz-1.4,3.6,2,0.9,new THREE.MeshStandardMaterial({color:0x18242e,metalness:.5,roughness:.5}));
     box(mx,1.55,mz-0.94,2.6,1.1,0.08,new THREE.MeshBasicMaterial({color:0x0affc0,transparent:true,opacity:.85}));   // pantalla
-    for(const tx of [-1,0,1]){ const tube=new THREE.Mesh(new THREE.CylinderGeometry(0.18,0.18,1.7,10),new THREE.MeshStandardMaterial({color:0x39ff8a,emissive:0x0a5a2a,emissiveIntensity:.7,transparent:true,opacity:.7})); tube.position.set(mx+tx*0.85,2.5,mz-1.4); scene.add(tube); }
+    for(const tx of [-1,0,1]){ const tube=new THREE.Mesh(new THREE.CylinderGeometry(0.18,0.18,1.7,10),new THREE.MeshStandardMaterial({color:0x39ff8a,emissive:0x0a5a2a,emissiveIntensity:.7,transparent:true,opacity:.7})); tube.position.set(mx+tx*0.85,2.5,mz-1.4); CURP.add(tube); }
     box(mx,3.6,mz-1.4,4.2,0.25,0.25,new THREE.MeshBasicMaterial({color:0x0affc0}));   // cartel
     const ml=new THREE.PointLight(0x2affc0,1.2,16); ml.position.set(mx,2.6,mz); flight(ml,0);
   }
@@ -222,7 +236,7 @@ function buildFloor(fl){
     const g=new THREE.Group();
     g.add(new THREE.Mesh(new THREE.CylinderGeometry(0.5,0.5,0.8,10),new THREE.MeshStandardMaterial({color:0x39ff8a,emissive:0x0a5a2a,emissiveIntensity:.8,roughness:.5})));
     const wheel=new THREE.Mesh(new THREE.TorusGeometry(0.55,0.12,8,16),new THREE.MeshStandardMaterial({color:0xbfffcf,emissive:0x0a5a2a,emissiveIntensity:.6})); wheel.rotation.x=Math.PI/2; wheel.position.y=0.5; g.add(wheel);
-    g.position.set(vp.x,by+1,vp.z); scene.add(g);
+    g.position.set(vp.x,by+1,vp.z); CURP.add(g);
     const gl=new THREE.PointLight(0x39ff8a,1.2,14); gl.position.set(vp.x,by+1.5,vp.z); flight(gl,fl);
     valves.push({grp:g,x:vp.x,z:vp.z,f:fl,got:false,light:gl}); }
   // MUESTRAS de antídoto (3, repartidas) — vial morado
@@ -230,9 +244,10 @@ function buildFloor(fl){
     const g=new THREE.Group();
     g.add(new THREE.Mesh(new THREE.CylinderGeometry(0.32,0.32,1.1,12),new THREE.MeshStandardMaterial({color:0xb14bff,emissive:0x3a0a6a,emissiveIntensity:.8,transparent:true,opacity:.85})));
     const cap=new THREE.Mesh(new THREE.CylinderGeometry(0.36,0.36,0.25,12),new THREE.MeshStandardMaterial({color:0xdcdcff,emissive:0x222266,emissiveIntensity:.4})); cap.position.y=0.65; g.add(cap);
-    g.position.set(sp.x,by+1,sp.z); scene.add(g);
+    g.position.set(sp.x,by+1,sp.z); CURP.add(g);
     const gl=new THREE.PointLight(0xb14bff,1.2,14); gl.position.set(sp.x,by+1.5,sp.z); flight(gl,fl);
     samples.push({grp:g,x:sp.x,z:sp.z,f:fl,got:false,light:gl}); }
+  CURP=ROOT;   // fin del piso: vuelve el destino a la escena
 }
 function inSafe(x,z,fl){ return fl===safeZone.f && Math.hypot(x-safeZone.x,z-safeZone.z)<safeZone.r; }
 
@@ -274,7 +289,7 @@ function makeSpider(){
     const tib=new THREE.Mesh(new THREE.CylinderGeometry(0.1,0.04,4.6,8),dark); tib.position.set(side*3.5,-0.4,0); tib.rotation.z=side*(-0.55); leg.add(tib);            // baja quebrada al piso
     for(let k=0;k<3;k++){ const spk=new THREE.Mesh(new THREE.ConeGeometry(0.09,0.55,5),dark); spk.position.set(side*(1.2+k*0.75),1.4+k*0.35,0); spk.rotation.z=side*(-1.3); leg.add(spk); }   // púas tipo cuchilla
     leg.rotation.y=side*(0.55-i*0.34); leg.userData.base=0; g.add(leg); legs.push(leg); }
-  scene.add(g);
+  CURP.add(g);
   return {grp:g,sp:3.2,legs,bodyMats,eyes,eyeGlow,camo:0.14,ambushT:8,wdir:0,invPhase:false,invT:30,climb:0,pingT:0};
 }
 for(let f=0;f<FLOORS;f++) buildFloor(f);
@@ -350,7 +365,8 @@ function update(dt){
   camera.position.set(P.x,by+P.y,P.z); camera.rotation.y=yaw; camera.rotation.x=pitch;
   flash.intensity = flashOn?11:0; flashGlow.intensity = flashOn?1.2:0;
   ambient.intensity = nvOn?0.9:0.05;   // visión nocturna: ilumina todo (verde por overlay)
-  // 💡 las luces de piso SOLO se encienden en el piso donde estás (no se filtran entre pisos)
+  // 🎥 SOLO se renderiza el piso actual (rendimiento) + luces de ese piso
+  for(let i=0;i<FLOORS;i++){ const fgv=floorGroups[i]; if(fgv) fgv.visible=(i===curFloor); }
   for(const L of floorLights) L.visible = (L.userData.fl===curFloor);
   for(const fk of flick){ fk.l.intensity = fk.base*(Math.random()<0.08?0.15:1); }
 
@@ -373,10 +389,9 @@ function update(dt){
   const sameFloor = spiderFloor===curFloor;
   spider.grp.position.y=spiderFloor*FLOOR_H;
   const sx=P.x-spider.grp.position.x, sz=P.z-spider.grp.position.z, sd=sameFloor?Math.hypot(sx,sz):999;
-  // 👻 INVISIBILIDAD: 30s invisible / 30s visible (invisible SOLO se ve con el VISOR)
-  spider.invT-=dt; if(spider.invT<=0){ spider.invPhase=!spider.invPhase; spider.invT=30; snd(spider.invPhase?190:640,"sawtooth",0.4,0.1); if(spider.invPhase) showStory("🕷️ ...se desvaneció en la oscuridad... ¡usa el VISOR 🥽 para verla!"); else showStory("🕷️ ...vuelve a ser visible..."); }
+  // 👻 INVISIBILIDAD: 30s invisible / 30s visible — SIN AVISO (solo con el VISOR la ves)
+  spider.invT-=dt; if(spider.invT<=0){ spider.invPhase=!spider.invPhase; spider.invT=30; }
   const invHidden = spider.invPhase && !nvOn;
-  $("invtag").style.display = (spider.invPhase && sameFloor && !spiderDead && !nvOn) ? "block" : "none";
   if(!spiderDead && flashOn){ spider.ambushT-=dt;   // 🔦 SOLO se teletransporta con la linterna PRENDIDA
     if(spider.ambushT<=0){ spider.ambushT=10;
       if(sameFloor){ const fx=-Math.sin(yaw), fz=-Math.cos(yaw), dist=7+Math.random()*2; const sp2=safeSpotF(P.x+fx*dist,P.z+fz*dist,curFloor);   // aparece ADELANTE
