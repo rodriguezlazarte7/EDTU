@@ -131,6 +131,8 @@ const chamber={x0:0,x1:0,z0:0,z1:0}; let doorMesh=null,doorWall=null,gasMesh=nul
 const valves=[]; let valvesGot=0, armed=false;
 const safeZone={x:-HH+16,z:HH-16,r:8,f:0};
 const flick=[];                                    // luces que parpadean
+const floorLights=[];                              // luces que SOLO se encienden en su piso
+function flight(l,fl){ l.userData.fl=fl; scene.add(l); floorLights.push(l); return l; }
 
 function room(cx,cz,open,by,fl){ const w=13,dp=11,h=4;
   box(cx,by+h/2,cz-dp/2,w,h,0.4,roomM); addWall(cx-w/2,cx+w/2,cz-dp/2-0.2,cz-dp/2+0.2,fl);
@@ -154,7 +156,7 @@ function buildFloor(fl){
   for(const px of [-24,24])for(const pz of [-30,0,30]){ box(px,by+HHY/2,pz,2,HHY,2,wallM); addWall(px-1,px+1,pz-1,pz+1,fl); }
   // luces de emergencia: muchos PUNTOS baratos (emisivos) + pocas luces reales (rendimiento)
   for(const px of [-38,-12,12,38])for(const pz of [-38,-12,12,38]){ const b=new THREE.Mesh(new THREE.SphereGeometry(0.16,6,6),new THREE.MeshBasicMaterial({color:FLTINT[fl]})); b.position.set(px,by+6.8,pz); scene.add(b); }
-  for(const p of [[-28,-28],[28,-28],[0,28]]){ const el=new THREE.PointLight(FLTINT[fl],0.7,30); el.position.set(p[0],by+7,p[1]); scene.add(el); flick.push({l:el,base:0.7}); }
+  for(const p of [[-28,-28],[28,-28],[0,28]]){ const el=new THREE.PointLight(FLTINT[fl],0.7,30); el.position.set(p[0],by+7,p[1]); flight(el,fl); flick.push({l:el,base:0.7}); }
   // telarañas + capullos
   const webMat=new THREE.MeshBasicMaterial({color:0xcfd6d0,transparent:true,opacity:0.15,side:THREE.DoubleSide});
   const cocoonMat=new THREE.MeshStandardMaterial({color:0xd8d2c4,roughness:.95,transparent:true,opacity:0.85});
@@ -167,15 +169,15 @@ function buildFloor(fl){
     box(gx,by+0.7,gz,1.2,0.2,2.4,bedM); for(const c of [[-.5,-1],[.5,-1],[-.5,1],[.5,1]]){ const wl=new THREE.Mesh(new THREE.CylinderGeometry(0.04,0.04,0.6,6),bedM); wl.position.set(gx+c[0],by+0.35,gz+c[1]); scene.add(wl);} }
   // ESCALERAS (marcadores): subir (verde) / bajar (azul)
   if(fl<FLOORS-1){ const rup=new THREE.Mesh(new THREE.TorusGeometry(1.1,0.16,10,26),new THREE.MeshBasicMaterial({color:0x39ff5a})); rup.rotation.x=-Math.PI/2; rup.position.set(STAIRX,by+0.15,STAIRZ-3); scene.add(rup);
-    const lu=new THREE.PointLight(0x39ff5a,0.9,10); lu.position.set(STAIRX,by+1.4,STAIRZ-3); scene.add(lu);
+    const lu=new THREE.PointLight(0x39ff5a,0.9,10); lu.position.set(STAIRX,by+1.4,STAIRZ-3); flight(lu,fl);
     for(let s=0;s<6;s++){ box(STAIRX,by+0.4+s*0.5,STAIRZ-3-s*0.4,3,0.3,0.5,wallM); } }
   if(fl>0){ const rdn=new THREE.Mesh(new THREE.TorusGeometry(1.1,0.16,10,26),new THREE.MeshBasicMaterial({color:0x2ea6ff})); rdn.rotation.x=-Math.PI/2; rdn.position.set(STAIRX,by+0.15,STAIRZ+3); scene.add(rdn);
-    const ld=new THREE.PointLight(0x2ea6ff,0.9,10); ld.position.set(STAIRX,by+1.4,STAIRZ+3); scene.add(ld); }
+    const ld=new THREE.PointLight(0x2ea6ff,0.9,10); ld.position.set(STAIRX,by+1.4,STAIRZ+3); flight(ld,fl); }
   // per-piso especiales
   if(fl===0){
     // ZONA SEGURA (bunker marcado)
     const sz=safeZone; const rz2=new THREE.Mesh(new THREE.RingGeometry(sz.r-0.7,sz.r,40),new THREE.MeshBasicMaterial({color:0x39ff5a,transparent:true,opacity:.5,side:THREE.DoubleSide})); rz2.rotation.x=-Math.PI/2; rz2.position.set(sz.x,0.06,sz.z); scene.add(rz2);
-    const szl=new THREE.PointLight(0x39ff8a,1.1,sz.r*3); szl.position.set(sz.x,3,sz.z); scene.add(szl);
+    const szl=new THREE.PointLight(0x39ff8a,1.1,sz.r*3); szl.position.set(sz.x,3,sz.z); flight(szl,0);
     const pole=new THREE.Mesh(new THREE.CylinderGeometry(0.16,0.16,4.5,8),new THREE.MeshStandardMaterial({color:0x2a6a3a})); pole.position.set(sz.x,2.25,sz.z); scene.add(pole);
     // CÁMARA DE GAS
     const cCX=-HH+13, cCZ=-HH+13, cs=7; chamber.x0=cCX-cs; chamber.x1=cCX+cs; chamber.z0=cCZ-cs; chamber.z1=cCZ+cs;
@@ -188,11 +190,11 @@ function buildFloor(fl){
     doorMesh=box(cCX,2.5,cCZ+cs,gap*2,5,0.5,new THREE.MeshStandardMaterial({color:0x3a4a3a,metalness:.5,roughness:.5})); doorMesh.visible=false;
     doorWall={x0:99990,x1:99991,z0:99990,z1:99991,f:0}; walls.push(doorWall);
     gasMesh=new THREE.Mesh(new THREE.BoxGeometry(cs*2-0.6,4.6,cs*2-0.6),new THREE.MeshBasicMaterial({color:0x39ff5a,transparent:true,opacity:0})); gasMesh.position.set(cCX,2.3,cCZ); gasMesh.visible=false; scene.add(gasMesh);
-    const cl=new THREE.PointLight(0x39ff5a,0.7,12); cl.position.set(cCX,3,cCZ); scene.add(cl);
+    const cl=new THREE.PointLight(0x39ff5a,0.7,12); cl.position.set(cCX,3,cCZ); flight(cl,0);
     leverPad.x=cCX; leverPad.z=cCZ+cs+2.4;
     box(leverPad.x,0.06,leverPad.z,2.4,0.1,2.4,new THREE.MeshBasicMaterial({color:0x2a0006}));
     const lr=new THREE.Mesh(new THREE.TorusGeometry(0.9,0.14,8,22),new THREE.MeshBasicMaterial({color:0xff2b2b})); lr.rotation.x=-Math.PI/2; lr.position.set(leverPad.x,0.16,leverPad.z); scene.add(lr);
-    const lrl=new THREE.PointLight(0xff2b2b,1,7); lrl.position.set(leverPad.x,1,leverPad.z); scene.add(lrl);
+    const lrl=new THREE.PointLight(0xff2b2b,1,7); lrl.position.set(leverPad.x,1,leverPad.z); flight(lrl,0);
   }
   // válvulas en pisos 1 y 2
   if(fl===1||fl===2){ const vp=fl===1?[-HH+16,-HH+16]:[HH-16,HH-16];
@@ -200,8 +202,8 @@ function buildFloor(fl){
     const body=new THREE.Mesh(new THREE.CylinderGeometry(0.5,0.5,0.8,10),new THREE.MeshStandardMaterial({color:0x39ff8a,emissive:0x0a5a2a,emissiveIntensity:.8,roughness:.5})); g.add(body);
     const wheel=new THREE.Mesh(new THREE.TorusGeometry(0.55,0.12,8,16),new THREE.MeshStandardMaterial({color:0xbfffcf,emissive:0x0a5a2a,emissiveIntensity:.6})); wheel.rotation.x=Math.PI/2; wheel.position.y=0.5; g.add(wheel);
     g.position.set(vp[0],by+1,vp[1]); scene.add(g);
-    const gl=new THREE.PointLight(0x39ff8a,1.2,14); gl.position.set(vp[0],by+1.5,vp[1]); scene.add(gl);
-    valves.push({grp:g,x:vp[0],z:vp[1],f:fl,got:false}); }
+    const gl=new THREE.PointLight(0x39ff8a,1.2,14); gl.position.set(vp[0],by+1.5,vp[1]); flight(gl,fl);
+    valves.push({grp:g,x:vp[0],z:vp[1],f:fl,got:false,light:gl}); }
 }
 function inSafe(x,z,fl){ return fl===safeZone.f && Math.hypot(x-safeZone.x,z-safeZone.z)<safeZone.r; }
 
@@ -270,7 +272,7 @@ function start(){ $("start").classList.add("hide"); $("end").classList.add("hide
   P.x=0; P.z=HH-7; yaw=Math.PI; pitch=0; running=true; gameOver=false; tPrev=performance.now(); flashOn=true; curFloor=0; floorCd=0;
   if(nvOn) toggleNV();
   spiderDead=false; gasOn=false; gasT=0; doorClosed=false; doorTimer=0; valvesGot=0; armed=false; hbT=0; spiderFloor=0;
-  valves.forEach(v=>{ v.got=false; v.grp.visible=true; });
+  valves.forEach(v=>{ v.got=false; v.grp.visible=true; if(v.light) v.light.userData.fl=v.f; });
   openDoor(); if(spider){ spider.grp.visible=true; spider.grp.rotation.z=0; spider.grp.scale.setScalar(1); spider.grp.position.set(0,0,-HH+22); spider.camo=0.12; spider.ambushT=8; spider.bodyMats.forEach(m=>m.opacity=0.12); }
   $("floor").textContent=FLOORNAME[0]; updObj(); showStory("3 pisos a oscuras... escuchas patas. Sube a buscar las 2 válvulas.");
 }
@@ -298,7 +300,8 @@ function update(dt){
   camera.position.set(P.x,by+P.y,P.z); camera.rotation.y=yaw; camera.rotation.x=pitch;
   flash.intensity = flashOn?11:0; flashGlow.intensity = flashOn?1.2:0;
   ambient.intensity = nvOn?0.9:0.05;   // visión nocturna: ilumina todo (verde por overlay)
-  // luces que parpadean (ambiente)
+  // 💡 las luces de piso SOLO se encienden en el piso donde estás (no se filtran entre pisos)
+  for(const L of floorLights) L.visible = (L.userData.fl===curFloor);
   for(const fk of flick){ fk.l.intensity = fk.base*(Math.random()<0.08?0.15:1); }
 
   // escaleras (cambiar de piso)
@@ -308,7 +311,7 @@ function update(dt){
 
   // válvulas (solo del piso actual)
   for(const v of valves){ if(v.got||v.f!==curFloor) continue; v.grp.rotation.y+=dt*1.6;
-    if(Math.hypot(P.x-v.x,P.z-v.z)<1.9){ v.got=true; v.grp.visible=false; valvesGot++; snd(700,"triangle",0.2,0.09); if(valvesGot>=2){ armed=true; showStory("☣️ ¡Cámara de gas ACTIVADA! Baja a la planta baja y atrae a la araña."); } else showStory("🔧 Válvula "+valvesGot+"/2"); updObj(); } }
+    if(Math.hypot(P.x-v.x,P.z-v.z)<1.9){ v.got=true; v.grp.visible=false; if(v.light){ v.light.visible=false; v.light.userData.fl=-1; } valvesGot++; snd(700,"triangle",0.2,0.09); if(valvesGot>=2){ armed=true; showStory("☣️ ¡Cámara de gas ACTIVADA! Baja a la planta baja y atrae a la araña."); } else showStory("🔧 Válvula "+valvesGot+"/2"); updObj(); } }
 
   // zumbido
   droneT-=dt; if(droneT<=0){ droneT=2.5+Math.random()*2.5; snd(38+Math.random()*8,"sawtooth",1.1,0.03); }
