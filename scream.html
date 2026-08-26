@@ -318,7 +318,7 @@ function update(dt){
   const sameFloor = spiderFloor===curFloor;
   spider.grp.position.y=spiderFloor*FLOOR_H;
   const sx=P.x-spider.grp.position.x, sz=P.z-spider.grp.position.z, sd=sameFloor?Math.hypot(sx,sz):999;
-  if(!spiderDead){ spider.ambushT-=dt;
+  if(!spiderDead && flashOn){ spider.ambushT-=dt;   // 🔦 SOLO se teletransporta con la linterna PRENDIDA
     if(spider.ambushT<=0){ spider.ambushT=10;
       if(sameFloor){ const fx=-Math.sin(yaw), fz=-Math.cos(yaw), dist=7+Math.random()*2; const sp2=safeSpotF(P.x+fx*dist,P.z+fz*dist,curFloor);   // aparece ADELANTE
           spider.grp.position.x=sp2.x; spider.grp.position.z=sp2.z; spider.camo=1; snd(60,"sawtooth",0.7,0.18); snd(1300,"square",0.18,0.12); const sf=$("sflash"); if(sf){ sf.style.opacity="0.55"; setTimeout(()=>sf.style.opacity="0",90);} showStory("🕷️ ¡APARECIÓ FRENTE A TI!"); }
