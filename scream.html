@@ -56,6 +56,8 @@
   #tnv{right:110px;bottom:110px;background:rgba(40,220,120,.2);border:3px solid rgba(90,255,170,.6)}
   .tbtn:active{transform:scale(.9)}
   #tmap{right:110px;bottom:196px;background:rgba(180,120,255,.2);border:3px solid rgba(200,160,255,.6)}
+  #tflare{right:196px;bottom:110px;background:rgba(255,150,60,.2);border:3px solid rgba(255,180,90,.6)}
+  #flareC{position:absolute;top:138px;left:14px;font:700 13px Consolas,monospace;color:#ffb060;text-shadow:0 0 6px #000}
   #map{position:fixed;inset:0;z-index:7;display:none;flex-direction:column;align-items:center;justify-content:center;background:rgba(4,0,6,.92)}
   #map.on{display:flex}
   #map h3{font-family:"Consolas",monospace;color:#b14bff;letter-spacing:.1em;margin-bottom:8px}
@@ -85,6 +87,7 @@
   <canvas id="radar" width="92" height="92"></canvas>
   <div id="hp">❤️❤️❤️</div>
   <div id="visorB">🥽 VISOR<div><i></i></div></div>
+  <div id="flareC">🧨 x3</div>
   <div id="invtag">🕷️ LA ARAÑA SE VOLVIÓ INVISIBLE — usa el VISOR 🥽</div>
   <div id="hint"></div>
   <div id="stam"><i></i></div>
@@ -102,6 +105,7 @@
 <button id="tnv" class="tbtn hide">🥽</button>
 <button id="sprint" class="tbtn hide">🏃</button>
 <button id="tmap" class="tbtn hide">🗺️</button>
+<button id="tflare" class="tbtn hide">🧨</button>
 <div id="map"><h3>🗺️ MAPA DEL PISO</h3><canvas id="mapC" width="320" height="320"></canvas><p>M o 🗺️ para cerrar · 🟢 válvula · 🟣 muestra · 🔴 araña · 🟡 tú</p></div>
 <div id="fade"></div>
 
@@ -117,7 +121,7 @@ En tu ZONA SEGURA hay una MÁQUINA para fabricar el ANTÍDOTO. Recorre los 7 pis
 Tienes BINOCULARES de visión nocturna para ver en la oscuridad sin delatarte.
 
 No dejes que te encuentre. El tiempo corre.</div>
-  <p style="color:#c99;font-size:12px;max-width:540px">🎮 WASD/joystick moverte · ratón/dedo mirar · <b>CLIC IZQ / RT / 🔦 = LINTERNA</b> · <b>CLIC DER / LT / 🥽 = VISIÓN NOCTURNA</b> · 🕷️ la araña <b>TREPA las paredes</b> y se <b>vuelve INVISIBLE 30s cada 30s</b> (¡solo la ves con el VISOR 🥽!) · sigue el <b>RADAR</b> (arriba-izq) que la marca a ratos · <b>SHIFT / 🏃 = CORRER</b> (gasta stamina) · <b>M / 🗺️ = MAPA</b> del piso (te quedas quieto: ¡ojo!) · tienes <b>3 ❤️</b> — te recuperas en la ZONA SEGURA · solo te caza con la linterna encendida</p>
+  <p style="color:#c99;font-size:12px;max-width:540px">🎮 WASD/joystick moverte · ratón/dedo mirar · <b>CLIC IZQ / RT / 🔦 = LINTERNA</b> · <b>CLIC DER / LT / 🥽 = VISIÓN NOCTURNA</b> · 🕷️ la araña <b>TREPA las paredes</b> y se <b>vuelve INVISIBLE 30s cada 30s</b> (¡solo la ves con el VISOR 🥽!) · sigue el <b>RADAR</b> (arriba-izq) que la marca a ratos · <b>SHIFT / 🏃 = CORRER</b> (gasta stamina) · <b>M / 🗺️ = MAPA</b> · <b>G / 🧨 = BENGALA</b> (luz que NO te delata) · tienes <b>3 ❤️</b> — te recuperas en la ZONA SEGURA · solo te caza con la linterna encendida</p>
   <div id="diffs"></div>
   <p id="bestT" style="color:#ffd15a;font-weight:800;font-size:13px;position:relative;z-index:2"></p>
   <button class="btn" id="startBtn">▶ ENTRAR AL HOSPITAL</button>
@@ -364,7 +368,14 @@ function toggleFlash(){ if(!running) return; flashOn=!flashOn; snd(flashOn?520:1
 function toggleNV(){ if(!running) return; if(!nvOn && visorBatt<10){ snd(150,"square",0.15,0.08); showStory("🥽 Visor sin batería — espera a que cargue"); return; } nvOn=!nvOn; snd(nvOn?900:300,"square",0.08,0.06);
   $("nv").classList.toggle("on",nvOn); $("nvln").classList.toggle("on",nvOn); $("nvui").classList.toggle("on",nvOn);
   camera.fov=nvOn?40:78; camera.updateProjectionMatrix(); }
-let mapOpen=false, noteTimer;
+let mapOpen=false, noteTimer, flares=3; const activeFlares=[];
+function updFlareHUD(){ const el=$("flareC"); if(el) el.textContent="🧨 x"+flares; }
+function throwFlare(){ if(!running||gameOver||flares<=0) return; flares--; updFlareHUD();
+  const fx=-Math.sin(yaw), fz=-Math.cos(yaw); let x=P.x+fx*7, z=P.z+fz*7; x=Math.max(-HH+2,Math.min(HH-2,x)); z=Math.max(-HH+2,Math.min(HH-2,z));
+  const sp=safeSpotF(x,z,curFloor); const by=curFloor*FLOOR_H, grp=floorGroups[curFloor]||scene;
+  const glow=new THREE.Mesh(new THREE.SphereGeometry(0.3,10,8),new THREE.MeshBasicMaterial({color:0xff7a1a})); glow.position.set(sp.x,by+0.3,sp.z); grp.add(glow);
+  const light=new THREE.PointLight(0xff8a2a,2.6,22); light.position.set(sp.x,by+1.2,sp.z); grp.add(light);
+  activeFlares.push({glow,light,parent:grp,life:16}); snd(300,"sawtooth",0.2,0.08); showStory("🧨 Bengala encendida (no delata como la linterna)"); }
 function toggleMap(){ if(!running) return; mapOpen=!mapOpen; $("map").classList.toggle("on",mapOpen); snd(mapOpen?500:280,"square",0.05,0.05); if(mapOpen) drawMap(); }
 function drawMap(){ const c=$("mapC"); if(!c) return; const g=c.getContext("2d"); g.clearRect(0,0,320,320);
   const sc=300/(HH*2), w2m=(x,z)=>[160+x*sc,160+z*sc];
@@ -378,7 +389,7 @@ function drawMap(){ const c=$("mapC"); if(!c) return; const g=c.getContext("2d")
   for(const v of notes){ if(v.f!==curFloor||v.got) continue; const p=w2m(v.x,v.z); g.fillStyle="#efe0a0"; g.fillRect(p[0]-3,p[1]-4,6,8); }
   if(spiderFloor===curFloor && !spiderDead){ const p=w2m(spider.grp.position.x,spider.grp.position.z); g.fillStyle="#ff2a2a"; g.shadowColor="#f00"; g.shadowBlur=8; g.beginPath(); g.arc(p[0],p[1],5,0,6.28); g.fill(); g.shadowBlur=0; }
   const pp=w2m(P.x,P.z), fx=-Math.sin(yaw), fz=-Math.cos(yaw); g.fillStyle="#ffd12e"; g.beginPath(); g.moveTo(pp[0]+fx*8,pp[1]+fz*8); g.lineTo(pp[0]-fz*5-fx*4,pp[1]+fx*5-fz*4); g.lineTo(pp[0]+fz*5-fx*4,pp[1]-fx*5-fz*4); g.closePath(); g.fill(); }
-addEventListener("keydown",e=>{ keys[e.code]=true; if(e.code==="KeyF") toggleFlash(); if(e.code==="KeyM") toggleMap(); if(e.code==="ShiftLeft"||e.code==="ShiftRight") sprintHeld=true; },true);
+addEventListener("keydown",e=>{ keys[e.code]=true; if(e.code==="KeyF") toggleFlash(); if(e.code==="KeyM") toggleMap(); if(e.code==="KeyG") throwFlare(); if(e.code==="ShiftLeft"||e.code==="ShiftRight") sprintHeld=true; },true);
 addEventListener("keyup",e=>{ keys[e.code]=false; if(e.code==="ShiftLeft"||e.code==="ShiftRight") sprintHeld=false; },true);
 addEventListener("mousemove",e=>{ if(!running) return; yaw-=(e.movementX||0)*0.0022; pitch=Math.max(-1.3,Math.min(1.3,pitch-(e.movementY||0)*0.0022)); });
 canvas.addEventListener("mousedown",e=>{ if(!running) return;
@@ -396,7 +407,7 @@ canvas.addEventListener("pointerup",e=>{ if(e.pointerId===lookId) lookId=null; }
 $("tflash").onclick=toggleFlash; $("tnv").onclick=toggleNV;
 $("sprint").addEventListener("pointerdown",e=>{ sprintHeld=true; e.preventDefault(); });
 ["pointerup","pointercancel","pointerleave"].forEach(ev=>$("sprint").addEventListener(ev,()=>{ sprintHeld=false; }));
-$("tmap").onclick=toggleMap; $("map").addEventListener("click",()=>{ if(mapOpen) toggleMap(); });
+$("tmap").onclick=toggleMap; $("map").addEventListener("click",()=>{ if(mapOpen) toggleMap(); }); $("tflare").onclick=throwFlare;
 
 function showStory(txt){ const s=$("story"); s.textContent=txt; s.style.display="block"; clearTimeout(s._t); s._t=setTimeout(()=>s.style.display="none",3800); }
 // 🏆 mejor tiempo (localStorage, con try/catch)
@@ -423,13 +434,14 @@ function goFloor(nf){ if(nf<0||nf>=FLOORS) return; fade(()=>{ curFloor=nf; floor
 function randSpotOnFloor(fl){ let x,z,t=0; do{ x=(Math.random()*2-1)*(HH-7); z=(Math.random()*2-1)*(HH-7); t++; }while((collide(x,z,fl)||inSafe(x,z,fl)||Math.hypot(x-STAIRX,z-STAIRZ)<7)&&t<50); return {x,z}; }
 function reposition(arr,yoff){ for(const v of arr){ const s=randSpotOnFloor(v.f); v.x=s.x; v.z=s.z; v.grp.position.set(s.x,v.f*FLOOR_H+yoff,s.z); if(v.light) v.light.position.set(s.x,v.f*FLOOR_H+yoff+0.4,s.z); } }
 function start(){ $("start").classList.add("hide"); $("end").classList.add("hide"); $("hud").classList.remove("hide");
-  if(touchUI){ $("touch").classList.add("on"); $("tflash").classList.remove("hide"); $("tnv").classList.remove("hide"); $("sprint").classList.remove("hide"); $("tmap").classList.remove("hide"); }
+  if(touchUI){ $("touch").classList.add("on"); $("tflash").classList.remove("hide"); $("tnv").classList.remove("hide"); $("sprint").classList.remove("hide"); $("tmap").classList.remove("hide"); $("tflare").classList.remove("hide"); }
   mapOpen=false; $("map").classList.remove("on");
   P.x=0; P.z=HH-7; yaw=Math.PI; pitch=0; running=true; gameOver=false; tPrev=performance.now(); flashOn=true; curFloor=0; floorCd=0;
   if(nvOn) toggleNV();
   const D=DIFFS[diff]; hpMax=D.hp; invDur=D.inv; ambushInt=D.amb; gameTime=D.time;
   spiderDead=false; valvesGot=0; samplesGot=0; craftT=0; timeLeft=gameTime; won=false; hbT=0; spiderFloor=0;
   hp=hpMax; stam=100; hurtCd=0; safeTime=0; sprintHeld=false; visorBatt=100; updHP(); $("crack").style.opacity="0";
+  activeFlares.forEach(f=>{ if(f.parent){ f.parent.remove(f.glow); f.parent.remove(f.light); } }); activeFlares.length=0; flares=3; updFlareHUD();
   if(spider) spider.sp=D.sp;
   valves.forEach(v=>{ v.got=false; v.grp.visible=true; if(v.light) v.light.userData.fl=v.f; });
   samples.forEach(v=>{ v.got=false; v.grp.visible=true; if(v.light) v.light.userData.fl=v.f; });
@@ -440,7 +452,7 @@ function start(){ $("start").classList.add("hide"); $("end").classList.add("hide
   $("invtag").style.display="none";
   $("floor").textContent=FLOORNAME[0]; updObj(); showStory("7 pisos a oscuras. Tienes 20 min: reúne 4 válvulas + 3 muestras y fabrica el antídoto en tu zona segura.");
 }
-function endGame(win,info){ running=false; gameOver=true; sprintHeld=false; try{document.exitPointerLock();}catch(e){} $("touch").classList.remove("on"); $("tflash").classList.add("hide"); $("tnv").classList.add("hide"); $("sprint").classList.add("hide"); $("tmap").classList.add("hide"); mapOpen=false; $("map").classList.remove("on");
+function endGame(win,info){ running=false; gameOver=true; sprintHeld=false; try{document.exitPointerLock();}catch(e){} $("touch").classList.remove("on"); $("tflash").classList.add("hide"); $("tnv").classList.add("hide"); $("sprint").classList.add("hide"); $("tmap").classList.add("hide"); $("tflare").classList.add("hide"); mapOpen=false; $("map").classList.remove("on");
   $("end").classList.remove("hide"); const t=$("endTitle"); if(win){ t.textContent="✓ SOBREVIVISTE"; t.className="big win"; } else { t.textContent="✕ TE ATRAPÓ"; t.className="big lose"; }
   $("endInfo").innerHTML=info; snd(win?660:60,win?"triangle":"sawtooth",0.6,0.13);
 }
@@ -500,6 +512,10 @@ function update(dt){
     if(Math.hypot(P.x-v.x,P.z-v.z)<1.9){ v.got=true; v.grp.visible=false; if(v.light){ v.light.visible=false; v.light.userData.fl=-1; } notesGot++; snd(520,"triangle",0.15,0.07);
       const nn=$("note"); nn.innerHTML="<b>📄 "+v.h+" · Nota "+notesGot+"/6</b>"+v.t; nn.classList.add("on"); clearTimeout(noteTimer); noteTimer=setTimeout(()=>nn.classList.remove("on"),7000); } }
 
+  // 🧨 bengalas activas (parpadean y se apagan)
+  for(let i=activeFlares.length-1;i>=0;i--){ const fr=activeFlares[i]; fr.life-=dt;
+    if(fr.life<=0){ fr.parent.remove(fr.glow); fr.parent.remove(fr.light); activeFlares.splice(i,1); }
+    else fr.light.intensity = (fr.life<3?2.6*(fr.life/3):2.6)*(0.8+0.2*Math.random()); }
   // zumbido ominoso + goteras (ambiente de terror)
   droneT-=dt; if(droneT<=0){ droneT=2.5+Math.random()*2.5; snd(38+Math.random()*8,"sawtooth",1.1,0.03); }
   if(Math.random()<dt*0.35) snd(760+Math.random()*500,"sine",0.07,0.02);   // gotera lejana
