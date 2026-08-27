@@ -378,7 +378,8 @@ spider=makeSpider();
 // ---------- jugador / input ----------
 const P={x:0,z:HH-7,y:1.7};
 let yaw=Math.PI,pitch=0,running=false,gameOver=false,tPrev=0,flashOn=true,nvOn=false,curFloor=0,floorCd=0,prevRT=false,prevLT=false;
-let hp=3, hpMax=3, hurtCd=0, stam=100, sprintHeld=false, safeTime=0, visorBatt=100;
+let hp=3, hpMax=3, hurtCd=0, stam=100, sprintHeld=false, safeTime=0, visorBatt=100, stepT=0;
+function vib(p){ try{ if(navigator.vibrate) navigator.vibrate(p); }catch(e){} }
 let diff="normal", invDur=30, ambushInt=10, gameTime=1200;
 const DIFFS={facil:{sp:2.6,inv:20,time:1500,hp:4,amb:14,lbl:"🟢 FÁCIL"},normal:{sp:3.2,inv:30,time:1200,hp:3,amb:10,lbl:"🟡 NORMAL"},pesadilla:{sp:3.9,inv:40,time:900,hp:2,amb:8,lbl:"🔴 PESADILLA"}};
 function buildDiffs(){ const c=$("diffs"); if(!c) return; c.innerHTML=""; for(const k of ["facil","normal","pesadilla"]){ const b=document.createElement("button"); b.className="diffbtn"+(diff===k?" sel":""); b.textContent=DIFFS[k].lbl; b.onclick=()=>{ diff=k; buildDiffs(); }; c.appendChild(b); } }
@@ -505,6 +506,8 @@ function update(dt){
   if(mapOpen){ f=0; s=0; drawMap(); }   // con el mapa abierto te quedas quieto (¡la araña sigue viniendo!)
   const sin=Math.sin(yaw),cos=Math.cos(yaw);
   const moving=(f||s), sprinting=sprintHeld&&stam>3&&moving;
+  // 👣 pasos del jugador (más rápidos al correr)
+  if(moving && !mapOpen){ stepT-=dt; if(stepT<=0){ stepT=sprinting?0.28:0.46; snd(66+Math.random()*16,"sine",0.09,0.05); snd(150,"triangle",0.05,0.025); } } else stepT=0.12;
   stam = Math.max(0,Math.min(100, stam + (sprinting?-dt*26:dt*17)));   // stamina
   const stI=$("stam").firstElementChild; if(stI) stI.style.width=stam+"%"; $("stam").style.opacity=(stam<99||sprinting)?"1":"0.35";
   const spdP=(nvOn?4.2:6.4)*(sprinting?1.7:1);
@@ -558,7 +561,7 @@ function update(dt){
   if(!spiderDead && flashOn){ spider.ambushT-=dt;   // 🔦 SOLO se teletransporta con la linterna PRENDIDA
     if(spider.ambushT<=0){ spider.ambushT=ambushInt*(1-panic*0.45);   // se teletransporta más seguido con poco tiempo
       if(sameFloor){ const fx=-Math.sin(yaw), fz=-Math.cos(yaw), dist=7+Math.random()*2; const sp2=safeSpotF(P.x+fx*dist,P.z+fz*dist,curFloor);   // aparece ADELANTE
-          spider.grp.position.x=sp2.x; spider.grp.position.z=sp2.z; spider.camo=1; snd(60,"sawtooth",0.7,0.18); snd(1300,"square",0.18,0.12); const sf=$("sflash"); if(sf){ sf.style.opacity="0.55"; setTimeout(()=>sf.style.opacity="0",90);} doCrack(); showStory("🕷️ ¡APARECIÓ FRENTE A TI!"); }
+          spider.grp.position.x=sp2.x; spider.grp.position.z=sp2.z; spider.camo=1; snd(60,"sawtooth",0.7,0.18); snd(1300,"square",0.18,0.12); const sf=$("sflash"); if(sf){ sf.style.opacity="0.55"; setTimeout(()=>sf.style.opacity="0",90);} doCrack(); vib([0,40,30,50]); showStory("🕷️ ¡APARECIÓ FRENTE A TI!"); }
       else { spiderFloor=curFloor; const sp2=safeSpotF(STAIRX,STAIRZ,curFloor); spider.grp.position.x=sp2.x; spider.grp.position.z=sp2.z; spider.camo=1; snd(80,"sawtooth",0.9,0.16); snd(1000,"square",0.3,0.1); showStory("🕷️ ¡SUBIÓ POR LAS ESCALERAS a tu piso!"); } } }
   if(sameFloor && !spiderDead){
     const hunts = flashOn && !inSafe(P.x,P.z,curFloor);   // solo caza con LINTERNA (y no en zona segura)
@@ -591,7 +594,7 @@ function update(dt){
     if(sd<11){ const k=(11-sd)*0.018; camera.position.x+=(Math.random()-0.5)*k; camera.position.y+=(Math.random()-0.5)*k; }
     if(sd<8) danger=true;
     // 💥 CONTACTO: pierde 1 corazón (no muere de una), con empujón y destello
-    if(sd<1.8 && hurtCd<=0 && !gameOver && !inSafe(P.x,P.z,curFloor)){ hp--; hurtCd=1.5; updHP(); snd(90,"sawtooth",0.4,0.14); snd(1500,"square",0.14,0.1);
+    if(sd<1.8 && hurtCd<=0 && !gameOver && !inSafe(P.x,P.z,curFloor)){ hp--; hurtCd=1.5; updHP(); vib(160); snd(90,"sawtooth",0.4,0.14); snd(1500,"square",0.14,0.1);
       const sf=$("sflash"); if(sf){ sf.style.opacity="0.7"; setTimeout(()=>sf.style.opacity="0",110); } doCrack();
       const kx=Math.max(-HH+1,Math.min(HH-1,P.x+sx/(sd||1)*2.6)), kz=Math.max(-HH+1,Math.min(HH-1,P.z+sz/(sd||1)*2.6));
       if(!collide(kx,P.z,curFloor)) P.x=kx; if(!collide(P.x,kz,curFloor)) P.z=kz;
