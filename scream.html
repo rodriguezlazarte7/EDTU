@@ -152,6 +152,10 @@ const webTex=tex(x=>{ x.clearRect(0,0,256,256); x.translate(128,128); const N=14
   for(let r=14;r<128;r+=13){ x.beginPath(); for(let i=0;i<=N;i++){ const a=i/N*6.2832, wob=1+(Math.sin(i*2.3)*0.06); const xx=Math.cos(a)*r*wob, yy=Math.sin(a)*r*wob; i?x.lineTo(xx,yy):x.moveTo(xx,yy);} x.closePath(); x.stroke(); }
   x.strokeStyle="rgba(200,210,210,0.35)"; for(let i=0;i<40;i++){ const a=Math.random()*6.2832,r=Math.random()*120; x.beginPath(); x.arc(Math.cos(a)*r,Math.sin(a)*r,1+Math.random()*2,0,6.28); x.stroke(); }   // gotas de rocío
   x.setTransform(1,0,0,1,0,0); });
+// 🩸 textura de SANGRE (manchas + salpicaduras sobre fondo transparente)
+const bloodTex=tex(x=>{ x.clearRect(0,0,256,256);
+  for(let i=0;i<6;i++){ const cx=50+Math.random()*156,cy=50+Math.random()*156,r=16+Math.random()*42; x.fillStyle="rgba("+(80+Math.random()*45|0)+",4,4,"+(0.55+Math.random()*0.4).toFixed(2)+")"; x.beginPath(); for(let a=0;a<6.29;a+=0.32){ const rr=r*(0.55+Math.random()*0.6); (a?x.lineTo:x.moveTo).call(x,cx+Math.cos(a)*rr,cy+Math.sin(a)*rr); } x.closePath(); x.fill(); }
+  for(let i=0;i<130;i++){ x.fillStyle="rgba("+(70+Math.random()*55|0)+",0,0,"+(0.3+Math.random()*0.5).toFixed(2)+")"; const s=1+Math.random()*4; x.fillRect(Math.random()*256,Math.random()*256,s,s); } });
 
 // ---------- luces ----------
 const ambient=new THREE.AmbientLight(0x241018,0.05); CURP.add(ambient);
@@ -241,9 +245,13 @@ function buildFloor(fl){
   for(const cx of [-HH+6,HH-6])for(const cz of [-HH+6,HH-6]){ const web=new THREE.Mesh(new THREE.PlaneGeometry(12,12),webMat); web.position.set(cx,by+HHY-1.5,cz); web.lookAt(0,by+2,0); CURP.add(web); }
   // hilos colgantes del techo
   for(let i=0;i<18;i++){ const a=Math.random()*6.28,r=Math.random()*(HH-6),len=2+Math.random()*4; const st=new THREE.Mesh(new THREE.CylinderGeometry(0.02,0.02,len,4),strandMat); st.position.set(Math.cos(a)*r,by+HHY-len/2,Math.sin(a)*r); CURP.add(st); }
+  // 🩸 SANGRE: manchas en el piso + charcos bajo los capullos
+  const bloodMat=new THREE.MeshBasicMaterial({map:bloodTex,transparent:true,opacity:0.85,depthWrite:false});
+  for(let i=0;i<11;i++){ const a=Math.random()*6.28,r=Math.random()*(HH-8); const bd=new THREE.Mesh(new THREE.PlaneGeometry(3+Math.random()*5,3+Math.random()*5),bloodMat); bd.rotation.x=-Math.PI/2; bd.rotation.z=Math.random()*6.28; bd.position.set(Math.cos(a)*r,by+0.04,Math.sin(a)*r); CURP.add(bd); }
   for(let i=0;i<7;i++){ const a=Math.random()*6.28,r=12+Math.random()*(HH-18); const cx2=Math.cos(a)*r,cz2=Math.sin(a)*r;
     const coc=new THREE.Mesh(new THREE.CylinderGeometry(0.55,0.75,3.2,10),cocoonMat); coc.position.set(cx2,by+3.4,cz2); coc.rotation.z=0.3+Math.random()*0.5; CURP.add(coc);
-    const chead=new THREE.Mesh(new THREE.SphereGeometry(0.55,10,8),cocoonMat); chead.position.set(cx2,by+5,cz2); CURP.add(chead); }
+    const chead=new THREE.Mesh(new THREE.SphereGeometry(0.55,10,8),cocoonMat); chead.position.set(cx2,by+5,cz2); CURP.add(chead);
+    const pool=new THREE.Mesh(new THREE.PlaneGeometry(3.5,3.5),bloodMat); pool.rotation.x=-Math.PI/2; pool.rotation.z=Math.random()*6.28; pool.position.set(cx2,by+0.05,cz2); CURP.add(pool); }
   // gurneys (camillas metálicas sueltas) — props de calidad
   for(let i=0;i<5;i++){ const a=Math.random()*6.28,r=8+Math.random()*(HH-16); const gx=Math.cos(a)*r,gz=Math.sin(a)*r;
     box(gx,by+0.7,gz,1.2,0.2,2.4,bedM); for(const c of [[-.5,-1],[.5,-1],[-.5,1],[.5,1]]){ const wl=new THREE.Mesh(new THREE.CylinderGeometry(0.04,0.04,0.6,6),bedM); wl.position.set(gx+c[0],by+0.35,gz+c[1]); CURP.add(wl);} }
