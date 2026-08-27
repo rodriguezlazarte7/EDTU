@@ -25,6 +25,12 @@
   #fire{position:fixed;right:24px;bottom:120px;z-index:6;width:78px;height:78px;border-radius:50%;background:rgba(60,180,140,.28);border:3px solid rgba(120,255,210,.6);color:#eafff5;font-size:26px;cursor:pointer;pointer-events:auto}
   #fire:active{transform:scale(.9);background:rgba(120,255,210,.5)}
   #jump{position:fixed;right:112px;bottom:120px;z-index:6;width:70px;height:70px;border-radius:50%;background:rgba(90,140,220,.28);border:3px solid rgba(150,190,255,.6);color:#eaf2ff;font-size:24px;cursor:pointer;pointer-events:auto}
+  #jhelp{position:fixed;right:24px;bottom:210px;z-index:6;width:58px;height:58px;border-radius:50%;background:rgba(120,120,120,.25);border:3px solid rgba(210,210,210,.5);color:#fff;font-size:22px;cursor:pointer;pointer-events:auto}
+  #jhelpS{position:fixed;inset:0;z-index:11;display:none;flex-direction:column;align-items:center;justify-content:center;background:rgba(4,10,4,.94);padding:24px;text-align:left}
+  #jhelpS.on{display:flex}
+  #jhelpS h3{font-family:"Consolas",monospace;color:#7dff5a;letter-spacing:.1em;margin-bottom:12px}
+  #jhelpS ul{list-style:none;max-width:470px;font-size:13.5px;line-height:1.9;color:#e6ffe0}
+  #jhelpS b{color:#ffd15a}
   #jump:active{transform:scale(.9);background:rgba(150,190,255,.5)}
   #hint{position:absolute;bottom:96px;left:0;right:0;text-align:center;font-size:14px;color:#eaffd8;text-shadow:0 0 8px #000}
   #story{position:absolute;bottom:150px;left:50%;transform:translateX(-50%);max-width:80%;background:rgba(8,16,4,.82);border:1px solid #4a7a2a;border-radius:10px;padding:8px 14px;font-size:13px;color:#e6ffcf;display:none;text-align:center}
@@ -82,6 +88,19 @@
 <div id="touch" class="hide"><div id="stick"><div id="nub"></div></div></div>
 <button id="jump" class="hide">🦘</button>
 <button id="fire" class="hide">🎯</button>
+<button id="jhelp" class="hide">❓</button>
+<div id="jhelpS"><h3>❓ CONTROLES Y OBJETIVO</h3>
+  <ul>
+    <li><b>WASD / joystick</b> — moverte · <b>ratón / dedo</b> — mirar</li>
+    <li><b>CLIC / F / 🎯</b> — disparar DARDO tranquilizante (duerme dinos)</li>
+    <li><b>ESPACIO / 🦘</b> — saltar · <b>B / 🪵</b> — poner bloque de madera</li>
+    <li><b>1</b> beber 💧 · <b>2</b> comer 🥫 · <b>3</b> cargar linterna 🔦</li>
+    <li>🎯 Sobrevive <b>7 días</b>. Cuida vida ❤, hambre 🍖 y sed 💧.</li>
+    <li>📻 Lleva <b>3 baterías</b> 🔋 a la TORRE DE RADIO para pedir rescate.</li>
+    <li>🟢 Refúgiate en la CABAÑA o las ZONAS SEGURAS. Los herbívoros 🦕 NO te persiguen.</li>
+  </ul>
+  <div style="color:#8fbf80;font-size:12px;margin-top:14px">H o ❓ para cerrar</div>
+</div>
 <div id="fade"></div>
 
 <div id="start">
@@ -279,7 +298,9 @@ const keys={}; const moveV={x:0,y:0};
 let touchUI = window.matchMedia && !matchMedia("(pointer:fine)").matches;
 
 // input
-addEventListener("keydown",e=>{ keys[e.code]=true; if(e.code==="Digit1") useWater(); if(e.code==="Digit2") useFood(); if(e.code==="Digit3") chargeFlash(); if(e.code==="KeyB") placeWood(); if(e.code==="KeyF") fireDart(); if(e.code==="Space"){ jump(); e.preventDefault(); } },true);
+let jhelpOpen=false;
+function toggleJHelp(){ if(!running) return; jhelpOpen=!jhelpOpen; $("jhelpS").classList.toggle("on",jhelpOpen); snd(jhelpOpen?500:300,"square",0.05,0.05); }
+addEventListener("keydown",e=>{ keys[e.code]=true; if(e.code==="Digit1") useWater(); if(e.code==="Digit2") useFood(); if(e.code==="Digit3") chargeFlash(); if(e.code==="KeyB") placeWood(); if(e.code==="KeyF") fireDart(); if(e.code==="KeyH") toggleJHelp(); if(e.code==="Space"){ jump(); e.preventDefault(); } },true);
 addEventListener("keyup",e=>{ keys[e.code]=false; },true);
 addEventListener("mousemove",e=>{ if(!running) return; yaw-=(e.movementX||0)*0.0022; pitch=Math.max(-1.3,Math.min(1.3,pitch-(e.movementY||0)*0.0022)); });
 canvas.addEventListener("mousedown",()=>{ if(!running) return; if(document.pointerLockElement!==canvas){ try{ canvas.requestPointerLock(); }catch(_){} } else { fireDart(); } });
@@ -314,14 +335,15 @@ function fireDart(){ if(!running||gameOver||dartCd>0) return;
   if(best){ best.tranq++; snd(520,"sine",0.1,0.07); const need=best.T.passive?1:(best.type==="exor"||best.type==="indo"?3:2);
     if(best.tranq>=need){ best.sleep=14; best.tranq=0; showStory("💤 "+best.T.name+" dormido por unos segundos"); }
     else showStory("🎯 Dardo en "+best.T.name+" ("+best.tranq+"/"+need+")"); } }
-$("fire").onclick=fireDart; $("jump").onclick=jump;
+$("fire").onclick=fireDart; $("jump").onclick=jump; $("jhelp").onclick=toggleJHelp; $("jhelpS").addEventListener("click",()=>{ if(jhelpOpen) toggleJHelp(); });
 function updInv(){ $("nWater").textContent=inv.water; $("nFood").textContent=inv.food; $("nWood").textContent="∞"; $("nBatt").textContent=inv.batt; $("radio").innerHTML="📻 Radio: "+(radioOn?"<b style='color:#7dff5a'>ENCENDIDA</b>":"APAGADA")+"<br>🔋 baterías: "+inv.batt+"/3"; }
 
 function showStory(txt){ const s=$("story"); s.textContent=txt; s.style.display="block"; clearTimeout(s._t); s._t=setTimeout(()=>s.style.display="none",4200); }
 
 // ---------- inicio / fin ----------
 function start(){ $("start").classList.add("hide"); $("end").classList.add("hide"); $("hud").classList.remove("hide"); $("bar").classList.remove("hide");
-  if(touchUI){ $("touch").classList.add("on"); $("fire").classList.remove("hide"); $("jump").classList.remove("hide"); }
+  if(touchUI){ $("touch").classList.add("on"); $("fire").classList.remove("hide"); $("jump").classList.remove("hide"); $("jhelp").classList.remove("hide"); }
+  jhelpOpen=false; $("jhelpS").classList.remove("on");
   P.x=0; P.z=22; P.y=1.7; P.vy=0; P.onGround=true; yaw=Math.PI; pitch=0; hp=100; hunger=100; thirst=100; flashBatt=100; darts=6; elapsed=0; radioOn=false; inv.water=2; inv.food=2; inv.wood=0; inv.batt=0; updAmmo();
   pickups.forEach(p=>scene.remove(p.mesh)); pickups.length=0; seedPickups();
   dinos.forEach(d=>scene.remove(d.grp)); dinos.length=0; if(mosa){scene.remove(mosa.grp);mosa=null;} spawnDinos();
@@ -331,7 +353,7 @@ function start(){ $("start").classList.add("hide"); $("end").classList.add("hide
 function loadJBest(){ try{ return parseFloat(localStorage.getItem("jurassic_best")||"0")||0; }catch(e){ return 0; } }
 function saveJBest(v){ try{ localStorage.setItem("jurassic_best",String(v)); }catch(e){} }
 function updJBest(){ const b=loadJBest(), el=$("jbest"); if(el) el.textContent = b>0?("🏆 Récord: "+b.toFixed(1)+" días sobrevividos"):"🏆 Aún sin récord — ¡sobrevive!"; }
-function endGame(win,info){ running=false; gameOver=true; try{document.exitPointerLock();}catch(e){} $("touch").classList.remove("on"); $("fire").classList.add("hide"); $("jump").classList.add("hide");
+function endGame(win,info){ running=false; gameOver=true; try{document.exitPointerLock();}catch(e){} $("touch").classList.remove("on"); $("fire").classList.add("hide"); $("jump").classList.add("hide"); $("jhelp").classList.add("hide"); jhelpOpen=false; $("jhelpS").classList.remove("on");
   const days=Math.min(7, elapsed/DAY_LEN); const prev=loadJBest(); const isRec=days>prev; if(isRec) saveJBest(days);
   $("end").classList.remove("hide"); const t=$("endTitle"); if(win){ t.textContent="✓ RESCATADO"; t.className="big win"; } else { t.textContent="✕ NO SOBREVIVISTE"; t.className="big lose"; }
   $("endInfo").innerHTML=info+"<br><br>🗓️ Días: <b>"+days.toFixed(1)+"</b>"+(isRec?" 🏆 ¡RÉCORD!":" · Récord: <b>"+prev.toFixed(1)+"</b>"); snd(win?660:70,win?"triangle":"sawtooth",0.5,0.12);
@@ -355,6 +377,7 @@ function drawJRadar(){ const c=document.getElementById("jradar"); if(!c) return;
   for(const d of dinos){ const p=plot(d.grp.position.x,d.grp.position.z); if(Math.hypot(p[0]-cx,p[1]-cy)>R) continue; if(!d.T.passive){ g.shadowColor="#f00"; g.shadowBlur=6; } g.fillStyle=d.T.passive?"#7dff5a":"#ff3a3a"; g.beginPath(); g.arc(p[0],p[1],3.2,0,6.28); g.fill(); g.shadowBlur=0; }
   const fx=-sin,fz=-cos; g.fillStyle="#ffd12e"; g.beginPath(); g.moveTo(cx+fx*7,cy+fz*7); g.lineTo(cx-fz*5-fx*4,cy+fx*5-fz*4); g.lineTo(cx+fz*5-fx*4,cy-fx*5-fz*4); g.closePath(); g.fill(); }
 function update(dt){
+  if(jhelpOpen) return;   // ⏸ pausa mientras la ayuda está abierta
   // mover
   let f=0,s=0;
   if(keys["KeyW"]||keys["ArrowUp"])f+=1; if(keys["KeyS"]||keys["ArrowDown"])f-=1;
