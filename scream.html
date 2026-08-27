@@ -28,6 +28,7 @@
   #story{position:absolute;bottom:140px;left:50%;transform:translateX(-50%);max-width:82%;background:rgba(10,0,4,.82);border:1px solid #6a1020;border-radius:10px;padding:8px 14px;font-size:13px;color:#ffdada;display:none;text-align:center}
   #hurt{position:absolute;inset:0;box-shadow:inset 0 0 120px 30px rgba(180,10,20,0);pointer-events:none;transition:box-shadow .1s}
   #sflash{position:absolute;inset:0;background:#fff;opacity:0;pointer-events:none}
+  #crack{position:absolute;inset:0;pointer-events:none;opacity:0;background-size:cover;background-position:center;background-repeat:no-repeat;filter:drop-shadow(0 0 2px rgba(255,255,255,.8))}
   #cross{position:absolute;top:50%;left:50%;width:5px;height:5px;margin:-2.5px;border-radius:50%;background:rgba(255,180,180,.5)}
   /* visión nocturna futurista */
   #nv{position:absolute;inset:0;pointer-events:none;opacity:0;transition:opacity .12s;mix-blend-mode:screen;
@@ -74,6 +75,7 @@
   <div id="story"></div>
   <div id="hurt"></div>
   <div id="sflash"></div>
+  <div id="crack"></div>
   <div id="nv"></div><div id="nvln"></div><div id="nvui"></div>
   <div id="cross"></div>
 </div>
@@ -333,6 +335,17 @@ $("sprint").addEventListener("pointerdown",e=>{ sprintHeld=true; e.preventDefaul
 ["pointerup","pointercancel","pointerleave"].forEach(ev=>$("sprint").addEventListener(ev,()=>{ sprintHeld=false; }));
 
 function showStory(txt){ const s=$("story"); s.textContent=txt; s.style.display="block"; clearTimeout(s._t); s._t=setTimeout(()=>s.style.display="none",3800); }
+// 💥 grietas de vidrio roto para el jumpscare
+function crackSVG(){ let p="";
+  for(let i=0;i<12;i++){ const a=i/12*6.283+Math.random()*0.4; let x=200,y=200,d="M200 200"; const steps=6, len=140+Math.random()*200;
+    for(let s=0;s<steps;s++){ const seg=len/steps; x+=Math.cos(a)*seg+(Math.random()-0.5)*22; y+=Math.sin(a)*seg+(Math.random()-0.5)*22; d+=" L"+x.toFixed(0)+" "+y.toFixed(0);
+      if(Math.random()<0.45){ const ba=a+(Math.random()-0.5)*1.3, bl=25+Math.random()*45; p+="<path d='M"+x.toFixed(0)+" "+y.toFixed(0)+" L"+(x+Math.cos(ba)*bl).toFixed(0)+" "+(y+Math.sin(ba)*bl).toFixed(0)+"'/>"; } }
+    p+="<path d='"+d+"'/>"; }
+  for(let r=12;r<52;r+=15) p+="<circle cx='200' cy='200' r='"+r+"'/>";
+  const svg="<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 400 400' preserveAspectRatio='xMidYMid slice'><g fill='none' stroke='rgba(160,210,255,.5)' stroke-width='3.5'>"+p+"</g><g fill='none' stroke='white' stroke-width='1.2' opacity='.9'>"+p+"</g></svg>";
+  return "data:image/svg+xml;utf8,"+encodeURIComponent(svg); }
+function doCrack(){ const c=$("crack"); if(!c) return; c.style.transition="none"; c.style.backgroundImage="url(\""+crackSVG()+"\")"; c.style.opacity="0.95";
+  requestAnimationFrame(()=>{ c.style.transition="opacity 0.8s"; c.style.opacity="0"; }); }
 function updObj(){ const done=valvesGot>=4&&samplesGot>=3; $("obj").textContent = done ? "🧪 ¡Todo listo! Ve a la MÁQUINA en tu ZONA SEGURA (planta baja) y fabrica el antídoto" : ("🧪 ANTÍDOTO — válvulas "+valvesGot+"/4 · muestras "+samplesGot+"/3 (en los 7 pisos)"); }
 function fade(fn){ const f=$("fade"); f.style.opacity="1"; setTimeout(()=>{ fn&&fn(); f.style.opacity="0"; },250); }
 function goFloor(nf){ if(nf<0||nf>=FLOORS) return; fade(()=>{ curFloor=nf; floorCd=1.2; const sp=safeSpotF(STAIRX-5,STAIRZ,nf); P.x=sp.x; P.z=sp.z; $("floor").textContent=FLOORNAME[nf]; snd(200,"sine",0.2,0.07); showStory("Subiste a "+FLOORNAME[nf]); }); }
@@ -342,7 +355,7 @@ function start(){ $("start").classList.add("hide"); $("end").classList.add("hide
   P.x=0; P.z=HH-7; yaw=Math.PI; pitch=0; running=true; gameOver=false; tPrev=performance.now(); flashOn=true; curFloor=0; floorCd=0;
   if(nvOn) toggleNV();
   spiderDead=false; valvesGot=0; samplesGot=0; craftT=0; timeLeft=1200; won=false; hbT=0; spiderFloor=0;
-  hp=hpMax; stam=100; hurtCd=0; safeTime=0; sprintHeld=false; updHP();
+  hp=hpMax; stam=100; hurtCd=0; safeTime=0; sprintHeld=false; updHP(); $("crack").style.opacity="0";
   valves.forEach(v=>{ v.got=false; v.grp.visible=true; if(v.light) v.light.userData.fl=v.f; });
   samples.forEach(v=>{ v.got=false; v.grp.visible=true; if(v.light) v.light.userData.fl=v.f; });
   if(spider){ spider.grp.visible=true; spider.grp.rotation.set(0,0,0); spider.grp.scale.setScalar(1); spider.grp.position.set(0,0,-HH+22); spider.camo=0.12; spider.ambushT=8; spider.invPhase=false; spider.invT=30; spider.climb=0; spider.pingT=0; spider.bodyMats.forEach(m=>m.opacity=0.12); spider.eyes.forEach(e=>e.visible=true); if(spider.eyeGlow) spider.eyeGlow.visible=true; }
@@ -415,7 +428,7 @@ function update(dt){
   if(!spiderDead && flashOn){ spider.ambushT-=dt;   // 🔦 SOLO se teletransporta con la linterna PRENDIDA
     if(spider.ambushT<=0){ spider.ambushT=10;
       if(sameFloor){ const fx=-Math.sin(yaw), fz=-Math.cos(yaw), dist=7+Math.random()*2; const sp2=safeSpotF(P.x+fx*dist,P.z+fz*dist,curFloor);   // aparece ADELANTE
-          spider.grp.position.x=sp2.x; spider.grp.position.z=sp2.z; spider.camo=1; snd(60,"sawtooth",0.7,0.18); snd(1300,"square",0.18,0.12); const sf=$("sflash"); if(sf){ sf.style.opacity="0.55"; setTimeout(()=>sf.style.opacity="0",90);} showStory("🕷️ ¡APARECIÓ FRENTE A TI!"); }
+          spider.grp.position.x=sp2.x; spider.grp.position.z=sp2.z; spider.camo=1; snd(60,"sawtooth",0.7,0.18); snd(1300,"square",0.18,0.12); const sf=$("sflash"); if(sf){ sf.style.opacity="0.55"; setTimeout(()=>sf.style.opacity="0",90);} doCrack(); showStory("🕷️ ¡APARECIÓ FRENTE A TI!"); }
       else { spiderFloor=curFloor; const sp2=safeSpotF(STAIRX,STAIRZ,curFloor); spider.grp.position.x=sp2.x; spider.grp.position.z=sp2.z; spider.camo=1; snd(80,"sawtooth",0.9,0.16); snd(1000,"square",0.3,0.1); showStory("🕷️ ¡SUBIÓ POR LAS ESCALERAS a tu piso!"); } } }
   if(sameFloor && !spiderDead){
     const hunts = flashOn && !inSafe(P.x,P.z,curFloor);   // solo caza con LINTERNA (y no en zona segura)
@@ -448,7 +461,7 @@ function update(dt){
     if(sd<8) danger=true;
     // 💥 CONTACTO: pierde 1 corazón (no muere de una), con empujón y destello
     if(sd<1.8 && hurtCd<=0 && !gameOver && !inSafe(P.x,P.z,curFloor)){ hp--; hurtCd=1.5; updHP(); snd(90,"sawtooth",0.4,0.14); snd(1500,"square",0.14,0.1);
-      const sf=$("sflash"); if(sf){ sf.style.opacity="0.7"; setTimeout(()=>sf.style.opacity="0",110); }
+      const sf=$("sflash"); if(sf){ sf.style.opacity="0.7"; setTimeout(()=>sf.style.opacity="0",110); } doCrack();
       const kx=Math.max(-HH+1,Math.min(HH-1,P.x+sx/(sd||1)*2.6)), kz=Math.max(-HH+1,Math.min(HH-1,P.z+sz/(sd||1)*2.6));
       if(!collide(kx,P.z,curFloor)) P.x=kx; if(!collide(P.x,kz,curFloor)) P.z=kz;
       if(hp<=0) endGame(false,"🕷️ La araña te dio el golpe final en la oscuridad. Vuelve a intentarlo."); else showStory("💔 ¡Te hirió! Corre a la ZONA SEGURA a recuperarte"); }
