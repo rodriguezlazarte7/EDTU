@@ -401,7 +401,8 @@ let yaw=Math.PI,pitch=0,running=false,gameOver=false,tPrev=0,flashOn=true,nvOn=f
 let hp=3, hpMax=3, hurtCd=0, stam=100, sprintHeld=false, safeTime=0, visorBatt=100, stepT=0;
 function vib(p){ try{ if(navigator.vibrate) navigator.vibrate(p); }catch(e){} }
 let diff="normal", invDur=30, ambushInt=10, gameTime=1200;
-const DIFFS={facil:{sp:2.6,inv:20,time:1500,hp:4,amb:14,lbl:"🟢 FÁCIL"},normal:{sp:3.2,inv:30,time:1200,hp:3,amb:10,lbl:"🟡 NORMAL"},pesadilla:{sp:3.9,inv:40,time:900,hp:2,amb:8,lbl:"🔴 PESADILLA"}};
+const DIFFS={facil:{sp:3.6,inv:20,time:1500,hp:4,amb:14,lbl:"🟢 FÁCIL"},normal:{sp:4.4,inv:30,time:1200,hp:3,amb:10,lbl:"🟡 NORMAL"},pesadilla:{sp:5.4,inv:40,time:900,hp:2,amb:8,lbl:"🔴 PESADILLA"}};
+const SPIDER_SC=0.62;   // araña más chica
 function buildDiffs(){ const c=$("diffs"); if(!c) return; c.innerHTML=""; for(const k of ["facil","normal","pesadilla"]){ const b=document.createElement("button"); b.className="diffbtn"+(diff===k?" sel":""); b.textContent=DIFFS[k].lbl; b.onclick=()=>{ diff=k; buildDiffs(); }; c.appendChild(b); } }
 const keys={}, moveV={x:0,y:0};
 function updHP(){ let s=""; for(let i=0;i<hpMax;i++) s+= (i<hp?"❤️":"🖤"); $("hp").textContent=s; }
@@ -494,7 +495,7 @@ function start(){ $("start").classList.add("hide"); $("end").classList.add("hide
   notes.forEach(v=>{ v.got=false; v.grp.visible=true; if(v.light) v.light.userData.fl=v.f; }); notesGot=0; $("note").classList.remove("on");
   reposition(valves,1); reposition(samples,1); reposition(notes,1.2);   // 🎲 ítems en lugares distintos cada partida
   spiderFloor=Math.floor(Math.random()*FLOORS); const ss=randSpotOnFloor(spiderFloor);
-  if(spider){ spider.grp.visible=true; spider.grp.rotation.set(0,0,0); spider.grp.scale.setScalar(1); spider.grp.position.set(ss.x,spiderFloor*FLOOR_H,ss.z); spider.camo=0.12; spider.ambushT=8; spider.invPhase=false; spider.invT=invDur; spider.climb=0; spider.pingT=0; spider.bodyMats.forEach(m=>m.opacity=0.12); spider.eyes.forEach(e=>e.visible=true); if(spider.eyeGlow) spider.eyeGlow.visible=true; }
+  if(spider){ spider.grp.visible=true; spider.grp.rotation.set(0,0,0); spider.grp.scale.setScalar(SPIDER_SC); spider.grp.position.set(ss.x,spiderFloor*FLOOR_H,ss.z); spider.camo=0.12; spider.ambushT=8; spider.invPhase=false; spider.invT=invDur; spider.climb=0; spider.pingT=0; spider.bodyMats.forEach(m=>m.opacity=0.12); spider.eyes.forEach(e=>e.visible=true); if(spider.eyeGlow) spider.eyeGlow.visible=true; }
   $("invtag").style.display="none";
   $("floor").textContent=FLOORNAME[0]; updObj(); showStory("7 pisos a oscuras. Tienes 20 min: reúne 4 válvulas + 3 muestras y fabrica el antídoto en tu zona segura.");
 }
@@ -600,7 +601,7 @@ function update(dt){
     spider.climb += ((inWall?3.6:0) - spider.climb)*Math.min(1,dt*4);
     spider.grp.position.y = spiderFloor*FLOOR_H + spider.climb;
     spider.grp.rotation.y=Math.atan2(sx,sz); spider.grp.rotation.x=-spider.climb*0.22;
-    const rs=1+Math.max(0,(4.5-sd))*0.14; spider.grp.scale.setScalar(rs);
+    const rs=1+Math.max(0,(4.5-sd))*0.14; spider.grp.scale.setScalar(rs*SPIDER_SC);
     const fwd=new THREE.Vector3(); camera.getWorldDirection(fwd); const look=(fwd.x*(-sx)+fwd.z*(-sz))/(sd||1);
     const revealed = nvOn || (!spider.invPhase && flashOn && look>0.72 && sd<40);
     let targetC;
@@ -616,7 +617,7 @@ function update(dt){
     if(sd<11){ const k=(11-sd)*0.018; camera.position.x+=(Math.random()-0.5)*k; camera.position.y+=(Math.random()-0.5)*k; }
     if(sd<8) danger=true;
     // 💥 CONTACTO: pierde 1 corazón (no muere de una), con empujón y destello
-    if(sd<1.8 && hurtCd<=0 && !gameOver && !inSafe(P.x,P.z,curFloor)){ hp--; hurtCd=1.5; updHP(); vib(160); snd(90,"sawtooth",0.4,0.14); snd(1500,"square",0.14,0.1);
+    if(sd<1.4 && hurtCd<=0 && !gameOver && !inSafe(P.x,P.z,curFloor)){ hp--; hurtCd=1.5; updHP(); vib(160); snd(90,"sawtooth",0.4,0.14); snd(1500,"square",0.14,0.1);
       const sf=$("sflash"); if(sf){ sf.style.opacity="0.7"; setTimeout(()=>sf.style.opacity="0",110); } doCrack();
       const kx=Math.max(-HH+1,Math.min(HH-1,P.x+sx/(sd||1)*2.6)), kz=Math.max(-HH+1,Math.min(HH-1,P.z+sz/(sd||1)*2.6));
       if(!collide(kx,P.z,curFloor)) P.x=kx; if(!collide(P.x,kz,curFloor)) P.z=kz;
