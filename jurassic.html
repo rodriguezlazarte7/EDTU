@@ -55,6 +55,9 @@
   .big{font-family:"Consolas",monospace;font-size:clamp(26px,7vw,46px);font-weight:900}
   .win{color:#7dff5a;text-shadow:0 0 18px #2a8a00}.lose{color:#ff4a5a;text-shadow:0 0 18px #8a0018}
   .btn{pointer-events:auto;font-family:"Consolas",monospace;font-weight:800;letter-spacing:.05em;font-size:16px;color:#06210a;cursor:pointer;padding:13px 26px;border-radius:12px;border:none;background:linear-gradient(90deg,#7dff5a,#ffe14a);margin-top:8px}
+  #jdiffs{display:flex;gap:8px;margin:6px 0}
+  .diffbtn{font-family:"Consolas",monospace;font-weight:800;font-size:13px;color:#eee;cursor:pointer;padding:9px 14px;border-radius:10px;border:2px solid rgba(255,255,255,.25);background:rgba(20,40,10,.5)}
+  .diffbtn.sel{border-color:#ffd15a;color:#ffd15a;box-shadow:0 0 12px rgba(255,209,90,.4)}
 </style>
 </head>
 <body>
@@ -119,6 +122,7 @@ SOBREVIVE 7 DÍAS. ENCUENTRA UNA FORMA DE PEDIR RESCATE. Y NO DEJES QUE TE ENCUE
 
 DÍA 1 — 00:00 · La radio se enciende... «...¿hay alguien ahí?...» La señal desaparece. Entonces escuchas un rugido a lo lejos. El parque ya no está bajo control.</div>
   <p style="color:#9fbf80;font-size:12px;max-width:540px">🎮 WASD/joystick moverte · ratón mirar · <b>clic/🎯/F = DARDO tranquilizante ∞</b> 💉 (duérmelos) · <b>espacio/🦘 = SALTAR</b> · <b>[B]/🪵 = poner bloques ∞</b> · recoge 💧🥫🔋 · los herbívoros 🦕 NO te persiguen · refúgiate en la CABAÑA (con puerta 🚪) o en las <b style="color:#7dff5a">ZONAS SEGURAS</b> 🟢 · lleva 3 🔋 a la TORRE DE RADIO para pedir rescate</p>
+  <div id="jdiffs"></div>
   <p id="jbest" style="color:#ffd15a;font-weight:800;font-size:13px"></p>
   <button class="btn" id="startBtn">▶ EMPEZAR A SOBREVIVIR</button>
 </div>
@@ -293,6 +297,9 @@ function spawnDinos(){
 const P={x:0,z:22,y:1.7,vy:0,onGround:true,speed:7.2};
 function jump(){ if(running && !gameOver && P.onGround){ P.vy=7.2; P.onGround=false; snd(420,"sine",0.1,0.06); } }
 let yaw=0,pitch=0,running=false,gameOver=false,tPrev=0,elapsed=0,roarT=2;
+let jdiff="normal", jdSpeed=1, jdDmg=1, jdDet=1;
+const JDIFFS={facil:{sp:0.8,dmg:0.55,det:0.8,lbl:"🟢 FÁCIL"},normal:{sp:1,dmg:1,det:1,lbl:"🟡 NORMAL"},dificil:{sp:1.25,dmg:1.5,det:1.2,lbl:"🔴 DIFÍCIL"}};
+function buildJDiffs(){ const c=document.getElementById("jdiffs"); if(!c) return; c.innerHTML=""; for(const k of ["facil","normal","dificil"]){ const b=document.createElement("button"); b.className="diffbtn"+(jdiff===k?" sel":""); b.textContent=JDIFFS[k].lbl; b.onclick=()=>{ jdiff=k; buildJDiffs(); }; c.appendChild(b); } }
 let hp=100,hunger=100,thirst=100,invT=0,flashBatt=100,darts=6,dartCd=0,placeCd=0;
 const inv={water:2,food:2,wood:0,batt:0}; let radioOn=false;
 const tracer=new THREE.Line(new THREE.BufferGeometry().setFromPoints([new THREE.Vector3(),new THREE.Vector3()]),new THREE.LineBasicMaterial({color:0x7fffd8,transparent:true,opacity:0})); scene.add(tracer); let tracerT=0;
@@ -347,6 +354,7 @@ function showStory(txt){ const s=$("story"); s.textContent=txt; s.style.display=
 function start(){ $("start").classList.add("hide"); $("end").classList.add("hide"); $("hud").classList.remove("hide"); $("bar").classList.remove("hide");
   if(touchUI){ $("touch").classList.add("on"); $("fire").classList.remove("hide"); $("jump").classList.remove("hide"); $("jhelp").classList.remove("hide"); }
   jhelpOpen=false; $("jhelpS").classList.remove("on");
+  const JD=JDIFFS[jdiff]; jdSpeed=JD.sp; jdDmg=JD.dmg; jdDet=JD.det;
   P.x=0; P.z=22; P.y=1.7; P.vy=0; P.onGround=true; yaw=Math.PI; pitch=0; hp=100; hunger=100; thirst=100; flashBatt=100; darts=6; elapsed=0; radioOn=false; inv.water=2; inv.food=2; inv.wood=0; inv.batt=0; updAmmo();
   pickups.forEach(p=>scene.remove(p.mesh)); pickups.length=0; seedPickups();
   dinos.forEach(d=>scene.remove(d.grp)); dinos.length=0; if(mosa){scene.remove(mosa.grp);mosa=null;} spawnDinos();
@@ -361,7 +369,7 @@ function endGame(win,info){ running=false; gameOver=true; try{document.exitPoint
   $("end").classList.remove("hide"); const t=$("endTitle"); if(win){ t.textContent="✓ RESCATADO"; t.className="big win"; } else { t.textContent="✕ NO SOBREVIVISTE"; t.className="big lose"; }
   $("endInfo").innerHTML=info+"<br><br>🗓️ Días: <b>"+days.toFixed(1)+"</b>"+(isRec?" 🏆 ¡RÉCORD!":" · Récord: <b>"+prev.toFixed(1)+"</b>"); snd(win?660:70,win?"triangle":"sawtooth",0.5,0.12);
 }
-$("startBtn").onclick=start; $("againBtn").onclick=start; updJBest();
+$("startBtn").onclick=start; $("againBtn").onclick=start; updJBest(); buildJDiffs();
 
 // ---------- fundido ----------
 function fade(fn){ const f=$("fade"); f.style.opacity="1"; setTimeout(()=>{ fn&&fn(); f.style.opacity="0"; },250); }
@@ -444,18 +452,18 @@ function update(dt){
     if(d.sleep>0){ d.sleep-=dt; d.grp.rotation.z=1.4;   // 💤 dormido por el tranquilizante
       d.grp.children.forEach(ch=>{}); if(d.sleep<=0){ d.grp.rotation.z=0; showStory(d.T.name+" despertó"); } continue; }
     if(!d.T.passive && dd<nearRoar) nearRoar=dd;
-    const sees = !d.T.passive && dd < d.T.det*detMul && !safe;   // los HERBÍVOROS nunca persiguen
-    if(sees){ const nx2=d.grp.position.x+dxz/dd*d.T.sp*dt, nz2=d.grp.position.z+dzz/dd*d.T.sp*dt;
+    const sees = !d.T.passive && dd < d.T.det*detMul*jdDet && !safe;   // los HERBÍVOROS nunca persiguen
+    if(sees){ const nx2=d.grp.position.x+dxz/dd*d.T.sp*jdSpeed*dt, nz2=d.grp.position.z+dzz/dd*d.T.sp*jdSpeed*dt;
       if(!inLake(nx2,nz2,-2) && !inSafe(nx2,d.grp.position.z) && !collide(nx2,d.grp.position.z)) d.grp.position.x=nx2;
       if(!inLake(nx2,nz2,-2) && !inSafe(d.grp.position.x,nz2) && !collide(d.grp.position.x,nz2)) d.grp.position.z=nz2;
       d.grp.rotation.y=Math.atan2(dxz,dzz); if(dd<28) danger=true;
     } else { d.rt-=dt; if(d.rt<=0){ d.rt=2+Math.random()*4; const a=Math.random()*6.28; d.tx=d.grp.position.x+Math.cos(a)*14; d.tz=d.grp.position.z+Math.sin(a)*14; }
       const tdx=d.tx-d.grp.position.x, tdz=d.tz-d.grp.position.z, td=Math.hypot(tdx,tdz)||1;
-      const nx2=d.grp.position.x+tdx/td*d.T.sp*0.4*dt, nz2=d.grp.position.z+tdz/td*d.T.sp*0.4*dt;
+      const nx2=d.grp.position.x+tdx/td*d.T.sp*jdSpeed*0.4*dt, nz2=d.grp.position.z+tdz/td*d.T.sp*jdSpeed*0.4*dt;
       if(!inLake(nx2,nz2,-2)&&!inSafe(nx2,nz2)&&!collide(nx2,nz2)&&Math.hypot(nx2,nz2)<ISLR-5){ d.grp.position.x=nx2; d.grp.position.z=nz2; d.grp.rotation.y=Math.atan2(tdx,tdz); } }
     if(d.grp.userData.legs) d.grp.userData.legs.forEach((lg,k)=> lg.rotation.x=Math.sin(elapsed*7+k*3)*0.5);
     if(d.hitCd>0) d.hitCd-=dt;
-    if(!d.T.passive && dd<2.6 && d.hitCd<=0 && !safe){ d.hitCd=1.1; hurt(d.T.dmg, d.T.name); }
+    if(!d.T.passive && dd<2.6 && d.hitCd<=0 && !safe){ d.hitCd=1.1; hurt(d.T.dmg*jdDmg, d.T.name); }
   }
   // 🦖 RUGIDOS: más graves/fuertes/seguidos si hay un carnívoro cerca
   roarT-=dt; if(roarT<=0){ if(nearRoar<95){ const prox=Math.max(0,Math.min(1,(95-nearRoar)/95)); roarT=1.4+(1-prox)*4.5+Math.random()*2;
@@ -463,8 +471,8 @@ function update(dt){
     else roarT=4+Math.random()*4; }
   // mosasaurus: INVISIBLE bajo el agua (solo lo notas si te ataca en el lago)
   if(mosa){ if(inLake(P.x,P.z,2)){ const dxz=P.x-mosa.grp.position.x, dzz=P.z-mosa.grp.position.z, dd=Math.hypot(dxz,dzz)||1;
-      mosa.grp.position.x+=dxz/dd*mosa.T.sp*dt; mosa.grp.position.z+=dzz/dd*mosa.T.sp*dt; danger=true;
-      if(mosa.hitCd>0) mosa.hitCd-=dt; if(dd<5 && mosa.hitCd<=0){ mosa.hitCd=1; hurt(mosa.T.dmg,"algo en el agua"); } }
+      mosa.grp.position.x+=dxz/dd*mosa.T.sp*jdSpeed*dt; mosa.grp.position.z+=dzz/dd*mosa.T.sp*jdSpeed*dt; danger=true;
+      if(mosa.hitCd>0) mosa.hitCd-=dt; if(dd<5 && mosa.hitCd<=0){ mosa.hitCd=1; hurt(mosa.T.dmg*jdDmg,"algo en el agua"); } }
     else { mosa.grp.position.x+=(LAKE.x-mosa.grp.position.x)*dt*0.6; mosa.grp.position.z+=(LAKE.z-mosa.grp.position.z)*dt*0.6; } }
 
   // HUD barras
