@@ -270,7 +270,7 @@ function spawnDinos(){
 // ---------- jugador / estado ----------
 const P={x:0,z:22,y:1.7,vy:0,onGround:true,speed:7.2};
 function jump(){ if(running && !gameOver && P.onGround){ P.vy=7.2; P.onGround=false; snd(420,"sine",0.1,0.06); } }
-let yaw=0,pitch=0,running=false,gameOver=false,tPrev=0,elapsed=0;
+let yaw=0,pitch=0,running=false,gameOver=false,tPrev=0,elapsed=0,roarT=2;
 let hp=100,hunger=100,thirst=100,invT=0,flashBatt=100,darts=6,dartCd=0,placeCd=0;
 const inv={water:2,food:2,wood:0,batt:0}; let radioOn=false;
 const tracer=new THREE.Line(new THREE.BufferGeometry().setFromPoints([new THREE.Vector3(),new THREE.Vector3()]),new THREE.LineBasicMaterial({color:0x7fffd8,transparent:true,opacity:0})); scene.add(tracer); let tracerT=0;
@@ -411,11 +411,12 @@ function update(dt){
   if(!radioOn && inv.batt>=3 && Math.hypot(P.x-RADIO.x,P.z-RADIO.z)<7){ radioOn=true; inv.batt-=3; updInv(); showStory("📻 ¡RADIO ENCENDIDA! Pediste rescate. Ahora sobrevive hasta el día 7."); snd(520,"triangle",0.4,0.1); }
 
   // dinos
-  let danger=false; const safe=inSafe(P.x,P.z);
+  let danger=false, nearRoar=999; const safe=inSafe(P.x,P.z);
   const detMul = isNight?1.4:1;
   for(const d of dinos){ const dxz=P.x-d.grp.position.x, dzz=P.z-d.grp.position.z, dd=Math.hypot(dxz,dzz);
     if(d.sleep>0){ d.sleep-=dt; d.grp.rotation.z=1.4;   // 💤 dormido por el tranquilizante
       d.grp.children.forEach(ch=>{}); if(d.sleep<=0){ d.grp.rotation.z=0; showStory(d.T.name+" despertó"); } continue; }
+    if(!d.T.passive && dd<nearRoar) nearRoar=dd;
     const sees = !d.T.passive && dd < d.T.det*detMul && !safe;   // los HERBÍVOROS nunca persiguen
     if(sees){ const nx2=d.grp.position.x+dxz/dd*d.T.sp*dt, nz2=d.grp.position.z+dzz/dd*d.T.sp*dt;
       if(!inLake(nx2,nz2,-2) && !inSafe(nx2,d.grp.position.z) && !collide(nx2,d.grp.position.z)) d.grp.position.x=nx2;
@@ -429,6 +430,10 @@ function update(dt){
     if(d.hitCd>0) d.hitCd-=dt;
     if(!d.T.passive && dd<2.6 && d.hitCd<=0 && !safe){ d.hitCd=1.1; hurt(d.T.dmg, d.T.name); }
   }
+  // 🦖 RUGIDOS: más graves/fuertes/seguidos si hay un carnívoro cerca
+  roarT-=dt; if(roarT<=0){ if(nearRoar<95){ const prox=Math.max(0,Math.min(1,(95-nearRoar)/95)); roarT=1.4+(1-prox)*4.5+Math.random()*2;
+      const base=48-prox*18; snd(base,"sawtooth",0.55+prox*0.5,0.05+prox*0.13); snd(base*1.6,"square",0.25,0.03+prox*0.05); }
+    else roarT=4+Math.random()*4; }
   // mosasaurus: INVISIBLE bajo el agua (solo lo notas si te ataca en el lago)
   if(mosa){ if(inLake(P.x,P.z,2)){ const dxz=P.x-mosa.grp.position.x, dzz=P.z-mosa.grp.position.z, dd=Math.hypot(dxz,dzz)||1;
       mosa.grp.position.x+=dxz/dd*mosa.T.sp*dt; mosa.grp.position.z+=dzz/dd*mosa.T.sp*dt; danger=true;
