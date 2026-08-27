@@ -437,7 +437,9 @@ function showStory(txt){ const s=$("story"); s.textContent=txt; s.style.display=
 function fmtT(s){ s=Math.max(0,Math.floor(s)); return Math.floor(s/60)+":"+String(s%60).padStart(2,"0"); }
 function loadBest(){ try{ const v=localStorage.getItem("scream_best"); return v==null?null:parseFloat(v); }catch(e){ return null; } }
 function saveBest(v){ try{ localStorage.setItem("scream_best",String(v)); }catch(e){} }
-function updBest(){ const b=loadBest(), el=$("bestT"); if(el) el.textContent = b==null?"🏆 Aún sin récord — ¡sé el primero en escapar!":("🏆 Mejor escape: "+fmtT(b)); }
+function loadWins(){ try{ return parseInt(localStorage.getItem("scream_wins")||"0",10)||0; }catch(e){ return 0; } }
+function addWin(){ try{ localStorage.setItem("scream_wins",String(loadWins()+1)); }catch(e){} }
+function updBest(){ const b=loadBest(), w=loadWins(), el=$("bestT"); if(el) el.textContent = (b==null?"🏆 Aún sin récord — ¡sé el primero en escapar!":("🏆 Mejor escape: "+fmtT(b))) + (w>0?"  ·  🚁 Escapes: "+w:""); }
 // 💥 grietas de vidrio roto para el jumpscare
 function crackSVG(){ let p="";
   for(let i=0;i<12;i++){ const a=i/12*6.283+Math.random()*0.4; let x=200,y=200,d="M200 200"; const steps=6, len=140+Math.random()*200;
@@ -620,8 +622,8 @@ function update(dt){
   const cbar=$("craft");
   if(ready && atMachine && !won && !gameOver){ craftT+=dt; cbar.style.display="block"; cbar.firstElementChild.style.width=Math.min(100,craftT/8*100)+"%";
     if(Math.random()<dt*3) snd(360+Math.random()*300,"square",0.06,0.05);
-    if(craftT>=8){ won=true; const elapsed=gameTime-timeLeft; let best=loadBest(); const isNew=(best==null||elapsed<best); if(isNew){ best=elapsed; saveBest(best); }
-      endGame(true,"🧪 ¡Fabricaste el ANTÍDOTO y escapaste del hospital de 7 pisos! ✅<br><br>⏱ Tu tiempo: <b>"+fmtT(elapsed)+"</b>"+(isNew?"<br>🏆 ¡NUEVO RÉCORD!":"<br>🏆 Mejor: <b>"+fmtT(best)+"</b>")); } }
+    if(craftT>=8){ won=true; const elapsed=gameTime-timeLeft; let best=loadBest(); const isNew=(best==null||elapsed<best); if(isNew){ best=elapsed; saveBest(best); } addWin();
+      endGame(true,"🧪 ¡Fabricaste el ANTÍDOTO y escapaste del hospital de 7 pisos! ✅<br><br>⏱ Tu tiempo: <b>"+fmtT(elapsed)+"</b>"+(isNew?"<br>🏆 ¡NUEVO RÉCORD!":"<br>🏆 Mejor: <b>"+fmtT(best)+"</b>")+"<br>🚁 Escapes totales: <b>"+loadWins()+"</b>"); } }
   else { cbar.style.display="none"; craftT=0; }
 
   const hint=$("hint");
