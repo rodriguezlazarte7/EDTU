@@ -368,7 +368,7 @@ function toggleFlash(){ if(!running) return; flashOn=!flashOn; snd(flashOn?520:1
 function toggleNV(){ if(!running) return; if(!nvOn && visorBatt<10){ snd(150,"square",0.15,0.08); showStory("🥽 Visor sin batería — espera a que cargue"); return; } nvOn=!nvOn; snd(nvOn?900:300,"square",0.08,0.06);
   $("nv").classList.toggle("on",nvOn); $("nvln").classList.toggle("on",nvOn); $("nvui").classList.toggle("on",nvOn);
   camera.fov=nvOn?40:78; camera.updateProjectionMatrix(); }
-let mapOpen=false, noteTimer, flares=3; const activeFlares=[];
+let mapOpen=false, noteTimer, flares=3, panicWarned=false; const activeFlares=[];
 function updFlareHUD(){ const el=$("flareC"); if(el) el.textContent="🧨 x"+flares; }
 function throwFlare(){ if(!running||gameOver||flares<=0) return; flares--; updFlareHUD();
   const fx=-Math.sin(yaw), fz=-Math.cos(yaw); let x=P.x+fx*7, z=P.z+fz*7; x=Math.max(-HH+2,Math.min(HH-2,x)); z=Math.max(-HH+2,Math.min(HH-2,z));
@@ -441,7 +441,7 @@ function start(){ $("start").classList.add("hide"); $("end").classList.add("hide
   const D=DIFFS[diff]; hpMax=D.hp; invDur=D.inv; ambushInt=D.amb; gameTime=D.time;
   spiderDead=false; valvesGot=0; samplesGot=0; craftT=0; timeLeft=gameTime; won=false; hbT=0; spiderFloor=0;
   hp=hpMax; stam=100; hurtCd=0; safeTime=0; sprintHeld=false; visorBatt=100; updHP(); $("crack").style.opacity="0";
-  activeFlares.forEach(f=>{ if(f.parent){ f.parent.remove(f.glow); f.parent.remove(f.light); } }); activeFlares.length=0; flares=3; updFlareHUD();
+  activeFlares.forEach(f=>{ if(f.parent){ f.parent.remove(f.glow); f.parent.remove(f.light); } }); activeFlares.length=0; flares=3; updFlareHUD(); panicWarned=false;
   if(spider) spider.sp=D.sp;
   valves.forEach(v=>{ v.got=false; v.grp.visible=true; if(v.light) v.light.userData.fl=v.f; });
   samples.forEach(v=>{ v.got=false; v.grp.visible=true; if(v.light) v.light.userData.fl=v.f; });
@@ -463,6 +463,9 @@ function update(dt){
   // ⏱ contador de 20 minutos
   timeLeft-=dt; if(timeLeft<0) timeLeft=0;
   const mm=Math.floor(timeLeft/60), ss=Math.floor(timeLeft%60); const tel=$("timer"); if(tel){ tel.textContent="⏱ "+mm+":"+String(ss).padStart(2,"0"); tel.classList.toggle("warn",timeLeft<120); }
+  // 🔥 PÁNICO: en la recta final (último 35% del tiempo) la araña se vuelve frenética
+  const panic = timeLeft < gameTime*0.35 ? Math.min(1, 1-(timeLeft/(gameTime*0.35))) : 0;
+  if(panic>0.02 && !panicWarned){ panicWarned=true; showStory("🕷️ Se acaba el tiempo... la araña se vuelve FRENÉTICA."); snd(80,"sawtooth",0.6,0.14); }
   if(timeLeft<=0 && !gameOver){ endGame(false,"⏱ Se acabó el tiempo. El veneno te consumió en la oscuridad."); return; }
   if(hurtCd>0) hurtCd-=dt;
   // ❤️ recuperación en la zona segura (+1 corazón cada 10s)
@@ -529,15 +532,16 @@ function update(dt){
   spider.invT-=dt; if(spider.invT<=0){ spider.invPhase=!spider.invPhase; spider.invT=invDur; }
   const invHidden = spider.invPhase && !nvOn;
   if(!spiderDead && flashOn){ spider.ambushT-=dt;   // 🔦 SOLO se teletransporta con la linterna PRENDIDA
-    if(spider.ambushT<=0){ spider.ambushT=ambushInt;
+    if(spider.ambushT<=0){ spider.ambushT=ambushInt*(1-panic*0.45);   // se teletransporta más seguido con poco tiempo
       if(sameFloor){ const fx=-Math.sin(yaw), fz=-Math.cos(yaw), dist=7+Math.random()*2; const sp2=safeSpotF(P.x+fx*dist,P.z+fz*dist,curFloor);   // aparece ADELANTE
           spider.grp.position.x=sp2.x; spider.grp.position.z=sp2.z; spider.camo=1; snd(60,"sawtooth",0.7,0.18); snd(1300,"square",0.18,0.12); const sf=$("sflash"); if(sf){ sf.style.opacity="0.55"; setTimeout(()=>sf.style.opacity="0",90);} doCrack(); showStory("🕷️ ¡APARECIÓ FRENTE A TI!"); }
       else { spiderFloor=curFloor; const sp2=safeSpotF(STAIRX,STAIRZ,curFloor); spider.grp.position.x=sp2.x; spider.grp.position.z=sp2.z; spider.camo=1; snd(80,"sawtooth",0.9,0.16); snd(1000,"square",0.3,0.1); showStory("🕷️ ¡SUBIÓ POR LAS ESCALERAS a tu piso!"); } } }
   if(sameFloor && !spiderDead){
     const hunts = flashOn && !inSafe(P.x,P.z,curFloor);   // solo caza con LINTERNA (y no en zona segura)
     if(sd>1.2){ let dirx,dirz,spd;
-      if(hunts){ const wob=Math.sin(now*6)*0.45; dirx=sx/sd+(-sz/sd)*wob; dirz=sz/sd+(sx/sd)*wob; spd=sd<7?spider.sp*1.7:(sd>18?spider.sp*0.6:spider.sp); }
-      else { dirx=Math.cos(spider.wdir); dirz=Math.sin(spider.wdir); spd=spider.sp*0.45; if(Math.random()<dt*0.6) spider.wdir=Math.random()*6.28; }
+      const pm=1+panic*0.7;   // frenética en la recta final
+      if(hunts){ const wob=Math.sin(now*6)*0.45; dirx=sx/sd+(-sz/sd)*wob; dirz=sz/sd+(sx/sd)*wob; spd=(sd<7?spider.sp*1.7:(sd>18?spider.sp*0.6:spider.sp))*pm; }
+      else { dirx=Math.cos(spider.wdir); dirz=Math.sin(spider.wdir); spd=spider.sp*0.45*pm; if(Math.random()<dt*0.6) spider.wdir=Math.random()*6.28; }
       const dl=Math.hypot(dirx,dirz)||1; let nnx=spider.grp.position.x+dirx/dl*spd*dt, nnz=spider.grp.position.z+dirz/dl*spd*dt;
       nnx=Math.max(-HH+2,Math.min(HH-2,nnx)); nnz=Math.max(-HH+2,Math.min(HH-2,nnz));   // 🕷️ ATRAVIESA/TREPA paredes (implacable), solo la frena la zona segura
       if(!inSafe(nnx,spider.grp.position.z,curFloor)) spider.grp.position.x=nnx;
@@ -598,7 +602,7 @@ function update(dt){
     : (!flashOn ? "🌑 A oscuras: la araña no te ve · CLIC IZQ = linterna · CLIC DER = visión nocturna"
     : (ready ? "🧪 ¡Todo listo! Vuelve a la PLANTA BAJA a la ZONA SEGURA a fabricar el antídoto"
     : "🔧🧪 Recorre los 7 pisos: 4 válvulas (verde) + 3 muestras (morado)"));
-  const vig=Math.max(danger?0.4:0, fear*0.85), vigBlur=120+fear*140, vigSpread=30+fear*80;
+  const vig=Math.max(danger?0.4:0, fear*0.85, panic*0.22), vigBlur=120+fear*140, vigSpread=30+fear*80;
   $("hurt").style.boxShadow="inset 0 0 "+vigBlur+"px "+vigSpread+"px rgba("+(fear>0.4?120:180)+",10,20,"+vig+")";
 }
 function loop(t){ const dt=Math.min(0.05,(t-tPrev)/1000); tPrev=t; if(running) update(dt); renderer.render(scene,camera); requestAnimationFrame(loop); }
