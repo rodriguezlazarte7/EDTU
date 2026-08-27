@@ -466,7 +466,7 @@ function start(){ $("start").classList.add("hide"); $("end").classList.add("hide
   if(nvOn) toggleNV();
   const D=DIFFS[diff]; hpMax=D.hp; invDur=D.inv; ambushInt=D.amb; gameTime=D.time;
   spiderDead=false; valvesGot=0; samplesGot=0; craftT=0; timeLeft=gameTime; won=false; hbT=0; spiderFloor=0;
-  hp=hpMax; stam=100; hurtCd=0; safeTime=0; sprintHeld=false; visorBatt=100; updHP(); $("crack").style.opacity="0";
+  hp=hpMax; stam=100; hurtCd=0; safeTime=0; sprintHeld=false; visorBatt=100; updHP(); $("crack").style.opacity="0"; $("fade").style.background="#000"; $("fade").style.opacity="0";
   activeFlares.forEach(f=>{ if(f.parent){ f.parent.remove(f.glow); f.parent.remove(f.light); } }); activeFlares.length=0; flares=3; updFlareHUD(); panicWarned=false;
   if(spider) spider.sp=D.sp;
   valves.forEach(v=>{ v.got=false; v.grp.visible=true; if(v.light) v.light.userData.fl=v.f; });
@@ -622,8 +622,13 @@ function update(dt){
   const cbar=$("craft");
   if(ready && atMachine && !won && !gameOver){ craftT+=dt; cbar.style.display="block"; cbar.firstElementChild.style.width=Math.min(100,craftT/8*100)+"%";
     if(Math.random()<dt*3) snd(360+Math.random()*300,"square",0.06,0.05);
-    if(craftT>=8){ won=true; const elapsed=gameTime-timeLeft; let best=loadBest(); const isNew=(best==null||elapsed<best); if(isNew){ best=elapsed; saveBest(best); } addWin();
-      endGame(true,"🧪 ¡Fabricaste el ANTÍDOTO y escapaste del hospital de 7 pisos! ✅<br><br>⏱ Tu tiempo: <b>"+fmtT(elapsed)+"</b>"+(isNew?"<br>🏆 ¡NUEVO RÉCORD!":"<br>🏆 Mejor: <b>"+fmtT(best)+"</b>")+"<br>🚁 Escapes totales: <b>"+loadWins()+"</b>"); } }
+    if(craftT>=8){ won=true; running=false; const elapsed=gameTime-timeLeft; let best=loadBest(); const isNew=(best==null||elapsed<best); if(isNew){ best=elapsed; saveBest(best); } addWin();
+      const winMsg="🧪 ¡Fabricaste el ANTÍDOTO y escapaste del hospital de 7 pisos! ✅<br><br>⏱ Tu tiempo: <b>"+fmtT(elapsed)+"</b>"+(isNew?"<br>🏆 ¡NUEVO RÉCORD!":"<br>🏆 Mejor: <b>"+fmtT(best)+"</b>")+"<br>🚁 Escapes totales: <b>"+loadWins()+"</b>";
+      // 🎬 cinemática de ESCAPE: fundido a blanco + radio de rescate
+      cbar.style.display="none"; const fd=$("fade"); if(fd){ fd.style.background="#e2fff7"; fd.style.opacity="0.94"; }
+      snd(400,"triangle",0.3,0.1); showStory("📻 «¡Equipo de rescate! Te tenemos... sal de ahí!»");
+      setTimeout(()=>snd(600,"triangle",0.4,0.1),600); setTimeout(()=>snd(780,"triangle",0.5,0.12),1150);
+      setTimeout(()=>{ if(fd) fd.style.opacity="0"; endGame(true,winMsg); if(fd) setTimeout(()=>{ fd.style.background="#000"; },400); },2400); } }
   else { cbar.style.display="none"; craftT=0; }
 
   const hint=$("hint");
