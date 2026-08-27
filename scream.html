@@ -98,6 +98,7 @@ Tienes BINOCULARES de visión nocturna para ver en la oscuridad sin delatarte.
 
 No dejes que te encuentre. El tiempo corre.</div>
   <p style="color:#c99;font-size:12px;max-width:540px">🎮 WASD/joystick moverte · ratón/dedo mirar · <b>CLIC IZQ / RT / 🔦 = LINTERNA</b> · <b>CLIC DER / LT / 🥽 = VISIÓN NOCTURNA</b> · 🕷️ la araña <b>TREPA las paredes</b> y se <b>vuelve INVISIBLE 30s cada 30s</b> (¡solo la ves con el VISOR 🥽!) · sigue el <b>RADAR</b> (arriba-izq) que la marca a ratos · <b>SHIFT / 🏃 = CORRER</b> (gasta stamina) · tienes <b>3 ❤️</b> — te recuperas en la ZONA SEGURA · solo te caza con la linterna encendida</p>
+  <p id="bestT" style="color:#ffd15a;font-weight:800;font-size:13px;position:relative;z-index:2"></p>
   <button class="btn" id="startBtn">▶ ENTRAR AL HOSPITAL</button>
 </div>
 <div id="end" class="hide">
@@ -335,6 +336,11 @@ $("sprint").addEventListener("pointerdown",e=>{ sprintHeld=true; e.preventDefaul
 ["pointerup","pointercancel","pointerleave"].forEach(ev=>$("sprint").addEventListener(ev,()=>{ sprintHeld=false; }));
 
 function showStory(txt){ const s=$("story"); s.textContent=txt; s.style.display="block"; clearTimeout(s._t); s._t=setTimeout(()=>s.style.display="none",3800); }
+// 🏆 mejor tiempo (localStorage, con try/catch)
+function fmtT(s){ s=Math.max(0,Math.floor(s)); return Math.floor(s/60)+":"+String(s%60).padStart(2,"0"); }
+function loadBest(){ try{ const v=localStorage.getItem("scream_best"); return v==null?null:parseFloat(v); }catch(e){ return null; } }
+function saveBest(v){ try{ localStorage.setItem("scream_best",String(v)); }catch(e){} }
+function updBest(){ const b=loadBest(), el=$("bestT"); if(el) el.textContent = b==null?"🏆 Aún sin récord — ¡sé el primero en escapar!":("🏆 Mejor escape: "+fmtT(b)); }
 // 💥 grietas de vidrio roto para el jumpscare
 function crackSVG(){ let p="";
   for(let i=0;i<12;i++){ const a=i/12*6.283+Math.random()*0.4; let x=200,y=200,d="M200 200"; const steps=6, len=140+Math.random()*200;
@@ -366,7 +372,7 @@ function endGame(win,info){ running=false; gameOver=true; sprintHeld=false; try{
   $("end").classList.remove("hide"); const t=$("endTitle"); if(win){ t.textContent="✓ SOBREVIVISTE"; t.className="big win"; } else { t.textContent="✕ TE ATRAPÓ"; t.className="big lose"; }
   $("endInfo").innerHTML=info; snd(win?660:60,win?"triangle":"sawtooth",0.6,0.13);
 }
-$("startBtn").onclick=start; $("againBtn").onclick=start;
+$("startBtn").onclick=start; $("againBtn").onclick=start; updBest();
 
 function update(dt){
   const now=performance.now()/1000, by=curFloor*FLOOR_H;
@@ -486,7 +492,8 @@ function update(dt){
   const cbar=$("craft");
   if(ready && atMachine && !won && !gameOver){ craftT+=dt; cbar.style.display="block"; cbar.firstElementChild.style.width=Math.min(100,craftT/8*100)+"%";
     if(Math.random()<dt*3) snd(360+Math.random()*300,"square",0.06,0.05);
-    if(craftT>=8){ won=true; endGame(true,"🧪 ¡Fabricaste el ANTÍDOTO y te curaste!<br>Escapaste del hospital de 7 pisos. La pesadilla terminó. ✅"); } }
+    if(craftT>=8){ won=true; const elapsed=1200-timeLeft; let best=loadBest(); const isNew=(best==null||elapsed<best); if(isNew){ best=elapsed; saveBest(best); }
+      endGame(true,"🧪 ¡Fabricaste el ANTÍDOTO y escapaste del hospital de 7 pisos! ✅<br><br>⏱ Tu tiempo: <b>"+fmtT(elapsed)+"</b>"+(isNew?"<br>🏆 ¡NUEVO RÉCORD!":"<br>🏆 Mejor: <b>"+fmtT(best)+"</b>")); } }
   else { cbar.style.display="none"; craftT=0; }
 
   const hint=$("hint");
