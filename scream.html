@@ -18,6 +18,9 @@
   @keyframes pulse{50%{opacity:.4}}
   #radar{position:absolute;top:40px;left:14px;width:92px;height:92px;opacity:.9}
   #hp{position:absolute;top:56px;left:0;right:0;text-align:center;font-size:22px;text-shadow:0 0 8px #000;letter-spacing:4px}
+  #toMachine{position:absolute;top:82px;left:0;right:0;text-align:center;display:none;color:#39ff8a;font:800 13px Consolas,monospace;text-shadow:0 0 8px #000}
+  #toMachine.on{display:block}
+  #toMachine .arw{display:inline-block;font-size:20px;vertical-align:middle}
   #visorB{position:absolute;top:38px;right:14px;font:700 10px Consolas,monospace;color:#8fffc0;text-align:right;text-shadow:0 0 6px #000}
   #visorB>div{width:88px;height:8px;margin-top:2px;background:rgba(0,0,0,.5);border:1px solid rgba(90,255,170,.6);border-radius:5px;overflow:hidden}
   #visorB>div>i{display:block;height:100%;width:100%;background:linear-gradient(90deg,#2affc0,#bfffe0)}
@@ -93,6 +96,7 @@
   <div id="timer">⏱ 20:00</div>
   <canvas id="radar" width="92" height="92"></canvas>
   <div id="hp">❤️❤️❤️</div>
+  <div id="toMachine"><span class="arw">▲</span> <span id="tmLbl">MÁQUINA</span></div>
   <div id="visorB">🥽 VISOR<div><i></i></div></div>
   <div id="flareC">🧨 x3</div>
   <div id="invtag">🕷️ LA ARAÑA SE VOLVIÓ INVISIBLE — usa el VISOR 🥽</div>
@@ -631,6 +635,12 @@ function update(dt){
       setTimeout(()=>{ if(fd) fd.style.opacity="0"; endGame(true,winMsg); if(fd) setTimeout(()=>{ fd.style.background="#000"; },400); },2400); } }
   else { cbar.style.display="none"; craftT=0; }
 
+  // 🧭 flecha guía a la máquina cuando ya tienes todo
+  const tm=$("toMachine");
+  if(ready && !won){ tm.classList.add("on"); const arw=tm.querySelector(".arw"), lbl=$("tmLbl");
+    if(curFloor===0){ const tx2=MACHINE.x-P.x, tz2=MACHINE.z-P.z, rgt=tx2*cos-tz2*sin, fwd2=-tx2*sin-tz2*cos; arw.style.transform="rotate("+(Math.atan2(rgt,fwd2)*57.2958)+"deg)"; lbl.textContent="MÁQUINA DE ANTÍDOTO"; }
+    else { arw.style.transform="rotate(180deg)"; lbl.textContent="baja a la PLANTA BAJA"; } }
+  else tm.classList.remove("on");
   const hint=$("hint");
   hint.textContent = inSafe(P.x,P.z,curFloor) ? (ready?"🧪 Acércate a la MÁQUINA y quédate para fabricar el antídoto":"🟢 ZONA SEGURA — la araña no entra. Aquí está la MÁQUINA de antídotos")
     : (!flashOn ? "🌑 A oscuras: la araña no te ve · CLIC IZQ = linterna · CLIC DER = visión nocturna"
