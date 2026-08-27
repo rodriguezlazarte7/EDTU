@@ -18,6 +18,9 @@
   @keyframes pulse{50%{opacity:.4}}
   #radar{position:absolute;top:40px;left:14px;width:92px;height:92px;opacity:.9}
   #hp{position:absolute;top:56px;left:0;right:0;text-align:center;font-size:22px;text-shadow:0 0 8px #000;letter-spacing:4px}
+  #visorB{position:absolute;top:38px;right:14px;font:700 10px Consolas,monospace;color:#8fffc0;text-align:right;text-shadow:0 0 6px #000}
+  #visorB>div{width:88px;height:8px;margin-top:2px;background:rgba(0,0,0,.5);border:1px solid rgba(90,255,170,.6);border-radius:5px;overflow:hidden}
+  #visorB>div>i{display:block;height:100%;width:100%;background:linear-gradient(90deg,#2affc0,#bfffe0)}
   #stam{position:absolute;bottom:112px;left:50%;transform:translateX(-50%);width:190px;height:8px;background:rgba(0,0,0,.5);border:1px solid rgba(120,220,255,.5);border-radius:5px;overflow:hidden}
   #stam>i{display:block;height:100%;width:100%;background:linear-gradient(90deg,#2ea6ff,#9fe0ff)}
   #sprint{right:24px;bottom:196px;background:rgba(120,180,255,.2);border:3px solid rgba(150,200,255,.6)}
@@ -81,6 +84,7 @@
   <div id="timer">⏱ 20:00</div>
   <canvas id="radar" width="92" height="92"></canvas>
   <div id="hp">❤️❤️❤️</div>
+  <div id="visorB">🥽 VISOR<div><i></i></div></div>
   <div id="invtag">🕷️ LA ARAÑA SE VOLVIÓ INVISIBLE — usa el VISOR 🥽</div>
   <div id="hint"></div>
   <div id="stam"><i></i></div>
@@ -349,7 +353,7 @@ spider=makeSpider();
 // ---------- jugador / input ----------
 const P={x:0,z:HH-7,y:1.7};
 let yaw=Math.PI,pitch=0,running=false,gameOver=false,tPrev=0,flashOn=true,nvOn=false,curFloor=0,floorCd=0,prevRT=false,prevLT=false;
-let hp=3, hpMax=3, hurtCd=0, stam=100, sprintHeld=false, safeTime=0;
+let hp=3, hpMax=3, hurtCd=0, stam=100, sprintHeld=false, safeTime=0, visorBatt=100;
 let diff="normal", invDur=30, ambushInt=10, gameTime=1200;
 const DIFFS={facil:{sp:2.6,inv:20,time:1500,hp:4,amb:14,lbl:"🟢 FÁCIL"},normal:{sp:3.2,inv:30,time:1200,hp:3,amb:10,lbl:"🟡 NORMAL"},pesadilla:{sp:3.9,inv:40,time:900,hp:2,amb:8,lbl:"🔴 PESADILLA"}};
 function buildDiffs(){ const c=$("diffs"); if(!c) return; c.innerHTML=""; for(const k of ["facil","normal","pesadilla"]){ const b=document.createElement("button"); b.className="diffbtn"+(diff===k?" sel":""); b.textContent=DIFFS[k].lbl; b.onclick=()=>{ diff=k; buildDiffs(); }; c.appendChild(b); } }
@@ -357,7 +361,7 @@ const keys={}, moveV={x:0,y:0};
 function updHP(){ let s=""; for(let i=0;i<hpMax;i++) s+= (i<hp?"❤️":"🖤"); $("hp").textContent=s; }
 let touchUI = window.matchMedia && !matchMedia("(pointer:fine)").matches;
 function toggleFlash(){ if(!running) return; flashOn=!flashOn; snd(flashOn?520:180,"square",0.07,0.06); showStory(flashOn?"🔦 Linterna ENCENDIDA (la araña te ve)":"🌑 Linterna APAGADA (te escondes)"); }
-function toggleNV(){ if(!running) return; nvOn=!nvOn; snd(nvOn?900:300,"square",0.08,0.06);
+function toggleNV(){ if(!running) return; if(!nvOn && visorBatt<10){ snd(150,"square",0.15,0.08); showStory("🥽 Visor sin batería — espera a que cargue"); return; } nvOn=!nvOn; snd(nvOn?900:300,"square",0.08,0.06);
   $("nv").classList.toggle("on",nvOn); $("nvln").classList.toggle("on",nvOn); $("nvui").classList.toggle("on",nvOn);
   camera.fov=nvOn?40:78; camera.updateProjectionMatrix(); }
 let mapOpen=false, noteTimer;
@@ -422,7 +426,7 @@ function start(){ $("start").classList.add("hide"); $("end").classList.add("hide
   if(nvOn) toggleNV();
   const D=DIFFS[diff]; hpMax=D.hp; invDur=D.inv; ambushInt=D.amb; gameTime=D.time;
   spiderDead=false; valvesGot=0; samplesGot=0; craftT=0; timeLeft=gameTime; won=false; hbT=0; spiderFloor=0;
-  hp=hpMax; stam=100; hurtCd=0; safeTime=0; sprintHeld=false; updHP(); $("crack").style.opacity="0";
+  hp=hpMax; stam=100; hurtCd=0; safeTime=0; sprintHeld=false; visorBatt=100; updHP(); $("crack").style.opacity="0";
   if(spider) spider.sp=D.sp;
   valves.forEach(v=>{ v.got=false; v.grp.visible=true; if(v.light) v.light.userData.fl=v.f; });
   samples.forEach(v=>{ v.got=false; v.grp.visible=true; if(v.light) v.light.userData.fl=v.f; });
@@ -467,6 +471,10 @@ function update(dt){
   camera.position.set(P.x,by+P.y,P.z); camera.rotation.y=yaw; camera.rotation.x=pitch;
   flash.intensity = flashOn?11:0; flashGlow.intensity = flashOn?1.2:0;
   ambient.intensity = nvOn?0.9:0.05;   // visión nocturna: ilumina todo (verde por overlay)
+  // 🥽 batería del visor: se gasta encendido, carga apagado; si se agota, se apaga solo
+  visorBatt = Math.max(0, Math.min(100, visorBatt + (nvOn?-dt*7:dt*5)));
+  if(nvOn && visorBatt<=0){ toggleNV(); showStory("🥽 ¡Visor agotado!"); }
+  { const vb=$("visorB"), vi=vb&&vb.querySelector("i"); if(vi){ vi.style.width=visorBatt+"%"; vi.style.background=visorBatt<25?"#ff5a5a":"linear-gradient(90deg,#2affc0,#bfffe0)"; } }
   // 🎥 SOLO se renderiza el piso actual (rendimiento) + luces de ese piso
   for(let i=0;i<FLOORS;i++){ const fgv=floorGroups[i]; if(fgv) fgv.visible=(i===curFloor); }
   for(const L of floorLights) L.visible = (L.userData.fl===curFloor);
