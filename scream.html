@@ -63,6 +63,13 @@
   #map h3{font-family:"Consolas",monospace;color:#b14bff;letter-spacing:.1em;margin-bottom:8px}
   #mapC{border:1px solid rgba(120,80,160,.6);border-radius:8px;background:#0a0710}
   #map p{color:#9a8faa;font-size:12px;margin-top:10px}
+  #thelp{right:196px;bottom:196px;background:rgba(120,120,120,.2);border:3px solid rgba(200,200,200,.5)}
+  #help{position:fixed;inset:0;z-index:9;display:none;flex-direction:column;align-items:center;justify-content:center;background:rgba(4,0,6,.94);padding:24px;text-align:left}
+  #help.on{display:flex}
+  #help h3{font-family:"Consolas",monospace;color:#ff5a6a;letter-spacing:.1em;margin-bottom:14px}
+  #help ul{list-style:none;max-width:440px;font-size:13.5px;line-height:1.9;color:#e6dede}
+  #help b{color:#ffd15a}
+  #help .cerrar{margin-top:16px;color:#9a8faa;font-size:12px}
   #fade{position:fixed;inset:0;background:#000;opacity:0;pointer-events:none;transition:opacity .25s;z-index:8}
   #start,#end{position:fixed;inset:0;z-index:10;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;padding:24px;overflow:auto;
     background:radial-gradient(circle at 50% 30%,#1a0308,#050001 78%)}
@@ -106,6 +113,20 @@
 <button id="sprint" class="tbtn hide">🏃</button>
 <button id="tmap" class="tbtn hide">🗺️</button>
 <button id="tflare" class="tbtn hide">🧨</button>
+<button id="thelp" class="tbtn hide">❓</button>
+<div id="help"><h3>❓ CONTROLES Y OBJETIVO</h3>
+  <ul>
+    <li><b>WASD / joystick</b> — moverte · <b>ratón / dedo</b> — mirar</li>
+    <li><b>CLIC IZQ / RT / 🔦</b> — linterna (¡la araña te VE con ella!)</li>
+    <li><b>CLIC DER / LT / 🥽</b> — visión nocturna (gasta batería; ve a la araña invisible)</li>
+    <li><b>SHIFT / 🏃</b> — correr (gasta stamina)</li>
+    <li><b>G / 🧨</b> — tirar bengala (luz que NO te delata)</li>
+    <li><b>M / 🗺️</b> — mapa del piso · <b>H / ❓</b> — esta ayuda</li>
+    <li>🎯 Reúne <b>4 válvulas</b> 🔧 + <b>3 muestras</b> 🧪 por los 7 pisos y fabrica el antídoto en la <b>MÁQUINA</b> de tu zona segura antes de que se acabe el tiempo.</li>
+    <li>🕷️ La araña se vuelve <b>invisible</b> por rachas (solo el visor la ve) y <b>trepa las paredes</b>. Apaga la linterna para esconderte.</li>
+  </ul>
+  <div class="cerrar">H o ❓ para cerrar</div>
+</div>
 <div id="map"><h3>🗺️ MAPA DEL PISO</h3><canvas id="mapC" width="320" height="320"></canvas><p>M o 🗺️ para cerrar · 🟢 válvula · 🟣 muestra · 🔴 araña · 🟡 tú</p></div>
 <div id="fade"></div>
 
@@ -121,7 +142,7 @@ En tu ZONA SEGURA hay una MÁQUINA para fabricar el ANTÍDOTO. Recorre los 7 pis
 Tienes BINOCULARES de visión nocturna para ver en la oscuridad sin delatarte.
 
 No dejes que te encuentre. El tiempo corre.</div>
-  <p style="color:#c99;font-size:12px;max-width:540px">🎮 WASD/joystick moverte · ratón/dedo mirar · <b>CLIC IZQ / RT / 🔦 = LINTERNA</b> · <b>CLIC DER / LT / 🥽 = VISIÓN NOCTURNA</b> · 🕷️ la araña <b>TREPA las paredes</b> y se <b>vuelve INVISIBLE 30s cada 30s</b> (¡solo la ves con el VISOR 🥽!) · sigue el <b>RADAR</b> (arriba-izq) que la marca a ratos · <b>SHIFT / 🏃 = CORRER</b> (gasta stamina) · <b>M / 🗺️ = MAPA</b> · <b>G / 🧨 = BENGALA</b> (luz que NO te delata) · tienes <b>3 ❤️</b> — te recuperas en la ZONA SEGURA · solo te caza con la linterna encendida</p>
+  <p style="color:#c99;font-size:12px;max-width:540px">🎮 WASD/joystick moverte · ratón/dedo mirar · <b>CLIC IZQ / RT / 🔦 = LINTERNA</b> · <b>CLIC DER / LT / 🥽 = VISIÓN NOCTURNA</b> · 🕷️ la araña <b>TREPA las paredes</b> y se <b>vuelve INVISIBLE 30s cada 30s</b> (¡solo la ves con el VISOR 🥽!) · sigue el <b>RADAR</b> (arriba-izq) que la marca a ratos · <b>SHIFT / 🏃 = CORRER</b> (gasta stamina) · <b>M / 🗺️ = MAPA</b> · <b>G / 🧨 = BENGALA</b> · <b>H / ❓ = AYUDA</b> · tienes <b>3 ❤️</b> — te recuperas en la ZONA SEGURA · solo te caza con la linterna encendida</p>
   <div id="diffs"></div>
   <p id="bestT" style="color:#ffd15a;font-weight:800;font-size:13px;position:relative;z-index:2"></p>
   <button class="btn" id="startBtn">▶ ENTRAR AL HOSPITAL</button>
@@ -368,7 +389,8 @@ function toggleFlash(){ if(!running) return; flashOn=!flashOn; snd(flashOn?520:1
 function toggleNV(){ if(!running) return; if(!nvOn && visorBatt<10){ snd(150,"square",0.15,0.08); showStory("🥽 Visor sin batería — espera a que cargue"); return; } nvOn=!nvOn; snd(nvOn?900:300,"square",0.08,0.06);
   $("nv").classList.toggle("on",nvOn); $("nvln").classList.toggle("on",nvOn); $("nvui").classList.toggle("on",nvOn);
   camera.fov=nvOn?40:78; camera.updateProjectionMatrix(); }
-let mapOpen=false, noteTimer, flares=3, panicWarned=false; const activeFlares=[];
+let mapOpen=false, noteTimer, flares=3, panicWarned=false, helpOpen=false; const activeFlares=[];
+function toggleHelp(){ if(!running) return; helpOpen=!helpOpen; $("help").classList.toggle("on",helpOpen); snd(helpOpen?500:300,"square",0.05,0.05); }
 function updFlareHUD(){ const el=$("flareC"); if(el) el.textContent="🧨 x"+flares; }
 function throwFlare(){ if(!running||gameOver||flares<=0) return; flares--; updFlareHUD();
   const fx=-Math.sin(yaw), fz=-Math.cos(yaw); let x=P.x+fx*7, z=P.z+fz*7; x=Math.max(-HH+2,Math.min(HH-2,x)); z=Math.max(-HH+2,Math.min(HH-2,z));
@@ -389,7 +411,7 @@ function drawMap(){ const c=$("mapC"); if(!c) return; const g=c.getContext("2d")
   for(const v of notes){ if(v.f!==curFloor||v.got) continue; const p=w2m(v.x,v.z); g.fillStyle="#efe0a0"; g.fillRect(p[0]-3,p[1]-4,6,8); }
   if(spiderFloor===curFloor && !spiderDead){ const p=w2m(spider.grp.position.x,spider.grp.position.z); g.fillStyle="#ff2a2a"; g.shadowColor="#f00"; g.shadowBlur=8; g.beginPath(); g.arc(p[0],p[1],5,0,6.28); g.fill(); g.shadowBlur=0; }
   const pp=w2m(P.x,P.z), fx=-Math.sin(yaw), fz=-Math.cos(yaw); g.fillStyle="#ffd12e"; g.beginPath(); g.moveTo(pp[0]+fx*8,pp[1]+fz*8); g.lineTo(pp[0]-fz*5-fx*4,pp[1]+fx*5-fz*4); g.lineTo(pp[0]+fz*5-fx*4,pp[1]-fx*5-fz*4); g.closePath(); g.fill(); }
-addEventListener("keydown",e=>{ keys[e.code]=true; if(e.code==="KeyF") toggleFlash(); if(e.code==="KeyM") toggleMap(); if(e.code==="KeyG") throwFlare(); if(e.code==="ShiftLeft"||e.code==="ShiftRight") sprintHeld=true; },true);
+addEventListener("keydown",e=>{ keys[e.code]=true; if(e.code==="KeyF") toggleFlash(); if(e.code==="KeyM") toggleMap(); if(e.code==="KeyG") throwFlare(); if(e.code==="KeyH") toggleHelp(); if(e.code==="ShiftLeft"||e.code==="ShiftRight") sprintHeld=true; },true);
 addEventListener("keyup",e=>{ keys[e.code]=false; if(e.code==="ShiftLeft"||e.code==="ShiftRight") sprintHeld=false; },true);
 addEventListener("mousemove",e=>{ if(!running) return; yaw-=(e.movementX||0)*0.0022; pitch=Math.max(-1.3,Math.min(1.3,pitch-(e.movementY||0)*0.0022)); });
 canvas.addEventListener("mousedown",e=>{ if(!running) return;
@@ -407,7 +429,7 @@ canvas.addEventListener("pointerup",e=>{ if(e.pointerId===lookId) lookId=null; }
 $("tflash").onclick=toggleFlash; $("tnv").onclick=toggleNV;
 $("sprint").addEventListener("pointerdown",e=>{ sprintHeld=true; e.preventDefault(); });
 ["pointerup","pointercancel","pointerleave"].forEach(ev=>$("sprint").addEventListener(ev,()=>{ sprintHeld=false; }));
-$("tmap").onclick=toggleMap; $("map").addEventListener("click",()=>{ if(mapOpen) toggleMap(); }); $("tflare").onclick=throwFlare;
+$("tmap").onclick=toggleMap; $("map").addEventListener("click",()=>{ if(mapOpen) toggleMap(); }); $("tflare").onclick=throwFlare; $("thelp").onclick=toggleHelp; $("help").addEventListener("click",()=>{ if(helpOpen) toggleHelp(); });
 
 function showStory(txt){ const s=$("story"); s.textContent=txt; s.style.display="block"; clearTimeout(s._t); s._t=setTimeout(()=>s.style.display="none",3800); }
 // 🏆 mejor tiempo (localStorage, con try/catch)
@@ -434,7 +456,8 @@ function goFloor(nf){ if(nf<0||nf>=FLOORS) return; fade(()=>{ curFloor=nf; floor
 function randSpotOnFloor(fl){ let x,z,t=0; do{ x=(Math.random()*2-1)*(HH-7); z=(Math.random()*2-1)*(HH-7); t++; }while((collide(x,z,fl)||inSafe(x,z,fl)||Math.hypot(x-STAIRX,z-STAIRZ)<7)&&t<50); return {x,z}; }
 function reposition(arr,yoff){ for(const v of arr){ const s=randSpotOnFloor(v.f); v.x=s.x; v.z=s.z; v.grp.position.set(s.x,v.f*FLOOR_H+yoff,s.z); if(v.light) v.light.position.set(s.x,v.f*FLOOR_H+yoff+0.4,s.z); } }
 function start(){ $("start").classList.add("hide"); $("end").classList.add("hide"); $("hud").classList.remove("hide");
-  if(touchUI){ $("touch").classList.add("on"); $("tflash").classList.remove("hide"); $("tnv").classList.remove("hide"); $("sprint").classList.remove("hide"); $("tmap").classList.remove("hide"); $("tflare").classList.remove("hide"); }
+  if(touchUI){ $("touch").classList.add("on"); $("tflash").classList.remove("hide"); $("tnv").classList.remove("hide"); $("sprint").classList.remove("hide"); $("tmap").classList.remove("hide"); $("tflare").classList.remove("hide"); $("thelp").classList.remove("hide"); }
+  helpOpen=false; $("help").classList.remove("on");
   mapOpen=false; $("map").classList.remove("on");
   P.x=0; P.z=HH-7; yaw=Math.PI; pitch=0; running=true; gameOver=false; tPrev=performance.now(); flashOn=true; curFloor=0; floorCd=0;
   if(nvOn) toggleNV();
@@ -452,13 +475,14 @@ function start(){ $("start").classList.add("hide"); $("end").classList.add("hide
   $("invtag").style.display="none";
   $("floor").textContent=FLOORNAME[0]; updObj(); showStory("7 pisos a oscuras. Tienes 20 min: reúne 4 válvulas + 3 muestras y fabrica el antídoto en tu zona segura.");
 }
-function endGame(win,info){ running=false; gameOver=true; sprintHeld=false; try{document.exitPointerLock();}catch(e){} $("touch").classList.remove("on"); $("tflash").classList.add("hide"); $("tnv").classList.add("hide"); $("sprint").classList.add("hide"); $("tmap").classList.add("hide"); $("tflare").classList.add("hide"); mapOpen=false; $("map").classList.remove("on");
+function endGame(win,info){ running=false; gameOver=true; sprintHeld=false; try{document.exitPointerLock();}catch(e){} $("touch").classList.remove("on"); $("tflash").classList.add("hide"); $("tnv").classList.add("hide"); $("sprint").classList.add("hide"); $("tmap").classList.add("hide"); $("tflare").classList.add("hide"); $("thelp").classList.add("hide"); mapOpen=false; $("map").classList.remove("on"); helpOpen=false; $("help").classList.remove("on");
   $("end").classList.remove("hide"); const t=$("endTitle"); if(win){ t.textContent="✓ SOBREVIVISTE"; t.className="big win"; } else { t.textContent="✕ TE ATRAPÓ"; t.className="big lose"; }
   $("endInfo").innerHTML=info; snd(win?660:60,win?"triangle":"sawtooth",0.6,0.13);
 }
 $("startBtn").onclick=start; $("againBtn").onclick=start; updBest(); buildDiffs();
 
 function update(dt){
+  if(helpOpen) return;   // ⏸ pausa mientras la ayuda está abierta
   const now=performance.now()/1000, by=curFloor*FLOOR_H;
   // ⏱ contador de 20 minutos
   timeLeft-=dt; if(timeLeft<0) timeLeft=0;
