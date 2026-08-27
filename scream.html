@@ -58,7 +58,10 @@
   #start,#end{position:fixed;inset:0;z-index:10;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;padding:24px;overflow:auto;
     background:radial-gradient(circle at 50% 30%,#1a0308,#050001 78%)}
   #stars{position:absolute;inset:0;z-index:0;pointer-events:none}
-  #start h1,#start .lore,#start p,#start .btn{position:relative;z-index:2}
+  #start h1,#start .lore,#start p,#start .btn,#diffs{position:relative;z-index:2}
+  #diffs{display:flex;gap:8px;margin:6px 0}
+  .diffbtn{font-family:"Consolas",monospace;font-weight:800;font-size:13px;color:#eee;cursor:pointer;padding:9px 14px;border-radius:10px;border:2px solid rgba(255,255,255,.25);background:rgba(40,10,20,.5)}
+  .diffbtn.sel{border-color:#ffd15a;color:#ffd15a;box-shadow:0 0 12px rgba(255,209,90,.4)}
   #start h1{font-family:"Consolas",monospace;font-size:clamp(34px,10vw,72px);color:#ff2b3a;text-shadow:0 0 18px #6a0010,0 0 50px #2a0008,0 0 90px #ff2b3a;letter-spacing:.1em}
   #start .lore{max-width:520px;color:#e6bcbc;line-height:1.6;font-size:13px;margin:14px 0;white-space:pre-line}
   .big{font-family:"Consolas",monospace;font-size:clamp(26px,7vw,46px);font-weight:900}
@@ -106,6 +109,7 @@ Tienes BINOCULARES de visión nocturna para ver en la oscuridad sin delatarte.
 
 No dejes que te encuentre. El tiempo corre.</div>
   <p style="color:#c99;font-size:12px;max-width:540px">🎮 WASD/joystick moverte · ratón/dedo mirar · <b>CLIC IZQ / RT / 🔦 = LINTERNA</b> · <b>CLIC DER / LT / 🥽 = VISIÓN NOCTURNA</b> · 🕷️ la araña <b>TREPA las paredes</b> y se <b>vuelve INVISIBLE 30s cada 30s</b> (¡solo la ves con el VISOR 🥽!) · sigue el <b>RADAR</b> (arriba-izq) que la marca a ratos · <b>SHIFT / 🏃 = CORRER</b> (gasta stamina) · <b>M / 🗺️ = MAPA</b> del piso (te quedas quieto: ¡ojo!) · tienes <b>3 ❤️</b> — te recuperas en la ZONA SEGURA · solo te caza con la linterna encendida</p>
+  <div id="diffs"></div>
   <p id="bestT" style="color:#ffd15a;font-weight:800;font-size:13px;position:relative;z-index:2"></p>
   <button class="btn" id="startBtn">▶ ENTRAR AL HOSPITAL</button>
 </div>
@@ -317,6 +321,9 @@ spider=makeSpider();
 const P={x:0,z:HH-7,y:1.7};
 let yaw=Math.PI,pitch=0,running=false,gameOver=false,tPrev=0,flashOn=true,nvOn=false,curFloor=0,floorCd=0,prevRT=false,prevLT=false;
 let hp=3, hpMax=3, hurtCd=0, stam=100, sprintHeld=false, safeTime=0;
+let diff="normal", invDur=30, ambushInt=10, gameTime=1200;
+const DIFFS={facil:{sp:2.6,inv:20,time:1500,hp:4,amb:14,lbl:"🟢 FÁCIL"},normal:{sp:3.2,inv:30,time:1200,hp:3,amb:10,lbl:"🟡 NORMAL"},pesadilla:{sp:3.9,inv:40,time:900,hp:2,amb:8,lbl:"🔴 PESADILLA"}};
+function buildDiffs(){ const c=$("diffs"); if(!c) return; c.innerHTML=""; for(const k of ["facil","normal","pesadilla"]){ const b=document.createElement("button"); b.className="diffbtn"+(diff===k?" sel":""); b.textContent=DIFFS[k].lbl; b.onclick=()=>{ diff=k; buildDiffs(); }; c.appendChild(b); } }
 const keys={}, moveV={x:0,y:0};
 function updHP(){ let s=""; for(let i=0;i<hpMax;i++) s+= (i<hp?"❤️":"🖤"); $("hp").textContent=s; }
 let touchUI = window.matchMedia && !matchMedia("(pointer:fine)").matches;
@@ -383,11 +390,13 @@ function start(){ $("start").classList.add("hide"); $("end").classList.add("hide
   mapOpen=false; $("map").classList.remove("on");
   P.x=0; P.z=HH-7; yaw=Math.PI; pitch=0; running=true; gameOver=false; tPrev=performance.now(); flashOn=true; curFloor=0; floorCd=0;
   if(nvOn) toggleNV();
-  spiderDead=false; valvesGot=0; samplesGot=0; craftT=0; timeLeft=1200; won=false; hbT=0; spiderFloor=0;
+  const D=DIFFS[diff]; hpMax=D.hp; invDur=D.inv; ambushInt=D.amb; gameTime=D.time;
+  spiderDead=false; valvesGot=0; samplesGot=0; craftT=0; timeLeft=gameTime; won=false; hbT=0; spiderFloor=0;
   hp=hpMax; stam=100; hurtCd=0; safeTime=0; sprintHeld=false; updHP(); $("crack").style.opacity="0";
+  if(spider) spider.sp=D.sp;
   valves.forEach(v=>{ v.got=false; v.grp.visible=true; if(v.light) v.light.userData.fl=v.f; });
   samples.forEach(v=>{ v.got=false; v.grp.visible=true; if(v.light) v.light.userData.fl=v.f; });
-  if(spider){ spider.grp.visible=true; spider.grp.rotation.set(0,0,0); spider.grp.scale.setScalar(1); spider.grp.position.set(0,0,-HH+22); spider.camo=0.12; spider.ambushT=8; spider.invPhase=false; spider.invT=30; spider.climb=0; spider.pingT=0; spider.bodyMats.forEach(m=>m.opacity=0.12); spider.eyes.forEach(e=>e.visible=true); if(spider.eyeGlow) spider.eyeGlow.visible=true; }
+  if(spider){ spider.grp.visible=true; spider.grp.rotation.set(0,0,0); spider.grp.scale.setScalar(1); spider.grp.position.set(0,0,-HH+22); spider.camo=0.12; spider.ambushT=8; spider.invPhase=false; spider.invT=invDur; spider.climb=0; spider.pingT=0; spider.bodyMats.forEach(m=>m.opacity=0.12); spider.eyes.forEach(e=>e.visible=true); if(spider.eyeGlow) spider.eyeGlow.visible=true; }
   $("invtag").style.display="none";
   $("floor").textContent=FLOORNAME[0]; updObj(); showStory("7 pisos a oscuras. Tienes 20 min: reúne 4 válvulas + 3 muestras y fabrica el antídoto en tu zona segura.");
 }
@@ -395,7 +404,7 @@ function endGame(win,info){ running=false; gameOver=true; sprintHeld=false; try{
   $("end").classList.remove("hide"); const t=$("endTitle"); if(win){ t.textContent="✓ SOBREVIVISTE"; t.className="big win"; } else { t.textContent="✕ TE ATRAPÓ"; t.className="big lose"; }
   $("endInfo").innerHTML=info; snd(win?660:60,win?"triangle":"sawtooth",0.6,0.13);
 }
-$("startBtn").onclick=start; $("againBtn").onclick=start; updBest();
+$("startBtn").onclick=start; $("againBtn").onclick=start; updBest(); buildDiffs();
 
 function update(dt){
   const now=performance.now()/1000, by=curFloor*FLOOR_H;
@@ -453,10 +462,10 @@ function update(dt){
   spider.grp.position.y=spiderFloor*FLOOR_H;
   const sx=P.x-spider.grp.position.x, sz=P.z-spider.grp.position.z, sd=sameFloor?Math.hypot(sx,sz):999;
   // 👻 INVISIBILIDAD: 30s invisible / 30s visible — SIN AVISO (solo con el VISOR la ves)
-  spider.invT-=dt; if(spider.invT<=0){ spider.invPhase=!spider.invPhase; spider.invT=30; }
+  spider.invT-=dt; if(spider.invT<=0){ spider.invPhase=!spider.invPhase; spider.invT=invDur; }
   const invHidden = spider.invPhase && !nvOn;
   if(!spiderDead && flashOn){ spider.ambushT-=dt;   // 🔦 SOLO se teletransporta con la linterna PRENDIDA
-    if(spider.ambushT<=0){ spider.ambushT=10;
+    if(spider.ambushT<=0){ spider.ambushT=ambushInt;
       if(sameFloor){ const fx=-Math.sin(yaw), fz=-Math.cos(yaw), dist=7+Math.random()*2; const sp2=safeSpotF(P.x+fx*dist,P.z+fz*dist,curFloor);   // aparece ADELANTE
           spider.grp.position.x=sp2.x; spider.grp.position.z=sp2.z; spider.camo=1; snd(60,"sawtooth",0.7,0.18); snd(1300,"square",0.18,0.12); const sf=$("sflash"); if(sf){ sf.style.opacity="0.55"; setTimeout(()=>sf.style.opacity="0",90);} doCrack(); showStory("🕷️ ¡APARECIÓ FRENTE A TI!"); }
       else { spiderFloor=curFloor; const sp2=safeSpotF(STAIRX,STAIRZ,curFloor); spider.grp.position.x=sp2.x; spider.grp.position.z=sp2.z; spider.camo=1; snd(80,"sawtooth",0.9,0.16); snd(1000,"square",0.3,0.1); showStory("🕷️ ¡SUBIÓ POR LAS ESCALERAS a tu piso!"); } } }
@@ -516,7 +525,7 @@ function update(dt){
   const cbar=$("craft");
   if(ready && atMachine && !won && !gameOver){ craftT+=dt; cbar.style.display="block"; cbar.firstElementChild.style.width=Math.min(100,craftT/8*100)+"%";
     if(Math.random()<dt*3) snd(360+Math.random()*300,"square",0.06,0.05);
-    if(craftT>=8){ won=true; const elapsed=1200-timeLeft; let best=loadBest(); const isNew=(best==null||elapsed<best); if(isNew){ best=elapsed; saveBest(best); }
+    if(craftT>=8){ won=true; const elapsed=gameTime-timeLeft; let best=loadBest(); const isNew=(best==null||elapsed<best); if(isNew){ best=elapsed; saveBest(best); }
       endGame(true,"🧪 ¡Fabricaste el ANTÍDOTO y escapaste del hospital de 7 pisos! ✅<br><br>⏱ Tu tiempo: <b>"+fmtT(elapsed)+"</b>"+(isNew?"<br>🏆 ¡NUEVO RÉCORD!":"<br>🏆 Mejor: <b>"+fmtT(best)+"</b>")); } }
   else { cbar.style.display="none"; craftT=0; }
 
