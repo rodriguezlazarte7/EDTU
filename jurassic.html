@@ -279,10 +279,13 @@ function makeDino(type){ const T=DTYPE[type], g=new THREE.Group(); const mat=new
   return g;
 }
 const dinos=[]; let mosa=null;
+const zzzTex=(function(){ const c=document.createElement("canvas"); c.width=c.height=128; const x=c.getContext("2d"); x.font="92px serif"; x.textAlign="center"; x.textBaseline="middle"; x.fillText("💤",64,70); return new THREE.CanvasTexture(c); })();
 function spawnDinos(){
   const kinds=["trex","indo","disto","exor","braq","tric","gali","braq","tric","gali"];   // 4 carnívoros + 6 pacíficos
   for(const k of kinds){ let x,z; do{ const a=Math.random()*6.28,r=50+Math.random()*(ISLR-60); x=Math.cos(a)*r; z=Math.sin(a)*r; }while(inLake(x,z,6)||inSafe(x,z));
-    const g=makeDino(k); g.position.set(x,0,z); dinos.push({grp:g,type:k,T:DTYPE[k],x,z,tx:x,tz:z,rt:0,hitCd:0,tranq:0,sleep:0}); }
+    const g=makeDino(k); g.position.set(x,0,z);
+    const zzz=new THREE.Sprite(new THREE.SpriteMaterial({map:zzzTex,transparent:true,depthTest:false})); zzz.scale.setScalar(3/DTYPE[k].sc); zzz.position.set(0,5,0); zzz.visible=false; g.add(zzz);
+    dinos.push({grp:g,type:k,T:DTYPE[k],x,z,tx:x,tz:z,rt:0,hitCd:0,tranq:0,sleep:0,zzz}); }
   const mg=makeDino("mosa"); mg.position.set(LAKE.x,-3,LAKE.z); mg.visible=false; mosa={grp:mg,type:"mosa",T:DTYPE.mosa,hitCd:0};   // invisible bajo el agua
 }
 
@@ -437,6 +440,7 @@ function update(dt){
   let danger=false, nearRoar=999; const safe=inSafe(P.x,P.z);
   const detMul = isNight?1.4:1;
   for(const d of dinos){ const dxz=P.x-d.grp.position.x, dzz=P.z-d.grp.position.z, dd=Math.hypot(dxz,dzz);
+    if(d.zzz){ d.zzz.visible=d.sleep>0; if(d.sleep>0) d.zzz.position.y=5+Math.sin(elapsed*3)*0.4; }   // ícono de sueño flotante
     if(d.sleep>0){ d.sleep-=dt; d.grp.rotation.z=1.4;   // 💤 dormido por el tranquilizante
       d.grp.children.forEach(ch=>{}); if(d.sleep<=0){ d.grp.rotation.z=0; showStory(d.T.name+" despertó"); } continue; }
     if(!d.T.passive && dd<nearRoar) nearRoar=dd;
