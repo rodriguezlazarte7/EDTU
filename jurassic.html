@@ -100,6 +100,7 @@ SOBREVIVE 7 DÍAS. ENCUENTRA UNA FORMA DE PEDIR RESCATE. Y NO DEJES QUE TE ENCUE
 
 DÍA 1 — 00:00 · La radio se enciende... «...¿hay alguien ahí?...» La señal desaparece. Entonces escuchas un rugido a lo lejos. El parque ya no está bajo control.</div>
   <p style="color:#9fbf80;font-size:12px;max-width:540px">🎮 WASD/joystick moverte · ratón mirar · <b>clic/🎯/F = DARDO tranquilizante ∞</b> 💉 (duérmelos) · <b>espacio/🦘 = SALTAR</b> · <b>[B]/🪵 = poner bloques ∞</b> · recoge 💧🥫🔋 · los herbívoros 🦕 NO te persiguen · refúgiate en la CABAÑA (con puerta 🚪) o en las <b style="color:#7dff5a">ZONAS SEGURAS</b> 🟢 · lleva 3 🔋 a la TORRE DE RADIO para pedir rescate</p>
+  <p id="jbest" style="color:#ffd15a;font-weight:800;font-size:13px"></p>
   <button class="btn" id="startBtn">▶ EMPEZAR A SOBREVIVIR</button>
 </div>
 
@@ -327,11 +328,15 @@ function start(){ $("start").classList.add("hide"); $("end").classList.add("hide
   running=true; gameOver=false; tPrev=performance.now(); updInv();
   showStory("«...¿hay alguien ahí?...» — la señal desaparece. Escuchas un rugido a lo lejos.");
 }
+function loadJBest(){ try{ return parseFloat(localStorage.getItem("jurassic_best")||"0")||0; }catch(e){ return 0; } }
+function saveJBest(v){ try{ localStorage.setItem("jurassic_best",String(v)); }catch(e){} }
+function updJBest(){ const b=loadJBest(), el=$("jbest"); if(el) el.textContent = b>0?("🏆 Récord: "+b.toFixed(1)+" días sobrevividos"):"🏆 Aún sin récord — ¡sobrevive!"; }
 function endGame(win,info){ running=false; gameOver=true; try{document.exitPointerLock();}catch(e){} $("touch").classList.remove("on"); $("fire").classList.add("hide"); $("jump").classList.add("hide");
+  const days=Math.min(7, elapsed/DAY_LEN); const prev=loadJBest(); const isRec=days>prev; if(isRec) saveJBest(days);
   $("end").classList.remove("hide"); const t=$("endTitle"); if(win){ t.textContent="✓ RESCATADO"; t.className="big win"; } else { t.textContent="✕ NO SOBREVIVISTE"; t.className="big lose"; }
-  $("endInfo").innerHTML=info; snd(win?660:70,win?"triangle":"sawtooth",0.5,0.12);
+  $("endInfo").innerHTML=info+"<br><br>🗓️ Días: <b>"+days.toFixed(1)+"</b>"+(isRec?" 🏆 ¡RÉCORD!":" · Récord: <b>"+prev.toFixed(1)+"</b>"); snd(win?660:70,win?"triangle":"sawtooth",0.5,0.12);
 }
-$("startBtn").onclick=start; $("againBtn").onclick=start;
+$("startBtn").onclick=start; $("againBtn").onclick=start; updJBest();
 
 // ---------- fundido ----------
 function fade(fn){ const f=$("fade"); f.style.opacity="1"; setTimeout(()=>{ fn&&fn(); f.style.opacity="0"; },250); }
