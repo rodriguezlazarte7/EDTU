@@ -419,6 +419,9 @@ function updObj(){ const done=valvesGot>=4&&samplesGot>=3; $("obj").textContent 
 function fade(fn){ const f=$("fade"); f.style.opacity="1"; setTimeout(()=>{ fn&&fn(); f.style.opacity="0"; },250); }
 function goFloor(nf){ if(nf<0||nf>=FLOORS) return; fade(()=>{ curFloor=nf; floorCd=1.2; const sp=safeSpotF(STAIRX-5,STAIRZ,nf); P.x=sp.x; P.z=sp.z; $("floor").textContent=FLOORNAME[nf]; snd(200,"sine",0.2,0.07); showStory("Subiste a "+FLOORNAME[nf]); }); }
 
+// 🎲 posiciones aleatorias (evita paredes, zona segura y la escalera)
+function randSpotOnFloor(fl){ let x,z,t=0; do{ x=(Math.random()*2-1)*(HH-7); z=(Math.random()*2-1)*(HH-7); t++; }while((collide(x,z,fl)||inSafe(x,z,fl)||Math.hypot(x-STAIRX,z-STAIRZ)<7)&&t<50); return {x,z}; }
+function reposition(arr,yoff){ for(const v of arr){ const s=randSpotOnFloor(v.f); v.x=s.x; v.z=s.z; v.grp.position.set(s.x,v.f*FLOOR_H+yoff,s.z); if(v.light) v.light.position.set(s.x,v.f*FLOOR_H+yoff+0.4,s.z); } }
 function start(){ $("start").classList.add("hide"); $("end").classList.add("hide"); $("hud").classList.remove("hide");
   if(touchUI){ $("touch").classList.add("on"); $("tflash").classList.remove("hide"); $("tnv").classList.remove("hide"); $("sprint").classList.remove("hide"); $("tmap").classList.remove("hide"); }
   mapOpen=false; $("map").classList.remove("on");
@@ -431,7 +434,9 @@ function start(){ $("start").classList.add("hide"); $("end").classList.add("hide
   valves.forEach(v=>{ v.got=false; v.grp.visible=true; if(v.light) v.light.userData.fl=v.f; });
   samples.forEach(v=>{ v.got=false; v.grp.visible=true; if(v.light) v.light.userData.fl=v.f; });
   notes.forEach(v=>{ v.got=false; v.grp.visible=true; if(v.light) v.light.userData.fl=v.f; }); notesGot=0; $("note").classList.remove("on");
-  if(spider){ spider.grp.visible=true; spider.grp.rotation.set(0,0,0); spider.grp.scale.setScalar(1); spider.grp.position.set(0,0,-HH+22); spider.camo=0.12; spider.ambushT=8; spider.invPhase=false; spider.invT=invDur; spider.climb=0; spider.pingT=0; spider.bodyMats.forEach(m=>m.opacity=0.12); spider.eyes.forEach(e=>e.visible=true); if(spider.eyeGlow) spider.eyeGlow.visible=true; }
+  reposition(valves,1); reposition(samples,1); reposition(notes,1.2);   // 🎲 ítems en lugares distintos cada partida
+  spiderFloor=Math.floor(Math.random()*FLOORS); const ss=randSpotOnFloor(spiderFloor);
+  if(spider){ spider.grp.visible=true; spider.grp.rotation.set(0,0,0); spider.grp.scale.setScalar(1); spider.grp.position.set(ss.x,spiderFloor*FLOOR_H,ss.z); spider.camo=0.12; spider.ambushT=8; spider.invPhase=false; spider.invT=invDur; spider.climb=0; spider.pingT=0; spider.bodyMats.forEach(m=>m.opacity=0.12); spider.eyes.forEach(e=>e.visible=true); if(spider.eyeGlow) spider.eyeGlow.visible=true; }
   $("invtag").style.display="none";
   $("floor").textContent=FLOORNAME[0]; updObj(); showStory("7 pisos a oscuras. Tienes 20 min: reúne 4 válvulas + 3 muestras y fabrica el antídoto en tu zona segura.");
 }
