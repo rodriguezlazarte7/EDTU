@@ -26,6 +26,10 @@
   #craft>i{display:block;height:100%;width:0;background:linear-gradient(90deg,#39ff8a,#bfffcf)}
   #hint{position:absolute;bottom:92px;left:0;right:0;text-align:center;font-size:14px;color:#ffd0d0;text-shadow:0 0 8px #000}
   #story{position:absolute;bottom:140px;left:50%;transform:translateX(-50%);max-width:82%;background:rgba(10,0,4,.82);border:1px solid #6a1020;border-radius:10px;padding:8px 14px;font-size:13px;color:#ffdada;display:none;text-align:center}
+  #note{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%) rotate(-1.5deg);max-width:min(440px,86%);opacity:0;pointer-events:none;transition:opacity .3s;
+    background:linear-gradient(#efe4c8,#d9c9a0);color:#2a1c0a;border:1px solid #6b5a34;border-radius:4px;padding:16px 20px;font-family:"Courier New",monospace;font-size:14px;line-height:1.5;box-shadow:0 8px 30px rgba(0,0,0,.7);z-index:6}
+  #note.on{opacity:1}
+  #note b{display:block;color:#7a1010;letter-spacing:.1em;margin-bottom:6px;font-size:12px}
   #hurt{position:absolute;inset:0;box-shadow:inset 0 0 120px 30px rgba(180,10,20,0);pointer-events:none;transition:box-shadow .1s}
   #sflash{position:absolute;inset:0;background:#fff;opacity:0;pointer-events:none}
   #crack{position:absolute;inset:0;pointer-events:none;opacity:0;background-size:cover;background-position:center;background-repeat:no-repeat;filter:drop-shadow(0 0 2px rgba(255,255,255,.8))}
@@ -85,6 +89,7 @@
   <div id="hurt"></div>
   <div id="sflash"></div>
   <div id="crack"></div>
+  <div id="note"></div>
   <div id="nv"></div><div id="nvln"></div><div id="nvui"></div>
   <div id="cross"></div>
 </div>
@@ -175,7 +180,16 @@ const FLTINT=[0x330006,0x001a33,0x2a0010,0x0a2a12,0x2a2000,0x001a2a,0x2a002a];  
 // objetivos: 4 válvulas + 3 muestras repartidas por los 7 pisos
 const VALVE_SPOTS=[{f:1,x:-HH+16,z:-HH+16},{f:2,x:HH-16,z:-HH+16},{f:4,x:-HH+16,z:HH-16},{f:6,x:HH-16,z:HH-16}];
 const SAMPLE_SPOTS=[{f:3,x:0,z:-HH+16},{f:5,x:0,z:HH-16},{f:6,x:-HH+16,z:0}];
-const valves=[], samples=[]; let valvesGot=0, samplesGot=0, craftT=0, timeLeft=1200, won=false;
+// 📄 notas de historia (el origen del experimento)
+const NOTE_SPOTS=[
+ {f:0,x:HH-16,z:-HH+16,h:"DÍA 1",t:"Proyecto ARÁCNIDO. Criamos un espécimen para estudiar su veneno. Todo bajo control... por ahora."},
+ {f:1,x:-HH+16,z:HH-16,h:"DÍA 14",t:"Creció el triple de lo previsto. En la oscuridad desaparece de las cámaras. Los guardias tienen miedo."},
+ {f:2,x:HH-16,z:HH-16,h:"DÍA 27",t:"Rompió el vidrio del recinto y se escapó. Sellamos los pisos. Se mueve por las paredes."},
+ {f:3,x:-HH+16,z:-HH+16,h:"DÍA 30",t:"Nos mordió. El veneno se esparce. El antídoto necesita 4 VÁLVULAS y 3 MUESTRAS."},
+ {f:5,x:-HH+16,z:-HH+16,h:"DÍA 32",t:"Se vuelve invisible por rachas. Solo el visor térmico la detecta. NO uses la linterna si no quieres que te encuentre."},
+ {f:6,x:0,z:HH-16,h:"ÚLTIMO REGISTRO",t:"La máquina de la zona segura es la única salida. Si lees esto... corre. Y no dejes que te encuentre."}
+];
+const valves=[], samples=[], notes=[]; let valvesGot=0, samplesGot=0, notesGot=0, craftT=0, timeLeft=1200, won=false;
 const safeZone={x:-HH+16,z:HH-16,r:9,f:0}; const MACHINE={x:-HH+16,z:HH-16};
 const flick=[];                                    // luces que parpadean
 const floorLights=[];                              // luces que SOLO se encienden en su piso
@@ -269,6 +283,13 @@ function buildFloor(fl){
     g.position.set(sp.x,by+1,sp.z); CURP.add(g);
     const gl=new THREE.PointLight(0xb14bff,1.2,14); gl.position.set(sp.x,by+1.5,sp.z); flight(gl,fl);
     samples.push({grp:g,x:sp.x,z:sp.z,f:fl,got:false,light:gl}); }
+  // 📄 NOTAS de historia (papel brillante flotante)
+  for(const np of NOTE_SPOTS){ if(np.f!==fl) continue;
+    const g=new THREE.Group();
+    const paper=new THREE.Mesh(new THREE.BoxGeometry(0.9,1.2,0.04),new THREE.MeshStandardMaterial({color:0xefe4c8,emissive:0x6a5a30,emissiveIntensity:.6,roughness:.7})); paper.rotation.set(0.2,0,0.15); g.add(paper);
+    g.position.set(np.x,by+1.2,np.z); CURP.add(g);
+    const gl=new THREE.PointLight(0xfff0b0,0.7,8); gl.position.set(np.x,by+1.4,np.z); flight(gl,fl);
+    notes.push({grp:g,x:np.x,z:np.z,f:fl,got:false,light:gl,h:np.h,t:np.t}); }
   CURP=ROOT;   // fin del piso: vuelve el destino a la escena
 }
 function inSafe(x,z,fl){ return fl===safeZone.f && Math.hypot(x-safeZone.x,z-safeZone.z)<safeZone.r; }
@@ -331,7 +352,7 @@ function toggleFlash(){ if(!running) return; flashOn=!flashOn; snd(flashOn?520:1
 function toggleNV(){ if(!running) return; nvOn=!nvOn; snd(nvOn?900:300,"square",0.08,0.06);
   $("nv").classList.toggle("on",nvOn); $("nvln").classList.toggle("on",nvOn); $("nvui").classList.toggle("on",nvOn);
   camera.fov=nvOn?40:78; camera.updateProjectionMatrix(); }
-let mapOpen=false;
+let mapOpen=false, noteTimer;
 function toggleMap(){ if(!running) return; mapOpen=!mapOpen; $("map").classList.toggle("on",mapOpen); snd(mapOpen?500:280,"square",0.05,0.05); if(mapOpen) drawMap(); }
 function drawMap(){ const c=$("mapC"); if(!c) return; const g=c.getContext("2d"); g.clearRect(0,0,320,320);
   const sc=300/(HH*2), w2m=(x,z)=>[160+x*sc,160+z*sc];
@@ -342,6 +363,7 @@ function drawMap(){ const c=$("mapC"); if(!c) return; const g=c.getContext("2d")
   if(curFloor===0){ const s=w2m(safeZone.x,safeZone.z); g.strokeStyle="#39ff8a"; g.lineWidth=1.5; g.beginPath(); g.arc(s[0],s[1],safeZone.r*sc,0,6.28); g.stroke(); const m=w2m(MACHINE.x,MACHINE.z); g.fillStyle="#0affc0"; g.fillRect(m[0]-3,m[1]-3,6,6); }
   for(const v of valves){ if(v.f!==curFloor||v.got) continue; const p=w2m(v.x,v.z); g.fillStyle="#39ff8a"; g.beginPath(); g.arc(p[0],p[1],4,0,6.28); g.fill(); }
   for(const v of samples){ if(v.f!==curFloor||v.got) continue; const p=w2m(v.x,v.z); g.fillStyle="#b14bff"; g.beginPath(); g.arc(p[0],p[1],4,0,6.28); g.fill(); }
+  for(const v of notes){ if(v.f!==curFloor||v.got) continue; const p=w2m(v.x,v.z); g.fillStyle="#efe0a0"; g.fillRect(p[0]-3,p[1]-4,6,8); }
   if(spiderFloor===curFloor && !spiderDead){ const p=w2m(spider.grp.position.x,spider.grp.position.z); g.fillStyle="#ff2a2a"; g.shadowColor="#f00"; g.shadowBlur=8; g.beginPath(); g.arc(p[0],p[1],5,0,6.28); g.fill(); g.shadowBlur=0; }
   const pp=w2m(P.x,P.z), fx=-Math.sin(yaw), fz=-Math.cos(yaw); g.fillStyle="#ffd12e"; g.beginPath(); g.moveTo(pp[0]+fx*8,pp[1]+fz*8); g.lineTo(pp[0]-fz*5-fx*4,pp[1]+fx*5-fz*4); g.lineTo(pp[0]+fz*5-fx*4,pp[1]-fx*5-fz*4); g.closePath(); g.fill(); }
 addEventListener("keydown",e=>{ keys[e.code]=true; if(e.code==="KeyF") toggleFlash(); if(e.code==="KeyM") toggleMap(); if(e.code==="ShiftLeft"||e.code==="ShiftRight") sprintHeld=true; },true);
@@ -396,6 +418,7 @@ function start(){ $("start").classList.add("hide"); $("end").classList.add("hide
   if(spider) spider.sp=D.sp;
   valves.forEach(v=>{ v.got=false; v.grp.visible=true; if(v.light) v.light.userData.fl=v.f; });
   samples.forEach(v=>{ v.got=false; v.grp.visible=true; if(v.light) v.light.userData.fl=v.f; });
+  notes.forEach(v=>{ v.got=false; v.grp.visible=true; if(v.light) v.light.userData.fl=v.f; }); notesGot=0; $("note").classList.remove("on");
   if(spider){ spider.grp.visible=true; spider.grp.rotation.set(0,0,0); spider.grp.scale.setScalar(1); spider.grp.position.set(0,0,-HH+22); spider.camo=0.12; spider.ambushT=8; spider.invPhase=false; spider.invT=invDur; spider.climb=0; spider.pingT=0; spider.bodyMats.forEach(m=>m.opacity=0.12); spider.eyes.forEach(e=>e.visible=true); if(spider.eyeGlow) spider.eyeGlow.visible=true; }
   $("invtag").style.display="none";
   $("floor").textContent=FLOORNAME[0]; updObj(); showStory("7 pisos a oscuras. Tienes 20 min: reúne 4 válvulas + 3 muestras y fabrica el antídoto en tu zona segura.");
@@ -451,6 +474,10 @@ function update(dt){
     if(Math.hypot(P.x-v.x,P.z-v.z)<1.9){ v.got=true; v.grp.visible=false; if(v.light){ v.light.visible=false; v.light.userData.fl=-1; } valvesGot++; snd(700,"triangle",0.2,0.09); showStory("🔧 Válvula "+valvesGot+"/4"); updObj(); } }
   for(const v of samples){ if(v.got||v.f!==curFloor) continue; v.grp.rotation.y+=dt*1.8; v.grp.position.y=curFloor*FLOOR_H+1+Math.sin(now*3)*0.15;
     if(Math.hypot(P.x-v.x,P.z-v.z)<1.9){ v.got=true; v.grp.visible=false; if(v.light){ v.light.visible=false; v.light.userData.fl=-1; } samplesGot++; snd(880,"sine",0.25,0.09); showStory("🧪 Muestra de antídoto "+samplesGot+"/3"); updObj(); } }
+  // 📄 notas de historia
+  for(const v of notes){ if(v.got||v.f!==curFloor) continue; v.grp.rotation.y+=dt*1.2; v.grp.position.y=curFloor*FLOOR_H+1.2+Math.sin(now*2.5)*0.12;
+    if(Math.hypot(P.x-v.x,P.z-v.z)<1.9){ v.got=true; v.grp.visible=false; if(v.light){ v.light.visible=false; v.light.userData.fl=-1; } notesGot++; snd(520,"triangle",0.15,0.07);
+      const nn=$("note"); nn.innerHTML="<b>📄 "+v.h+" · Nota "+notesGot+"/6</b>"+v.t; nn.classList.add("on"); clearTimeout(noteTimer); noteTimer=setTimeout(()=>nn.classList.remove("on"),7000); } }
 
   // zumbido ominoso + goteras (ambiente de terror)
   droneT-=dt; if(droneT<=0){ droneT=2.5+Math.random()*2.5; snd(38+Math.random()*8,"sawtooth",1.1,0.03); }
