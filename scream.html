@@ -594,6 +594,17 @@ function goFloor(nf){ if(nf<0||nf>=FLOORS) return;
 // 🎲 posiciones aleatorias (evita paredes, zona segura y la escalera)
 function randSpotOnFloor(fl){ let x,z,t=0; do{ x=(Math.random()*2-1)*(HH-7); z=(Math.random()*2-1)*(HH-7); t++; }while((collide(x,z,fl)||inSafe(x,z,fl)||Math.hypot(x-STAIRX,z-STAIRZ)<7)&&t<50); return {x,z}; }
 function reposition(arr,yoff){ for(const v of arr){ const s=randSpotOnFloor(v.f); v.x=s.x; v.z=s.z; v.grp.position.set(s.x,v.f*FLOOR_H+yoff,s.z); if(v.light) v.light.position.set(s.x,v.f*FLOOR_H+yoff+0.4,s.z); } }
+// ⏰ RELOJES DORADOS: 2 por partida en pisos al azar — cada uno suma +60s al contador (se oye su tic-tac de cerca)
+const clocks=[];
+function spawnClocks(){ clocks.forEach(c2=>{ if(c2.grp.parent) c2.grp.parent.remove(c2.grp); }); clocks.length=0;
+  const fls=[]; while(fls.length<2){ const f2=Math.floor(Math.random()*FLOORS); if(!fls.includes(f2)) fls.push(f2); }
+  for(const f2 of fls){ const s=randSpotOnFloor(f2); const g=new THREE.Group();
+    const goldM=new THREE.MeshStandardMaterial({color:0xffd12e,emissive:0x7a5a00,emissiveIntensity:.9,metalness:.6,roughness:.3});
+    const body=new THREE.Mesh(new THREE.CylinderGeometry(0.45,0.45,0.18,14),goldM); body.rotation.x=Math.PI/2; g.add(body);
+    for(const sx2 of [-0.22,0.22]){ const bell=new THREE.Mesh(new THREE.SphereGeometry(0.14,8,6),goldM); bell.position.set(sx2,0.5,0); g.add(bell); }
+    g.position.set(s.x,f2*FLOOR_H+1,s.z); (floorGroups[f2]||scene).add(g);
+    clocks.push({grp:g,x:s.x,z:s.z,f:f2,got:false}); } }
+spawnClocks();
 function start(){ $("start").classList.add("hide"); $("end").classList.add("hide"); $("hud").classList.remove("hide");
   if(touchUI){ $("touch").classList.add("on"); $("tflash").classList.remove("hide"); $("tnv").classList.remove("hide"); $("sprint").classList.remove("hide"); $("tmap").classList.remove("hide"); $("tflare").classList.remove("hide"); $("thelp").classList.remove("hide"); }
   helpOpen=false; $("help").classList.remove("on");
@@ -611,6 +622,7 @@ function start(){ $("start").classList.add("hide"); $("end").classList.add("hide
   notes.forEach(v=>{ v.got=false; v.grp.visible=true; if(v.light) v.light.userData.fl=v.f; }); notesGot=0; $("note").classList.remove("on");
   reposition(valves,1); reposition(samples,1); reposition(notes,1.2);   // 🎲 ítems en lugares distintos cada partida
   babies.forEach(b=>{ b.f=Math.floor(Math.random()*FLOORS); const bs=randSpotOnFloor(b.f); b.grp.position.set(bs.x,b.f*FLOOR_H,bs.z); b.grp.visible=true; b.hitCd=0; });
+  spawnClocks();   // ⏰ relojes nuevos en pisos al azar
   spiderFloor=Math.floor(Math.random()*FLOORS); const ss=randSpotOnFloor(spiderFloor);
   if(spider){ spider.grp.visible=true; spider.grp.rotation.set(0,0,0); spider.grp.scale.setScalar(SPIDER_SC); spider.grp.position.set(ss.x,spiderFloor*FLOOR_H,ss.z); spider.camo=0.12; spider.ambushT=8; spider.invPhase=false; spider.invT=invDur; spider.climb=0; spider.pingT=0; spider.bodyMats.forEach(m=>m.opacity=0.12); spider.eyes.forEach(e=>e.visible=true); if(spider.eyeGlow) spider.eyeGlow.visible=true; }
   $("invtag").style.display="none";
@@ -685,6 +697,14 @@ function update(dt){
     if(Math.hypot(P.x-v.x,P.z-v.z)<1.9){ v.got=true; v.grp.visible=false; if(v.light){ v.light.visible=false; v.light.userData.fl=-1; } valvesGot++; [392,494,587].forEach((fq,k)=>setTimeout(()=>snd(fq,"triangle",0.18,0.08),k*90)); showStory("🔧 Válvula "+valvesGot+"/4"); updObj(); } }   // 🎵 arpegio metálico
   for(const v of samples){ if(v.got||v.f!==curFloor) continue; v.grp.rotation.y+=dt*1.8; v.grp.position.y=curFloor*FLOOR_H+1+Math.sin(now*3)*0.15;
     if(Math.hypot(P.x-v.x,P.z-v.z)<1.9){ v.got=true; v.grp.visible=false; if(v.light){ v.light.visible=false; v.light.userData.fl=-1; } samplesGot++; [523,659,880].forEach((fq,k)=>setTimeout(()=>snd(fq,"sine",0.2,0.08),k*90)); showStory("🧪 Muestra de antídoto "+samplesGot+"/3"); updObj(); } }   // 🎵 arpegio cristalino
+  // ⏰ relojes dorados: giran, hacen tic-tac de cerca, y dan +60s
+  for(const ck of clocks){ if(ck.got||ck.f!==curFloor) continue;
+    ck.grp.rotation.y+=dt*1.5; ck.grp.position.y=ck.f*FLOOR_H+1+Math.sin(now*2.5)*0.15;
+    const cd2=Math.hypot(P.x-ck.x,P.z-ck.z);
+    if(cd2<14 && Math.random()<dt*1.8) snd(1150,"square",0.03,0.02);
+    if(cd2<1.9){ ck.got=true; ck.grp.visible=false; timeLeft+=60;
+      [659,784,988,1319].forEach((fq,k)=>setTimeout(()=>snd(fq,"triangle",0.16,0.08),k*80));
+      showStory("⏰ ¡RELOJ DORADO! +60 segundos"); vib(60); } }
   // 📄 notas de historia
   for(const v of notes){ if(v.got||v.f!==curFloor) continue; v.grp.rotation.y+=dt*1.2; v.grp.position.y=curFloor*FLOOR_H+1.2+Math.sin(now*2.5)*0.12;
     if(Math.hypot(P.x-v.x,P.z-v.z)<1.9){ v.got=true; v.grp.visible=false; if(v.light){ v.light.visible=false; v.light.userData.fl=-1; } notesGot++; snd(520,"triangle",0.15,0.07);
