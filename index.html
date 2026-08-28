@@ -314,6 +314,8 @@
   #f1Canvas{width:100%;height:100%;display:block}
   #f1Nitro{position:absolute;right:14px;bottom:max(18px,env(safe-area-inset-bottom));z-index:6;display:none}
   #f1Fs.touch #f1Nitro{display:block}
+  #f1Pause{position:absolute;left:14px;bottom:max(18px,env(safe-area-inset-bottom));z-index:6;display:none;width:58px;height:58px;border-radius:50%;background:rgba(120,120,120,.3);border:3px solid rgba(210,210,210,.5);color:#fff;font-size:22px}
+  #f1Fs.touch #f1Pause{display:block}
   .lockcard{
     position:relative;width:min(420px,92vw);padding:38px 34px;border-radius:18px;
     background:var(--panel);backdrop-filter:blur(14px);
@@ -1545,6 +1547,7 @@
     <button class="btn btn-ghost btn-sm" id="f1Close">✕ Salir</button>
   </div>
   <button class="foot-touch" id="f1Nitro">🔥<br><span>NITRO</span></button>
+  <button id="f1Pause">⏸</button>
   <div id="f1Overlay" class="game-overlay">
     <div id="f1Msg">🏎️ F1 RB RUSH</div>
     <div id="f1Result" style="font-size:15px"></div>
@@ -5833,6 +5836,8 @@ const F1={
     const roadX=this.W/2 + curve*Math.pow(1-pers,2)*this.W*1.1 - this.x*pers*this.W*0.5;
     return { y, pers, roadX, rw:pers*this.W*0.62 };
   },
+  // ⏸ pausa compartida (tecla P y botón táctil): sin efecto durante el semáforo
+  togglePause(){ if(!this.running || this.cdT>0) return; this.paused=!this.paused; if(this.paused) this.engineOff(); else this.engineOn(); },
   // 🎖️ medallas por distancia en UNA carrera (1/3/5/10 km, permanentes)
   medals(){ let s=""; [1000,3000,5000,10000].forEach(t2=>{ let got=false; try{ got=localStorage.getItem("edtu_f1_km_"+t2)==="1"; }catch(e){}
     s+=(got?"🏅":"▫️")+(t2/1000)+"km "; }); return s.trim(); },
@@ -6557,7 +6562,8 @@ $("f1Canvas").addEventListener("pointerup",()=>{ F1._touchX=null; });
 $("f1Canvas").addEventListener("pointercancel",()=>{ F1._touchX=null; });   // 🐛FIX ronda2: un touch cancelado dejaba la dirección "pegada" para siempre
 document.addEventListener("keydown",e=>{ if(!$("f1Fs").classList.contains("open")) return; F1.keys[e.key]=true; if(e.key===" ") e.preventDefault(); if(e.key==="Escape") F1.close();
   // ⏸ pausa de carrera con P (motor incluido)
-  if((e.key==="p"||e.key==="P") && F1.running && F1.cdT<=0){ F1.paused=!F1.paused; if(F1.paused) F1.engineOff(); else F1.engineOn(); } });
+  if(e.key==="p"||e.key==="P") F1.togglePause(); });
+$("f1Pause").addEventListener("click",()=>F1.togglePause());   // ⏸ botón táctil
 document.addEventListener("keyup",e=>{ F1.keys[e.key]=false; });
 
 /* ============ 🌦️ ESTACIÓN METEOROLÓGICA (Open-Meteo, gratis y sin clave) ============ */

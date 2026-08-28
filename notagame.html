@@ -71,7 +71,8 @@
 </div>
 <canvas id="nradar" width="104" height="104" style="position:fixed;top:118px;right:12px;opacity:.92;z-index:5;pointer-events:none"></canvas>
 <div id="toPad" style="position:fixed;top:64px;left:0;right:0;text-align:center;display:none;z-index:5;color:#33bbff;font:800 13px Consolas,monospace;text-shadow:0 0 8px #000;pointer-events:none"><span class="arw" style="display:inline-block;font-size:20px;vertical-align:middle">▲</span> HELICÓPTERO</div>
-<div id="nPauseOv" style="position:fixed;inset:0;z-index:60;display:none;background:rgba(5,0,10,.8);color:#c8d8ff;font:900 36px system-ui,sans-serif;align-items:center;justify-content:center;text-align:center;flex-direction:column">⏸ PAUSA<div style="font-size:16px;margin-top:10px;color:#7a86b8">pulsa P para seguir · los zombies también descansan</div></div>
+<div id="nPauseOv" style="position:fixed;inset:0;z-index:60;display:none;background:rgba(5,0,10,.8);color:#c8d8ff;font:900 36px system-ui,sans-serif;align-items:center;justify-content:center;text-align:center;flex-direction:column">⏸ PAUSA<div style="font-size:16px;margin-top:10px;color:#7a86b8">pulsa P (o toca la pantalla) para seguir · los zombies también descansan</div></div>
+<button id="npauseBtn" style="position:fixed;right:24px;bottom:216px;z-index:6;width:58px;height:58px;border-radius:50%;background:rgba(120,120,120,.25);border:3px solid rgba(210,210,210,.5);color:#fff;font-size:22px;cursor:pointer;display:none">⏸</button>
 <div id="story"></div>
 <div id="touch"><div id="stick"><div id="nub"></div></div><button id="fire">🔫<br>FUEGO</button></div>
 <div class="hint" id="hint"></div>
@@ -622,7 +623,11 @@ function updShieldHUD(){ const w=document.getElementById("hpwrap"); if(!w) retur
 // ---------- input ----------
 const keys={};
 addEventListener("keydown",e=>{ keys[e.code]=true; if(e.code==="Space"&&P.onGround&&running&&!nPaused){P.vy=6.2;P.onGround=false;} if(e.code==="KeyE"&&running&&!nPaused){ tryDrawer(); petDog(); talkWallyN(); }   // 🐛FIX ronda2: en pausa no se salta ni se abren cajones
-  if(e.code==="KeyP"&&running&&!gameOver){ nPaused=!nPaused; const po=document.getElementById("nPauseOv"); if(po) po.style.display=nPaused?"flex":"none"; snd(nPaused?300:600,"square",0.08,0.06); } });
+  if(e.code==="KeyP") togglePauseN(); });
+// ⏸ pausa compartida: tecla P y botón táctil (y tocar el overlay despausa)
+function togglePauseN(){ if(!running||gameOver) return; nPaused=!nPaused; const po=document.getElementById("nPauseOv"); if(po) po.style.display=nPaused?"flex":"none"; snd(nPaused?300:600,"square",0.08,0.06); }
+document.getElementById("npauseBtn").onclick=togglePauseN;
+document.getElementById("nPauseOv").addEventListener("click",()=>{ if(nPaused) togglePauseN(); });
 addEventListener("keyup",e=>{ keys[e.code]=false; });
 document.addEventListener("pointerlockchange",()=>{
   if(running && !isTouch && document.pointerLockElement!==canvas){ document.getElementById("hint").textContent="clic para volver a mirar"; }
@@ -741,7 +746,7 @@ function startGame(){
   openDoor(); if(spider){ spider.grp.visible=true; spider.grp.rotation.z=0; spider.grp.scale.setScalar(1); spider.grp.position.set(HOSPX,0,HOSPZ-HH+22); spider.camo=0.12; spider.ambushT=8; spider.pause=0; spider.bodyMats.forEach(m=>m.opacity=0.12); }   // reset hospital
   document.getElementById("start").classList.add("hide"); document.getElementById("end").classList.add("hide");
   document.body.classList.add("playing");
-  if(touchUI) document.getElementById("touch").classList.add("on");
+  if(touchUI){ document.getElementById("touch").classList.add("on"); document.getElementById("npauseBtn").style.display="block"; }
   document.getElementById("hint").textContent = touchUI ? "" : "Mueve el mouse para mirar · clic para disparar";
   running=true; tPrev=performance.now();
   showStory("Estás en la calle frente a la CASA 13. Investiga...");
@@ -771,6 +776,7 @@ function endGame(win,customInfo){
   running=false; gameOver=true; document.body.classList.remove("playing");
   // 🐛FIX auditoría: si pausabas durante el cierre cinematográfico, el overlay de PAUSA quedaba tapando la pantalla final (softlock en móvil)
   nPaused=false; const poE=document.getElementById("nPauseOv"); if(poE) poE.style.display="none";
+  const npb=document.getElementById("npauseBtn"); if(npb) npb.style.display="none";
   try{ document.exitPointerLock(); }catch(e){}
   document.getElementById("touch").classList.remove("on"); document.getElementById("hint").textContent="";
   const t=document.getElementById("endTitle"),inf=document.getElementById("endInfo");

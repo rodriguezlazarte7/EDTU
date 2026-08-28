@@ -34,6 +34,7 @@
   #fire:active{transform:scale(.9);background:rgba(120,255,210,.5)}
   #jump{position:fixed;right:112px;bottom:120px;z-index:6;width:70px;height:70px;border-radius:50%;background:rgba(90,140,220,.28);border:3px solid rgba(150,190,255,.6);color:#eaf2ff;font-size:24px;cursor:pointer;pointer-events:auto}
   #jhelp{position:fixed;right:24px;bottom:210px;z-index:6;width:58px;height:58px;border-radius:50%;background:rgba(120,120,120,.25);border:3px solid rgba(210,210,210,.5);color:#fff;font-size:22px;cursor:pointer;pointer-events:auto}
+  #jpauseBtn{position:fixed;right:24px;bottom:278px;z-index:6;width:58px;height:58px;border-radius:50%;background:rgba(120,120,120,.25);border:3px solid rgba(210,210,210,.5);color:#fff;font-size:22px;cursor:pointer;pointer-events:auto}
   #jhelpS{position:fixed;inset:0;z-index:11;display:none;flex-direction:column;align-items:center;justify-content:center;background:rgba(4,10,4,.94);padding:24px;text-align:left}
   #jhelpS.on{display:flex}
   #jhelpS h3{font-family:"Consolas",monospace;color:#7dff5a;letter-spacing:.1em;margin-bottom:12px}
@@ -104,6 +105,7 @@
 <button id="jump" class="hide">🦘</button>
 <button id="fire" class="hide">🎯</button>
 <button id="jhelp" class="hide">❓</button>
+<button id="jpauseBtn" class="hide">⏸</button>
 <div id="jhelpS"><h3>❓ CONTROLES Y OBJETIVO</h3>
   <ul>
     <li><b>WASD / joystick</b> — moverte · <b>ratón / dedo</b> — mirar</li>
@@ -560,8 +562,7 @@ let touchUI = window.matchMedia && !matchMedia("(pointer:fine)").matches;
 let jhelpOpen=false;
 function toggleJHelp(){ if(!running) return; jhelpOpen=!jhelpOpen; $("jhelpS").classList.toggle("on",jhelpOpen); snd(jhelpOpen?500:300,"square",0.05,0.05); }
 addEventListener("keydown",e=>{ keys[e.code]=true; if(e.code==="Digit1") useWater(); if(e.code==="Digit2") useFood(); if(e.code==="Digit3") chargeFlash(); if(e.code==="KeyB") placeWood(); if(e.code==="KeyF") fireDart(); if(e.code==="KeyH") toggleJHelp(); if(e.code==="KeyE") petBaby();
-  if(e.code==="KeyP" && running && !gameOver){ jPaused=!jPaused; const po=$("jPauseOv"); if(po) po.style.display=jPaused?"flex":"none"; snd(jPaused?300:600,"square",0.08,0.06);
-    if(jPaused) setRainSnd(false); else if(rainOn) setRainSnd(true); }   // 🐛FIX: la lluvia también se pausa (y vuelve al seguir)
+  if(e.code==="KeyP") togglePauseJ();
   if(e.code==="Space"){ jump(); e.preventDefault(); } },true);
 addEventListener("keyup",e=>{ keys[e.code]=false; },true);
 addEventListener("mousemove",e=>{ if(!running) return; yaw-=(e.movementX||0)*0.0022; pitch=Math.max(-1.3,Math.min(1.3,pitch-(e.movementY||0)*0.0022)); });
@@ -578,6 +579,9 @@ canvas.addEventListener("pointermove",e=>{ if(e.pointerId!==lookId)return; yaw-=
 canvas.addEventListener("pointerup",e=>{ if(e.pointerId===lookId) lookId=null; });
 
 // inventario: usar
+// ⏸ pausa compartida: tecla P y botón táctil
+function togglePauseJ(){ if(!running||gameOver) return; jPaused=!jPaused; const po=$("jPauseOv"); if(po) po.style.display=jPaused?"flex":"none"; snd(jPaused?300:600,"square",0.08,0.06);
+  if(jPaused) setRainSnd(false); else if(rainOn) setRainSnd(true); }
 function useWater(){ if(jPaused) return; if(inv.water>0 && thirst<100){ inv.water--; thirst=Math.min(100,thirst+34); snd(600,"sine",0.15,0.08); updInv(); } }
 function useFood(){ if(jPaused) return; if(inv.food>0 && hunger<100){ inv.food--; hunger=Math.min(100,hunger+40); snd(300,"square",0.15,0.08); updInv(); } }
 function chargeFlash(){ if(jPaused) return; if(inv.batt>0 && flashBatt<100){ inv.batt--; flashBatt=Math.min(100,flashBatt+55); snd(720,"triangle",0.15,0.08); updInv(); showStory("🔦 Linterna recargada"); } }   // 🐛FIX ronda2: consumibles bloqueados en pausa
@@ -587,6 +591,7 @@ function placeWood(){ if(!running||gameOver||jPaused||placeCd>0) return; placeCd
   box(bx,0.6,bz,1.2,1.2,1.2,new THREE.MeshStandardMaterial({map:barkTex,roughness:1})); addWall(bx-0.6,bx+0.6,bz-0.6,bz+0.6);
   snd(200,"square",0.1,0.08); showStory("🪵 Bloque colocado"); }
 $("sWater").onclick=useWater; $("sFood").onclick=useFood; $("sBatt").onclick=chargeFlash; $("sWood").onclick=placeWood;
+$("jpauseBtn").onclick=togglePauseJ; $("jPauseOv").addEventListener("click",()=>{ if(jPaused) togglePauseJ(); });
 function updAmmo(){ $("ammo").textContent="💉 DARDOS: ∞"; }
 function fireDart(){ if(!running||gameOver||jPaused||dartCd>0) return; jStatDarts++;
   dartCd=0.3; snd(320,"square",0.07,0.08);   // dardos INFINITOS
@@ -604,7 +609,7 @@ function showStory(txt){ const s=$("story"); s.textContent=txt; s.style.display=
 
 // ---------- inicio / fin ----------
 function start(){ $("start").classList.add("hide"); $("end").classList.add("hide"); $("hud").classList.remove("hide"); $("bar").classList.remove("hide");
-  if(touchUI){ $("touch").classList.remove("hide"); $("touch").classList.add("on"); $("fire").classList.remove("hide"); $("jump").classList.remove("hide"); $("jhelp").classList.remove("hide"); }   // 🐛FIX auditoría: el joystick táctil nunca se mostraba (quedaba con .hide)
+  if(touchUI){ $("touch").classList.remove("hide"); $("touch").classList.add("on"); $("fire").classList.remove("hide"); $("jump").classList.remove("hide"); $("jhelp").classList.remove("hide"); $("jpauseBtn").classList.remove("hide"); }   // 🐛FIX auditoría: el joystick táctil nunca se mostraba (quedaba con .hide)
   jhelpOpen=false; $("jhelpS").classList.remove("on");
   const JD=JDIFFS[jdiff]; jdSpeed=JD.sp; jdDmg=JD.dmg; jdDet=JD.det;
   P.x=0; P.z=22; P.y=1.7; P.vy=0; P.onGround=true; yaw=Math.PI; pitch=0; hp=100; hunger=100; thirst=100; flashBatt=100; darts=6; elapsed=0; radioOn=false; inv.water=2; inv.food=2; inv.wood=0; inv.batt=0; updAmmo();
@@ -624,7 +629,7 @@ function updJBest(){ const b=loadJBest(), el=$("jbest"); if(!el) return;
   const med=["facil","normal","dificil","extincion"].map(k=>{ let got=false; try{ got=localStorage.getItem("jurassic_win_"+k)==="1"; }catch(e){}
     return JDIFFS[k].lbl.split(" ")[0]+(got?"✔":"–"); }).join(" ");
   el.textContent = (b>0?("🏆 Récord: "+b.toFixed(1)+" días sobrevividos"):"🏆 Aún sin récord — ¡sobrevive!") + "  ·  🏅 "+med; }
-function endGame(win,info){ running=false; gameOver=true; try{document.exitPointerLock();}catch(e){} $("touch").classList.remove("on"); $("touch").classList.add("hide"); $("fire").classList.add("hide"); $("jump").classList.add("hide"); $("jhelp").classList.add("hide"); jhelpOpen=false; $("jhelpS").classList.remove("on");
+function endGame(win,info){ running=false; gameOver=true; try{document.exitPointerLock();}catch(e){} $("touch").classList.remove("on"); $("touch").classList.add("hide"); $("fire").classList.add("hide"); $("jump").classList.add("hide"); $("jhelp").classList.add("hide"); $("jpauseBtn").classList.add("hide"); jhelpOpen=false; $("jhelpS").classList.remove("on");
   setRainSnd(false);   // 🐛FIX auditoría: la lluvia seguía sonando en bucle infinito sobre la pantalla de fin
   const days=Math.min(7, elapsed/DAY_LEN); const prev=loadJBest(); const isRec=days>prev; if(isRec) saveJBest(days);
   const t=$("endTitle"); if(win){ t.textContent="✓ RESCATADO"; t.className="big win"; try{ localStorage.setItem("jurassic_win_"+jdiff,"1"); }catch(e){} } else { t.textContent="✕ NO SOBREVIVISTE"; t.className="big lose"; }

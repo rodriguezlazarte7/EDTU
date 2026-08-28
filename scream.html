@@ -129,6 +129,7 @@
 <button id="tmap" class="tbtn hide">🗺️</button>
 <button id="tflare" class="tbtn hide">🧨</button>
 <button id="thelp" class="tbtn hide">❓</button>
+<button id="tpause" class="tbtn hide">⏸</button>
 <div id="help"><h3>❓ CONTROLES Y OBJETIVO</h3>
   <ul>
     <li><b>WASD / joystick</b> — moverte · <b>ratón / dedo</b> — mirar</li>
@@ -632,7 +633,7 @@ function drawMap(){ const c=$("mapC"); if(!c) return; const g=c.getContext("2d")
   for(const b of babies){ if(b.f!==curFloor) continue; const p=w2m(b.grp.position.x,b.grp.position.z); g.fillStyle="#ff8a2a"; g.beginPath(); g.arc(p[0],p[1],3,0,6.28); g.fill(); }   // 🕷️ crías (naranjo)
   const pp=w2m(P.x,P.z), fx=-Math.sin(yaw), fz=-Math.cos(yaw); g.fillStyle="#ffd12e"; g.beginPath(); g.moveTo(pp[0]+fx*8,pp[1]+fz*8); g.lineTo(pp[0]-fz*5-fx*4,pp[1]+fx*5-fz*4); g.lineTo(pp[0]+fz*5-fx*4,pp[1]-fx*5-fz*4); g.closePath(); g.fill(); }
 addEventListener("keydown",e=>{ keys[e.code]=true; if(e.code==="KeyF") toggleFlash(); if(e.code==="KeyM") toggleMap(); if(e.code==="KeyG") throwFlare(); if(e.code==="KeyH") toggleHelp(); if(e.code==="KeyE") talkWally();
-  if(e.code==="KeyP" && running && !gameOver){ paused=!paused; const po=$("pauseOv"); if(po) po.style.display=paused?"flex":"none"; snd(paused?300:600,"square",0.08,0.06); }
+  if(e.code==="KeyP") togglePauseS();
   if(e.code==="ShiftLeft"||e.code==="ShiftRight") sprintHeld=true; },true);
 addEventListener("keyup",e=>{ keys[e.code]=false; if(e.code==="ShiftLeft"||e.code==="ShiftRight") sprintHeld=false; },true);
 addEventListener("mousemove",e=>{ if(!running) return; yaw-=(e.movementX||0)*0.0022; pitch=Math.max(-1.3,Math.min(1.3,pitch-(e.movementY||0)*0.0022)); });
@@ -652,6 +653,9 @@ $("tflash").onclick=toggleFlash; $("tnv").onclick=toggleNV;
 $("sprint").addEventListener("pointerdown",e=>{ sprintHeld=true; e.preventDefault(); });
 ["pointerup","pointercancel","pointerleave"].forEach(ev=>$("sprint").addEventListener(ev,()=>{ sprintHeld=false; }));
 $("tmap").onclick=toggleMap; $("map").addEventListener("click",()=>{ if(mapOpen) toggleMap(); }); $("tflare").onclick=throwFlare; $("thelp").onclick=toggleHelp; $("help").addEventListener("click",()=>{ if(helpOpen) toggleHelp(); });
+// ⏸ pausa compartida: tecla P y botón táctil (¡en móvil no hay teclado!)
+function togglePauseS(){ if(!running||gameOver) return; paused=!paused; const po=$("pauseOv"); if(po) po.style.display=paused?"flex":"none"; snd(paused?300:600,"square",0.08,0.06); }
+$("tpause").onclick=togglePauseS; $("pauseOv").addEventListener("click",()=>{ if(paused) togglePauseS(); });
 
 function showStory(txt){ const s=$("story"); s.textContent=txt; s.style.display="block"; clearTimeout(s._t); s._t=setTimeout(()=>s.style.display="none",3800); }
 // 🏆 mejor tiempo (localStorage, con try/catch)
@@ -718,7 +722,7 @@ function spawnMedkits(){ medkits.forEach(mk=>{ if(mk.grp.parent) mk.grp.parent.r
     medkits.push({grp:g,x:s.x,z:s.z,f:f2,got:false}); } }
 spawnMedkits();
 function start(){ $("start").classList.add("hide"); $("end").classList.add("hide"); $("hud").classList.remove("hide");
-  if(touchUI){ $("touch").classList.remove("hide"); $("touch").classList.add("on"); $("tflash").classList.remove("hide"); $("tnv").classList.remove("hide"); $("sprint").classList.remove("hide"); $("tmap").classList.remove("hide"); $("tflare").classList.remove("hide"); $("thelp").classList.remove("hide"); }   // 🐛FIX auditoría: el joystick táctil nunca se mostraba (quedaba con .hide)
+  if(touchUI){ $("touch").classList.remove("hide"); $("touch").classList.add("on"); $("tflash").classList.remove("hide"); $("tnv").classList.remove("hide"); $("sprint").classList.remove("hide"); $("tmap").classList.remove("hide"); $("tflare").classList.remove("hide"); $("thelp").classList.remove("hide"); $("tpause").classList.remove("hide"); }   // 🐛FIX auditoría: el joystick táctil nunca se mostraba (quedaba con .hide)
   helpOpen=false; $("help").classList.remove("on");
   mapOpen=false; $("map").classList.remove("on");
   P.x=0; P.z=HH-7; yaw=Math.PI; pitch=0; running=true; gameOver=false; tPrev=performance.now(); flashOn=true; curFloor=0; floorCd=0;
@@ -747,7 +751,7 @@ function start(){ $("start").classList.add("hide"); $("end").classList.add("hide
   $("invtag").style.display="none";
   $("floor").textContent=FLOORNAME[0]; updObj(); showStory("7 pisos a oscuras. Tienes 20 min: reúne 4 válvulas + 3 muestras y fabrica el antídoto en tu zona segura.");
 }
-function endGame(win,info){ running=false; gameOver=true; sprintHeld=false; $("lowhp").classList.remove("on"); try{document.exitPointerLock();}catch(e){} $("touch").classList.remove("on"); $("touch").classList.add("hide"); $("tflash").classList.add("hide"); $("tnv").classList.add("hide"); $("sprint").classList.add("hide"); $("tmap").classList.add("hide"); $("tflare").classList.add("hide"); $("thelp").classList.add("hide"); mapOpen=false; $("map").classList.remove("on"); helpOpen=false; $("help").classList.remove("on");
+function endGame(win,info){ running=false; gameOver=true; sprintHeld=false; $("lowhp").classList.remove("on"); try{document.exitPointerLock();}catch(e){} $("touch").classList.remove("on"); $("touch").classList.add("hide"); $("tflash").classList.add("hide"); $("tnv").classList.add("hide"); $("sprint").classList.add("hide"); $("tmap").classList.add("hide"); $("tflare").classList.add("hide"); $("thelp").classList.add("hide"); $("tpause").classList.add("hide"); mapOpen=false; $("map").classList.remove("on"); helpOpen=false; $("help").classList.remove("on");
   const t=$("endTitle"); if(win){ t.textContent="✓ SOBREVIVISTE"; t.className="big win"; } else { t.textContent="✕ TE ATRAPÓ"; t.className="big lose"; }
   // 📊 resumen de la partida
   const surv=Math.max(0,Math.floor(gameTime+clockBonus-timeLeft)), smm=Math.floor(surv/60), sss=surv%60;
