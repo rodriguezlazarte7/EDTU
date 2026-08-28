@@ -130,7 +130,10 @@ let dailyN=false; const _origRandom=Math.random;
 function mulberry32(a){ return function(){ a|=0; a=a+0x6D2B79F5|0; let t=Math.imul(a^a>>>15,1|a); t=t+Math.imul(t^t>>>7,61|t)^t; return ((t^t>>>14)>>>0)/4294967296; }; }
 function dailyKeyN(){ const d=new Date(); return d.getFullYear()*10000+(d.getMonth()+1)*100+d.getDate(); }
 function loadNDaily(){ try{ return parseInt(localStorage.getItem("nag_daily_"+dailyKeyN())||"0",10)||0; }catch(e){ return 0; } }
-try{ dailyN=localStorage.getItem("nag_daily_on")==="1"; }catch(e){} if(dailyN) Math.random=mulberry32(dailyKeyN());
+try{ dailyN=localStorage.getItem("nag_daily_on")==="1"; }catch(e){}
+// ⚔️ RECIBIR UN RETO (?reto=1): si el desafío no estaba activo, se activa y se recarga una sola vez (?retook=1) para generar la ciudad sembrada; si ya estaba, se sigue
+let retoFlag=false; try{ if(/[?&]reto=1/.test(location.search)){ if(!dailyN){ localStorage.setItem("nag_daily_on","1"); location.replace(location.pathname+"?retook=1"); } else retoFlag=true; } if(/[?&]retook=1/.test(location.search)) retoFlag=true; }catch(e){}
+if(dailyN) Math.random=mulberry32(dailyKeyN());
 const canvas=document.getElementById("c");
 const isTouch=("ontouchstart" in window)||navigator.maxTouchPoints>0;
 // mostrar el joystick SOLO en dispositivos táctiles primarios (celu/tablet), no en laptops con pantalla táctil
@@ -981,6 +984,8 @@ function updNagMedals(){ updNDiary(); const el=document.getElementById("nagMedal
   el.textContent="🎖️ Hitos de una partida: "+killMedals()+(bc!=null?"  ·  ⏱ Caso más rápido: "+fmtCase(bc):"")+(bn>0?"  ·  🌙 Récord: "+bn+" noche"+(bn>1?"s":""):"")+(nw>0?"  ·  📅 esta semana: "+nw+" kills":"")+(function(){ const dv=loadNDaily(); return dv>0?"  ·  📅 HOY: "+dv+" kills":""; })(); } }
 // 📅 botón DESAFÍO DEL DÍA (cambia el flag y recarga: la ciudad se genera al cargar)
 { const nb=document.getElementById("nagDailyBtn"); if(nb){ nb.textContent="📅 DESAFÍO DEL DÍA: "+(dailyN?"SÍ ✔ — la misma ciudad para todos hoy":"NO"); nb.onclick=()=>{ try{ localStorage.setItem("nag_daily_on",dailyN?"0":"1"); }catch(e){} location.reload(); }; } }
+// ⚔️ aviso de RETO recibido en la portada (misma ciudad que tu amigo) y limpieza de la URL
+if(retoFlag){ try{ const nb2=document.getElementById("nagDailyBtn"); if(nb2){ const dv=document.createElement("div"); dv.style.cssText="color:#ff9a3c;font:900 14px Consolas,monospace;margin:6px 0"; dv.textContent="⚔️ ¡TE RETARON! Misma ciudad que tu amigo — ¡elimina más zombies y resuelve el caso!"; nb2.parentNode.insertBefore(dv,nb2); } history.replaceState(null,"",location.pathname); }catch(e){} }
 updNagMedals();
 // 🔥 récord de mejor RACHA
 function loadNCombo(){ try{ return parseInt(localStorage.getItem("nag_best_combo")||"0",10)||0; }catch(e){ return 0; } }
@@ -1049,7 +1054,7 @@ async function shareText(txt,btn,lbl){ const done=()=>{ btn.textContent="✅ COP
   try{ await navigator.clipboard.writeText(txt); done(); return; }catch(e){}
   try{ const ta=document.createElement("textarea"); ta.value=txt; ta.style.position="fixed"; ta.style.opacity="0"; document.body.appendChild(ta); ta.select(); document.execCommand("copy"); document.body.removeChild(ta); done(); }catch(e){ btn.textContent="❌ no se pudo copiar"; setTimeout(()=>{ btn.textContent=lbl; },2000); } }
 function nShareBtn(win,inf){ try{ const d=new Date();
-  const txt="📅 Desafío NAG del "+d.getDate()+"/"+(d.getMonth()+1)+": "+kills+" zombies y "+cluesGot+"/7 pistas"+(win?" (caso resuelto ✓)":"...")+" ¿me ganas? 👉 www.edtu.cl/notagame.html (📅 DESAFÍO DEL DÍA)";
+  const txt="📅 Desafío NAG del "+d.getDate()+"/"+(d.getMonth()+1)+": "+kills+" zombies y "+cluesGot+"/7 pistas"+(win?" (caso resuelto ✓)":"...")+" ¿me ganas? 👉 www.edtu.cl/notagame.html?reto=1";
   const lbl="📤 COMPARTIR MI DESAFÍO"; const sb=document.createElement("button"); sb.className="btn"; sb.style.cssText="margin-top:10px;font-size:12px;display:block;margin-left:auto;margin-right:auto"; sb.textContent=lbl; sb.onclick=()=>shareText(txt,sb,lbl);
   setTimeout(()=>{ try{ inf.appendChild(sb); }catch(e){} },0); }catch(e){} }   // al final, después del mapa de la investigación
 function endGame(win,customInfo){
