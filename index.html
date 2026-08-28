@@ -5638,6 +5638,7 @@ const F1={
     this.cdT=3.4; this._cdStep=4;   // 🚦 cuenta regresiva de largada
     this._lastKm=0;   // 🏁 arcos de km
     this._wRain=0; this._wRainOn=false; this._wRainT=30+Math.random()*40;   // 🌧️ clima
+    this._recPassed=false;   // 🏆 marcador de récord en la pista
     $("f1Overlay").style.display="none";
     this.engineOn();
     if(!this.raf){ const f=t=>{ if(!this.running){ this.raf=null; return; } try{ this.tick(t); }catch(e){} this.raf=requestAnimationFrame(f); }; this.raf=requestAnimationFrame(f); }
@@ -5727,6 +5728,12 @@ const F1={
       try{ const a=this.actx(); if(a){ [660,880].forEach((fq,i2)=>{ const o=a.createOscillator(),g=a.createGain(); o.type="triangle"; o.frequency.value=fq;
         o.connect(g); g.connect(a.destination); const st=a.currentTime+i2*0.12; o.start(st); g.gain.setValueAtTime(.09,st);
         g.gain.exponentialRampToValueAtTime(0.0001,st+0.25); o.stop(st+0.26); }); } }catch(e){} }
+    // 🏆 cruzas la meta dorada de tu récord EN VIVO: fanfarria + locutor eufórico
+    if(!this._recPassed && this.best>0 && this.dist>this.best){ this._recPassed=true;
+      try{ const a=this.actx(); if(a){ [523,659,784,1047].forEach((fq,i2)=>{ const o=a.createOscillator(),g=a.createGain(); o.type="triangle"; o.frequency.value=fq;
+        o.connect(g); g.connect(a.destination); const st=a.currentTime+i2*0.11; o.start(st); g.gain.setValueAtTime(.09,st);
+        g.gain.exponentialRampToValueAtTime(0.0001,st+0.3); o.stop(st+0.31); }); } }catch(e){}
+      try{ if(window.speechSynthesis){ const u=new SpeechSynthesisUtterance("¡Superaste tu récord y sigues corriendo! ¡Vamos!"); u.lang="es-ES"; u.pitch=1.35; u.rate=1.15; speechSynthesis.cancel(); speechSynthesis.speak(u); } }catch(e){} }
     this.bgShift+=curve*mps*dt*2.4;
     if(this._eng) this._eng.frequency.value=70+this.speed*0.6+(this.nitroOn?60:0);
     if(this.dist>this._nextDrs){ this._drsEnd=this.dist+220; this._nextDrs=this.dist+800+Math.random()*400; }
@@ -5831,6 +5838,15 @@ const F1={
         for(let i2=0;i2<Math.floor(bwid/sq);i2++){ for(let j2=0;j2<2;j2++){ if((i2+j2)%2===0) c.fillRect(xL+i2*sq,by-bh+j2*sq,sq,sq); } }
         if(pk.pers>0.14){ c.fillStyle="#ffd12e"; c.font="900 "+Math.round(bh*0.9)+"px system-ui,sans-serif"; c.textAlign="center"; c.fillText((nextKm/1000)+" KM",pk.roadX,by-bh*1.25); }
       } }
+    // 🏆 META DORADA de tu récord: parada en la pista justo donde llegaste la mejor vez
+    if(!this._recPassed && this.best>0){ const relRec=this.best-this.dist;
+      if(relRec>0 && relRec<560){ const pr=this.proj(this.best);
+        if(pr.y>hor&&pr.y<H+30&&pr.pers>0.05){ const ph2=pr.pers*W*0.3, pw2=Math.max(2,pr.pers*W*0.022);
+          const xL2=pr.roadX-pr.rw*1.1, xR2=pr.roadX+pr.rw*1.1, by2=pr.y-ph2;
+          c.fillStyle="#ffd12e"; c.fillRect(xL2-pw2/2,by2,pw2,ph2); c.fillRect(xR2-pw2/2,by2,pw2,ph2);
+          c.fillStyle="rgba(255,209,46,.85)"; c.fillRect(xL2,by2,xR2-xL2,Math.max(2,pr.pers*W*0.035));
+          if(pr.pers>0.14){ c.fillStyle="#ffd12e"; c.font="900 "+Math.round(pr.pers*W*0.05)+"px system-ui,sans-serif"; c.textAlign="center"; c.fillText("🏆 RÉCORD",pr.roadX,by2-8); }
+        } } }
     // tráfico (de lejos a cerca)
     this.cars.slice().sort((a,b)=>b.z-a.z).forEach(car=>{
       const p=this.proj(car.z);
