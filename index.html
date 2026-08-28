@@ -5860,6 +5860,9 @@ const F1={
       c.fillRect(roadX-rw,y-STEP,rw*2,STEP);
       if(Math.floor(z/9)%2===0){ const lw=Math.max(1,rw*0.016); c.fillStyle="#e8e8e8";           // líneas de carril
         for(const f of [-0.5,0,0.5]) c.fillRect(roadX+f*rw*2*0.5-lw/2,y-STEP,lw,STEP); }
+      // 🛞 GOMA quemada: huellas de derrape de otros autos marcadas en las curvas fuertes
+      if(Math.abs(curve)>0.85){ c.fillStyle="rgba(8,8,10,.45)"; const skw=Math.max(1,rw*0.022);
+        for(const f2 of [-0.42,-0.34,0.3,0.38]) c.fillRect(roadX+f2*rw+Math.sin(z*0.15)*rw*0.02,y-STEP,skw,STEP); }
     }
     // 🚇 boca del túnel acercándose + lámparas ámbar del techo cuando vas adentro
     if(!inTun && tCand>this.dist && tCand-this.dist<560){ const pt2=this.proj(tCand);
