@@ -711,7 +711,7 @@ let statFlares=0, statDist=0, lastPX=null, lastPZ=0; const statFloors=new Set();
 const sDiary={spot:0,bites:0,med:0,gen:false,vit:false,asc:0};
 function sDiaryReset(){ sDiary.spot=0; sDiary.bites=0; sDiary.med=0; sDiary.gen=false; sDiary.vit=false; sDiary.asc=0; }
 function sDiaryLine(e){ const p=[]; p.push("🕷️ "+e.spot+" apariciones"); p.push(e.bites?("🩸 "+e.bites+" mordidas"):"🛡️ sin mordidas"); if(e.med) p.push("❤️ "+e.med+" botiquines"); if(e.gen) p.push("⚡ generador"); if(e.vit) p.push("🎶 vitrola"); if(e.asc) p.push("🛗 ascensor ×"+e.asc); return p.join(" · "); }
-function sDiaryEnd(win,surv){ const e=Object.assign({},sDiary); e.win=!!win; e.t=surv; e.v=valvesGot; e.s=samplesGot; e.fl=statFloors.size; const d=new Date(); e.date=d.getDate()+"/"+(d.getMonth()+1);
+function sDiaryEnd(win,surv){ const e=Object.assign({},sDiary); e.win=!!win; e.daily=!!dailyS; e.t=surv; e.v=valvesGot; e.s=samplesGot; e.fl=statFloors.size; const d=new Date(); e.date=d.getDate()+"/"+(d.getMonth()+1);
   try{ const arr=JSON.parse(localStorage.getItem("scream_diary")||"[]"); arr.unshift(e); localStorage.setItem("scream_diary",JSON.stringify(arr.slice(0,3))); }catch(err){}
   return "<div style='margin-top:6px;font-size:13px;color:#d9c8e8;line-height:1.8'>📖 <b>DIARIO DEL SOBREVIVIENTE</b><br>"+sDiaryLine(e)+"</div>"; }
 function updSDiary(){ const el=$("sdiary"); if(!el) return; try{ const arr=JSON.parse(localStorage.getItem("scream_diary")||"[]"); if(!arr.length){ el.textContent=""; return; }

@@ -7193,11 +7193,15 @@ function buildTrophies(){ try{
       if(fw>0) wr.push("🏎️ "+Math.round(fw)+" m"); if(jw>0) wr.push("🦖 "+jw.toFixed(1)+" días"); if(nw>0) wr.push("🧟 "+nw+" kills"); if(sw>0) wr.push("🕷️ "+fmtMS(sw));
       if(wr.length) h+="<br><span style='color:#9fd8c0'>Récords de la semana: "+wr.join(" · ")+"</span>"; }
   }catch(e){}
+  // 📅 DESAFÍOS DE HOY: mejores tiempos del día en el cubo (misma revoltura) y en SCREAM (mismo edificio)
+  try{ const dd=new Date(), dk=dd.getFullYear()*10000+(dd.getMonth()+1)*100+dd.getDate(); const dv=parseFloat(g("rubik_daily_"+dk)||"0")||0, sv=parseFloat(g("scream_daily_"+dk)||"0")||0; const dp=[];
+    if(dv>0) dp.push("🧩 "+dv.toFixed(1)+"s"); if(sv>0) dp.push("🕷️ "+fmtMS(sv));
+    if(dp.length) h+="<div style='margin-top:8px;color:#ffd88a'><b>📅 DESAFÍOS DE HOY</b></div>"+dp.join(" · ")+(dp.length<2?"<span style='color:#9fb6c9'> · te falta "+(dv>0?"🕷️ SCREAM":"🧩 el cubo")+"</span>":" · ¡los dos! 🏅"); }catch(e){}
   // 📖 ÚLTIMAS AVENTURAS: la entrada más reciente de cada diario (jurassic_diary / scream_diary / nag_diary)
   try{ const rd=k=>{ try{ const a=JSON.parse(g(k)||"[]"); return a.length?a[0]:null; }catch(e){ return null; } };
     const jd=rd("jurassic_diary"), sd=rd("scream_diary"), nd=rd("nag_diary"); const la=[];
     if(jd) la.push("🦖 "+jd.date+": "+jd.days+" días"+(jd.fish?" · 🐟 "+jd.fish:"")+(jd.pack?" · 🐾 manada":"")+(jd.egg?" · 🥚":"")+" · "+(jd.hits?"🩹 "+jd.hits:"🛡️ sin heridas")+(jd.win?" ✓":""));
-    if(sd) la.push("🕷️ "+sd.date+": "+fmtMS(sd.t)+" · 🔧 "+sd.v+"/4 · 🧪 "+sd.s+"/3 · 👁️ "+sd.spot+" apariciones · "+(sd.bites?"🩸 "+sd.bites:"🛡️ sin mordidas")+(sd.win?" ✓":""));
+    if(sd) la.push("🕷️ "+sd.date+": "+fmtMS(sd.t)+" · 🔧 "+sd.v+"/4 · 🧪 "+sd.s+"/3 · 👁️ "+sd.spot+" apariciones · "+(sd.bites?"🩸 "+sd.bites:"🛡️ sin mordidas")+(sd.daily?" · 📅":"")+(sd.win?" ✓":""));
     if(nd) la.push("🧟 "+nd.date+": "+nd.kills+" kills · 📜 "+nd.clues+"/7 · 🌙 "+nd.nights+(nd.drvz?" · 🧪 Dr. VZ":"")+(nd.cat?" · 🐱":"")+(nd.win?" ✓":""));
     const fd=rd("edtu_f1_diary"); if(fd) la.push("🏎️ "+fd.date+": "+fd.m+" m · ⏱️ "+fd.sec+" sectores · 🔧 "+fd.pit+" pit"+(fd.drs?" · 🟢 DRS ×"+fd.drs:"")+(fd.kondor==="W"?" · 🦅 vencido":fd.kondor==="L"?" · 🦅 escapó":"")+(fd.mirror?" · 🪞":""));
     const cd=rd("rubik_diary"); if(cd) la.push("🧩 "+cd.date+": "+cd.diff+" · "+cd.t+"s · 🔄 "+cd.moves+" giros"+(cd.hints?" · 💡 "+cd.hints:"")+(cd.daily?" · 📅":"")+(cd.win?" ✓":" · 🤖 ganó la IA"));
@@ -7320,8 +7324,9 @@ $("posterFs").addEventListener("click",e=>{ if(e.target===$("posterFs")) $("post
       const fw=parseFloat(g("edtu_f1_week_"+wk))||0, jw=parseFloat(g("jurassic_week_"+wk))||0, nw=parseInt(g("nag_week_"+wk)||"0",10)||0, sw=parseFloat(g("scream_week_"+wk))||0;
       const wp=[]; if(fw>0) wp.push("🏎️ "+Math.round(fw)+" m"); if(jw>0) wp.push("🦖 "+jw.toFixed(1)+" días"); if(nw>0) wp.push("🧟 "+nw+" kills"); if(sw>0) wp.push("🕷️ escape en "+Math.floor(sw/60)+":"+String(Math.floor(sw%60)).padStart(2,"0"));
       return wp.length?"📅 esta semana llevas "+wp.join(", ")+" — ¡el lunes se reinicia, aprovecha!":"📅 esta semana aún no tienes récords... ¡todo por lograr antes del lunes! 💪"; }catch(e){ return "📅 beep... mi calendario se trabó"; } }
-    if(/desaf[íi]o|diario|de hoy|hoy/.test(q)){ try{ const d=new Date(), dk=d.getFullYear()*10000+(d.getMonth()+1)*100+d.getDate(); const dv=parseFloat(g("rubik_daily_"+dk)||"0")||0;
-      return dv>0?"📅 tu mejor tiempo en el DESAFÍO DEL DÍA del cubo es "+dv.toFixed(1)+"s — ¡reta a tus amigos a batirlo con la misma revoltura!":"📅 ¡hoy aún no hiciste el DESAFÍO DEL DÍA del cubo! misma revoltura para todos... ¿quién la arma más rápido?"; }catch(e){ return "📅 el desafío del día te espera en el cubo 🧩"; } }
+    if(/desaf[íi]o|diario|de hoy|hoy/.test(q)){ try{ const d=new Date(), dk=d.getFullYear()*10000+(d.getMonth()+1)*100+d.getDate(); const dv=parseFloat(g("rubik_daily_"+dk)||"0")||0, sv=parseFloat(g("scream_daily_"+dk)||"0")||0;
+      const dp=[]; if(dv>0) dp.push("🧩 cubo en "+dv.toFixed(1)+"s"); if(sv>0) dp.push("🕷️ escape en "+Math.floor(sv/60)+":"+String(Math.floor(sv%60)).padStart(2,"0"));
+      return dp.length?"📅 tus DESAFÍOS DEL DÍA: "+dp.join(" y ")+" — ¡reta a tus amigos a batirlos: hoy todos tienen la misma revoltura y el mismo edificio!"+(dv>0&&sv>0?"":" (te falta el otro 😉)"):"📅 ¡hoy aún no hiciste ningún DESAFÍO DEL DÍA! el cubo tiene la misma revoltura para todos y SCREAM el mismo edificio... ¿quién es más rápido?"; }catch(e){ return "📅 los desafíos del día te esperan en el cubo 🧩 y en SCREAM 🕷️"; } }
     return pick(["beep-boop... no entendí 🤔 pregúntame por chistes, juegos, récords o trucos","mis circuitos no procesaron eso... ¡prueba con 'chiste'!","*gira la cabeza confundido* ¿me hablas de juegos, récords o chistes?"]); }
   catch(e){ return "beep... error de circuitos jaja"; } }
   function sendWally(){ const q=inp.value.trim(); if(!q) return; inp.value=""; wallyType(wallyReply(q)); }
