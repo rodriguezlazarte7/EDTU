@@ -5754,7 +5754,7 @@ const F1={
     }
     if(this.shake>0) this.shake=Math.max(0,this.shake-dt*22);
     this.draw();
-    $("f1Hud").textContent="⚡ "+Math.round(this.speed)+" km/h · 📏 "+(this.dist>=1000?(this.dist/1000).toFixed(2)+" km":Math.round(this.dist)+" m")+" · 🏁 "+this.overt+(this.drs?" · 🟢 DRS":"")+(this._wRain>0.4?" · 🌧️ LLUVIA":"")+(this._nightF>0.5?" · 🌙 NOCHE":"");
+    $("f1Hud").textContent="⚡ "+Math.round(this.speed)+" km/h · 📏 "+(this.dist>=1000?(this.dist/1000).toFixed(2)+" km":Math.round(this.dist)+" m")+" · 🏁 "+this.overt+(this.drs?" · 🟢 DRS":"")+(this._wRain>0.4?" · 🌧️ LLUVIA":"")+(this._inTun?" · 🚇 TÚNEL":(this._nightF>0.5?" · 🌙 NOCHE":""));
   },
   crash(){
     try{ if(navigator.vibrate) navigator.vibrate([0,120,60,180]); }catch(e){}   // 📳 golpe de choque
@@ -5805,17 +5805,21 @@ const F1={
     const h2v=s=>{ const A=parseInt(s.slice(1),16); return [(A>>16)&255,(A>>8)&255,A&255]; };
     const mixv=(a,b,t)=>[a[0]+(b[0]-a[0])*t,a[1]+(b[1]-a[1])*t,a[2]+(b[2]-a[2])*t];
     const v2s=v=>"rgb("+(v[0]|0)+","+(v[1]|0)+","+(v[2]|0)+")";
+    // 🚇 TÚNEL cada ~2.2 km (260 m de largo)
+    let tb=Math.floor((this.dist-800)/2200), tCand=tb*2200+800; if(tCand+260<this.dist) tCand+=2200;
+    const inTun=this.dist>=tCand&&this.dist<tCand+260; this._inTun=inTun;
     // 🌅 CICLO DE DÍA según los metros: día → atardecer naranja → NOCHE → amanecer
     const cyc=(this.dist%5000)/5000; let top=h2v("#3d7ff0"), bot=h2v("#bfe3ff"), nightF=0;
     if(cyc>=0.4&&cyc<0.6){ const t2=(cyc-0.4)/0.2; top=mixv(top,h2v("#2a2a5e"),t2); bot=mixv(bot,h2v("#ff9a52"),t2); }
     else if(cyc>=0.6&&cyc<0.85){ nightF=Math.min(1,(cyc-0.6)/0.08); top=mixv(h2v("#2a2a5e"),h2v("#070b18"),nightF); bot=mixv(h2v("#ff9a52"),h2v("#101a30"),nightF); }
     else if(cyc>=0.85){ const t2=(cyc-0.85)/0.15; nightF=1-t2; top=mixv(h2v("#070b18"),h2v("#3d7ff0"),t2); bot=mixv(h2v("#101a30"),h2v("#bfe3ff"),t2); }
+    if(inTun){ top=h2v("#0a0d12"); bot=h2v("#14181f"); nightF=Math.max(nightF,0.85); }   // 🚇 adentro del túnel: oscuro (los faros se prenden solos)
     this._nightF=nightF;
     top=mixv(top,h2v("#4a5560"),rF*(1-nightF)); bot=mixv(bot,h2v("#8f9aa3"),rF*(1-nightF));   // 🌧️ gris de lluvia (de día)
     const sky=c.createLinearGradient(0,0,0,hor); sky.addColorStop(0,v2s(top)); sky.addColorStop(1,v2s(bot));
     c.fillStyle=sky; c.fillRect(-8,-8,W+16,hor+8);
     // ⭐ estrellas fijas de noche + 🌙 luna o ☀️ sol
-    if(nightF>0.1){ c.fillStyle="rgba(255,255,255,"+(nightF*0.9).toFixed(2)+")";
+    if(nightF>0.1 && !inTun){ c.fillStyle="rgba(255,255,255,"+(nightF*0.9).toFixed(2)+")";
       for(let i=0;i<40;i++){ const sxr=((i*97+13)%100)/100*W, syr=((i*61+7)%100)/100*hor*0.85; c.fillRect(sxr,syr,2,2); } }
     if(rF<0.5){ if(nightF>0.5){ c.fillStyle="#e8ecff"; c.beginPath(); c.arc(W*0.78-this.bgShift*0.15%W,hor*0.3,22,0,Math.PI*2); c.fill(); }
       else { c.fillStyle="#fff2a8"; c.beginPath(); c.arc(W*0.78-this.bgShift*0.15%W,hor*0.3,30,0,Math.PI*2); c.fill(); } }
@@ -5839,6 +5843,18 @@ const F1={
       if(Math.floor(z/9)%2===0){ const lw=Math.max(1,rw*0.016); c.fillStyle="#e8e8e8";           // líneas de carril
         for(const f of [-0.5,0,0.5]) c.fillRect(roadX+f*rw*2*0.5-lw/2,y-STEP,lw,STEP); }
     }
+    // 🚇 boca del túnel acercándose + lámparas ámbar del techo cuando vas adentro
+    if(!inTun && tCand>this.dist && tCand-this.dist<560){ const pt2=this.proj(tCand);
+      if(pt2.y>hor&&pt2.y<H+30&&pt2.pers>0.05){ const ph3=pt2.pers*W*0.4, pw3=Math.max(3,pt2.pers*W*0.05);
+        const xL3=pt2.roadX-pt2.rw*1.25, xR3=pt2.roadX+pt2.rw*1.25;
+        c.fillStyle="#20242c"; c.fillRect(xL3,pt2.y-ph3,xR3-xL3,ph3*0.32);
+        c.fillRect(xL3-pw3,pt2.y-ph3,pw3,ph3); c.fillRect(xR3,pt2.y-ph3,pw3,ph3);
+        c.fillStyle="#05070b"; c.fillRect(xL3,pt2.y-ph3*0.68,xR3-xL3,ph3*0.68);
+        if(pt2.pers>0.13){ c.fillStyle="#ffd12e"; c.font="900 "+Math.round(pt2.pers*W*0.045)+"px system-ui,sans-serif"; c.textAlign="center"; c.fillText("🚇 TÚNEL",pt2.roadX,pt2.y-ph3-8); } } }
+    if(inTun){ for(let z2=Math.ceil(this.dist/18)*18; z2<this.dist+420; z2+=18){ if(z2<tCand||z2>tCand+260) continue;
+      const pl=this.proj(z2); if(pl.y<hor||pl.y>H) continue;
+      const lw2=Math.max(2,pl.pers*W*0.05);
+      c.fillStyle="rgba(255,190,90,.9)"; c.fillRect(pl.roadX-lw2/2, pl.y-pl.pers*W*0.315, lw2, Math.max(1.5,pl.pers*W*0.012)); } }
     // 🏁 ARCO DE META cada 1000 m: pilares rojos + banner cuadriculado con el km
     const nextKm=Math.ceil((this.dist+1)/1000)*1000, relKm=nextKm-this.dist;
     if(relKm<560){ const pk=this.proj(nextKm);
