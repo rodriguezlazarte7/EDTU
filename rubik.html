@@ -34,7 +34,7 @@
 </head>
 <body>
 <canvas id="c"></canvas>
-<div id="top"><div id="timer">0.0s</div><div id="mvs" style="font-family:Consolas,monospace;font-size:14px;font-weight:800;color:#8fd0ff;align-self:center">🔄 0</div><div style="pointer-events:auto" id="diffs"></div></div>
+<div id="top"><div id="timer">0.0s</div><div id="mvs" style="font-family:Consolas,monospace;font-size:14px;font-weight:800;color:#8fd0ff;align-self:center">🔄 0</div><div id="faces" style="font-family:Consolas,monospace;font-size:14px;font-weight:800;color:#39ff14;align-self:center">✔ 0/6</div><div style="pointer-events:auto" id="diffs"></div></div>
 <div id="labels"><div>🧑 TÚ</div><div class="ai">🤖 IA (en vivo)<div id="aibar" style="width:130px;height:8px;background:rgba(255,255,255,.12);border-radius:6px;margin-top:4px;overflow:hidden"><div id="aifill" style="width:0%;height:100%;background:linear-gradient(90deg,#ff7ba3,#ff2d6a);border-radius:6px;transition:width .3s"></div></div><div id="aipct" style="font-size:11px;color:#ff9bb8;margin-top:2px">🧩 0%</div></div></div>
 <div id="msg"></div>
 <div id="lastMvP" style="position:fixed;left:34%;bottom:32%;transform:translateX(-50%);z-index:5;font:900 42px Consolas,monospace;color:#8fd0ff;text-shadow:0 0 14px #2060ff;opacity:0;pointer-events:none;transition:opacity .45s"></div>
@@ -126,6 +126,14 @@ const FACES={ U:['y',1], D:['y',-1], L:['x',-1], R:['x',1], F:['z',1], B:['z',-1
 function move(cube,face,dir,dur,onDone){ const a=FACES[face]; rotateLayer(cube,a[0],a[1],dir,dur,onDone); }
 
 function faceColor(cubie,dv){ for(const f of cubie.userData.f){ if(f.n.clone().applyQuaternion(cubie.quaternion).dot(dv)>0.9) return f.c; } return -1; }
+// ✔ cuenta cuántas CARAS ya están completas (para el marcador de progreso en vivo)
+function solvedFaces(cube){ const dirs=[['x',1],['x',-1],['y',1],['y',-1],['z',1],['z',-1]]; let n=0;
+  for(const d of dirs){ const dv=new THREE.Vector3(d[0]==='x'?d[1]:0,d[0]==='y'?d[1]:0,d[0]==='z'?d[1]:0); let col=null, ok=true;
+    for(const c of cube.cubies){ if(Math.round(c.position[d[0]])!==d[1]) continue; const fc=faceColor(c,dv); if(fc===COL.k||fc<0) continue;
+      if(col===null) col=fc; else if(col!==fc){ ok=false; break; } }
+    if(ok) n++; }
+  return n; }
+function updFaces(){ const el=document.getElementById("faces"); if(el){ const n=solvedFaces(player); el.textContent="✔ "+n+"/6"; el.style.color=n>=4?"#ffd12e":"#39ff14"; } }
 function isSolved(cube){
   const dirs=[['x',1],['x',-1],['y',1],['y',-1],['z',1],['z',-1]];
   for(const d of dirs){ const dv=new THREE.Vector3(d[0]==='x'?d[1]:0,d[0]==='y'?d[1]:0,d[0]==='z'?d[1]:0); let col=null;
@@ -168,7 +176,7 @@ function startRace(){
   const step=()=>{ n--;
     if(n>0){ showMsg(String(n),"#ffd12e"); snd(440,"square",0.12,0.06); setTimeout(step,700); }
     else { showMsg("¡YA!","#39ff14"); snd(880,"square",0.3,0.08); setTimeout(()=>{ if(state==="race") showMsg(""); },500);
-      state="race"; newScramble(); raceStart=performance.now(); setTimeout(drawNet,120);
+      state="race"; newScramble(); raceStart=performance.now(); setTimeout(()=>{ drawNet(); updFaces(); },120);
       // 📜 muestra la REVOLTURA exacta: deshacerla al revés (y con giros opuestos) resuelve el cubo
       const ss=document.getElementById("scramShow");
       if(ss) ss.innerHTML="📜 Revoltura:<br>"+scramble.map(m=>m.face+(m.dir<0?"'":"")).join(" ")+"<br><span style='color:#6a86b8'>(deshazla al revés para ganar)</span>";
@@ -189,7 +197,7 @@ function playerMove(face,dir){ if(state!=="race"||player.busy) return;
   moveCount++; document.getElementById("mvs").textContent="🔄 "+moveCount;   // contador de movimientos
   undoStack.push({face,dir});   // ↩ para poder deshacer
   showMv("lastMvP",face,dir);   // 🔤 notación en grande
-  move(player,face,dir,150,()=>{ drawNet(); if(!ended && isSolved(player)) finish("player");
+  move(player,face,dir,150,()=>{ drawNet(); updFaces(); if(!ended && isSolved(player)) finish("player");
     else if(ended && state==="race" && isSolved(player)){ state="done"; showMsg("✅ ¡Lo terminaste igual! (modo práctica)\n🔄 "+moveCount+" movs","#8fd0ff"); [523,659,784].forEach((f,i)=>setTimeout(()=>snd(f,"triangle",0.2,0.07),i*120)); } }); }
 // 🗺️ MAPA 2D del cubo (red desplegada en cruz): ves TODAS tus caras sin girar la cámara
 function drawNet(){ const cv=document.getElementById("net"); if(!cv) return; const g=cv.getContext("2d");
@@ -213,7 +221,7 @@ function showMv(id,face,dir){ const el=document.getElementById(id); if(!el) retu
 const undoStack=[];
 function undoMove(){ if(state!=="race"||player.busy||!undoStack.length) return; const m=undoStack.pop();
   moveCount++; document.getElementById("mvs").textContent="🔄 "+moveCount; snd(240,"square",0.06,0.05);
-  move(player,m.face,-m.dir,150,()=>{ drawNet(); if(!ended && isSolved(player)) finish("player"); }); }
+  move(player,m.face,-m.dir,150,()=>{ drawNet(); updFaces(); if(!ended && isSolved(player)) finish("player"); }); }
 
 // 🏆 victorias contra la IA (localStorage)
 function loadRW(){ try{ return parseInt(localStorage.getItem("rubik_wins")||"0",10)||0; }catch(e){ return 0; } }
