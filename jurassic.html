@@ -398,6 +398,14 @@ const turtFlips=[];
     fp.rotation.x=-Math.PI/2; fp.position.set(fx2,0.3,fz2); turtle.add(fp); turtFlips.push(fp); }
 })();
 let turtA=Math.random()*6.28, turtHide=0, turtSeen=false;
+// ❤️ acariciar CRÍAS con E: las que trotan con su papá y los pollitos de nido
+let petBCd=0, petBTaught=false;
+function petBaby(){ if(!running||petBCd>0) return; let best=null, bd=2.2;
+  for(const b of dinoBabies){ const d2=Math.hypot(P.x-b.grp.position.x,P.z-b.grp.position.z); if(d2<bd){ bd=d2; best=b; } }
+  for(const ns of nests){ if(ns.hatched){ const d2=Math.hypot(P.x-ns.x,P.z-ns.z); if(d2<bd){ bd=d2; best=ns; } } }
+  if(!best) return; petBCd=3; best.hop=0.7;
+  [1350,1550,1350].forEach((fq,k)=>setTimeout(()=>snd(fq,"triangle",0.08,0.05),k*110));
+  toast2("❤️ ¡A la cría le caes bien!"); try{ if(navigator.vibrate) navigator.vibrate(30); }catch(e){} }
 // 🦀 CANGREJOS: corretean DE LADO por la orilla y se entierran si te acercas
 const crabs=[]; const crabM=new THREE.MeshStandardMaterial({color:0xd13a1e,roughness:.7});
 for(let i=0;i<5;i++){ const g=new THREE.Group();
@@ -535,7 +543,7 @@ let touchUI = window.matchMedia && !matchMedia("(pointer:fine)").matches;
 // input
 let jhelpOpen=false;
 function toggleJHelp(){ if(!running) return; jhelpOpen=!jhelpOpen; $("jhelpS").classList.toggle("on",jhelpOpen); snd(jhelpOpen?500:300,"square",0.05,0.05); }
-addEventListener("keydown",e=>{ keys[e.code]=true; if(e.code==="Digit1") useWater(); if(e.code==="Digit2") useFood(); if(e.code==="Digit3") chargeFlash(); if(e.code==="KeyB") placeWood(); if(e.code==="KeyF") fireDart(); if(e.code==="KeyH") toggleJHelp(); if(e.code==="Space"){ jump(); e.preventDefault(); } },true);
+addEventListener("keydown",e=>{ keys[e.code]=true; if(e.code==="Digit1") useWater(); if(e.code==="Digit2") useFood(); if(e.code==="Digit3") chargeFlash(); if(e.code==="KeyB") placeWood(); if(e.code==="KeyF") fireDart(); if(e.code==="KeyH") toggleJHelp(); if(e.code==="KeyE") petBaby(); if(e.code==="Space"){ jump(); e.preventDefault(); } },true);
 addEventListener("keyup",e=>{ keys[e.code]=false; },true);
 addEventListener("mousemove",e=>{ if(!running) return; yaw-=(e.movementX||0)*0.0022; pitch=Math.max(-1.3,Math.min(1.3,pitch-(e.movementY||0)*0.0022)); });
 canvas.addEventListener("mousedown",()=>{ if(!running) return; if(document.pointerLockElement!==canvas){ try{ canvas.requestPointerLock(); }catch(_){} } else { fireDart(); } });
@@ -881,8 +889,11 @@ function update(dt){
     if(!d.T.passive && dd<2.6 && d.hitCd<=0 && !safe){ d.hitCd=1.1; hurt(d.T.dmg*jdDmg, d.T.name); }
   }
   $("ammo").textContent="💉 DARDOS: ∞"+(asleep>0?"  ·  💤 dormidos: "+asleep:"");   // contador de dinos dormidos
-  // 🐣 crías: trotan detrás de su papá/mamá con pasitos saltarines
+  // 🐣 crías: trotan detrás de su papá/mamá con pasitos saltarines (y saltan felices si las acaricias con E)
+  petBCd-=dt;
   for(const b of dinoBabies){ const pp=b.parent.grp.position; const bx2=pp.x-b.grp.position.x, bz2=pp.z-b.grp.position.z; const bd2=Math.hypot(bx2,bz2);
+    if(!petBTaught && Math.hypot(P.x-b.grp.position.x,P.z-b.grp.position.z)<2.4){ petBTaught=true; toast2("🐣 pulsa [E] para acariciar a la cría"); }
+    if(b.hop>0){ b.hop-=dt; b.grp.position.y=Math.abs(Math.sin(elapsed*13))*0.45; }
     if(bd2>3.2){ b.grp.position.x+=bx2/bd2*3.4*dt; b.grp.position.z+=bz2/bd2*3.4*dt; b.grp.rotation.y=Math.atan2(bx2,bz2); b.grp.position.y=Math.abs(Math.sin(elapsed*9+b.ph))*0.25; }
     else b.grp.position.y*=0.9;
     if(b.grp.userData.legs) b.grp.userData.legs.forEach((lg,k)=> lg.rotation.x=Math.sin(elapsed*10+k*3+b.ph)*0.5); }
