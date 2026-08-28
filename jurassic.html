@@ -153,6 +153,7 @@ DÍA 1 — 00:00 · La radio se enciende... «...¿hay alguien ahí?...» La se�
   <p style="color:#9fbf80;font-size:12px;max-width:540px">🎮 WASD/joystick moverte · ratón mirar · <b>clic/🎯/F = DARDO tranquilizante ∞</b> 💉 (duérmelos) · <b>espacio/🦘 = SALTAR</b> · <b>[B]/🪵 = poner bloques ∞</b> · recoge 💧🥫🔋 · los herbívoros 🦕 NO te persiguen · refúgiate en la CABAÑA (con puerta 🚪) o en las <b style="color:#7dff5a">ZONAS SEGURAS</b> 🟢 · lleva 3 🔋 a la TORRE DE RADIO para pedir rescate</p>
   <div id="jdiffs"></div>
   <p id="jbest" style="color:#ffd15a;font-weight:800;font-size:13px"></p>
+  <p id="jdiary" style="color:#e8d9a8;font-size:12px;margin-top:2px"></p>
   <button class="btn" id="startBtn">▶ EMPEZAR A SOBREVIVIR</button>
 </div>
 
@@ -457,7 +458,7 @@ function petBaby(){ if(!running||jPaused||petBCd>0) return;
   [1350,1550,1350].forEach((fq,k)=>setTimeout(()=>snd(fq,"triangle",0.08,0.05),k*110));
   // 🐾 FOTO DE FAMILIA: acariciar a la cría CON su papá/mamá cerca = la manada te acepta (feature nº 100 🏆)
   if(!packFriend && best.parent && best.parent.grp && Math.hypot(P.x-best.parent.grp.position.x,P.z-best.parent.grp.position.z)<8){
-    packFriend=true;
+    packFriend=true; jDiary.pack=true;
     toast2("🐾 ¡LA MANADA TE ACEPTA! los herbívoros ya no te arrollarán en estampida");
     [880,1000,1120].forEach((fq2,k2)=>setTimeout(()=>snd(fq2,"triangle",0.2,0.07),k2*140)); vibJ(80); }
   else toast2("❤️ ¡A la cría le caes bien!");
@@ -595,6 +596,9 @@ function buildJDiffs(){ const c=document.getElementById("jdiffs"); if(!c) return
 let hp=100,hunger=100,thirst=100,invT=0,flashBatt=100,darts=6,dartCd=0,placeCd=0;
 let jStatDarts=0,jStatSleep=0,jStatWood=0,jStatDist=0,jLastX=null,jLastZ=0;   // 📊 estadísticas
 const jPath=[]; let jPathT=0;   // 🗺️ rastro de tu ruta (un punto cada 3s) para dibujar la aventura al final
+// 📖 DIARIO DEL EXPLORADOR: hitos de la aventura actual (se reinician en cada partida)
+const jDiary={fish:0,cocos:0,berries:0,fires:0,ptero:0,pack:false,egg:false,hits:0};
+function jDiaryReset(){ jDiary.fish=0; jDiary.cocos=0; jDiary.berries=0; jDiary.fires=0; jDiary.ptero=0; jDiary.pack=false; jDiary.egg=false; jDiary.hits=0; }
 let jPaused=false;   // ⏸ pausa con P
 let freeMode=false;  // 🏝️ modo libre tras el rescate (sin re-victoria ni récords nuevos)
 let packFriend=false;   // 🐾 la manada te aceptó (acariciar cría con su padre cerca): estampidas inofensivas
@@ -682,7 +686,7 @@ function buildFire(){ if(!running||gameOver||jPaused) return;
   const fx=P.x+fwd.x*2.2, fz=P.z+fwd.z*2.2;
   if(inLake(fx,fz,1)){ toast2("💧 ahí no: está mojado"); return; }
   campfire.position.set(fx,0,fz); campfire.visible=true; fireT=45;
-  safeZones.push({x:fx,z:fz,r:8,fire:true});
+  safeZones.push({x:fx,z:fz,r:8,fire:true}); jDiary.fires++;
   snd(180,"sawtooth",0.25,0.06); snd(760,"triangle",0.2,0.05);
   toast2("🔥 FOGATA encendida (45s): espanta a los dinos y cura a su lado"); }
 function fireTick(dt){
@@ -749,7 +753,7 @@ function tryFish(){ if(!running||jPaused||gameOver||fishCd>0) return;
     toast2("🎣 lanzaste el sedal... espera la señal ❗"); snd(500,"sine",0.15,0.05); return; }
   if(fishSt===2){ fishSt=0; fishCd=2; fishCount++;   // 🎉 ¡a tiempo!
     if(Math.random()<0.18){ toast2("🥾 ...pescaste una BOTA VIEJA jajaja"); snd(120,"sawtooth",0.3,0.08); }
-    else { inv.food++; updInv(); toast2("🐟 ¡PEZ atrapado! +1 comida 🥫"); [659,784,988].forEach((fq,i)=>setTimeout(()=>snd(fq,"triangle",0.15,0.07),i*90)); }
+    else { inv.food++; updInv(); jDiary.fish++; toast2("🐟 ¡PEZ atrapado! +1 comida 🥫"); [659,784,988].forEach((fq,i)=>setTimeout(()=>snd(fq,"triangle",0.15,0.07),i*90)); }
     return; }
   if(fishSt===1){ fishSt=0; fishCd=1; toast2("🎣 recogiste muy pronto... nada"); } }
 function fishTick(dt){ if(fishCd>0) fishCd-=dt;
@@ -776,7 +780,7 @@ function cocoTick(dt){ if(cocoCd>0) cocoCd-=dt;
         snd(180,"square",0.1,0.12); snd(90,"sine",0.15,0.1);
         if(Math.hypot(P.x-co.m.position.x,P.z-co.m.position.z)<1){ hurt(9,"un COCO 🥥"); toast2("🥥 ¡TOC! un coco te cayó en la CABEZA... auch"); vibJ(100); }
         else toast2("🥥 ¡cayó un coco al lado tuyo! recógelo (+1 comida)"); } }
-    else if(Math.hypot(P.x-co.m.position.x,P.z-co.m.position.z)<1.5){ scene.remove(co.m); cocos.splice(ci,1); inv.food++; updInv(); snd(760,"triangle",0.15,0.06); toast2("🥥 coco guardado: +1 comida 🥫"); } } }
+    else if(Math.hypot(P.x-co.m.position.x,P.z-co.m.position.z)<1.5){ scene.remove(co.m); cocos.splice(ci,1); inv.food++; updInv(); jDiary.cocos++; snd(760,"triangle",0.15,0.06); toast2("🥥 coco guardado: +1 comida 🥫"); } } }
 // ☁️ NUBES CON FORMA: de vez en cuando (solo de día) una nube especial cruza el cielo — y si la MIRAS, el juego lo comenta
 const CLOUD_SHAPES=[
   {n:"un dinosaurio 🦖",p:[[0,0,0,2],[1.8,0,0,1.8],[3.2,0.4,0,1.4],[4.2,1.6,0,1],[4.6,2.8,0,0.9],[5.5,3.1,0,1.1],[-1.8,0.2,0,1.5],[-3.2,1,0,1]]},
@@ -846,7 +850,7 @@ function pteroTick(dt,night){
     ptero.position.z+=(cz-ptero.position.z)*Math.min(1,dt*1.2);
     ptero.rotation.y=-ptA;
     if(Math.random()<dt*0.02) snd(1600+Math.random()*300,"sawtooth",0.25,0.03);   // graznido lejano
-    if(ptT<=0){ if(!jTutOn && !inSafe(P.x,P.z)){ ptState="warn"; ptWarnT=1.5;
+    if(ptT<=0){ if(!jTutOn && !inSafe(P.x,P.z)){ ptState="warn"; ptWarnT=1.5; jDiary.ptero++;
         snd(2100,"sawtooth",0.5,0.09); snd(1500,"sawtooth",0.55,0.07);
         showStory("🦅 ¡CHILLIDO ARRIBA! ¡Viene en PICADA — corre o refúgiate!"); }
       else ptT=12; } }
@@ -876,7 +880,7 @@ function eggTick(dt){ if(eggTaken||!goldEgg.visible) return;
   eggPulse+=dt*3; const p2=1+Math.sin(eggPulse)*0.12; goldEgg.userData.egg.scale.set(p2,1.35*p2,p2);
   goldEgg.userData.light.intensity=0.9+Math.sin(eggPulse)*0.4;
   if(Math.hypot(P.x-goldEgg.position.x,P.z-goldEgg.position.z)<2.2){ eggTaken=true; goldEgg.visible=false;
-    let first=false; try{ first=localStorage.getItem("jurassic_egg")!=="1"; localStorage.setItem("jurassic_egg","1"); }catch(e){}
+    let first=false; jDiary.egg=true; try{ first=localStorage.getItem("jurassic_egg")!=="1"; localStorage.setItem("jurassic_egg","1"); }catch(e){}
     [659,784,988,1319].forEach((fq,i)=>setTimeout(()=>snd(fq,"triangle",0.22,0.09),i*130));
     try{ if(navigator.vibrate) navigator.vibrate([0,60,40,60,40,180]); }catch(e){}
     toast2(first?"🥚 ¡HUEVO DORADO! Logro SECRETO desbloqueado":"🥚 ¡El HUEVO DORADO, otra vez tuyo!"); updJBest(); } }
@@ -907,6 +911,7 @@ function start(){ $("start").classList.add("hide"); $("end").classList.add("hide
   P.x=0; P.z=22; P.y=1.7; P.vy=0; P.onGround=true; yaw=Math.PI; pitch=0; hp=100; hunger=100; thirst=100; flashBatt=100; darts=6; elapsed=0; radioOn=false; inv.water=2; inv.food=2; inv.wood=0; inv.batt=0; updAmmo();
   jStatDarts=0; jStatSleep=0; jStatWood=0; jStatDist=0; jLastX=null;   // 📊 estadísticas desde cero
   jPath.length=0; jPathT=0;   // 🗺️ rastro desde cero
+  jDiaryReset();   // 📖 diario en blanco
   jPaused=false; const po3=$("jPauseOv"); if(po3) po3.style.display="none";
   try{ jTutOn=!localStorage.getItem("jur_tut1"); }catch(e){ jTutOn=false; }  jTutStep=0; jTutT=5;   // 🎓 tutorial solo la primera vez
   rainOn=false; setRainSnd(false); rainF=0; rain.visible=false; rainT=80+Math.random()*100;   // 🌧️ clima desde cero
@@ -935,7 +940,14 @@ function loadJBest(){ try{ return parseFloat(localStorage.getItem("jurassic_best
 function weekKey(){ const d=new Date(), j=new Date(d.getFullYear(),0,1); return d.getFullYear()+"-"+Math.floor(((d-j)/86400000+j.getDay())/7); }
 function loadJWeek(){ try{ return parseFloat(localStorage.getItem("jurassic_week_"+weekKey())||"0")||0; }catch(e){ return 0; } }
 function saveJBest(v){ try{ localStorage.setItem("jurassic_best",String(v)); }catch(e){} }
-function updJBest(){ const b=loadJBest(), el=$("jbest"); if(!el) return;
+// 📖 DIARIO DEL EXPLORADOR: resumen de hitos al final + últimas 3 aventuras guardadas (jurassic_diary) + "Última aventura" en la portada
+function jDiaryLine(e){ const p=[]; if(e.fish) p.push("🐟 "+e.fish+" peces"); if(e.cocos) p.push("🥥 "+e.cocos); if(e.berries) p.push("🫐 "+e.berries); if(e.fires) p.push("🔥 "+e.fires+(e.fires>1?" fogatas":" fogata")); if(e.ptero) p.push("🦅 "+e.ptero+" picadas"); if(e.pack) p.push("🐾 la manada te aceptó"); if(e.egg) p.push("🥚 huevo dorado"); p.push(e.hits?("🩹 "+e.hits+" ataques"):"🛡️ sin heridas"); return p.join(" · "); }
+function jDiaryEnd(win,days){ const e=Object.assign({},jDiary); e.days=+days.toFixed(1); e.win=!!win; e.diff=jdiff; const d=new Date(); e.date=d.getDate()+"/"+(d.getMonth()+1);
+  try{ const arr=JSON.parse(localStorage.getItem("jurassic_diary")||"[]"); arr.unshift(e); localStorage.setItem("jurassic_diary",JSON.stringify(arr.slice(0,3))); }catch(err){}
+  return "<div style='margin-top:6px;font-size:13px;color:#e8d9a8;line-height:1.8'>📖 <b>DIARIO DEL EXPLORADOR</b><br>"+jDiaryLine(e)+"</div>"; }
+function updJDiary(){ const el=$("jdiary"); if(!el) return; try{ const arr=JSON.parse(localStorage.getItem("jurassic_diary")||"[]"); if(!arr.length){ el.textContent=""; return; }
+  const e=arr[0]; el.textContent="📖 Última aventura ("+e.date+"): 🗓️ "+e.days+" días · "+jDiaryLine(e)+(e.win?" · ✓ rescatado":""); }catch(err){ el.textContent=""; } }
+function updJBest(){ updJDiary(); const b=loadJBest(), el=$("jbest"); if(!el) return;
   // 🏅 medallas de RESCATE: una por dificultad en la que lograste que te rescaten
   const med=["facil","normal","dificil","extincion"].map(k=>{ let got=false; try{ got=localStorage.getItem("jurassic_win_"+k)==="1"; }catch(e){}
     return JDIFFS[k].lbl.split(" ")[0]+(got?"✔":"–"); }).join(" ");
@@ -951,7 +963,7 @@ function endGame(win,info){ running=false; gameOver=true; try{document.exitPoint
     const MOTIV=["La próxima lo logras, agente 💪","WALLY cree en ti 🤖","La isla respeta a quien vuelve a intentarlo","Cada día sobrevivido cuenta","Hasta los T-Rex fallan a veces"];
     info+="<br><span style='color:#8fd0a8'>💙 "+MOTIV[Math.floor(Math.random()*MOTIV.length)]+"</span>"; }
   $("endInfo").innerHTML=info+(win&&jdiff==="extincion"?"<br>☄️ <b>¡SOBREVIVISTE A LA EXTINCIÓN!</b> — depredadores 1.5x más rápidos y daño doble. LEYENDA.":"")+"<br><br>🗓️ Días: <b>"+days.toFixed(1)+"</b>"+(isRec?" 🏆 ¡RÉCORD!":" · Récord: <b>"+prev.toFixed(1)+"</b>")
-    +"<div style='margin-top:8px;font-size:13px;color:#bfe3d8;line-height:1.9'>📊 <b>ESTADÍSTICAS</b><br>💉 Dardos disparados: "+jStatDarts+" · 💤 Dinos dormidos: "+jStatSleep+"<br>🪵 Maderas puestas: "+jStatWood+" · 🚶 "+Math.round(jStatDist)+" m recorridos</div>"; snd(win?660:70,win?"triangle":"sawtooth",0.5,0.12);
+    +"<div style='margin-top:8px;font-size:13px;color:#bfe3d8;line-height:1.9'>📊 <b>ESTADÍSTICAS</b><br>💉 Dardos disparados: "+jStatDarts+" · 💤 Dinos dormidos: "+jStatSleep+"<br>🪵 Maderas puestas: "+jStatWood+" · 🚶 "+Math.round(jStatDist)+" m recorridos</div>"+jDiaryEnd(win,days); snd(win?660:70,win?"triangle":"sawtooth",0.5,0.12);
   if(win){ $("end").classList.remove("hide");
     // 🗺️ TU AVENTURA DIBUJADA: mini-mapa de la isla con la ruta exacta que recorriste
     try{ const mp=document.createElement("canvas"); mp.width=300; mp.height=300; mp.style.cssText="display:block;margin:10px auto 0;border:1px solid rgba(150,220,150,.35);border-radius:10px;background:#06140a";
@@ -1106,7 +1118,7 @@ function update(dt){
   // 🫐 arbustos: si pasas cerca con bayas maduras, las recoges (+1 comida) y rebrotan en ~60s
   for(const bb of berryBushes){
     if(bb.ripe){ if(Math.hypot(P.x-bb.x,P.z-bb.z)<2){ bb.ripe=false; bb.regrowT=55+Math.random()*20;
-      bb.berries.forEach(be=>be.visible=false); inv.food++; updInv();
+      bb.berries.forEach(be=>be.visible=false); inv.food++; updInv(); jDiary.berries++;
       [523,659].forEach((fq,k)=>setTimeout(()=>snd(fq,"triangle",0.14,0.06),k*90)); toast2("🫐 ¡Bayas! +1 comida"); } }
     else { bb.regrowT-=dt; if(bb.regrowT<=0){ bb.ripe=true; bb.berries.forEach(be=>be.visible=true); } } }
   // 🐣 nidos: al acercarte a <4m eclosiona un huevo — crack + píos + nace la cría
@@ -1345,7 +1357,7 @@ function update(dt){
   // victoria: sobrevivir 7 días
   if(elapsed>=7*DAY_LEN && !gameOver && !freeMode){ const good=radioOn; endGame(true, good ? "🚁 El helicóptero de rescate te encontró gracias a la radio.<br>¡SOBREVIVISTE LOS 7 DÍAS Y ESCAPASTE DE LA ISLA!" : "🚁 Aguantaste 7 días. El rescate te halló de milagro (¡la próxima enciende la radio!).<br>¡SOBREVIVISTE!"); }
 }
-function hurt(dmg,name){ if(invT>0) return; invT=0.6; hp=Math.max(0,hp-dmg*0.35); snd(90,"sawtooth",0.25,0.12); showStory("¡"+name+" te atacó!"); }
+function hurt(dmg,name){ if(invT>0) return; invT=0.6; hp=Math.max(0,hp-dmg*0.35); jDiary.hits++; snd(90,"sawtooth",0.25,0.12); showStory("¡"+name+" te atacó!"); }
 
 function loop(t){ const dt=Math.min(0.05,(t-tPrev)/1000); tPrev=t; if(running) update(dt); renderer.render(scene,camera); requestAnimationFrame(loop); }
 seedPickups(); spawnDinos(); requestAnimationFrame(loop);
