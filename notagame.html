@@ -214,6 +214,21 @@ const balBm=new THREE.Mesh(new THREE.SphereGeometry(0.14,8,7),new THREE.MeshBasi
 const balR=new THREE.PointLight(0xff2020,0,15); balR.position.set(-0.45,2.6,0.4); amb.add(balR);
 const balB=new THREE.PointLight(0x2060ff,0,15); balB.position.set(0.45,2.6,0.4); amb.add(balB);
 addWall(ambS.x-1.4,ambS.x+1.4,ambS.z-2.5,ambS.z+2.5);
+// 🪧 LETREROS DE SOBREVIVIENTES: tablas de madera con mensajes pintados a mano (lore del brote)
+(function makeSigns(){
+  const texts=["NO ABRAN LA CASA 13","SE LOS LLEVARON A TODOS","NO CONFÍES EN NADIE","EL DRENAJE ES SEGURO","ELLOS OYEN LOS DISPAROS","DIOS NOS ABANDONÓ"];
+  const postM=new THREE.MeshStandardMaterial({color:0x4a3520,roughness:1});
+  function signTex(txt,red){ const cv=document.createElement("canvas"); cv.width=512; cv.height=160; const g=cv.getContext("2d");
+    g.fillStyle="#6b4a26"; g.fillRect(0,0,512,160); g.strokeStyle="#4a3018"; g.lineWidth=3;
+    for(let y2=40;y2<160;y2+=40){ g.beginPath(); g.moveTo(0,y2); g.lineTo(512,y2); g.stroke(); }
+    g.font="700 44px Impact,system-ui,sans-serif"; g.textAlign="center"; g.fillStyle=red?"#a01020":"#e8e0d0";
+    g.fillText(txt,256,95,470); return new THREE.CanvasTexture(cv); }
+  for(let i=0;i<texts.length;i++){ const s=freeSpot(8,ARENA-6,1.2);
+    const post=new THREE.Mesh(new THREE.CylinderGeometry(0.07,0.09,2.1,7),postM); post.position.set(s.x,1.05,s.z); scene.add(post);
+    const plank=new THREE.Mesh(new THREE.PlaneGeometry(2.4,0.75),new THREE.MeshStandardMaterial({map:signTex(texts[i],i%2===0),roughness:.9,side:THREE.DoubleSide}));
+    plank.position.set(s.x,1.75,s.z); plank.rotation.y=Math.random()*6.28; plank.rotation.z=(Math.random()-0.5)*0.12; scene.add(plank);
+    addWall(s.x-0.15,s.x+0.15,s.z-0.15,s.z+0.15); }
+})();
 // 🐈‍⬛ GATO NEGRO: cada tanto cruza la calle corriendo delante tuyo, maúlla y sus ojos brillan verdes
 const cat=new THREE.Group(); const catM=new THREE.MeshStandardMaterial({color:0x0c0c12,roughness:.85});
 { const cb=new THREE.Mesh(new THREE.SphereGeometry(0.22,9,7),catM); cb.scale.set(1,0.8,1.7); cb.position.y=0.26; cat.add(cb);
