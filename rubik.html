@@ -59,6 +59,10 @@
 <script>
 (function(){
 const canvas=document.getElementById("c");
+let AC=null; function snd(f,t,d,v){ try{ AC=AC||new (window.AudioContext||window.webkitAudioContext)(); if(AC.state==="suspended")AC.resume();
+  const o=AC.createOscillator(),g=AC.createGain(); o.type=t||"square"; o.frequency.value=f;
+  g.gain.setValueAtTime(v||.06,AC.currentTime); g.gain.exponentialRampToValueAtTime(.001,AC.currentTime+(d||.1));
+  o.connect(g); g.connect(AC.destination); o.start(); o.stop(AC.currentTime+(d||.1)+.02); }catch(e){} }
 const renderer=new THREE.WebGLRenderer({canvas,antialias:true});
 renderer.setPixelRatio(Math.min(devicePixelRatio,2));
 renderer.setScissorTest(true);
@@ -148,7 +152,8 @@ function aiStep(){
   const m=aiQueue.shift(); const pace=DIFF[diff].pace, dur=Math.min(pace*0.6,260);
   move(ai,m.face,m.dir,Math.min(pace*600,260),()=>{ if(!ended) aiTimer=setTimeout(aiStep, Math.max(40,pace*1000-260)); });
 }
-function playerMove(face,dir){ if(state!=="race"||player.busy) return; move(player,face,dir,150,()=>{ if(!ended && isSolved(player)) finish("player"); }); }
+function playerMove(face,dir){ if(state!=="race"||player.busy) return; snd(340+Math.random()*60,"square",0.06,0.05); snd(180,"triangle",0.04,0.03);   // 🔊 clic de giro
+  move(player,face,dir,150,()=>{ if(!ended && isSolved(player)) finish("player"); }); }
 
 // 🏆 victorias contra la IA (localStorage)
 function loadRW(){ try{ return parseInt(localStorage.getItem("rubik_wins")||"0",10)||0; }catch(e){ return 0; } }
@@ -156,8 +161,9 @@ function updRW(){ const el=document.getElementById("rwins"); if(el){ const w=loa
 function finish(who){
   if(ended) return; ended=true; state="done"; clearTimeout(aiTimer);
   const t=((performance.now()-raceStart)/1000).toFixed(1);
-  if(who==="player"){ try{ localStorage.setItem("rubik_wins",String(loadRW()+1)); }catch(e){} showMsg("🎉 ¡GANASTE!\n"+t+"s · 🏆 victorias: "+loadRW(),"#39ff14"); }
-  else showMsg("🤖 Ganó la IA\nTu tiempo corre aún...","#ff7ba3");
+  if(who==="player"){ try{ localStorage.setItem("rubik_wins",String(loadRW()+1)); }catch(e){} showMsg("🎉 ¡GANASTE!\n"+t+"s · 🏆 victorias: "+loadRW(),"#39ff14");
+    [523,659,784,1047].forEach((f,i)=>setTimeout(()=>snd(f,"triangle",0.25,0.09),i*130)); }   // 🎺 fanfarria
+  else { showMsg("🤖 Ganó la IA\nTu tiempo corre aún...","#ff7ba3"); [400,300,220].forEach((f,i)=>setTimeout(()=>snd(f,"sawtooth",0.3,0.07),i*180)); }
   updRW();
 }
 function tryListo(){
