@@ -1472,8 +1472,14 @@
     <div id="wallyPresenter"><span class="bzr">🔴</span><span class="bot" id="wallyBot">🤖</span><span class="bzb">🔵</span><div id="wallySpeech" style="font:700 12px Consolas,monospace;color:#8fd0ff;margin-top:2px"></div></div>
     <h2 style="margin:0 0 6px;text-align:center;color:#ffd12e;letter-spacing:.1em">🏆 SALA DE TROFEOS</h2>
     <div id="trophyBody" style="font-size:13px;line-height:2;color:#cfe0ff"></div>
-    <button class="btn btn-ghost btn-sm" id="trophyClose" style="margin-top:12px;width:100%">Cerrar</button>
+    <button class="btn btn-primary btn-sm" id="trophyPoster" style="margin-top:12px;width:100%">📸 PÓSTER DE RÉCORDS</button>
+    <button class="btn btn-ghost btn-sm" id="trophyClose" style="margin-top:8px;width:100%">Cerrar</button>
   </div>
+</div>
+<div id="posterFs" style="position:fixed;inset:0;z-index:135;background:rgba(0,0,0,.93);display:none;align-items:center;justify-content:center;flex-direction:column">
+  <img id="posterImg" style="max-width:92vw;max-height:78vh;border-radius:12px;box-shadow:0 0 40px rgba(255,209,46,.25)" alt="Póster EDTU">
+  <div style="color:#8fd0ff;font:700 13px Consolas,monospace;margin-top:10px">📱 haz una CAPTURA DE PANTALLA para compartirlo</div>
+  <button class="btn btn-ghost btn-sm" id="posterClose" style="margin-top:10px">Cerrar</button>
 </div>
 
 <!-- ============ NOT A GAME (terror 3D en iframe) ============ -->
@@ -7050,6 +7056,47 @@ function buildTrophies(){ try{
 $("pickTrophies").onclick=()=>{ buildTrophies(); $("trophyFs").style.display="flex"; };
 $("trophyClose").onclick=()=>{ $("trophyFs").style.display="none"; };
 $("trophyFs").addEventListener("click",e=>{ if(e.target===$("trophyFs")) $("trophyFs").style.display="none"; });
+// 📸 PÓSTER DE RÉCORDS: imagen 600x800 lista para captura de pantalla
+function buildPoster(){ try{
+  const g=(k)=>{ try{ return localStorage.getItem(k); }catch(e){ return null; } };
+  const cv=document.createElement("canvas"); cv.width=600; cv.height=800; const c=cv.getContext("2d");
+  const grd=c.createLinearGradient(0,0,0,800); grd.addColorStop(0,"#0a1420"); grd.addColorStop(1,"#050a08");
+  c.fillStyle=grd; c.fillRect(0,0,600,800);
+  for(let i=0;i<70;i++){ c.fillStyle="rgba(255,255,255,"+(0.15+Math.random()*0.5).toFixed(2)+")"; c.fillRect(Math.random()*600,Math.random()*800,1.6,1.6); }
+  c.textAlign="center";
+  c.fillStyle="#19ff85"; c.font="900 54px Consolas,monospace"; c.fillText("EDTU",300,78);
+  c.fillStyle="#8fd0ff"; c.font="700 14px Consolas,monospace"; c.fillText("ESPÍAS DE TECNOLOGÍA UNIVERSAL",300,104);
+  c.font="42px serif"; c.fillText("🏆",300,155);
+  const KEYS=[["scream_win_",["facil","normal","pesadilla","infierno"]],["jurassic_win_",["facil","normal","dificil","extincion"]],["nag_kills_",[25,50,100,200]],["edtu_f1_km_",[1000,3000,5000,10000]]];
+  let tot=0; KEYS.forEach(([p,arr])=>arr.forEach(k=>{ if(g(p+k)==="1") tot++; }));
+  ["wally_jurassic","wally_notagame","wally_scream","wally_f1"].forEach(k=>{ if(g(k)==="1") tot++; });
+  if(g("jurassic_egg")==="1") tot++;
+  c.fillStyle="#ffd12e"; c.font="900 25px Consolas,monospace"; c.fillText(tot>=21?"🏅 21/21 — LEYENDA DE EDTU":"🏅 LOGROS: "+tot+"/21",300,200);
+  const fmtMS=(s)=>Math.floor(s/60)+":"+String(Math.floor(s%60)).padStart(2,"0");
+  let rbBT=0; ["facil","medio","dificil","imposible"].forEach(k=>{ const v=parseFloat(g("rubik_bt_"+k))||0; if(v>0&&(rbBT===0||v<rbBT)) rbBT=v; });
+  const rows=[
+    ["🕷️ SCREAM", (isNaN(parseFloat(g("scream_best")))?"— sin escape aún":"escape "+fmtMS(parseFloat(g("scream_best")))+" · 🚁x"+(g("scream_wins")||0))+(g("scream_win_pesadillaplus")==="1"?" · 👑":"")],
+    ["🦖 JURASSIC", ((parseFloat(g("jurassic_best"))||0)>0?"récord "+parseFloat(g("jurassic_best")).toFixed(1)+" días":"— sin récord aún")+(g("jurassic_egg")==="1"?" · 🥚":"")],
+    ["🧟 NOT A GAME", "kills "+(g("nag_best_kills")||0)+(g("nag_best_case")!=null?" · caso "+fmtMS(parseInt(g("nag_best_case"),10)):"")],
+    ["🏎️ F1 RB RUSH", ((parseFloat(g("edtu_f1_best"))||0)>0?Math.round(parseFloat(g("edtu_f1_best")))+" m":"— sin récord aún")+((g("edtu_f1_kondor_w")||g("edtu_f1_kondor_l"))?" · ⚔️🦅 "+(parseInt(g("edtu_f1_kondor_w")||"0",10))+"-"+(parseInt(g("edtu_f1_kondor_l")||"0",10)):"")],
+    ["🧩 CUBO 3x3", "victorias "+(g("rubik_wins")||0)+(rbBT>0?" · mejor ⏱"+rbBT.toFixed(1)+"s":"")]
+  ];
+  let y0=232;
+  for(const [t2,v] of rows){
+    c.fillStyle="rgba(255,255,255,0.05)"; c.fillRect(40,y0,520,76);
+    c.strokeStyle="rgba(255,209,46,0.35)"; c.strokeRect(40,y0,520,76);
+    c.textAlign="left"; c.fillStyle="#ffd12e"; c.font="900 21px Consolas,monospace"; c.fillText(t2,60,y0+31);
+    c.fillStyle="#cfe0ff"; c.font="700 15px Consolas,monospace"; c.fillText(v,60,y0+58);
+    y0+=90; }
+  c.textAlign="center"; c.font="38px serif"; c.fillText("🤖",300,y0+36);
+  c.fillStyle="#8fd0ff"; c.font="700 13px Consolas,monospace"; c.fillText("WALLY certifica estos récords",300,y0+60);
+  c.fillStyle="#6a86a8"; c.font="700 12px Consolas,monospace"; c.fillText(new Date().toLocaleDateString("es-CL")+" · www.edtu.cl",300,780);
+  $("posterImg").src=cv.toDataURL("image/png");
+  $("posterFs").style.display="flex";
+}catch(e){} }
+$("trophyPoster").onclick=buildPoster;
+$("posterClose").onclick=()=>{ $("posterFs").style.display="none"; };
+$("posterFs").addEventListener("click",e=>{ if(e.target===$("posterFs")) $("posterFs").style.display="none"; });
 // 🤖🌧️ HUEVO SORPRESA DEL LOGO: 5 clics rápidos (<3s) en "EDTU" → ¡LLUVIA DE WALLYs!
 (function(){ const logo=document.querySelector("h1.glow"); if(!logo) return;
   let clicks=0, t0=0, raining=false;
