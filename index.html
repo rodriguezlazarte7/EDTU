@@ -5638,7 +5638,7 @@ const F1={
     this.resize(); window.addEventListener("resize",this._rs=()=>this.resize());
     this.best=+(localStorage.getItem("edtu_f1_best")||0);
     $("f1Overlay").style.display="flex"; $("f1Msg").textContent="🏎️ F1 RB RUSH";
-    $("f1Result").innerHTML="Vista Need for Speed · ←→ o A/D conducir · 🔥 NITRO: espacio / Y / RT / botón · franjas verdes = DRS<br>¡Cuidado con las CURVAS y el pasto! · 🏆 Récord: <b>"+Math.round(this.best)+"</b> m<br>🎖️ "+this.medals();
+    $("f1Result").innerHTML="Vista Need for Speed · ←→ o A/D conducir · 🔥 NITRO: espacio / Y / RT / botón · franjas verdes = DRS<br>⏸ <b>P</b> pausa · ↵ <b>Enter</b> correr otra vez · ¡Cuidado con las CURVAS ⚠️, el pasto y las 🏍️ motos!<br>🌧️ lluvia · 🌙 día y noche · 🚇 túneles · 🛸 zepelín · 🤖 WALLY saluda cada 1500 m · ⚡ combo de adelantamientos<br>🏆 Récord: <b>"+Math.round(this.best)+"</b> m<br>🎖️ "+this.medals();
     this.draw();
   },
   close(){
