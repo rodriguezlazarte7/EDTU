@@ -775,6 +775,7 @@ function startGame(){
   rapidT=0; tracer.material.color.setHex(0xffe066); rapidDrops.forEach(r2=>scene.remove(r2.m)); rapidDrops.length=0;   // ⚡ reset
   hordeT=90+Math.random()*70; hordeOn=0;   // 🚨 reset horda
   nPaused=false; const po4=document.getElementById("nPauseOv"); if(po4) po4.style.display="none";   // ⏸ reset pausa
+  try{ nTutOn=!localStorage.getItem("nag_tut1"); }catch(e){ nTutOn=false; }  nTutStep=0; nTutT=5;   // 🎓 tutorial solo la primera vez
   bloodMoon=false; lastDayF=0; dawnFog=0;   // 🐛FIX ronda2: la luna de sangre y la niebla se filtraban a la partida nueva
   shield=false; updShieldHUD(); shieldDrops.forEach(s2=>scene.remove(s2.m)); shieldDrops.length=0;
   if(boss){ scene.remove(boss.grp); boss=null; } bossAt=25;
@@ -813,6 +814,7 @@ let hordeT=90+Math.random()*70, hordeOn=0;
 let dawnFog=0;
 // ⏸ pausa con P
 let nPaused=false;
+let nTutOn=false, nTutStep=0, nTutT=0;   // 🎓 mini-tutorial de primera vez
 // 🗣️ voz de narrador (grave, para el final del caso)
 function narrate(txt){ try{ if(!window.speechSynthesis) return; const u=new SpeechSynthesisUtterance(txt); u.lang="es-ES"; u.pitch=0.5; u.rate=0.9; u.volume=0.85; speechSynthesis.cancel(); speechSynthesis.speak(u); }catch(e){} }
 function endGame(win,customInfo){
@@ -858,6 +860,15 @@ function update(dt){
   // 📊 metros recorridos
   if(nLastX!==null) nStatDist+=Math.hypot(P.x-nLastX,P.z-nLastZ);
   nLastX=P.x; nLastZ=P.z;
+  // 🎓 mini-tutorial de primera vez: 4 consejos espaciados, luego nunca más
+  if(nTutOn && running && !gameOver && !nPaused){ nTutT-=dt;
+    if(nTutT<=0){ const TUT=[
+      "🎓 Abre los CAJONES 🗄️ (verdes en el radar 📡): guardan las 7 PISTAS del caso",
+      "🎓 El PERRO 🐕 LADRA cuando un zombie se acerca · acarícialo con E",
+      "🎓 Habla con WALLY 🤖 (E): escanea dónde está la pista más cercana",
+      "🎓 M = mapa de la ciudad 🗺️ · P pausa · ¡ojo con el GIGANTE cada 25 kills! 👹"];
+      if(nTutStep<TUT.length){ showStory(TUT[nTutStep]); snd(980,"triangle",0.15,0.06); nTutStep++; nTutT=10; }
+      else { nTutOn=false; try{ localStorage.setItem("nag_tut1","1"); }catch(e){} } } }
   // mover (W = adelante, corregido)
   let f=0,s=0;
   if(keys["KeyW"]||keys["ArrowUp"])f+=1; if(keys["KeyS"]||keys["ArrowDown"])f-=1;

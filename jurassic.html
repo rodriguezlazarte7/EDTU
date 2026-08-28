@@ -563,6 +563,7 @@ function buildJDiffs(){ const c=document.getElementById("jdiffs"); if(!c) return
 let hp=100,hunger=100,thirst=100,invT=0,flashBatt=100,darts=6,dartCd=0,placeCd=0;
 let jStatDarts=0,jStatSleep=0,jStatWood=0,jStatDist=0,jLastX=null,jLastZ=0;   // 📊 estadísticas
 let jPaused=false;   // ⏸ pausa con P
+let jTutOn=false, jTutStep=0, jTutT=0;   // 🎓 mini-tutorial de primera vez
 const inv={water:2,food:2,wood:0,batt:0}; let radioOn=false;
 const tracer=new THREE.Line(new THREE.BufferGeometry().setFromPoints([new THREE.Vector3(),new THREE.Vector3()]),new THREE.LineBasicMaterial({color:0x7fffd8,transparent:true,opacity:0})); scene.add(tracer); let tracerT=0;
 const DAY_LEN=48;                       // seg por día (día+noche). 7 días ≈ 5.6 min
@@ -651,6 +652,7 @@ function start(){ $("start").classList.add("hide"); $("end").classList.add("hide
   P.x=0; P.z=22; P.y=1.7; P.vy=0; P.onGround=true; yaw=Math.PI; pitch=0; hp=100; hunger=100; thirst=100; flashBatt=100; darts=6; elapsed=0; radioOn=false; inv.water=2; inv.food=2; inv.wood=0; inv.batt=0; updAmmo();
   jStatDarts=0; jStatSleep=0; jStatWood=0; jStatDist=0; jLastX=null;   // 📊 estadísticas desde cero
   jPaused=false; const po3=$("jPauseOv"); if(po3) po3.style.display="none";
+  try{ jTutOn=!localStorage.getItem("jur_tut1"); }catch(e){ jTutOn=false; }  jTutStep=0; jTutT=5;   // 🎓 tutorial solo la primera vez
   rainOn=false; setRainSnd(false); rainF=0; rain.visible=false; rainT=80+Math.random()*100;   // 🌧️ clima desde cero
   pickups.forEach(p=>scene.remove(p.mesh)); pickups.length=0; seedPickups();
   dinos.forEach(d=>scene.remove(d.grp)); dinos.length=0; dinoBabies.forEach(b=>scene.remove(b.grp)); dinoBabies.length=0; if(mosa){scene.remove(mosa.grp);mosa=null;} spawnDinos();
@@ -730,6 +732,15 @@ function update(dt){
   // 📊 metros recorridos
   if(jLastX!==null) jStatDist+=Math.hypot(P.x-jLastX,P.z-jLastZ);
   jLastX=P.x; jLastZ=P.z;
+  // 🎓 mini-tutorial de primera vez: 4 consejos espaciados, luego nunca más
+  if(jTutOn && running && !jPaused){ jTutT-=dt;
+    if(jTutT<=0){ const TUT=[
+      "🎓 CLIC o F = DARDO 💉 · duerme a los dinos, no los mata",
+      "🎓 Cuida tus barras: 1 beber 💧 · 2 comer 🥫 · 🫐 las bayas también alimentan",
+      "🎓 De NOCHE refúgiate en la CABAÑA 🏠 · con B pones bloques de madera 🪵",
+      "🎓 Lleva 3 baterías 🔋 a la TORRE DE RADIO 📻 · M = mapa ¡Suerte!"];
+      if(jTutStep<TUT.length){ toast2(TUT[jTutStep]); snd(980,"triangle",0.15,0.06); jTutStep++; jTutT=10; }
+      else { jTutOn=false; try{ localStorage.setItem("jur_tut1","1"); }catch(e){} } } }
   const hh=Math.floor(df*24), mm=Math.floor((df*24*60)%60);
   const isNight = df>0.5;
   const lightF = df<0.5 ? Math.min(1,df/0.12) : Math.max(0,1-(df-0.5)/0.12);  // sube al amanecer, baja al anochecer
