@@ -714,6 +714,15 @@ function sDiaryLine(e){ const p=[]; p.push("🕷️ "+e.spot+" apariciones"); p.
 function sDiaryEnd(win,surv){ const e=Object.assign({},sDiary); e.win=!!win; e.daily=!!dailyS; e.t=surv; e.v=valvesGot; e.s=samplesGot; e.fl=statFloors.size; const d=new Date(); e.date=d.getDate()+"/"+(d.getMonth()+1);
   try{ const arr=JSON.parse(localStorage.getItem("scream_diary")||"[]"); arr.unshift(e); localStorage.setItem("scream_diary",JSON.stringify(arr.slice(0,3))); }catch(err){}
   return "<div style='margin-top:6px;font-size:13px;color:#d9c8e8;line-height:1.8'>📖 <b>DIARIO DEL SOBREVIVIENTE</b><br>"+sDiaryLine(e)+"</div>"; }
+// 📤 COMPARTIR el resultado del DESAFÍO DEL DÍA desde la pantalla de fin: share nativo en móvil; si no, portapapeles (fallback textarea)
+async function shareText(txt,btn,lbl){ const done=()=>{ btn.textContent="✅ COPIADO — ¡a retar amigos!"; setTimeout(()=>{ btn.textContent=lbl; },2200); [660,880].forEach((f,i)=>setTimeout(()=>snd(f,"triangle",0.12,0.06),i*110)); vib(40); };
+  try{ if(navigator.share){ await navigator.share({text:txt}); done(); return; } }catch(e){ if(e&&e.name==="AbortError") return; }
+  try{ await navigator.clipboard.writeText(txt); done(); return; }catch(e){}
+  try{ const ta=document.createElement("textarea"); ta.value=txt; ta.style.position="fixed"; ta.style.opacity="0"; document.body.appendChild(ta); ta.select(); document.execCommand("copy"); document.body.removeChild(ta); done(); }catch(e){ btn.textContent="❌ no se pudo copiar"; setTimeout(()=>{ btn.textContent=lbl; },2000); } }
+function sShareBtn(win,smm,sss){ try{ const d=new Date(), tt=smm+":"+String(sss).padStart(2,"0");
+  const txt="📅 Desafío SCREAM del "+d.getDate()+"/"+(d.getMonth()+1)+": "+(win?("escapé en "+tt+" ("+valvesGot+"/4 válvulas, "+samplesGot+"/3 muestras)"):("aguanté "+tt+" con "+valvesGot+"/4 válvulas y "+samplesGot+"/3 muestras... ¿tú llegas?"))+" ¿me ganas? 👉 www.edtu.cl/scream.html (📅 DESAFÍO DEL DÍA)";
+  const lbl="📤 COMPARTIR MI DESAFÍO"; const sb=document.createElement("button"); sb.className="btn"; sb.style.cssText="margin-top:10px;font-size:12px;display:block;margin-left:auto;margin-right:auto"; sb.textContent=lbl; sb.onclick=()=>shareText(txt,sb,lbl);
+  setTimeout(()=>{ try{ $("endInfo").appendChild(sb); }catch(e){} },0); }catch(e){} }   // se agrega al final (después del mapa y el diario)
 function updSDiary(){ const el=$("sdiary"); if(!el) return; try{ const arr=JSON.parse(localStorage.getItem("scream_diary")||"[]"); if(!arr.length){ el.textContent=""; return; }
   const e=arr[0]; el.textContent="📖 Último escape ("+e.date+"): ⏱ "+Math.floor(e.t/60)+":"+String(e.t%60).padStart(2,"0")+" · 🔧 "+e.v+"/4 · 🧪 "+e.s+"/3 · 🏢 "+e.fl+"/7 · "+sDiaryLine(e)+(e.win?" · ✓ sobreviviste":""); }catch(err){ el.textContent=""; } }
 function toggleHelp(){ if(!running) return; helpOpen=!helpOpen; $("help").classList.toggle("on",helpOpen); snd(helpOpen?500:300,"square",0.05,0.05); }
@@ -880,7 +889,7 @@ function endGame(win,info){ running=false; gameOver=true; sprintHeld=false; $("l
     info+="<br><span style='color:#8fd0ff'>💙 "+MOTIV[Math.floor(Math.random()*MOTIV.length)]+"</span>"; }
   // 📊 resumen de la partida
   const surv=Math.max(0,Math.floor(gameTime+clockBonus-timeLeft)), smm=Math.floor(surv/60), sss=surv%60;
-  $("endInfo").innerHTML=info+"<div style='margin-top:10px;font-size:13px;color:#9fb6c9;line-height:1.9'>📊 <b>ESTADÍSTICAS</b><br>⏱ Aguantaste "+smm+":"+String(sss).padStart(2,"0")+" · 🚶 "+Math.round(statDist)+" m recorridos<br>🔧 Válvulas "+valvesGot+"/4 · 🧪 Muestras "+samplesGot+"/3 · 📄 Notas "+notesGot+"/6<br>🏢 Pisos visitados "+statFloors.size+"/7 · 🧨 Bengalas usadas "+statFlares+" · ⏰ Relojes "+clocks.filter(c2=>c2.got).length+"/2</div>"+sDiaryEnd(win,surv);
+  $("endInfo").innerHTML=info+"<div style='margin-top:10px;font-size:13px;color:#9fb6c9;line-height:1.9'>📊 <b>ESTADÍSTICAS</b><br>⏱ Aguantaste "+smm+":"+String(sss).padStart(2,"0")+" · 🚶 "+Math.round(statDist)+" m recorridos<br>🔧 Válvulas "+valvesGot+"/4 · 🧪 Muestras "+samplesGot+"/3 · 📄 Notas "+notesGot+"/6<br>🏢 Pisos visitados "+statFloors.size+"/7 · 🧨 Bengalas usadas "+statFlares+" · ⏰ Relojes "+clocks.filter(c2=>c2.got).length+"/2</div>"+sDiaryEnd(win,surv); if(dailyS) sShareBtn(win,smm,sss);
   snd(win?660:60,win?"triangle":"sawtooth",0.6,0.13);
   if(win){ $("end").classList.remove("hide");
     // 🗺️ TU ESCAPE DIBUJADO: el edificio en 7 franjas (PB abajo → P6 arriba) con la ruta piso a piso
