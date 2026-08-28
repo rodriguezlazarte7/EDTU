@@ -48,6 +48,8 @@
   #touch{position:fixed;inset:0;z-index:4;display:none;pointer-events:none}   /* la capa NO bloquea el mouse */
   #touch.on{display:block}
   #stick,#fire{pointer-events:auto}   /* solo el joystick y FUEGO reciben toques */
+  /* 📸 modo foto (F2): oculta todo el HUD para capturas limpias */
+  body.photo #hud,body.photo #touch,body.photo #fire,body.photo #nmapBtn,body.photo #npauseBtn,body.photo #nradar,body.photo #toPad,body.photo #hint,body.photo #cross,body.photo #combo,body.photo #plusone{visibility:hidden!important}
   #stick{position:absolute;left:24px;bottom:26px;width:128px;height:128px;border-radius:50%;border:2px solid rgba(200,200,200,.25);background:rgba(255,255,255,.04)}
   #nub{position:absolute;left:39px;top:39px;width:50px;height:50px;border-radius:50%;background:rgba(220,220,220,.4);box-shadow:0 0 12px rgba(255,255,255,.3)}
   #fire{position:absolute;right:24px;bottom:40px;width:90px;height:90px;border-radius:50%;border:2px solid #ff3b5b;background:rgba(184,16,40,.18);
@@ -635,6 +637,7 @@ const keys={};
 addEventListener("keydown",e=>{ keys[e.code]=true; if(e.code==="Space"&&P.onGround&&running&&!nPaused){P.vy=6.2;P.onGround=false;} if(e.code==="KeyE"&&running&&!nPaused){ tryDrawer(); petDog(); talkWallyN(); }   // 🐛FIX ronda2: en pausa no se salta ni se abren cajones
   if(e.code==="KeyM") toggleNMap();
   if(e.code==="KeyP") togglePauseN();
+  if(e.code==="F2"){ e.preventDefault(); togglePhotoN(); }   // 📸 modo foto
   if(e.code==="Enter" && gameOver) startGame(); });   // ↩ reintentar al instante
 // 🗺️ MAPA DE LA CIUDAD (M): pausa táctica con calles, pistas y amenazas
 let nMapOpen=false;
@@ -815,6 +818,8 @@ let dawnFog=0;
 // ⏸ pausa con P
 let nPaused=false;
 let nTutOn=false, nTutStep=0, nTutT=0;   // 🎓 mini-tutorial de primera vez
+let nPhoto=false;   // 📸 modo foto (F2)
+function togglePhotoN(){ nPhoto=!nPhoto; document.body.classList.toggle("photo",nPhoto); showStory(nPhoto?"📸 MODO FOTO — HUD oculto · F2 para volver":"📸 modo foto apagado"); }
 // 🗣️ voz de narrador (grave, para el final del caso)
 function narrate(txt){ try{ if(!window.speechSynthesis) return; const u=new SpeechSynthesisUtterance(txt); u.lang="es-ES"; u.pitch=0.5; u.rate=0.9; u.volume=0.85; speechSynthesis.cancel(); speechSynthesis.speak(u); }catch(e){} }
 function endGame(win,customInfo){

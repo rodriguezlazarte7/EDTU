@@ -66,6 +66,8 @@
   #tmap{right:14px;bottom:224px;background:rgba(180,120,255,.2);border:3px solid rgba(200,160,255,.6)}
   #tflare{right:80px;bottom:158px;background:rgba(255,150,60,.2);border:3px solid rgba(255,180,90,.6)}
   #flareC{position:absolute;top:138px;left:14px;font:700 13px Consolas,monospace;color:#ffb060;text-shadow:0 0 6px #000}
+  /* 📸 modo foto (F2): oculta todo el HUD para capturas limpias */
+  body.photo #hud,body.photo #touch,body.photo .tbtn,body.photo #sprint,body.photo #floorInd,body.photo #flareC,body.photo #earL,body.photo #earR,body.photo #radar,body.photo #toMachine,body.photo #hint,body.photo #cross,body.photo #visorB,body.photo #nvui{visibility:hidden!important}
   #map{position:fixed;inset:0;z-index:7;display:none;flex-direction:column;align-items:center;justify-content:center;background:rgba(4,0,6,.92)}
   #map.on{display:flex}
   #map h3{font-family:"Consolas",monospace;color:#b14bff;letter-spacing:.1em;margin-bottom:8px}
@@ -615,6 +617,8 @@ function toggleNV(){ if(!running) return; if(!nvOn && visorBatt<10){ snd(150,"sq
   camera.fov=nvOn?40:78; camera.updateProjectionMatrix(); }
 let mapOpen=false, noteTimer, flares=3, panicWarned=false, helpOpen=false, webWarned=false, paused=false; const activeFlares=[];
 let tutOn=false, tutStep=0, tutT=0;   // 🎓 mini-tutorial de primera vez (solo si nunca jugaste)
+let photoMode=false;   // 📸 modo foto (F2)
+function togglePhoto(){ photoMode=!photoMode; document.body.classList.toggle("photo",photoMode); showStory(photoMode?"📸 MODO FOTO — HUD oculto · F2 para volver":"📸 modo foto apagado"); vib(20); }
 // 📊 estadísticas de la partida
 let statFlares=0, statDist=0, lastPX=null, lastPZ=0; const statFloors=new Set();
 function toggleHelp(){ if(!running) return; helpOpen=!helpOpen; $("help").classList.toggle("on",helpOpen); snd(helpOpen?500:300,"square",0.05,0.05); }
@@ -639,7 +643,7 @@ function drawMap(){ const c=$("mapC"); if(!c) return; const g=c.getContext("2d")
   if(spiderFloor===curFloor && !spiderDead){ const p=w2m(spider.grp.position.x,spider.grp.position.z); g.fillStyle="#ff2a2a"; g.shadowColor="#f00"; g.shadowBlur=8; g.beginPath(); g.arc(p[0],p[1],5,0,6.28); g.fill(); g.shadowBlur=0; }
   for(const b of babies){ if(b.f!==curFloor) continue; const p=w2m(b.grp.position.x,b.grp.position.z); g.fillStyle="#ff8a2a"; g.beginPath(); g.arc(p[0],p[1],3,0,6.28); g.fill(); }   // 🕷️ crías (naranjo)
   const pp=w2m(P.x,P.z), fx=-Math.sin(yaw), fz=-Math.cos(yaw); g.fillStyle="#ffd12e"; g.beginPath(); g.moveTo(pp[0]+fx*8,pp[1]+fz*8); g.lineTo(pp[0]-fz*5-fx*4,pp[1]+fx*5-fz*4); g.lineTo(pp[0]+fz*5-fx*4,pp[1]-fx*5-fz*4); g.closePath(); g.fill(); }
-addEventListener("keydown",e=>{ keys[e.code]=true; if(e.code==="KeyF") toggleFlash(); if(e.code==="KeyM") toggleMap(); if(e.code==="KeyG") throwFlare(); if(e.code==="KeyH") toggleHelp(); if(e.code==="KeyE") talkWally();
+addEventListener("keydown",e=>{ keys[e.code]=true; if(e.code==="KeyF") toggleFlash(); if(e.code==="KeyM") toggleMap(); if(e.code==="KeyG") throwFlare(); if(e.code==="KeyH") toggleHelp(); if(e.code==="KeyE") talkWally(); if(e.code==="F2"){ e.preventDefault(); togglePhoto(); }
   if(e.code==="KeyP") togglePauseS();
   if(e.code==="Enter" && gameOver) start();   // ↩ reintentar al instante
   if(e.code==="ShiftLeft"||e.code==="ShiftRight") sprintHeld=true; },true);

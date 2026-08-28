@@ -40,6 +40,8 @@
   #jhelpS h3{font-family:"Consolas",monospace;color:#7dff5a;letter-spacing:.1em;margin-bottom:12px}
   #jhelpS ul{list-style:none;max-width:470px;font-size:13.5px;line-height:1.9;color:#e6ffe0}
   #jhelpS b{color:#ffd15a}
+  /* 📸 modo foto (F2): oculta todo el HUD para capturas limpias */
+  body.photo #hud,body.photo #bar,body.photo #touch,body.photo #jump,body.photo #fire,body.photo #jmapBtn,body.photo #jpauseBtn,body.photo #jradar,body.photo #toHome,body.photo #toRadio,body.photo #hint,body.photo #cross,body.photo #story{visibility:hidden!important}
   #jump:active{transform:scale(.9);background:rgba(150,190,255,.5)}
   #hint{position:absolute;bottom:96px;left:0;right:0;text-align:center;font-size:14px;color:#eaffd8;text-shadow:0 0 8px #000}
   #story{position:absolute;bottom:150px;left:50%;transform:translateX(-50%);max-width:80%;background:rgba(8,16,4,.82);border:1px solid #4a7a2a;border-radius:10px;padding:8px 14px;font-size:13px;color:#e6ffcf;display:none;text-align:center}
@@ -564,6 +566,8 @@ let hp=100,hunger=100,thirst=100,invT=0,flashBatt=100,darts=6,dartCd=0,placeCd=0
 let jStatDarts=0,jStatSleep=0,jStatWood=0,jStatDist=0,jLastX=null,jLastZ=0;   // 📊 estadísticas
 let jPaused=false;   // ⏸ pausa con P
 let jTutOn=false, jTutStep=0, jTutT=0;   // 🎓 mini-tutorial de primera vez
+let jPhoto=false;   // 📸 modo foto (F2)
+function togglePhotoJ(){ jPhoto=!jPhoto; document.body.classList.toggle("photo",jPhoto); toast2(jPhoto?"📸 MODO FOTO — HUD oculto · F2 para volver":"📸 modo foto apagado"); }
 const inv={water:2,food:2,wood:0,batt:0}; let radioOn=false;
 const tracer=new THREE.Line(new THREE.BufferGeometry().setFromPoints([new THREE.Vector3(),new THREE.Vector3()]),new THREE.LineBasicMaterial({color:0x7fffd8,transparent:true,opacity:0})); scene.add(tracer); let tracerT=0;
 const DAY_LEN=48;                       // seg por día (día+noche). 7 días ≈ 5.6 min
@@ -576,6 +580,7 @@ function toggleJHelp(){ if(!running) return; jhelpOpen=!jhelpOpen; $("jhelpS").c
 addEventListener("keydown",e=>{ keys[e.code]=true; if(e.code==="Digit1") useWater(); if(e.code==="Digit2") useFood(); if(e.code==="Digit3") chargeFlash(); if(e.code==="KeyB") placeWood(); if(e.code==="KeyF") fireDart(); if(e.code==="KeyH") toggleJHelp(); if(e.code==="KeyE") petBaby();
   if(e.code==="KeyM") toggleJMap();
   if(e.code==="KeyP") togglePauseJ();
+  if(e.code==="F2"){ e.preventDefault(); togglePhotoJ(); }   // 📸 modo foto
   if(e.code==="Enter" && gameOver) start();   // ↩ reintentar al instante
   if(e.code==="Space"){ jump(); e.preventDefault(); } },true);
 addEventListener("keyup",e=>{ keys[e.code]=false; },true);
