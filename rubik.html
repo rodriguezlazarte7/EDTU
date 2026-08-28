@@ -38,6 +38,7 @@
 <div id="labels"><div>🧑 TÚ</div><div class="ai">🤖 IA (en vivo)<div id="aibar" style="width:130px;height:8px;background:rgba(255,255,255,.12);border-radius:6px;margin-top:4px;overflow:hidden"><div id="aifill" style="width:0%;height:100%;background:linear-gradient(90deg,#ff7ba3,#ff2d6a);border-radius:6px;transition:width .3s"></div></div><div id="aipct" style="font-size:11px;color:#ff9bb8;margin-top:2px">🧩 0%</div></div></div>
 <div id="msg"></div>
 <div id="lastMvP" style="position:fixed;left:34%;bottom:32%;transform:translateX(-50%);z-index:5;font:900 42px Consolas,monospace;color:#8fd0ff;text-shadow:0 0 14px #2060ff;opacity:0;pointer-events:none;transition:opacity .45s"></div>
+<canvas id="net" width="168" height="126" style="position:fixed;left:12px;top:64px;z-index:5;opacity:.92;pointer-events:none"></canvas>
 <div id="lastMvA" style="position:fixed;left:84%;bottom:32%;transform:translateX(-50%);z-index:5;font:900 36px Consolas,monospace;color:#ff9bb8;text-shadow:0 0 14px #ff2d6a;opacity:0;pointer-events:none;transition:opacity .45s"></div>
 
 <div id="ctrl">
@@ -166,7 +167,7 @@ function startRace(){
   const step=()=>{ n--;
     if(n>0){ showMsg(String(n),"#ffd12e"); snd(440,"square",0.12,0.06); setTimeout(step,700); }
     else { showMsg("¡YA!","#39ff14"); snd(880,"square",0.3,0.08); setTimeout(()=>{ if(state==="race") showMsg(""); },500);
-      state="race"; newScramble(); raceStart=performance.now();
+      state="race"; newScramble(); raceStart=performance.now(); setTimeout(drawNet,120);
       // IA resuelve deshaciendo el revuelto (en vivo)
       aiQueue=scramble.slice().reverse().map(m=>({face:m.face,dir:-m.dir}));
       aiTotal=aiQueue.length; aiT50=false; aiT90=false; updAIBar(); aiStep(); } };
@@ -184,7 +185,21 @@ function playerMove(face,dir){ if(state!=="race"||player.busy) return;
   moveCount++; document.getElementById("mvs").textContent="🔄 "+moveCount;   // contador de movimientos
   undoStack.push({face,dir});   // ↩ para poder deshacer
   showMv("lastMvP",face,dir);   // 🔤 notación en grande
-  move(player,face,dir,150,()=>{ if(!ended && isSolved(player)) finish("player"); }); }
+  move(player,face,dir,150,()=>{ drawNet(); if(!ended && isSolved(player)) finish("player"); }); }
+// 🗺️ MAPA 2D del cubo (red desplegada en cruz): ves TODAS tus caras sin girar la cámara
+function drawNet(){ const cv=document.getElementById("net"); if(!cv) return; const g=cv.getContext("2d");
+  g.clearRect(0,0,cv.width,cv.height);
+  const cell=12, defs={ U:[44,2,(r,c2)=>[c2-1,1,r-1],new THREE.Vector3(0,1,0)],
+    L:[2,44,(r,c2)=>[-1,1-r,c2-1],new THREE.Vector3(-1,0,0)],
+    F:[44,44,(r,c2)=>[c2-1,1-r,1],new THREE.Vector3(0,0,1)],
+    R:[86,44,(r,c2)=>[1,1-r,1-c2],new THREE.Vector3(1,0,0)],
+    B:[128,44,(r,c2)=>[1-c2,1-r,-1],new THREE.Vector3(0,0,-1)],
+    D:[44,86,(r,c2)=>[c2-1,-1,1-r],new THREE.Vector3(0,-1,0)] };
+  for(const k in defs){ const [ox,oy,posf,dv]=defs[k];
+    for(let r=0;r<3;r++) for(let c2=0;c2<3;c2++){ const [px,py,pz]=posf(r,c2);
+      const cub=player.cubies.find(cb=>Math.round(cb.position.x)===px&&Math.round(cb.position.y)===py&&Math.round(cb.position.z)===pz);
+      let col=0x333333; if(cub){ const fc=faceColor(cub,dv); if(fc>=0&&fc!==COL.k) col=fc; }
+      g.fillStyle="#"+col.toString(16).padStart(6,"0"); g.fillRect(ox+c2*cell,oy+r*cell,cell-1,cell-1); } } }
 // 🔤 muestra la NOTACIÓN del último giro (flash grande que se desvanece)
 function showMv(id,face,dir){ const el=document.getElementById(id); if(!el) return;
   el.style.transition="none"; el.style.opacity="1"; el.textContent=face+(dir<0?"'":"");
@@ -193,7 +208,7 @@ function showMv(id,face,dir){ const el=document.getElementById(id); if(!el) retu
 const undoStack=[];
 function undoMove(){ if(state!=="race"||player.busy||!undoStack.length) return; const m=undoStack.pop();
   moveCount++; document.getElementById("mvs").textContent="🔄 "+moveCount; snd(240,"square",0.06,0.05);
-  move(player,m.face,-m.dir,150,()=>{ if(!ended && isSolved(player)) finish("player"); }); }
+  move(player,m.face,-m.dir,150,()=>{ drawNet(); if(!ended && isSolved(player)) finish("player"); }); }
 
 // 🏆 victorias contra la IA (localStorage)
 function loadRW(){ try{ return parseInt(localStorage.getItem("rubik_wins")||"0",10)||0; }catch(e){ return 0; } }
