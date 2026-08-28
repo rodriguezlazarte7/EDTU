@@ -698,6 +698,34 @@ ptShadow.rotation.x=-Math.PI/2; ptShadow.position.y=0.03; scene.add(ptShadow);
 let ptState="circle", ptA=Math.random()*6.28, ptT=45, ptWarnT=0, ptTarget=null, ptFlap=0;
 // 🦕💨 ESTAMPIDA: cada tanto (solo de día) los herbívoros corren TODOS en una dirección
 let stampT=100+Math.random()*120, stampOn=0, stampWarn=0, stampDX=1, stampDZ=0;
+// 🐣🦅 PTERO BEBÉ: mascota voladora que te acompaña si ya te rescataron alguna vez (o tienes el huevo dorado)
+const petPt=new THREE.Group();
+{ const bM2=new THREE.MeshStandardMaterial({color:0x9a6a4a,roughness:.85});
+  const wM2=new THREE.MeshStandardMaterial({color:0xc08a5a,roughness:.9,side:THREE.DoubleSide});
+  const bb=new THREE.Mesh(new THREE.ConeGeometry(0.45,2.2,6),bM2); bb.rotation.x=Math.PI/2; petPt.add(bb);
+  const bh=new THREE.Mesh(new THREE.ConeGeometry(0.22,1,5),bM2); bh.rotation.x=Math.PI/2; bh.position.z=1.5; petPt.add(bh);
+  const wL2=new THREE.Group(), wR2=new THREE.Group();
+  const wmL2=new THREE.Mesh(new THREE.PlaneGeometry(2.4,0.9),wM2); wmL2.rotation.x=-Math.PI/2; wmL2.position.x=-1.2; wL2.add(wmL2);
+  const wmR2=new THREE.Mesh(new THREE.PlaneGeometry(2.4,0.9),wM2); wmR2.rotation.x=-Math.PI/2; wmR2.position.x=1.2; wR2.add(wmR2);
+  petPt.add(wL2); petPt.add(wR2); petPt.userData={wL:wL2,wR:wR2};
+  petPt.scale.setScalar(0.22); }
+petPt.visible=false; scene.add(petPt);
+let petPtOn=false, petPtA=0, petPtFlap=0, petPtWarned=false;
+function petPtTick(dt){ if(!petPtOn) return;
+  petPtFlap+=dt*14; const fl3=Math.sin(petPtFlap)*0.7;
+  petPt.userData.wL.rotation.z=fl3; petPt.userData.wR.rotation.z=-fl3;
+  petPtA+=dt*1.6;
+  const hide=(ptState==="dive");   // 😨 en la picada del adulto se esconde bajito detrás tuyo
+  const ty2=hide?P.y-0.3:P.y+1.3+Math.sin(petPtA*2)*0.15;
+  const rr2=hide?0.9:1.7;
+  const tx2=P.x+Math.cos(petPtA)*rr2, tz2=P.z+Math.sin(petPtA)*rr2;
+  petPt.position.x+=(tx2-petPt.position.x)*Math.min(1,dt*5);
+  petPt.position.y+=(ty2-petPt.position.y)*Math.min(1,dt*5);
+  petPt.position.z+=(tz2-petPt.position.z)*Math.min(1,dt*5);
+  petPt.rotation.y=-petPtA+Math.PI/2;
+  if(ptState==="warn"&&!petPtWarned){ petPtWarned=true; snd(2600,"square",0.18,0.06); setTimeout(()=>snd(2900,"square",0.16,0.05),120); }   // 🐣 doble aviso agudo del peligro
+  if(ptState==="circle") petPtWarned=false;
+  if(Math.random()<dt*0.04) snd(2200+Math.random()*400,"square",0.07,0.02); }   // piídos tiernos
 function pteroTick(dt,night){
   ptFlap+=dt*(ptState==="dive"?2:9);
   const flap=Math.sin(ptFlap)*(ptState==="dive"?0.15:0.6);
@@ -789,6 +817,9 @@ function start(){ $("start").classList.add("hide"); $("end").classList.add("hide
   eggPlace();   // 🥚 huevo dorado en un escondite nuevo
   legendSaid=false;   // 👑 WALLY puede volver a celebrar el 21/21 una vez por partida
   stampT=100+Math.random()*120; stampOn=0; stampWarn=0;   // 🦕💨 estampida desde cero
+  petPtOn=false; try{ petPtOn=["facil","normal","dificil","extincion"].some(k=>localStorage.getItem("jurassic_win_"+k)==="1")||localStorage.getItem("jurassic_egg")==="1"; }catch(e){}
+  petPt.visible=petPtOn; petPtA=0; petPtWarned=false; petPt.position.set(P.x,P.y+1.3,P.z);
+  if(petPtOn) setTimeout(()=>toast2("🐣 ¡tu PTERO BEBÉ te acompaña! (premio por tus rescates)"),1200);   // 🐣 mascota desbloqueada
   pickups.forEach(p=>scene.remove(p.mesh)); pickups.length=0; seedPickups();
   dinos.forEach(d=>scene.remove(d.grp)); dinos.length=0; dinoBabies.forEach(b=>scene.remove(b.grp)); dinoBabies.length=0; if(mosa){scene.remove(mosa.grp);mosa=null;} spawnDinos();
   nests.forEach(ns=>{ ns.hatched=false; ns.eggs.forEach(e=>e.visible=true); ns.chick.visible=false; });   // 🐣 nidos como nuevos
@@ -903,6 +934,7 @@ function update(dt){
   const hh=Math.floor(df*24), mm=Math.floor((df*24*60)%60);
   const isNight = df>0.5;
   if(!jPaused) pteroTick(dt,isNight);   // 🦅 pterodáctilo
+  if(!jPaused) petPtTick(dt);   // 🐣 ptero bebé mascota
   // 🦕💨 ESTAMPIDA: aviso con temblor (2.5s) → 8s de manada corriendo → calma
   if(!isNight && stampOn<=0 && stampWarn<=0){ stampT-=dt;
     if(stampT<=0){ stampWarn=2.5; const sa=Math.random()*6.28; stampDX=Math.cos(sa); stampDZ=Math.sin(sa);
