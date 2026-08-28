@@ -201,6 +201,19 @@ for(let i=0;i<5;i++){ const s=freeSpot(10,ARENA-6,3);
   const head=new THREE.Mesh(new THREE.SphereGeometry(0.28,10,8),new THREE.MeshBasicMaterial({color:0xffd890})); head.position.set(s.x,4.7,s.z); scene.add(head);
   const ll=new THREE.PointLight(0xffc46a,0,13); ll.position.set(s.x,4.4,s.z); scene.add(ll);
   streetLamps.push({l:ll,b:head}); addWall(s.x-0.2,s.x+0.2,s.z-0.2,s.z+0.2); }
+// 🚑 AMBULANCIA abandonada con BALIZAS rojo/azul girando (como las del robot WALLY)
+const ambS=freeSpot(10,ARENA-8,3.5); const amb=new THREE.Group(); amb.position.set(ambS.x,0,ambS.z); amb.rotation.y=0.35; scene.add(amb);
+const ambBody=new THREE.Mesh(new THREE.BoxGeometry(2.2,1.9,4.6),new THREE.MeshStandardMaterial({color:0xe8e8e8,roughness:.55})); ambBody.position.y=1.35; amb.add(ambBody);
+const ambRedM=new THREE.MeshBasicMaterial({color:0xd11e1e});
+for(const sd2 of [-1.11,1.11]){ const c1=new THREE.Mesh(new THREE.BoxGeometry(0.02,0.9,0.22),ambRedM); c1.position.set(sd2,1.5,0.6); amb.add(c1);
+  const c2=new THREE.Mesh(new THREE.BoxGeometry(0.02,0.22,0.9),ambRedM); c2.position.set(sd2,1.5,0.6); amb.add(c2); }
+const ambWheelM=new THREE.MeshStandardMaterial({color:0x14141a,roughness:.9});
+for(const [wx,wz] of [[-1.05,-1.6],[1.05,-1.6],[-1.05,1.6],[1.05,1.6]]){ const wh=new THREE.Mesh(new THREE.CylinderGeometry(0.42,0.42,0.3,12),ambWheelM); wh.rotation.z=Math.PI/2; wh.position.set(wx,0.42,wz); amb.add(wh); }
+const balRm=new THREE.Mesh(new THREE.SphereGeometry(0.14,8,7),new THREE.MeshBasicMaterial({color:0xff2020})); balRm.position.set(-0.45,2.45,0.4); amb.add(balRm);
+const balBm=new THREE.Mesh(new THREE.SphereGeometry(0.14,8,7),new THREE.MeshBasicMaterial({color:0x2060ff})); balBm.position.set(0.45,2.45,0.4); amb.add(balBm);
+const balR=new THREE.PointLight(0xff2020,0,15); balR.position.set(-0.45,2.6,0.4); amb.add(balR);
+const balB=new THREE.PointLight(0x2060ff,0,15); balB.position.set(0.45,2.6,0.4); amb.add(balB);
+addWall(ambS.x-1.4,ambS.x+1.4,ambS.z-2.5,ambS.z+2.5);
 // 🐦‍⬛ CUERVOS posados que LEVANTAN VUELO si te acercas (con graznido)
 const crows=[]; const crowM=new THREE.MeshStandardMaterial({color:0x0a0a10,roughness:.9});
 for(let i=0;i<6;i++){ const s=freeSpot(8,ARENA-4,1.5); const g=new THREE.Group();
@@ -730,6 +743,9 @@ function update(dt){
         [392,523,659].forEach((f2,j)=>setTimeout(()=>snd(f2,"triangle",0.18,0.07),j*90)); } }
     if(heliLamp){ heliLamp.intensity=0.4+(1-dayF)*2.2; heliLamp.target.position.x=heliSpot.x+Math.sin(now*0.5)*8; heliLamp.target.position.z=heliSpot.z+6+Math.cos(now*0.5)*5; }   // 🔦 foco del heli barre el suelo
     if(casa13Sign){ const on=Math.random()<0.94; casa13Sign.material.opacity=on?1:0.15; if(casa13Light) casa13Light.intensity=(on?0.9:0.1)+(1-dayF)*0.6; }   // 🏚️ neón "13" fallando
+    // 🚑 balizas de la ambulancia: alternan rojo/azul sin parar (más brillantes de noche)
+    const balPh=Math.sin(now*7); balR.intensity=Math.max(0,balPh)*(1.1+(1-dayF)*1.6); balB.intensity=Math.max(0,-balPh)*(1.1+(1-dayF)*1.6);
+    balRm.material.color.setHex(balPh>0?0xff4040:0x551010); balBm.material.color.setHex(balPh<0?0x4080ff:0x102055);
     if(dn) dn.textContent = dayF>0.5 ? "☀️ DÍA" : (bloodMoon?"🔴 LUNA DE SANGRE":"🌙 NOCHE");
     // 🏮 faroles: se encienden al anochecer (algunos titilan)
     for(const sl of streetLamps){ const base=(1-dayF)*1.4; sl.l.intensity=base*(Math.random()<0.06?0.2:1); sl.b.material.color.setHex(dayF>0.6?0x555550:0xffd890); }
