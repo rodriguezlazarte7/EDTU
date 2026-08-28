@@ -593,7 +593,7 @@ function shoot(){
   if(best){ best.hp--; snd(400,"square",0.06,0.06);
     if(best.hp<=0){
       if(best.isBoss){   // 👹 cae el gigante: vale 5 kills y SIEMPRE suelta escudo
-        kills+=5; document.getElementById("kills").textContent=kills; scene.remove(best.grp); boss=null;
+        kills+=5; nStatBoss++; document.getElementById("kills").textContent=kills; scene.remove(best.grp); boss=null;
         snd(50,"sawtooth",0.9,0.16); snd(35,"sine",1.2,0.14); narrate("Derribaste al gigante. Vale por cinco.");
         const sm=new THREE.Mesh(new THREE.OctahedronGeometry(0.42),new THREE.MeshBasicMaterial({color:0x3fd0ff}));
         sm.position.set(best.grp.position.x,0.9,best.grp.position.z); scene.add(sm); shieldDrops.push({m:sm}); }
@@ -629,6 +629,7 @@ function startGame(){
   startT=performance.now()/1000;   // reinicia el ciclo día/noche (empieza de noche)
   zombies.forEach(z=>scene.remove(z.grp)); zombies.length=0; spawnZombies(12); kills=0; heliMode=false;
   comboN=0; comboT=0; comboPop=0; maxCombo=0; document.getElementById("combo").style.opacity="0";
+  nStatDist=0; nLastX=null; nStatShields=0; nStatBoss=0;   // 📊 estadísticas desde cero
   shield=false; updShieldHUD(); shieldDrops.forEach(s2=>scene.remove(s2.m)); shieldDrops.length=0;
   if(boss){ scene.remove(boss.grp); boss=null; } bossAt=25;
   document.getElementById("kills").textContent="0"; document.getElementById("clues").textContent="0";
@@ -646,6 +647,8 @@ function loadNKills(){ try{ return parseInt(localStorage.getItem("nag_best_kills
 // 🔥 récord de mejor RACHA
 function loadNCombo(){ try{ return parseInt(localStorage.getItem("nag_best_combo")||"0",10)||0; }catch(e){ return 0; } }
 let maxCombo=0;
+// 📊 estadísticas de la partida
+let nStatDist=0, nLastX=null, nLastZ=0, nStatShields=0, nStatBoss=0;
 // 🗣️ voz de narrador (grave, para el final del caso)
 function narrate(txt){ try{ if(!window.speechSynthesis) return; const u=new SpeechSynthesisUtterance(txt); u.lang="es-ES"; u.pitch=0.5; u.rate=0.9; u.volume=0.85; speechSynthesis.cancel(); speechSynthesis.speak(u); }catch(e){} }
 function endGame(win,customInfo){
@@ -655,7 +658,9 @@ function endGame(win,customInfo){
   const t=document.getElementById("endTitle"),inf=document.getElementById("endInfo");
   // 🏆 récord de zombies eliminados
   const prevK=loadNKills(); const isRec=kills>prevK; if(isRec){ try{ localStorage.setItem("nag_best_kills",String(kills)); }catch(e){} }
-  const recTxt="<br>🧟 Eliminados: <b>"+kills+"</b>"+(isRec?" 🏆 ¡RÉCORD!":" · Récord: <b>"+prevK+"</b>")+(maxCombo>=2?"<br>🔥 Mejor racha: <b>x"+maxCombo+"</b> · Récord: <b>x"+loadNCombo()+"</b>":"");
+  const survS=Math.max(0,Math.floor(performance.now()/1000-startT)), svm=Math.floor(survS/60), svs=survS%60;
+  const recTxt="<br>🧟 Eliminados: <b>"+kills+"</b>"+(isRec?" 🏆 ¡RÉCORD!":" · Récord: <b>"+prevK+"</b>")+(maxCombo>=2?"<br>🔥 Mejor racha: <b>x"+maxCombo+"</b> · Récord: <b>x"+loadNCombo()+"</b>":"")
+    +"<div style='margin-top:8px;font-size:13px;color:#9fb6c9;line-height:1.9'>📊 <b>ESTADÍSTICAS</b><br>⏱ Jugaste "+svm+":"+String(svs).padStart(2,"0")+" · 🚶 "+Math.round(nStatDist)+" m recorridos<br>🛡️ Escudos recogidos: "+nStatShields+" · 👹 Gigantes derribados: "+nStatBoss+"</div>";
   if(win){ t.textContent="✓ CASO RESUELTO"; t.className="big win"; inf.innerHTML=(customInfo||"Reuniste las pistas y eliminaste el brote.<br>La ciudad está a salvo. 🏙️")+recTxt; snd(660,"triangle",0.3,0.1);
     narrate("Caso resuelto, agente. La ciudad está a salvo.");
     document.getElementById("end").classList.remove("hide"); }
@@ -675,6 +680,9 @@ function goDrain(){ if(level!=="surface")return; level="drain"; fadeDo(()=>{ con
 function goSurface(){ if(level!=="drain")return; level="surface"; fadeDo(()=>{ const sp=safeSpot(0,ARENA-6); P.x=sp.x; P.z=sp.z; P.y=1.7; P.vy=0; yaw=0; showStory("De vuelta en la superficie."); }); }
 
 function update(dt){
+  // 📊 metros recorridos
+  if(nLastX!==null) nStatDist+=Math.hypot(P.x-nLastX,P.z-nLastZ);
+  nLastX=P.x; nLastZ=P.z;
   // mover (W = adelante, corregido)
   let f=0,s=0;
   if(keys["KeyW"]||keys["ArrowUp"])f+=1; if(keys["KeyS"]||keys["ArrowDown"])f-=1;
@@ -757,7 +765,7 @@ function update(dt){
     // 🛡️ escudos en el suelo: giran, flotan y se recogen al pasar por encima
     for(let i=shieldDrops.length-1;i>=0;i--){ const sdp=shieldDrops[i]; sdp.m.rotation.y+=dt*2.5; sdp.m.position.y=0.9+Math.sin(now*3+i)*0.15;
       if(level==="surface" && !shield && Math.hypot(P.x-sdp.m.position.x,P.z-sdp.m.position.z)<1.7){
-        shield=true; updShieldHUD(); scene.remove(sdp.m); shieldDrops.splice(i,1);
+        shield=true; updShieldHUD(); scene.remove(sdp.m); shieldDrops.splice(i,1); nStatShields++;
         [392,523,659].forEach((f2,j)=>setTimeout(()=>snd(f2,"triangle",0.18,0.07),j*90)); } }
     if(heliLamp){ heliLamp.intensity=0.4+(1-dayF)*2.2; heliLamp.target.position.x=heliSpot.x+Math.sin(now*0.5)*8; heliLamp.target.position.z=heliSpot.z+6+Math.cos(now*0.5)*5; }   // 🔦 foco del heli barre el suelo
     if(casa13Sign){ const on=Math.random()<0.94; casa13Sign.material.opacity=on?1:0.15; if(casa13Light) casa13Light.intensity=(on?0.9:0.1)+(1-dayF)*0.6; }   // 🏚️ neón "13" fallando
