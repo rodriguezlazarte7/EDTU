@@ -310,7 +310,7 @@ function spawnDinos(){
 // ---------- jugador / estado ----------
 const P={x:0,z:22,y:1.7,vy:0,onGround:true,speed:7.2};
 function jump(){ if(running && !gameOver && P.onGround){ P.vy=7.2; P.onGround=false; snd(420,"sine",0.1,0.06); } }
-let yaw=0,pitch=0,running=false,gameOver=false,tPrev=0,elapsed=0,roarT=2;
+let yaw=0,pitch=0,running=false,gameOver=false,tPrev=0,elapsed=0,roarT=2,stepT=0;
 let jdiff="normal", jdSpeed=1, jdDmg=1, jdDet=1;
 const JDIFFS={facil:{sp:0.8,dmg:0.55,det:0.8,lbl:"🟢 FÁCIL"},normal:{sp:1,dmg:1,det:1,lbl:"🟡 NORMAL"},dificil:{sp:1.25,dmg:1.5,det:1.2,lbl:"🔴 DIFÍCIL"}};
 function buildJDiffs(){ const c=document.getElementById("jdiffs"); if(!c) return; c.innerHTML=""; for(const k of ["facil","normal","dificil"]){ const b=document.createElement("button"); b.className="diffbtn"+(jdiff===k?" sel":""); b.textContent=JDIFFS[k].lbl; b.onclick=()=>{ jdiff=k; buildJDiffs(); }; c.appendChild(b); } }
@@ -408,6 +408,8 @@ function update(dt){
   if(keys["KeyW"]||keys["ArrowUp"])f+=1; if(keys["KeyS"]||keys["ArrowDown"])f-=1;
   if(keys["KeyA"]||keys["ArrowLeft"])s-=1; if(keys["KeyD"]||keys["ArrowRight"])s+=1;
   f-=moveV.y; s+=moveV.x; const len=Math.hypot(f,s); if(len>1){f/=len;s/=len;}
+  // 👣 pasos: pisadas en pasto (o chapoteo en el agua del lago)
+  if((f||s) && P.onGround){ stepT-=dt; if(stepT<=0){ stepT=0.4; if(inLake(P.x,P.z,0)){ snd(300+Math.random()*200,"sine",0.12,0.05); } else { snd(70+Math.random()*20,"sine",0.08,0.04); } } } else stepT=0.1;
   const sin=Math.sin(yaw),cos=Math.cos(yaw);
   let sp=P.speed*(inLake(P.x,P.z,0)?0.55:1);   // el agua frena
   let dx=(f*(-sin)+s*cos)*sp*dt, dz=(f*(-cos)+s*(-sin))*sp*dt;
