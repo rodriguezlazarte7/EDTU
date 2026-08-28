@@ -274,7 +274,7 @@ function buildStairsUp(cx,cz){
 }
 buildStairsUp(20,11); buildStairsUp(-20,11);
 // ---------- TORRE con escalera INTERNA + HELICÓPTERO en la azotea ----------
-let heliRotor=null, boarded=false, boardCd=0; const heliSpot={x:0,z:0,y:0}, heliPad={x:0,z:0}, heliDown={x:0,z:0};
+let heliRotor=null, heliLamp=null, boarded=false, boardCd=0; const heliSpot={x:0,z:0,y:0}, heliPad={x:0,z:0}, heliDown={x:0,z:0};
 function buildHeliTower(cx,cz){
   const S=11, H=8, t=0.4;
   box(cx,cz-S/2,S,H,t,houseMat); addWall(cx-S/2,cx+S/2,cz-S/2-t/2,cz-S/2+t/2);   // pared trasera
@@ -297,6 +297,9 @@ function buildHeliTower(cx,cz){
   for(const sx of [-0.7,0.7]){ const sk=new THREE.Mesh(new THREE.BoxGeometry(0.1,0.1,2.4),new THREE.MeshStandardMaterial({color:0x333})); sk.position.set(cx+sx,hy-1,cz); scene.add(sk); }
   const mast=new THREE.Mesh(new THREE.CylinderGeometry(0.08,0.08,0.4),new THREE.MeshStandardMaterial({color:0x333})); mast.position.set(cx,hy+1,cz); scene.add(mast);
   heliRotor=new THREE.Mesh(new THREE.BoxGeometry(6.5,0.08,0.4),new THREE.MeshStandardMaterial({color:0x111})); heliRotor.position.set(cx,hy+1.2,cz); scene.add(heliRotor);
+  // 🔦 FOCO del helicóptero: alumbra hacia el suelo (más fuerte de noche)
+  heliLamp=new THREE.SpotLight(0xeaf6ff,1.6,40,0.5,0.5,1); heliLamp.position.set(cx,hy-0.6,cz); scene.add(heliLamp);
+  const hlt=new THREE.Object3D(); hlt.position.set(cx+3,0,cz+5); scene.add(hlt); heliLamp.target=hlt;
   const pl=new THREE.PointLight(0xff3b5b,0.9,12); pl.position.set(cx,hy+1,cz); scene.add(pl);
   heliSpot.x=cx; heliSpot.z=cz; heliSpot.y=H;
   // 🚁 PLATAFORMA DE ABORDAJE (en el suelo, frente a la torre) — la pisas y subes al heli
@@ -630,6 +633,7 @@ function update(dt){
     moonMesh.material.opacity=(1-dayF)*0.95; moonHalo.material.opacity=(1-dayF)*0.18;   // 🌕 la luna se ve de noche
     // 🌃 de noche: sirena lejana o aullido de perro cada tanto
     if(dayF<0.4){ ambT-=dt; if(ambT<=0){ ambT=18+Math.random()*22; if(Math.random()<0.5) sirenSnd(); else howlSnd(); } }
+    if(heliLamp){ heliLamp.intensity=0.4+(1-dayF)*2.2; heliLamp.target.position.x=heliSpot.x+Math.sin(now*0.5)*8; heliLamp.target.position.z=heliSpot.z+6+Math.cos(now*0.5)*5; }   // 🔦 foco del heli barre el suelo
     if(dn) dn.textContent = dayF>0.5 ? "☀️ DÍA" : "🌙 NOCHE";
   }
   // zombies: ¡un toque = muerte! (solo en la SUPERFICIE; el drenaje es refugio)
