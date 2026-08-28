@@ -6070,7 +6070,18 @@ const F1={
           const CROWD=["#ff5a5a","#ffd12e","#5ad0ff","#7dff5a","#ff8ade","#ffffff"];
           for(let rr=0;rr<3;rr++) for(let cc=0;cc<9;cc++){ const jump=Math.abs(Math.sin(performance.now()*0.01+cc*1.3+rr))*gh*0.1;
             c.fillStyle=CROWD[(rr*9+cc)%6]; c.beginPath();
-            c.arc(gx3-gw/2+gw*(cc+1)/10, gy3-gh*0.22-rr*gh*0.26-jump, Math.max(1.2,gw*0.022), 0, 6.28); c.fill(); } }
+            c.arc(gx3-gw/2+gw*(cc+1)/10, gy3-gh*0.22-rr*gh*0.26-jump, Math.max(1.2,gw*0.022), 0, 6.28); c.fill(); }
+          // 🚩 banderitas ondeando en la primera fila
+          for(let ff=0;ff<5;ff++){ const fxp=gx3-gw/2+gw*(ff*2+1.5)/10, fyp=gy3-gh*0.55;
+            const wav=Math.sin(performance.now()*0.012+ff*2)*gw*0.02;
+            c.strokeStyle="#889"; c.lineWidth=1; c.beginPath(); c.moveTo(fxp,fyp); c.lineTo(fxp,fyp-gh*0.24); c.stroke();
+            c.fillStyle=CROWD[(ff+2)%6]; c.fillRect(fxp,fyp-gh*0.24,gw*0.05+wav,gh*0.09); }
+          // 🪧 PANCARTA del club (mensaje rotativo por grada)
+          { const MSGS=["¡VAMOS DAVID!","EDTU RACING","🦅 KÓNDOR FAN CLUB","RB #1","¡MÁS NITRO!"];
+            const msg=MSGS[Math.floor(zT/700)%MSGS.length];
+            c.fillStyle="rgba(255,255,255,0.88)"; c.fillRect(gx3-gw*0.44,gy3-gh*1.34,gw*0.88,gh*0.18);
+            c.fillStyle="#c8102e"; c.font="900 "+Math.max(7,Math.round(gh*0.13))+"px Consolas,monospace"; c.textAlign="center";
+            c.fillText(msg,gx3,gy3-gh*1.2); } }
         if(relT<10 && this._cheered!==zT){ this._cheered=zT;
           try{ const a=this.actx(); if(a){ const n=a.createBufferSource(), buf=a.createBuffer(1,a.sampleRate*0.8,a.sampleRate), d2=buf.getChannelData(0);
             for(let j=0;j<d2.length;j++) d2[j]=(Math.random()*2-1)*(1-j/d2.length);
