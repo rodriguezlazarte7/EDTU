@@ -634,6 +634,7 @@ function drawJMap(){ const cv=document.getElementById("jmapCv"); if(!cv) return;
   emo(SH.x,SH.z,"🏠"); emo(RADIO.x,RADIO.z,"📻"); emo(skel.position.x,skel.position.z,"🦴");
   emo(wally.position.x,wally.position.z,"🤖"); emo(turtle.position.x,turtle.position.z,"🐢"); emo(-150*K>-C?-150: -(ISLR+15), -165*K>-C?-165:-(ISLR+15),"🌋");
   if(fireT>0) emo(campfire.position.x,campfire.position.z,"🔥"); emo(ptero.position.x,ptero.position.z,"🦅");
+  QSAND.forEach(q=>dot(q.x,q.z,"#d8c58a",5));   // 🏜️ pozos de arena movediza
   for(const bb of berryBushes){ if(bb.ripe) dot(bb.x,bb.z,"#ff5a8a",4); }
   for(const ns of nests){ if(!ns.hatched) dot(ns.x,ns.z,"#ffd12e",4); }
   for(const d of dinos){ dot(d.grp.position.x,d.grp.position.z,d.T.passive?"#7dff5a":"#ff3a3a",6); }
