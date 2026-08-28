@@ -282,7 +282,10 @@ const pickups=[]; const KIND={water:{c:0x2ea6ff,ic:"💧"},food:{c:0x9a9a9a,ic:"
 function spawnPickup(kind){ let x,z,tries=0; do{ const a=Math.random()*6.28,r=8+Math.random()*(ISLR-20); x=Math.cos(a)*r; z=Math.sin(a)*r; tries++; }while((inLake(x,z,3)||collide(x,z))&&tries<20);
   let m; if(kind==="water"||kind==="food"||kind==="dart"){ m=new THREE.Mesh(new THREE.CylinderGeometry(0.3,0.3,0.9,10),new THREE.MeshStandardMaterial({color:KIND[kind].c,roughness:.5,metalness:.3,emissive:kind==="dart"?0x5a0a3a:0x000000,emissiveIntensity:.5})); }
   else { m=new THREE.Mesh(new THREE.BoxGeometry(0.7,0.7,0.7),new THREE.MeshStandardMaterial({color:KIND[kind].c,roughness:.6,emissive:kind==="batt"?0x0a3a12:0x000000,emissiveIntensity:.6})); }
-  m.position.set(x,0.7,z); scene.add(m); pickups.push({mesh:m,kind:kind}); }
+  const g=new THREE.Group(); g.add(m);
+  // ☄️ rayo de luz vertical para ubicar el objeto de lejos
+  const beam=new THREE.Mesh(new THREE.CylinderGeometry(0.07,0.07,7,6,1,true),new THREE.MeshBasicMaterial({color:KIND[kind].c,transparent:true,opacity:0.22,depthWrite:false,side:THREE.DoubleSide})); beam.position.y=3.4; g.add(beam);
+  g.position.set(x,0.7,z); scene.add(g); pickups.push({mesh:g,kind:kind}); }
 function seedPickups(){ for(let i=0;i<18;i++) spawnPickup("water"); for(let i=0;i<18;i++) spawnPickup("food"); for(let i=0;i<8;i++) spawnPickup("batt"); }   // madera y dardos son infinitos
 
 // ---------- dinosaurios ----------
