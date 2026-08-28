@@ -7153,7 +7153,8 @@ function buildTrophies(){ try{
   // RUBIK
   const rw=parseInt(g("rubik_wins")||"0",10)||0, rl=parseInt(g("rubik_losses")||"0",10)||0, rs=parseInt(g("rubik_streak")||"0",10)||0;
   h+="<div style='color:#00e0ff'><b>🧩 CUBO 3x3</b></div>🏆 "+rw+" victorias · 🤖 "+rl+" derrotas"+((rw+rl)>=3?" · 📊 "+Math.round(rw/(rw+rl)*100)+"%":"")+(rs>=2?" · 👑 racha "+rs:"")+"<br>";
-  h+=["facil","medio","dificil","imposible"].map(k=>{ const t2=parseFloat(g("rubik_bt_"+k)||"0"); return t2?("⏱"+k[0].toUpperCase()+":"+t2.toFixed(1)+"s"):"▫️"+k[0].toUpperCase(); }).join("  ")+"<br>";
+  h+=["facil","medio","dificil","imposible"].map(k=>{ const t2=parseFloat(g("rubik_bt_"+k)||"0"); return t2?("⏱"+k[0].toUpperCase()+":"+t2.toFixed(1)+"s"):"▫️"+k[0].toUpperCase(); }).join("  ")
+    +(function(){ try{ const d=new Date(), dk=d.getFullYear()*10000+(d.getMonth()+1)*100+d.getDate(); const dv=parseFloat(g("rubik_daily_"+dk)||"0")||0; return dv>0?"  · 📅 hoy: <b>"+dv.toFixed(1)+"s</b>":"  · 📅 desafío de hoy pendiente"; }catch(e){ return ""; } })()+"<br>";
   // WALLY
   h+="<div style='color:#8fd0ff'><b>🤖 CACERÍA DE WALLY</b></div>"+["wally_jurassic","wally_notagame","wally_scream","wally_f1"].map((k,i)=>(g(k)==="1"?"✅":"▫️")+["🦖","🧟","🕷️","🏎️"][i]).join(" ")+" — "+wallys+"/4 mundos";
   // 📅 PROGRESO DE LA SEMANA: foto de tus récords al empezar la semana y cuánto mejoraste desde entonces
@@ -7274,6 +7275,8 @@ $("posterFs").addEventListener("click",e=>{ if(e.target===$("posterFs")) $("post
     if(/ptero|p[áa]jaro|volador/.test(q)) return "🐣 si te rescataron alguna vez, un PTERO BEBÉ te acompaña en la isla... y chilla antes de que ataque el grande";
     if(/oro|dorado/.test(q)) return "👑 el CUBO DE ORO existe... pero solo para quien tenga los 21 logros. beep-brillante";
     if(/perro|gato|mascota/.test(q)) return "🐕 el perro de NOT A GAME ladra cuando viene peligro y 🐈‍⬛ el gato (si lo acaricias con E) espanta zombies 60s. ¡Acarícialos de mi parte!";
+    if(/desaf[íi]o|diario|de hoy|hoy/.test(q)){ try{ const d=new Date(), dk=d.getFullYear()*10000+(d.getMonth()+1)*100+d.getDate(); const dv=parseFloat(g("rubik_daily_"+dk)||"0")||0;
+      return dv>0?"📅 tu mejor tiempo en el DESAFÍO DEL DÍA del cubo es "+dv.toFixed(1)+"s — ¡reta a tus amigos a batirlo con la misma revoltura!":"📅 ¡hoy aún no hiciste el DESAFÍO DEL DÍA del cubo! misma revoltura para todos... ¿quién la arma más rápido?"; }catch(e){ return "📅 el desafío del día te espera en el cubo 🧩"; } }
     return pick(["beep-boop... no entendí 🤔 pregúntame por chistes, juegos, récords o trucos","mis circuitos no procesaron eso... ¡prueba con 'chiste'!","*gira la cabeza confundido* ¿me hablas de juegos, récords o chistes?"]); }
   catch(e){ return "beep... error de circuitos jaja"; } }
   function sendWally(){ const q=inp.value.trim(); if(!q) return; inp.value=""; wallyType(wallyReply(q)); }
