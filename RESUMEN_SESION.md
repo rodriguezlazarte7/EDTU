@@ -1,8 +1,8 @@
 # 🛰️ EDTU — Resumen de la sesión autónoma (2026-08-28)
 
-**Bucle de mejora continua mientras David estaba fuera** — ~90 iteraciones (de la ~205 a la ~294), **232 commits en el día**, con deploy a Heroku y verificación en vivo en cada paso. **Ningún juego quedó roto en ningún momento** (chequeos de salud cada 10 iteraciones: todos verdes).
+**Bucle de mejora continua mientras David estaba fuera** — dos tandas: la primera (~iter 205 → 302) y, tras el "sigue sin parar" de David, la segunda (iter 303 → 345 y sigue). **343 commits desde el 26/8** (~260 en esta gran sesión), con deploy a Heroku y verificación en vivo en cada paso. **Ningún juego quedó roto en ningún momento** (chequeos de salud cada 10 iteraciones: todos verdes; el último, iter 345, Heroku v1155).
 
-**Números finales**: 🕷️ SCREAM **100** 🏆 · 🦖 JURASSIC **103** 🏆 · 🧟 NOT A GAME ~89 · 🏎️ F1 ~61 · 🧩 CUBO ~54 · dos juegos superaron las 100 features · 300 iteraciones de bucle verificadas sanas · páginas en vivo todas HTTP 200.
+**Números actuales**: 🕷️ SCREAM **102** 🏆 · 🦖 JURASSIC **105** 🏆 · 🧟 NOT A GAME **96** · 🏎️ F1 **67** · 🧩 CUBO **57** · dos juegos superaron las 100 features · 345 iteraciones de bucle verificadas sanas · páginas en vivo todas HTTP 200.
 
 ## 🔍 Auditoría multi-agente (ultracode)
 - 2 rondas con agentes buscadores + verificadores adversarios: **25 hallazgos, 24 bugs reales corregidos** (1 refutado)
@@ -56,6 +56,15 @@
 - 🕷️ SCREAM: **Tu escape dibujado** — el edificio en 7 franjas con tu ruta piso a piso (¡trilogía de mapas de victoria completa!)
 - 🧟 NAG: **Cementerio personal** — 3 lápidas con tus últimas 3 caídas ("Aquí cayó el agente: 47 kills...")
 - 🦖 JURASSIC: **Nubes con forma** (dino/WALLY/corazón, comenta si las miras) · **🏆 FEATURE Nº 100: "La manada te acepta"** (acaricia una cría con su papá cerca → las estampidas te esquivan) · **Cocos traicioneros** 🥥 (quieto bajo un árbol = ¡TOC!... pero son comida)
+
+## 🆕 Segunda tanda (iter 303-345) — "sigue sin parar"
+- 🏎️ **F1**: **LAUNCH CONTROL** (semáforo: salir en verde da turbo, salir antes = salida en falso) · **CÁMARA LENTA** al chocar (0.25x con viñeta) · **PIT STOP** cada 3000 m (entra por el carril y sales con boost) · 📅 récord semanal de metros
+- 🧟 **NAG**: 💓 **Latido de corazón** cuando un zombie está a <5 m (más rápido cuanto más cerca) · 🌙 **Contador de noches** sobrevividas (HUD + récord + tarjeta) · 👣 Pasos que cambian por superficie (eco del drenaje, metal del helipuerto, chapoteo con lluvia) · 📅 récord semanal de kills · 📻 **RADIO DE LA CENTRAL**: si llevas 45 s sin pista te dice a cuántos metros y hacia dónde está la más cercana (estática + voz) · 📁 **EXPEDIENTE DEL CASO**: kills, pistas, noches, gigantes, gato, Dr. VZ, helicóptero, túnel, lápidas, sirena — últimos 3 casos guardados y "Último caso" en la portada
+- 🦖 **JURASSIC**: 📅 récord semanal de días · 📖 **DIARIO DEL EXPLORADOR**: peces, cocos, bayas, fogatas, picadas del pterodáctilo, manada aceptada, huevo dorado, ataques (o "sin heridas") — últimas 3 aventuras y "Última aventura" en la portada
+- 🕷️ **SCREAM**: 📅 récord semanal de mejor escape · 📖 **DIARIO DEL SOBREVIVIENTE**: apariciones de la araña, mordidas (o "sin mordidas"), botiquines, generador, vitrola, ascensor — últimos 3 escapes y "Último escape" en la portada
+- 🧩 **CUBO**: 📅 **DESAFÍO DEL DÍA** (la misma revoltura para todos, semilla por fecha; mejor tiempo del día guardado) + **preview de la revoltura** en notación (R U' F…) para compartirla con amigos
+- 🏠 **Menú / Sala de Trofeos**: línea **"Récords de la semana"** (🏎️ m · 🦖 días · 🧟 kills · 🕷️ tiempo, se renuevan cada lunes) · sección **📖 ÚLTIMAS AVENTURAS** con la entrada más reciente de cada diario · WALLY chat: pregúntale por la **"semana"** (te resume los récords y te anima) o por tu **"aventura"/"diario"** (te cuenta las tres últimas)
+- 🩺 Chequeos de salud en 310, 320, 330, 335 y 345: todo verde
 
 ## 🤖 WALLY por todos lados
 Frases x8 por juego, celebra el 21/21 con voz, escanea pisos/baterías/cajones, certifica el póster... y presume su carrera de mBots en todas partes 🏁
