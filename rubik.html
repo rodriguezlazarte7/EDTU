@@ -37,6 +37,8 @@
 <div id="top"><div id="timer">0.0s</div><div id="mvs" style="font-family:Consolas,monospace;font-size:14px;font-weight:800;color:#8fd0ff;align-self:center">🔄 0</div><div style="pointer-events:auto" id="diffs"></div></div>
 <div id="labels"><div>🧑 TÚ</div><div class="ai">🤖 IA (en vivo)<div id="aibar" style="width:130px;height:8px;background:rgba(255,255,255,.12);border-radius:6px;margin-top:4px;overflow:hidden"><div id="aifill" style="width:0%;height:100%;background:linear-gradient(90deg,#ff7ba3,#ff2d6a);border-radius:6px;transition:width .3s"></div></div><div id="aipct" style="font-size:11px;color:#ff9bb8;margin-top:2px">🧩 0%</div></div></div>
 <div id="msg"></div>
+<div id="lastMvP" style="position:fixed;left:34%;bottom:32%;transform:translateX(-50%);z-index:5;font:900 42px Consolas,monospace;color:#8fd0ff;text-shadow:0 0 14px #2060ff;opacity:0;pointer-events:none;transition:opacity .45s"></div>
+<div id="lastMvA" style="position:fixed;left:84%;bottom:32%;transform:translateX(-50%);z-index:5;font:900 36px Consolas,monospace;color:#ff9bb8;text-shadow:0 0 14px #ff2d6a;opacity:0;pointer-events:none;transition:opacity .45s"></div>
 
 <div id="ctrl">
   <div id="moves"></div>
@@ -173,13 +175,18 @@ function startRace(){
 function aiStep(){
   if(ended) return;
   if(aiQueue.length===0){ if(isSolved(ai)) finish("ai"); return; }
-  const m=aiQueue.shift(); updAIBar(); const pace=DIFF[diff].pace, dur=Math.min(pace*0.6,260);
+  const m=aiQueue.shift(); updAIBar(); showMv("lastMvA",m.face,m.dir); const pace=DIFF[diff].pace, dur=Math.min(pace*0.6,260);
   move(ai,m.face,m.dir,Math.min(pace*600,260),()=>{ if(!ended) aiTimer=setTimeout(aiStep, Math.max(40,pace*1000-260)); });
 }
 function playerMove(face,dir){ if(state!=="race"||player.busy) return; snd(340+Math.random()*60,"square",0.06,0.05); snd(180,"triangle",0.04,0.03);   // 🔊 clic de giro
   moveCount++; document.getElementById("mvs").textContent="🔄 "+moveCount;   // contador de movimientos
   undoStack.push({face,dir});   // ↩ para poder deshacer
+  showMv("lastMvP",face,dir);   // 🔤 notación en grande
   move(player,face,dir,150,()=>{ if(!ended && isSolved(player)) finish("player"); }); }
+// 🔤 muestra la NOTACIÓN del último giro (flash grande que se desvanece)
+function showMv(id,face,dir){ const el=document.getElementById(id); if(!el) return;
+  el.style.transition="none"; el.style.opacity="1"; el.textContent=face+(dir<0?"'":"");
+  void el.offsetWidth; el.style.transition="opacity .5s"; el.style.opacity="0"; }
 // ↩ DESHACER: revierte tu último giro (cuenta como movimiento, así no es trampa)
 const undoStack=[];
 function undoMove(){ if(state!=="race"||player.busy||!undoStack.length) return; const m=undoStack.pop();
