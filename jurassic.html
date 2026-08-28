@@ -507,9 +507,16 @@ function update(dt){
     const k=1+(0.9-sp2.life)*6; sp2.m.scale.set(k,k,k); sp2.m.material.opacity=sp2.life*0.9; }
   // ✨ luciérnagas: brillan de noche, titilan y "flotan" girando lento
   if(fireflies){ fireflyMat.opacity=(1-lightF)*(0.55+0.35*Math.abs(Math.sin(elapsed*2.2))); fireflies.position.y=Math.sin(elapsed*0.9)*0.35; fireflies.position.x=Math.sin(elapsed*0.5)*0.4; }
-  // 🦅 pterodáctilos: círculos en el cielo, alas que aletean, graznido lejano
+  // 🦅 pterodáctilos: círculos en el cielo, alas que aletean, graznido lejano — y PASADAS RASANTES
   for(const pt of pteros){ const a=elapsed*pt.sp+pt.ph;
-    pt.grp.position.set(pt.cx+Math.cos(a)*pt.r, pt.h+Math.sin(elapsed*0.7+pt.ph)*3, pt.cz+Math.sin(a)*pt.r);
+    // pasada rasante: de vez en cuando baja en picada hacia donde estás y vuelve a subir
+    if(!pt.dive && Math.random()<dt*0.015){ pt.dive=1; pt.dx=P.x; pt.dz=P.z; snd(1200,"sawtooth",0.5,0.09); }
+    let px2=pt.cx+Math.cos(a)*pt.r, pz2=pt.cz+Math.sin(a)*pt.r, py2=pt.h+Math.sin(elapsed*0.7+pt.ph)*3;
+    if(pt.dive!==undefined && pt.dive>0){ pt.dive-=dt/4; const k=Math.sin(Math.PI*Math.max(0,Math.min(1,1-pt.dive)));   // baja y sube en 4s
+      px2=px2*(1-k*0.85)+pt.dx*k*0.85; pz2=pz2*(1-k*0.85)+pt.dz*k*0.85; py2=py2*(1-k)+7*k;
+      if(k>0.92 && !pt.screamed){ pt.screamed=true; snd(1500,"sawtooth",0.6,0.13); snd(800,"square",0.3,0.08); vibJ(90); }
+      if(pt.dive<=0){ pt.dive=0; pt.screamed=false; } }
+    pt.grp.position.set(px2,py2,pz2);
     pt.grp.rotation.y=-a; const flap=Math.sin(elapsed*5+pt.ph)*0.5; pt.wL.rotation.z=flap; pt.wR.rotation.z=-flap;
     if(Math.random()<dt*0.02) snd(900+Math.random()*400,"sawtooth",0.3,0.03); }
   // 🔦 batería de la linterna: se gasta cuando alumbra fuerte (de noche); si se agota, casi no ilumina
