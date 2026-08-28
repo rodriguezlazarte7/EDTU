@@ -146,6 +146,7 @@
     <li>👂 Los bordes de la pantalla brillan rojo hacia donde está la araña. 🍾 Pisar VIDRIOS la alerta.</li>
     <li>💎 Busca: ⏰ relojes (+60s), ❤️ botiquines, 📞 el teléfono que suena (pistas), ⚡ el GENERADOR (3s a su lado = luz total 20s y araña congelada) y 🤖 WALLY. 🧍 Al maniquí... no le quites la vista.</li>
     <li>🐀 Las RATAS chillan FUERTE si pasan cerca de la araña o del maniquí — úsalas de alarma. · <b>F2</b> = modo foto 📸</li>
+    <li>🛗 ASCENSOR (aro naranja en la esquina): <b>E</b> lo llama y sube un piso... pero sus DINGs ATRAEN a la araña · 🎵 la VITROLA la hipnotiza</li>
   </ul>
   <div class="cerrar">H o ❓ para cerrar</div>
 </div>
@@ -578,6 +579,27 @@ function genBar(p){ let el=document.getElementById("genbar");
   if(!el){ el=document.createElement("div"); el.id="genbar"; el.style.cssText="position:fixed;left:50%;top:60%;transform:translateX(-50%);width:220px;height:14px;background:rgba(0,0,0,.6);border:2px solid #ffd15a;border-radius:8px;z-index:6;overflow:hidden;display:none";
     const i2=document.createElement("i"); i2.style.cssText="display:block;height:100%;width:0;background:#ffd15a"; el.appendChild(i2); document.body.appendChild(el); }
   el.style.display=(p>=0&&p<1)?"block":"none"; el.firstElementChild.style.width=Math.max(0,Math.min(100,p*100))+"%"; }
+// 🛗 ASCENSOR DE SERVICIO: E lo llama (3s de espera con DINGs que ATRAEN a la araña) y te lleva un piso ARRIBA (o abajo si estás en el último)
+const ASC={x:-(HH-16),z:-(HH-16)};
+for(let fl2=0;fl2<FLOORS;fl2++){ const by2=fl2*FLOOR_H;
+  const ring=new THREE.Mesh(new THREE.TorusGeometry(1.2,0.14,10,26),new THREE.MeshBasicMaterial({color:0xffb020}));
+  ring.rotation.x=-Math.PI/2; ring.position.set(ASC.x,by2+0.15,ASC.z); CURP.add(ring);
+  const colm=new THREE.Mesh(new THREE.BoxGeometry(2.4,FLOOR_H-2,0.5),new THREE.MeshStandardMaterial({color:0x2a2f3a,metalness:.5,roughness:.5}));
+  colm.position.set(ASC.x,by2+FLOOR_H/2-1,ASC.z-1.6); CURP.add(colm);
+  addWall(ASC.x-1.2,ASC.x+1.2,ASC.z-1.85,ASC.z-1.35,fl2); }
+let ascWait=0, ascDing=0;
+function tryElevator(){ if(!running||gameOver||ascWait>0||floorCd>0) return;
+  if(Math.hypot(P.x-ASC.x,P.z-ASC.z)>2.6) return;
+  ascWait=3; ascDing=0; showStory("🛗 llamaste al ASCENSOR... la campanita suena (y algo la escucha)"); vib(30); }
+function ascTick(dt){ if(ascWait<=0) return;
+  ascWait-=dt; ascDing-=dt;
+  if(ascDing<=0){ ascDing=1; snd(1320,"sine",0.25,0.08); setTimeout(()=>snd(1050,"sine",0.3,0.07),200);   // DING-dong
+    if(!spiderDead && spiderFloor===curFloor) spider.ambushT=Math.min(spider.ambushT,2); }   // 🕷️ el ding la atrae
+  if(Math.hypot(P.x-ASC.x,P.z-ASC.z)>4){ ascWait=0; showStory("🛗 te alejaste... el ascensor se fue sin ti"); return; }
+  if(ascWait<=0){ const dest=curFloor<FLOORS-1?curFloor+1:curFloor-1;
+    floorCd=1.5; snd(700,"triangle",0.3,0.08);
+    fade(()=>{ curFloor=dest; floorCd=1.2; const sp=safeSpotF(ASC.x+3,ASC.z+3,dest); P.x=sp.x; P.z=sp.z; $("floor").textContent=FLOORNAME[dest]; showStory("🛗 "+FLOORNAME[dest]);
+      const ft3=$("floorTitle"); if(ft3){ ft3.textContent=FLOORNAME[dest]; ft3.classList.add("on"); clearTimeout(ft3._t); ft3._t=setTimeout(()=>ft3.classList.remove("on"),1100); } }); } }
 // 🎵 VITROLA: tocadiscos viejo en un piso al azar — actívala con E y la araña queda HIPNOTIZADA yendo hacia la música (25s, un uso)
 const vit=new THREE.Group();
 { const base=new THREE.Mesh(new THREE.BoxGeometry(0.6,0.9,0.5),new THREE.MeshStandardMaterial({color:0x4a3320,roughness:.85})); base.position.y=0.45; vit.add(base);
@@ -685,7 +707,7 @@ function drawMap(){ const c=$("mapC"); if(!c) return; const g=c.getContext("2d")
   if(spiderFloor===curFloor && !spiderDead){ const p=w2m(spider.grp.position.x,spider.grp.position.z); g.fillStyle="#ff2a2a"; g.shadowColor="#f00"; g.shadowBlur=8; g.beginPath(); g.arc(p[0],p[1],5,0,6.28); g.fill(); g.shadowBlur=0; }
   for(const b of babies){ if(b.f!==curFloor) continue; const p=w2m(b.grp.position.x,b.grp.position.z); g.fillStyle="#ff8a2a"; g.beginPath(); g.arc(p[0],p[1],3,0,6.28); g.fill(); }   // 🕷️ crías (naranjo)
   const pp=w2m(P.x,P.z), fx=-Math.sin(yaw), fz=-Math.cos(yaw); g.fillStyle="#ffd12e"; g.beginPath(); g.moveTo(pp[0]+fx*8,pp[1]+fz*8); g.lineTo(pp[0]-fz*5-fx*4,pp[1]+fx*5-fz*4); g.lineTo(pp[0]+fz*5-fx*4,pp[1]-fx*5-fz*4); g.closePath(); g.fill(); }
-addEventListener("keydown",e=>{ keys[e.code]=true; if(e.code==="KeyF") toggleFlash(); if(e.code==="KeyM") toggleMap(); if(e.code==="KeyG") throwFlare(); if(e.code==="KeyH") toggleHelp(); if(e.code==="KeyE"){ talkWally(); playVitrola(); } if(e.code==="F2"){ e.preventDefault(); togglePhoto(); }
+addEventListener("keydown",e=>{ keys[e.code]=true; if(e.code==="KeyF") toggleFlash(); if(e.code==="KeyM") toggleMap(); if(e.code==="KeyG") throwFlare(); if(e.code==="KeyH") toggleHelp(); if(e.code==="KeyE"){ talkWally(); playVitrola(); tryElevator(); } if(e.code==="F2"){ e.preventDefault(); togglePhoto(); }
   if(e.code==="KeyP") togglePauseS();
   if(e.code==="Enter" && gameOver) start();   // ↩ reintentar al instante
   if(e.code==="ShiftLeft"||e.code==="ShiftRight") sprintHeld=true; },true);
@@ -791,6 +813,7 @@ function start(){ $("start").classList.add("hide"); $("end").classList.add("hide
   genUsed=false; genOn=0; genCharge=0; genBar(-1); ambient.intensity=0.05; ambient.color.setHex(0x241018);
   legendSaid=false;   // 👑 WALLY puede volver a celebrar el 21/21 una vez por partida
   vitF=Math.floor(Math.random()*FLOORS); { const vs=randSpotOnFloor(vitF); vit.position.set(vs.x,vitF*FLOOR_H,vs.z); } vitUsed=false; vitOn=0;   // 🎵 vitrola nueva
+  ascWait=0; ascDing=0;   // 🛗 ascensor libre
   phoneActive=false; phoneT=35+Math.random()*35; placePhone();   // 📞 teléfono nuevo
   placeWallyS();   // 🤖 WALLY en otro piso
   hp=hpMax; stam=100; hurtCd=0; safeTime=0; sprintHeld=false; visorBatt=100; updHP(); $("crack").style.opacity="0"; $("fade").style.background="#000"; $("fade").style.opacity="0";
@@ -842,6 +865,7 @@ function update(dt){
       "🎓 Junta 4 válvulas 🟢 + 3 muestras 🟣 y fabrica el ANTÍDOTO en la zona segura 🛡️ ¡Suerte, agente!"];
       if(tutStep<TUT.length){ showStory(TUT[tutStep]); snd(980,"triangle",0.15,0.06); tutStep++; tutT=9.5; }
       else { tutOn=false; try{ localStorage.setItem("scream_tut1","1"); }catch(e){} } } }
+  ascTick(dt);   // 🛗 ascensor (espera con dings)
   // 🎵 VITROLA sonando: melodía fúnebre en loop + fin del hechizo
   if(vitOn>0){ vitOn-=dt; vitNoteT-=dt;
     if(vitNoteT<=0){ const nt=VIT_NOTES[vitNoteI%VIT_NOTES.length]; vitNoteI++;
