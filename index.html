@@ -1452,7 +1452,15 @@
     <button class="btn pickgame" id="pickRk" style="background:linear-gradient(90deg,#06121a,#082438);border-color:#00e0ff">🧩 CUBO 3x3 (carrera vs IA)</button>
     <button class="btn pickgame" id="pickJp" style="background:linear-gradient(90deg,#0a1a06,#183a10);border-color:#7dff5a">🦖 JURASSIC (sobrevive 7 días)</button>
     <button class="btn pickgame" id="pickScr" style="background:linear-gradient(90deg,#1a0308,#3a0810);border-color:#ff2b3a">🕷️ SCREAM (la araña · terror)</button>
+    <button class="btn pickgame" id="pickTrophies" style="background:linear-gradient(90deg,#1a1406,#3a2c08);border-color:#ffd12e;color:#ffd12e">🏆 SALA DE TROFEOS</button>
     <button class="btn btn-ghost btn-sm" id="pickClose">Cerrar</button>
+  </div>
+</div>
+<div id="trophyFs" style="position:fixed;inset:0;z-index:130;background:rgba(0,0,0,.9);display:none;align-items:center;justify-content:center;backdrop-filter:blur(3px)">
+  <div style="background:#0d0f16;border:1px solid rgba(255,209,46,.5);border-radius:16px;padding:22px 20px;min-width:min(360px,94vw);max-width:min(480px,94vw);max-height:88vh;overflow-y:auto;box-shadow:0 0 40px rgba(255,209,46,.18);font-family:Consolas,monospace">
+    <h2 style="margin:0 0 6px;text-align:center;color:#ffd12e;letter-spacing:.1em">🏆 SALA DE TROFEOS</h2>
+    <div id="trophyBody" style="font-size:13px;line-height:2;color:#cfe0ff"></div>
+    <button class="btn btn-ghost btn-sm" id="trophyClose" style="margin-top:12px;width:100%">Cerrar</button>
   </div>
 </div>
 
@@ -6892,6 +6900,44 @@ function updGameRecords(){ try{
     if(el2) el2.textContent = n>=20 ? "🏆 ¡LOGROS EDTU COMPLETOS! 20/20 — ERES LEYENDA" : "🏅 Logros EDTU: "+n+"/20 (medallas de los 5 juegos + WALLYs)"; }
 }catch(e){} }
 $("lndPlay").onclick=()=>{ $("landing").classList.add("gaming"); updGameRecords(); $("gamePick").classList.add("open"); };   // PLAY = menú de TODOS los juegos
+// 🏆 SALA DE TROFEOS: todos los récords, medallas y WALLYs de los 5 juegos en un solo panel
+function buildTrophies(){ try{
+  const g=(k)=>{ try{ return localStorage.getItem(k); }catch(e){ return null; } };
+  const med=(on)=> on?"🏅":"▫️";
+  const fmtMS=(s)=>Math.floor(s/60)+":"+String(Math.floor(s%60)).padStart(2,"0");
+  let h="";
+  // resumen total
+  const KEYS=[["scream_win_",["facil","normal","pesadilla","infierno"]],["jurassic_win_",["facil","normal","dificil","extincion"]],["nag_kills_",[25,50,100,200]],["edtu_f1_km_",[1000,3000,5000,10000]]];
+  let tot=0; KEYS.forEach(([p,arr])=>arr.forEach(k=>{ if(g(p+k)==="1") tot++; }));
+  const wallys=["wally_jurassic","wally_notagame","wally_scream","wally_f1"].filter(k=>g(k)==="1").length; tot+=wallys;
+  h+="<div style='text-align:center;font-size:18px;color:#ffd12e;margin-bottom:8px'>"+(tot>=20?"🏆 20/20 — ¡ERES LEYENDA DE EDTU!":"🏅 "+tot+"/20 logros")+"</div>";
+  // SCREAM
+  const sb=parseFloat(g("scream_best")), sw=parseInt(g("scream_wins")||"0",10)||0;
+  h+="<div style='color:#ff6a7a'><b>🕷️ SCREAM</b></div>"+(isNaN(sb)?"— sin escape aún":"⏱ Mejor escape: <b>"+fmtMS(sb)+"</b> · 🚁 x"+sw)+"<br>";
+  h+=["facil","normal","pesadilla","infierno"].map(k=>med(g("scream_win_"+k)==="1")).join(" ")+" <small>(🟢🟡🔴🔥)</small><br>";
+  // JURASSIC
+  const jb=parseFloat(g("jurassic_best"));
+  h+="<div style='color:#7dff5a'><b>🦖 JURASSIC</b></div>"+((jb&&jb>0)?"🗓️ Récord: <b>"+jb.toFixed(1)+" días</b>":"— sin récord aún")+"<br>";
+  h+=["facil","normal","dificil","extincion"].map(k=>med(g("jurassic_win_"+k)==="1")).join(" ")+" <small>(🟢🟡🔴☄️)</small><br>";
+  // NOT A GAME
+  const nk=parseInt(g("nag_best_kills")||"0",10)||0, nc2=parseInt(g("nag_best_combo")||"0",10)||0, ncase=g("nag_best_case");
+  h+="<div style='color:#ff2d55'><b>🧟 NOT A GAME</b></div>🧟 Récord kills: <b>"+nk+"</b>"+(nc2?" · 🔥 Racha: <b>x"+nc2+"</b>":"")+(ncase!=null?" · ⏱ Caso: <b>"+fmtMS(parseInt(ncase,10))+"</b>":"")+"<br>";
+  h+=[25,50,100,200].map(k=>med(g("nag_kills_"+k)==="1")+k).join(" ")+"<br>";
+  // F1
+  const fb=parseFloat(g("edtu_f1_best")), fms=parseInt(g("edtu_f1_maxspd")||"0",10)||0, fov=parseInt(g("edtu_f1_overt")||"0",10)||0;
+  h+="<div style='color:#4fc3ff'><b>🏎️ F1 RB RUSH</b></div>"+((fb&&fb>0)?"📏 Récord: <b>"+Math.round(fb)+" m</b>":"— sin récord aún")+(fms?" · ⚡ "+fms+" km/h":"")+(fov?" · 🏁 "+fov:"")+"<br>";
+  h+=[1000,3000,5000,10000].map(k=>med(g("edtu_f1_km_"+k)==="1")+(k/1000)+"km").join(" ")+"<br>";
+  // RUBIK
+  const rw=parseInt(g("rubik_wins")||"0",10)||0, rl=parseInt(g("rubik_losses")||"0",10)||0, rs=parseInt(g("rubik_streak")||"0",10)||0;
+  h+="<div style='color:#00e0ff'><b>🧩 CUBO 3x3</b></div>🏆 "+rw+" victorias · 🤖 "+rl+" derrotas"+((rw+rl)>=3?" · 📊 "+Math.round(rw/(rw+rl)*100)+"%":"")+(rs>=2?" · 👑 racha "+rs:"")+"<br>";
+  h+=["facil","medio","dificil","imposible"].map(k=>{ const t2=parseFloat(g("rubik_bt_"+k)||"0"); return t2?("⏱"+k[0].toUpperCase()+":"+t2.toFixed(1)+"s"):"▫️"+k[0].toUpperCase(); }).join("  ")+"<br>";
+  // WALLY
+  h+="<div style='color:#8fd0ff'><b>🤖 CACERÍA DE WALLY</b></div>"+["wally_jurassic","wally_notagame","wally_scream","wally_f1"].map((k,i)=>(g(k)==="1"?"✅":"▫️")+["🦖","🧟","🕷️","🏎️"][i]).join(" ")+" — "+wallys+"/4 mundos";
+  $("trophyBody").innerHTML=h;
+}catch(e){ $("trophyBody").textContent="(error cargando trofeos)"; } }
+$("pickTrophies").onclick=()=>{ buildTrophies(); $("trophyFs").style.display="flex"; };
+$("trophyClose").onclick=()=>{ $("trophyFs").style.display="none"; };
+$("trophyFs").addEventListener("click",e=>{ if(e.target===$("trophyFs")) $("trophyFs").style.display="none"; });
 
 /* ============ ACCESO SECRETO: "hola" -> hackeo -> bóveda -> biometría ============ */
 const Secret={
