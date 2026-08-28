@@ -649,6 +649,7 @@ function startGame(){
   comboN=0; comboT=0; comboPop=0; maxCombo=0; document.getElementById("combo").style.opacity="0";
   nStatDist=0; nLastX=null; nStatShields=0; nStatBoss=0;   // 📊 estadísticas desde cero
   rapidT=0; tracer.material.color.setHex(0xffe066); rapidDrops.forEach(r2=>scene.remove(r2.m)); rapidDrops.length=0;   // ⚡ reset
+  hordeT=90+Math.random()*70; hordeOn=0;   // 🚨 reset horda
   shield=false; updShieldHUD(); shieldDrops.forEach(s2=>scene.remove(s2.m)); shieldDrops.length=0;
   if(boss){ scene.remove(boss.grp); boss=null; } bossAt=25;
   document.getElementById("kills").textContent="0"; document.getElementById("clues").textContent="0";
@@ -670,6 +671,8 @@ let maxCombo=0;
 let nStatDist=0, nLastX=null, nLastZ=0, nStatShields=0, nStatBoss=0;
 // ⚡ power-up DISPARO RÁPIDO
 let rapidT=0; const rapidDrops=[];
+// 🚨 evento HORDA
+let hordeT=90+Math.random()*70, hordeOn=0;
 // 🗣️ voz de narrador (grave, para el final del caso)
 function narrate(txt){ try{ if(!window.speechSynthesis) return; const u=new SpeechSynthesisUtterance(txt); u.lang="es-ES"; u.pitch=0.5; u.rate=0.9; u.volume=0.85; speechSynthesis.cancel(); speechSynthesis.speak(u); }catch(e){} }
 function endGame(win,customInfo){
@@ -838,6 +841,15 @@ function update(dt){
   let danger=false, fear=0;
   // ⚖️ balance día/noche: lentos de día (0.8x), RÁPIDOS de noche (1.25x)
   zMul = 0.8 + (1-lastDayF)*0.45; if(bloodMoon) zMul*=1.35;   // 🔴 en luna de sangre corren mucho más
+  // 🚨 HORDA: sirena + 6 zombies extra + todos 1.2x más rápidos por 20s
+  if(level==="surface" && !gameOver){
+    if(hordeOn<=0){ hordeT-=dt;
+      if(hordeT<=0){ hordeT=110+Math.random()*80; hordeOn=20;
+        sirenSnd(); narrate("¡Se acerca una horda, agente! ¡Resiste!");
+        const c2=document.getElementById("combo"); if(c2){ c2.textContent="🚨 ¡HORDA!"; c2.style.color="#ff5040"; c2.style.opacity="1"; c2.style.transform="translate(-50%,-50%) scale(1.35)"; comboPop=2.5; }
+        if(zombies.length<30) spawnZombies(6); } }
+    else hordeOn-=dt; }
+  if(hordeOn>0) zMul*=1.2;
   // 🎵 zumbido ominoso en el hospital
   if(level==="hospital"){ droneT-=dt; if(droneT<=0){ droneT=2.5+Math.random()*2.5; snd(38+Math.random()*8,"sawtooth",1.1,0.035); } }
   if(level==="surface") zombies.forEach(z=>{ if(z.dead)return;
