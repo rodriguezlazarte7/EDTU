@@ -5668,7 +5668,7 @@ const F1={
       mb.style.display=unlocked?"inline-block":"none";
       this._mirror=unlocked&&localStorage.getItem("edtu_f1_mirror")==="1"; this._mir=this._mirror?-1:1;
       mb.textContent="🪞 ESPEJO: "+(this._mirror?"SÍ ✔":"NO"); } }catch(e){}
-    $("f1Result").innerHTML="Vista Need for Speed · ←→ o A/D conducir · 🔥 NITRO: espacio / Y / RT / botón · franjas verdes = DRS<br>⏸ <b>P</b> pausa · ↵ <b>Enter</b> correr otra vez · 📯 <b>H</b> claxon (¡los rivales se apartan!) · ¡Cuidado con las CURVAS ⚠️, el pasto y las 🏍️ motos!<br>🌧️ lluvia · 🌙 día y noche · 🚇 túneles · 🛸 zepelín · 🤖 WALLY cada 1500 m · ⚡ combo de adelantamientos · ⏱️ sectores de 2000 m (🟢 = récord) · 🦅 KÓNDOR te reta a los 1500 m<br>🏆 Récord: <b>"+Math.round(this.best)+"</b> m<br>🎖️ "+this.medals()+(function(){ try{ return localStorage.getItem("edtu_f1_ghost")?"<br>👻 el FANTASMA de tu récord te espera en la pista... ¡véncelo!":""; }catch(e){ return ""; } })()+(function(){ try{ const w=parseInt(localStorage.getItem("edtu_f1_kondor_w")||"0",10)||0, l=parseInt(localStorage.getItem("edtu_f1_kondor_l")||"0",10)||0; return (w||l)?"<br>⚔️ vs 🦅 KÓNDOR: <b>"+w+"-"+l+"</b>":""; }catch(e){ return ""; } })()+(function(){ try{ const bs=parseFloat(localStorage.getItem("edtu_f1_sector")||"0")||0; return bs>0?" · ⏱️ mejor sector: <b>"+bs.toFixed(1)+"s</b>":""; }catch(e){ return ""; } })();
+    $("f1Result").innerHTML="Vista Need for Speed · ←→ o A/D conducir · 🔥 NITRO: espacio / Y / RT / botón · franjas verdes = DRS<br>⏸ <b>P</b> pausa · ↵ <b>Enter</b> correr otra vez · 📯 <b>H</b> claxon (¡los rivales se apartan!) · ¡Cuidado con las CURVAS ⚠️, el pasto y las 🏍️ motos!<br>🌧️ lluvia · 🌙 día y noche · 🚇 túneles · 🛸 zepelín · 🤖 WALLY cada 1500 m · ⚡ combo de adelantamientos · ⏱️ sectores de 2000 m (🟢 = récord) · 🦅 KÓNDOR te reta a los 1500 m · 🔧 PIT STOP cada 3000 m (pégate a la derecha: 2s lento, sales con nitro lleno y +5%)<br>🏆 Récord: <b>"+Math.round(this.best)+"</b> m<br>🎖️ "+this.medals()+(function(){ try{ return localStorage.getItem("edtu_f1_ghost")?"<br>👻 el FANTASMA de tu récord te espera en la pista... ¡véncelo!":""; }catch(e){ return ""; } })()+(function(){ try{ const w=parseInt(localStorage.getItem("edtu_f1_kondor_w")||"0",10)||0, l=parseInt(localStorage.getItem("edtu_f1_kondor_l")||"0",10)||0; return (w||l)?"<br>⚔️ vs 🦅 KÓNDOR: <b>"+w+"-"+l+"</b>":""; }catch(e){ return ""; } })()+(function(){ try{ const bs=parseFloat(localStorage.getItem("edtu_f1_sector")||"0")||0; return bs>0?" · ⏱️ mejor sector: <b>"+bs.toFixed(1)+"s</b>":""; }catch(e){ return ""; } })();
     this.draw();
   },
   close(){
@@ -5694,6 +5694,7 @@ const F1={
     this._sparks=[]; this._drsSpark=0; this._drsWas=false;   // ✨ chispas DRS
     this._falseStart=false; this._lcDone=false; this._lcWin=0; this._lcMsg=""; this._lcMsgT=0; this._lcGood=false;   // 🚦 launch control
     this._crashSlow=0; this._crashSlowDone=false;   // 🎬 cámara lenta del choque
+    this._pitOn=0; this._pitBoostT=0; this._pitDoneZ=-1; this._pitMsg=""; this._pitMsgT=0; this._pitTick=0; this._pitZ=2500;   // 🔧 pit stop
     this.paused=false;   // ⏸
     this._recPassed=false;   // 🏆 marcador de récord en la pista
     this._nearN=0; this._nearT=0;   // 😅 casi-choques
@@ -5818,6 +5819,16 @@ const F1={
       o.connect(g); g.connect(a.destination); o.start(); g.gain.setValueAtTime(.12,a.currentTime); g.gain.exponentialRampToValueAtTime(0.0001,a.currentTime+1.1); o.stop(a.currentTime+1.1); } }catch(e){} }
     const baseMax=290+Math.min(90,this.dist/200);
     let target=baseMax;
+    // 🔧 PIT STOP: cada 3000 m hay una zona de boxes a la DERECHA; si te pegas al borde derecho entras: 2s lento y sales con nitro lleno + 5% de velocidad por 20s
+    { let pitZ=Math.floor((this.dist-2500)/3000)*3000+2500; if(pitZ+60<this.dist) pitZ+=3000; this._pitZ=pitZ;
+      const inZone=this.dist>=pitZ && this.dist<=pitZ+60;
+      if(inZone && this._pitOn<=0 && this._pitDoneZ!==pitZ && this.x>0.9 && this.x<1.1){ this._pitOn=2; this._pitDoneZ=pitZ; this._pitTick=0;
+        this._pitMsg="🔧 ¡PIT STOP! cambiando neumáticos..."; this._pitMsgT=2; }
+      if(this._pitOn>0){ this._pitOn-=dt; target=Math.min(target,80); this._pitTick-=dt;
+        if(this._pitTick<=0){ this._pitTick=0.22; try{ const a=this.actx(); if(a){ const o=a.createOscillator(),g=a.createGain(); o.type="square"; o.frequency.value=900+Math.random()*300; g.gain.value=0.06; o.connect(g); g.connect(a.destination); o.start(); o.stop(a.currentTime+0.04); } }catch(e){} try{ if(navigator.vibrate) navigator.vibrate(12); }catch(e){} }
+        if(this._pitOn<=0){ this.fuel=100; this._pitBoostT=20; this._pitMsg="🔧 ¡NEUMÁTICOS NUEVOS! nitro lleno · +5% velocidad 20s"; this._pitMsgT=2.8;
+          try{ const a=this.actx(); if(a){ [660,880,1175].forEach((fq,i)=>{ const o=a.createOscillator(),g=a.createGain(); o.type="triangle"; o.frequency.value=fq; g.gain.value=0.09; o.connect(g); g.connect(a.destination); o.start(a.currentTime+i*0.1); o.stop(a.currentTime+i*0.1+0.14); }); } }catch(e){} } }
+      if(this._pitBoostT>0){ this._pitBoostT-=dt; target*=1.05; } }
     if(this.nitroOn){ target*=1.35; this.fuel=Math.max(0,this.fuel-26*dt); }
     else this.fuel=Math.min(100,this.fuel+9*dt);
     this.drs = this.dist<this._drsEnd;
@@ -5911,7 +5922,7 @@ const F1={
     if(this.shake>0) this.shake=Math.max(0,this.shake-dt*22);
     if(this._ovT>0){ this._ovT-=dt; if(this._ovT<=0) this._ovCombo=0; }   // 🔥 la racha expira
     this.draw();
-    $("f1Hud").textContent="⚡ "+Math.round(this.speed)+" km/h · 📏 "+(this.dist>=1000?(this.dist/1000).toFixed(2)+" km":Math.round(this.dist)+" m")+" · 🏁 "+this.overt+(this.drs?" · 🟢 DRS":"")+(this._wRain>0.4?" · 🌧️ LLUVIA":"")+(this._inTun?" · 🚇 TÚNEL":(this._nightF>0.5?" · 🌙 NOCHE":""))+(this._ghBeat?" · 👻 ¡SUPERADO!":"")+(this._mirror?" · 🪞 ESPEJO":"");
+    $("f1Hud").textContent="⚡ "+Math.round(this.speed)+" km/h · 📏 "+(this.dist>=1000?(this.dist/1000).toFixed(2)+" km":Math.round(this.dist)+" m")+" · 🏁 "+this.overt+(this.drs?" · 🟢 DRS":"")+(this._wRain>0.4?" · 🌧️ LLUVIA":"")+(this._inTun?" · 🚇 TÚNEL":(this._nightF>0.5?" · 🌙 NOCHE":""))+(this._ghBeat?" · 👻 ¡SUPERADO!":"")+(this._mirror?" · 🪞 ESPEJO":"")+(this._pitBoostT>0?" · 🔧 +5%":"");
   },
   crash(){
     try{ if(navigator.vibrate) navigator.vibrate([0,120,60,180]); }catch(e){}   // 📳 golpe de choque
@@ -6233,6 +6244,16 @@ const F1={
     if(this._secMsgT>0){ this._secMsgT-=0.016; const sA=Math.min(1,this._secMsgT*1.4).toFixed(2);
       c.fillStyle=this._secGreen?("rgba(57,255,20,"+sA+")"):("rgba(200,220,255,"+sA+")");
       c.font="900 "+Math.min(26,W*0.042)+"px system-ui,sans-serif"; c.textAlign="center"; c.fillText(this._secMsg,W/2,H*0.5); }
+    // 🔧 cartel PIT en la entrada de boxes (a la derecha, cada 3000 m) + carril de boxes marcado
+    if(this._pitZ!==undefined){ const relP=this._pitZ-this.dist;
+      if(relP>-60 && relP<520){ for(let k=0;k<=3;k++){ const zP=this._pitZ+k*20; if(zP<this.dist) continue; const pp2=this.proj(zP); if(pp2.y<hor||pp2.y>H+20||pp2.pers<0.05) continue;
+          const sx2=pp2.roadX+pp2.rw*1.0; c.fillStyle=k===0?"rgba(255,255,255,0.9)":"rgba(255,255,255,0.35)"; c.fillRect(sx2-2,pp2.y-2,pp2.pers*W*0.02+2,3); }   // marcas del carril
+        if(relP>0){ const pb2=this.proj(this._pitZ); if(pb2.y>hor&&pb2.y<H+20&&pb2.pers>0.06){ const bw4=pb2.pers*W*0.2, bh4=bw4*0.45, bx4=pb2.roadX+pb2.rw*1.8;
+          c.fillStyle="#3a3f4a"; c.fillRect(bx4-bw4*0.03,pb2.y-bh4*1.5,bw4*0.06,bh4*1.5);
+          c.fillStyle="#fff"; c.fillRect(bx4-bw4/2,pb2.y-bh4*2.4,bw4,bh4); c.strokeStyle="#c8102e"; c.lineWidth=Math.max(1,pb2.pers*3); c.strokeRect(bx4-bw4/2,pb2.y-bh4*2.4,bw4,bh4);
+          c.fillStyle="#c8102e"; c.font="900 "+Math.max(7,Math.round(bh4*0.5))+"px system-ui,sans-serif"; c.textAlign="center"; c.fillText("PIT ➡",bx4,pb2.y-bh4*1.8); } } } }
+    if(this._pitMsgT>0){ this._pitMsgT-=0.016; c.fillStyle="rgba(255,255,255,"+Math.min(1,this._pitMsgT*1.4).toFixed(2)+")";
+      c.font="900 "+Math.min(26,W*0.042)+"px system-ui,sans-serif"; c.textAlign="center"; c.fillText(this._pitMsg,W/2,H*0.34); }
     // 🚦 cartel de launch control (verde = perfecta, rojo = en falso)
     if(this._lcMsgT>0){ this._lcMsgT-=0.016; const lA=Math.min(1,this._lcMsgT*1.4).toFixed(2);
       c.fillStyle=this._lcGood?("rgba(57,255,20,"+lA+")"):("rgba(255,60,60,"+lA+")");
