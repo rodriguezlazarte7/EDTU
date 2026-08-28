@@ -361,6 +361,19 @@ for(let i=0;i<6;i++){ const sm=new THREE.Mesh(new THREE.SphereGeometry(3+Math.ra
 const vbombs=[]; const vbombM=new THREE.MeshBasicMaterial({color:0xff3a10,fog:false});
 for(let i=0;i<8;i++){ const b=new THREE.Mesh(new THREE.SphereGeometry(0.9,7,6),vbombM); b.visible=false; volc.add(b); vbombs.push({m:b,vx:0,vy:0,vz:0,on:false}); }
 let erupIn=90+Math.random()*120, erupT=0, rumbleT=0;
+// 🦴 ESQUELETO GIGANTE: los restos de un dinosaurio colosal semienterrados (hito para explorar)
+const skel=new THREE.Group(); skel.position.set(-85,0,55); skel.rotation.y=0.8; scene.add(skel);
+(function makeSkeleton(){ const boneM=new THREE.MeshStandardMaterial({color:0xe8e2d2,roughness:.85});
+  for(let i=0;i<6;i++){ const r=2.2+Math.sin(i/5*Math.PI)*1.6;
+    const rib=new THREE.Mesh(new THREE.TorusGeometry(r,0.16,7,14,Math.PI),boneM); rib.position.set(0,0.2,i*1.7); skel.add(rib); }
+  const spine=new THREE.Mesh(new THREE.CylinderGeometry(0.14,0.14,10,7),boneM); spine.rotation.x=Math.PI/2; spine.position.set(0,0.25,4.2); skel.add(spine);
+  const skull=new THREE.Mesh(new THREE.BoxGeometry(1.6,1.1,2.4),boneM); skull.position.set(0,0.7,-2.2); skel.add(skull);
+  const jaw=new THREE.Mesh(new THREE.BoxGeometry(1.3,0.35,2.0),boneM); jaw.position.set(0,0.15,-2.5); skel.add(jaw);
+  for(const s4 of [-0.55,0.55]){ const eye=new THREE.Mesh(new THREE.SphereGeometry(0.2,8,7),new THREE.MeshBasicMaterial({color:0x14100c})); eye.position.set(s4,0.9,-2.9); skel.add(eye); }
+  for(let i=0;i<5;i++){ const tb=new THREE.Mesh(new THREE.CylinderGeometry(0.12-0.014*i,0.14-0.014*i,1.3,6),boneM);
+    tb.rotation.x=Math.PI/2; tb.position.set(Math.sin(i*0.5)*0.9,0.2,9+i*1.2); skel.add(tb); }
+})();
+let skelSeen=false;
 // 🐬 DELFINES: saltan en arco por el mar alrededor de la isla
 const dolphins=[];
 for(let i=0;i<3;i++){ const m=new THREE.Mesh(new THREE.SphereGeometry(0.5,10,8),new THREE.MeshStandardMaterial({color:0x7d8ea0,roughness:.4}));
@@ -674,6 +687,10 @@ function update(dt){
     for(const vb of vbombs){ if(!vb.on) continue; vb.vy-=22*dt; vb.m.position.x+=vb.vx*dt; vb.m.position.y+=vb.vy*dt; vb.m.position.z+=vb.vz*dt;
       if(vb.m.position.y<2){ const va=Math.random()*6.28; vb.m.position.set(0,48,0); vb.vx=Math.cos(va)*(4+Math.random()*7); vb.vz=Math.sin(va)*(4+Math.random()*7); vb.vy=16+Math.random()*12; } }
     if(erupT<=0){ vbombs.forEach(vb=>{ vb.on=false; vb.m.visible=false; }); crater.material.opacity=0.55; } }
+  // 🦴 descubrir el esqueleto (una vez por partida): campanitas + cartel
+  if(!skelSeen && Math.hypot(P.x-skel.position.x,P.z-skel.position.z)<10){ skelSeen=true;
+    [330,262,196].forEach((fq,k)=>setTimeout(()=>snd(fq,"triangle",0.35,0.07),k*160));
+    toast2("🦴 Restos de un dinosaurio COLOSAL... ¿qué pudo matarlo?"); }
   // 🐬 delfines: esperan bajo el agua y saltan en un arco de 1.5s; si estás en la playa oyes el chapuzón
   for(const dp2 of dolphins){
     if(!dp2.m.visible){ dp2.wait-=dt;
