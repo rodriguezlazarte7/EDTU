@@ -62,6 +62,7 @@
   <p id="rpodium" style="color:#8fd0ff;font-weight:800;font-size:12px;margin-bottom:8px"></p>
   <button class="btn go" id="introStart">▶ EMPEZAR</button>
   <button class="btn" id="introPractice" style="border-color:rgba(143,208,255,.6);color:#8fd0ff">🎓 PRÁCTICA LIBRE</button>
+  <button class="btn" id="introSym" style="border-color:rgba(255,209,46,.5);color:#ffd88a;font-size:12px">🎨 MODO SÍMBOLOS: NO</button>
 </div>
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
@@ -244,6 +245,17 @@ function playerMove(face,dir){ if((state!=="race"&&state!=="practice")||player.b
   showMv("lastMvP",face,dir);   // 🔤 notación en grande
   move(player,face,dir,150,()=>{ drawNet(); updFaces(); if(!ended && isSolved(player)){ if(state==="practice") practiceDone(); else finish("player"); }
     else if(ended && state==="race" && isSolved(player)){ state="done"; showMsg("✅ ¡Lo terminaste igual! (modo práctica)\n🔄 "+moveCount+" movs","#8fd0ff"); [523,659,784].forEach((f,i)=>setTimeout(()=>snd(f,"triangle",0.2,0.07),i*120)); } }); }
+// ♿🎨 MODO SÍMBOLOS (daltónico): cada color lleva su figura — ● blanco ■ amarillo ▲ rojo ✚ naranja ◆ verde ○ azul
+let symMode=false; try{ symMode=localStorage.getItem("rubik_symbols")==="1"; }catch(e){}
+function drawSym(g,sx,sy,colInt,s){
+  const dark=(colInt===COL.w||colInt===COL.y||colInt===COL.o);
+  g.fillStyle=dark?"rgba(0,0,0,.8)":"rgba(255,255,255,.92)"; g.strokeStyle=g.fillStyle; g.lineWidth=1.6;
+  if(colInt===COL.w){ g.beginPath(); g.arc(sx,sy,s,0,6.28); g.fill(); }
+  else if(colInt===COL.y){ g.fillRect(sx-s,sy-s,s*2,s*2); }
+  else if(colInt===COL.r){ g.beginPath(); g.moveTo(sx,sy-s); g.lineTo(sx+s,sy+s); g.lineTo(sx-s,sy+s); g.closePath(); g.fill(); }
+  else if(colInt===COL.o){ g.fillRect(sx-s,sy-1,s*2,2); g.fillRect(sx-1,sy-s,2,s*2); }
+  else if(colInt===COL.g){ g.save(); g.translate(sx,sy); g.rotate(Math.PI/4); g.fillRect(-s*0.8,-s*0.8,s*1.6,s*1.6); g.restore(); }
+  else if(colInt===COL.b){ g.beginPath(); g.arc(sx,sy,s*0.8,0,6.28); g.stroke(); } }
 // 🗺️ MAPA 2D del cubo (red desplegada en cruz): ves TODAS tus caras sin girar la cámara
 function drawNet(){ const cv=document.getElementById("net"); if(!cv) return; const g=cv.getContext("2d");
   g.clearRect(0,0,cv.width,cv.height);
@@ -257,7 +269,8 @@ function drawNet(){ const cv=document.getElementById("net"); if(!cv) return; con
     for(let r=0;r<3;r++) for(let c2=0;c2<3;c2++){ const [px,py,pz]=posf(r,c2);
       const cub=player.cubies.find(cb=>Math.round(cb.position.x)===px&&Math.round(cb.position.y)===py&&Math.round(cb.position.z)===pz);
       let col=0x333333; if(cub){ const fc=faceColor(cub,dv); if(fc>=0&&fc!==COL.k) col=fc; }
-      g.fillStyle="#"+col.toString(16).padStart(6,"0"); g.fillRect(ox+c2*cell,oy+r*cell,cell-1,cell-1); } } }
+      g.fillStyle="#"+col.toString(16).padStart(6,"0"); g.fillRect(ox+c2*cell,oy+r*cell,cell-1,cell-1);
+      if(symMode && col!==0x333333) drawSym(g,ox+c2*cell+(cell-1)/2,oy+r*cell+(cell-1)/2,col,3.1); } } }
 // 🔤 muestra la NOTACIÓN del último giro (flash grande que se desvanece)
 function showMv(id,face,dir){ const el=document.getElementById(id); if(!el) return;
   el.style.transition="none"; el.style.opacity="1"; el.textContent=face+(dir<0?"'":"");
@@ -353,11 +366,17 @@ const movesDiv=document.getElementById("moves");
 const FACE_COLORS={U:"#f6f6f6",D:"#ffe100",R:"#d11e1e",L:"#ff8000",F:"#1ea81e",B:"#1e5ad1"};
 // 🎵 cada cara tiene su NOTA (Do-Re-Mi-Fa-Sol-La): el cubo suena como un instrumento
 const FACE_NOTES={U:523,D:587,R:659,L:698,F:784,B:880};
+const SYM_CHAR={U:"●",D:"■",R:"▲",L:"✚",F:"◆",B:"○"}; const mvBtns=[];
 FACE_LIST.forEach(face=>{
   [["",1],["'",-1]].forEach(([suf,dir])=>{ const b=document.createElement("button"); b.className="mv"; b.textContent=face+suf;
     b.style.borderColor=FACE_COLORS[face]; b.style.boxShadow="inset 0 -3px 0 "+FACE_COLORS[face];
-    b.onclick=()=>playerMove(face,dir); movesDiv.appendChild(b); });
+    b.onclick=()=>playerMove(face,dir); movesDiv.appendChild(b); mvBtns.push({b,face,suf}); });
 });
+// ♿🎨 alternar modo símbolos (persistente)
+function updSymUI(){ const sb=document.getElementById("introSym"); if(sb) sb.textContent="🎨 MODO SÍMBOLOS: "+(symMode?"SÍ ✔":"NO");
+  mvBtns.forEach(o2=>{ o2.b.textContent=o2.face+o2.suf+(symMode?" "+SYM_CHAR[o2.face]:""); }); drawNet(); }
+document.getElementById("introSym").onclick=()=>{ symMode=!symMode; try{ localStorage.setItem("rubik_symbols",symMode?"1":"0"); }catch(e){} updSymUI(); snd(symMode?880:440,"triangle",0.12,0.06); };
+updSymUI();
 document.getElementById("startBtn").onclick=startRace;
 document.getElementById("listoBtn").onclick=tryListo;
 document.getElementById("undoBtn").onclick=undoMove;
