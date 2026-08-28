@@ -5651,7 +5651,7 @@ const F1={
     this.resize(); window.addEventListener("resize",this._rs=()=>this.resize());
     this.best=+(localStorage.getItem("edtu_f1_best")||0);
     $("f1Overlay").style.display="flex"; $("f1Msg").textContent="🏎️ F1 RB RUSH";
-    $("f1Result").innerHTML="Vista Need for Speed · ←→ o A/D conducir · 🔥 NITRO: espacio / Y / RT / botón · franjas verdes = DRS<br>⏸ <b>P</b> pausa · ↵ <b>Enter</b> correr otra vez · 📯 <b>H</b> claxon (¡los rivales se apartan!) · ¡Cuidado con las CURVAS ⚠️, el pasto y las 🏍️ motos!<br>🌧️ lluvia · 🌙 día y noche · 🚇 túneles · 🛸 zepelín · 🤖 WALLY saluda cada 1500 m · ⚡ combo de adelantamientos<br>🏆 Récord: <b>"+Math.round(this.best)+"</b> m<br>🎖️ "+this.medals()+(function(){ try{ return localStorage.getItem("edtu_f1_ghost")?"<br>👻 el FANTASMA de tu récord te espera en la pista... ¡véncelo!":""; }catch(e){ return ""; } })();
+    $("f1Result").innerHTML="Vista Need for Speed · ←→ o A/D conducir · 🔥 NITRO: espacio / Y / RT / botón · franjas verdes = DRS<br>⏸ <b>P</b> pausa · ↵ <b>Enter</b> correr otra vez · 📯 <b>H</b> claxon (¡los rivales se apartan!) · ¡Cuidado con las CURVAS ⚠️, el pasto y las 🏍️ motos!<br>🌧️ lluvia · 🌙 día y noche · 🚇 túneles · 🛸 zepelín · 🤖 WALLY saluda cada 1500 m · ⚡ combo de adelantamientos<br>🏆 Récord: <b>"+Math.round(this.best)+"</b> m<br>🎖️ "+this.medals()+(function(){ try{ return localStorage.getItem("edtu_f1_ghost")?"<br>👻 el FANTASMA de tu récord te espera en la pista... ¡véncelo!":""; }catch(e){ return ""; } })()+(function(){ try{ const w=parseInt(localStorage.getItem("edtu_f1_kondor_w")||"0",10)||0, l=parseInt(localStorage.getItem("edtu_f1_kondor_l")||"0",10)||0; return (w||l)?"<br>⚔️ vs 🦅 KÓNDOR: <b>"+w+"-"+l+"</b>":""; }catch(e){ return ""; } })();
     this.draw();
   },
   close(){
@@ -5672,6 +5672,7 @@ const F1={
     this.pickups=[]; this._nextPick=400;   // ⚡ recargas de nitro en pista
     this._ovCombo=0; this._ovT=0; this._ovMsgT=0; this._ovMax=0;   // 🔥 combo de adelantamientos
     this._raceT=0; this._secStart=0; this._nextSec=2000; this._secMsg=""; this._secMsgT=0; this._secGreen=false;   // ⏱️ sectores de 2000 m
+    this._kSpawned=false; this._kDone=false; this._kBeat=false; this._kBanT=0; this._kBanTxt="";   // 🦅 rival KÓNDOR
     this.paused=false;   // ⏸
     this._recPassed=false;   // 🏆 marcador de récord en la pista
     this._nearN=0; this._nearT=0;   // 😅 casi-choques
@@ -5759,6 +5760,11 @@ const F1={
     this._wRain+=((this._wRainOn?1:0)-this._wRain)*Math.min(1,dt*0.8);
     this.rainSndUpd();   // 🌧️ sonido de lluvia sigue la intensidad
     if(this._hornCd>0) this._hornCd-=dt;   // 📯
+    // 🦅 KÓNDOR: el rival con nombre — aparece UNA vez por carrera a los 1500 m, 200 m por delante
+    if(!this._kSpawned && this.dist>=1500){ this._kSpawned=true;
+      this.cars.push({ x:[-0.66,-0.22,0.22,0.66][Math.floor(Math.random()*4)], z:this.dist+200, v:Math.max(22,this.speed/3.6-1.2), col:["#0d0d12","#ffd12e"], moto:false, kondor:true });
+      this._kBanTxt="🦅 ¡KÓNDOR EN PISTA! 200 m adelante — ¡atrápalo!"; this._kBanT=3;
+      try{ const a=this.actx(); if(a){ [220,330,220].forEach((fq,i)=>{ const o=a.createOscillator(),g=a.createGain(); o.type="sawtooth"; o.frequency.value=fq; g.gain.value=0.07; o.connect(g); g.connect(a.destination); o.start(a.currentTime+i*0.14); o.stop(a.currentTime+i*0.14+0.16); }); } }catch(e){} }
     // ⏱️ SECTORES: reloj de carrera y cronómetro cada 2000 m contra tu mejor sector histórico
     if(this.cdT<=0 && !this.paused) this._raceT+=dt;
     if(this.dist>=this._nextSec){ const st=this._raceT-this._secStart; this._secStart=this._raceT; this._nextSec+=2000;
@@ -5844,7 +5850,12 @@ const F1={
             for(let j=0;j<d2.length;j++) d2[j]=(Math.random()*2-1)*(1-j/d2.length);
             const fl2=a.createBiquadFilter(); fl2.type="bandpass"; fl2.frequency.value=1400; const g2=a.createGain(); g2.gain.value=.14;
             n.buffer=buf; n.connect(fl2); fl2.connect(g2); g2.connect(a.destination); n.start(); } }catch(e){} } }
-      if(c.z<this.dist-12){ this.cars.splice(i,1); this.overt++;
+      if(c.z<this.dist-12){
+        if(c.kondor && !this._kDone){ this._kDone=true; this._kBeat=true; this._kBanTxt="⚔️ ¡VENCISTE A KÓNDOR!"; this._kBanT=3.4;
+          try{ localStorage.setItem("edtu_f1_kondor_w",String((parseInt(localStorage.getItem("edtu_f1_kondor_w")||"0",10)||0)+1)); }catch(e){}
+          try{ const a=this.actx(); if(a){ [523,659,784,1047].forEach((fq,j)=>{ const o=a.createOscillator(),g=a.createGain(); o.type="triangle"; o.frequency.value=fq; g.gain.value=0.09; o.connect(g); g.connect(a.destination); o.start(a.currentTime+j*0.11); o.stop(a.currentTime+j*0.11+0.15); }); } }catch(e){}
+          try{ if(navigator.vibrate) navigator.vibrate([0,60,40,60,40,160]); }catch(e){} }
+        this.cars.splice(i,1); this.overt++;
         // 🔥 racha de adelantamientos: varios en <5s arman combo con tono ascendente
         this._ovCombo=(this._ovT>0)?this._ovCombo+1:1; this._ovT=5; if(this._ovCombo>(this._ovMax||0)) this._ovMax=this._ovCombo;
         if(this._ovCombo>=2){ this._ovMsgT=1;
@@ -5852,7 +5863,10 @@ const F1={
             o.connect(g); g.connect(a.destination); o.start(); g.gain.setValueAtTime(.06,a.currentTime);
             g.gain.exponentialRampToValueAtTime(0.0001,a.currentTime+0.14); o.stop(a.currentTime+0.15); } }catch(e){} }
         continue; }
-      if(c.z>this.dist+600){ this.cars.splice(i,1); continue; }
+      if(c.z>this.dist+600){
+        if(c.kondor && !this._kDone){ this._kDone=true; this._kBanTxt="🦅 KÓNDOR se escapó... revancha en la próxima"; this._kBanT=3;
+          try{ localStorage.setItem("edtu_f1_kondor_l",String((parseInt(localStorage.getItem("edtu_f1_kondor_l")||"0",10)||0)+1)); }catch(e){} }
+        this.cars.splice(i,1); continue; }
       if(Math.abs(c.z-this.dist)<4.4 && Math.abs(c.x-this.x)<(c.moto?0.24:0.36)) return this.crash();
     }
     if(this.shake>0) this.shake=Math.max(0,this.shake-dt*22);
@@ -5862,6 +5876,7 @@ const F1={
   },
   crash(){
     try{ if(navigator.vibrate) navigator.vibrate([0,120,60,180]); }catch(e){}   // 📳 golpe de choque
+    if(this._kSpawned && !this._kDone){ this._kDone=true; try{ localStorage.setItem("edtu_f1_kondor_l",String((parseInt(localStorage.getItem("edtu_f1_kondor_l")||"0",10)||0)+1)); }catch(e){} }   // 🦅 chocaste sin pasarlo: punto para KÓNDOR
     this.crashSound(); this.engineOff(); this.rainSndOff(); this.running=false;
     if(navigator.vibrate){ try{ navigator.vibrate([120,60,180]); }catch(e){} }
     const m=Math.round(this.dist), rec=m>this.best;
@@ -6113,6 +6128,7 @@ const F1={
       const sx=p.roadX + car.x*p.rw;
       if(car.moto) this.drawMotoBack(c,sx,p.y,Math.max(14,p.pers*W*0.2),car.col);
       else this.drawCarBack(c,sx,p.y,Math.max(14,p.pers*W*0.2),car.col,false);
+      if(car.kondor){ c.fillStyle="#ffd12e"; c.font="900 "+Math.max(10,Math.round(p.pers*18))+"px Consolas,monospace"; c.textAlign="center"; c.fillText("KÓNDOR",sx,p.y-p.pers*W*0.17); }   // 🦅 etiqueta del rival
     });
     // TU auto (cámara detrás): se inclina al doblar
     const px=W/2 + this.steer*14, py=H*0.86;
@@ -6145,6 +6161,9 @@ const F1={
     if(this._secMsgT>0){ this._secMsgT-=0.016; const sA=Math.min(1,this._secMsgT*1.4).toFixed(2);
       c.fillStyle=this._secGreen?("rgba(57,255,20,"+sA+")"):("rgba(200,220,255,"+sA+")");
       c.font="900 "+Math.min(26,W*0.042)+"px system-ui,sans-serif"; c.textAlign="center"; c.fillText(this._secMsg,W/2,H*0.5); }
+    // 🦅 cartel de KÓNDOR (dorado)
+    if(this._kBanT>0){ this._kBanT-=0.016; c.fillStyle="rgba(255,209,46,"+Math.min(1,this._kBanT*1.4).toFixed(2)+")";
+      c.font="900 "+Math.min(28,W*0.046)+"px system-ui,sans-serif"; c.textAlign="center"; c.fillText(this._kBanTxt,W/2,H*0.44); }
     // 🌙 de NOCHE todo se oscurece y tus FAROS iluminan la pista adelante
     if(nightF>0.05){ c.fillStyle="rgba(4,8,20,"+(nightF*0.38).toFixed(3)+")"; c.fillRect(-8,hor,W+16,H-hor+8);
       const hg=c.createRadialGradient(W/2,H*0.62,20,W/2,H*0.62,W*0.45);
