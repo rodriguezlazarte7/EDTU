@@ -5650,6 +5650,7 @@ const F1={
     this.paused=false;   // ⏸
     this._recPassed=false;   // 🏆 marcador de récord en la pista
     this._nearN=0; this._nearT=0;   // 😅 casi-choques
+    this._touchX=null; this._cheered=-1; this._wallyBeeped=-1; this._curveWarn=-1;   // 🐛FIX ronda2: resetear one-shots y dirección táctil entre carreras
     $("f1Overlay").style.display="none";
     this.engineOn();
     if(!this.raf){ const f=t=>{ if(!this.running){ this.raf=null; return; } try{ this.tick(t); }catch(e){} this.raf=requestAnimationFrame(f); }; this.raf=requestAnimationFrame(f); }
@@ -5778,7 +5779,8 @@ const F1={
       const c=this.cars[i]; c.z+=c.v*dt;
       // 😅 CASI-CHOQUE: lo pasaste rozando — whoosh + cartel + cuenta
       if(!c.passed && c.z<this.dist+1){ c.passed=true; const gap=Math.abs(c.x-this.x);
-        if(Math.abs(c.z-this.dist)<6 && gap>=0.36 && gap<0.56){ this._nearN++; this._nearT=0.9;
+        const nmLo=c.moto?0.24:0.36;   // 🐛FIX ronda2: las motos tienen hitbox más angosta — su casi-choque también
+        if(Math.abs(c.z-this.dist)<6 && gap>=nmLo && gap<nmLo+0.2){ this._nearN++; this._nearT=0.9;
           try{ const a=this.actx(); if(a){ const n=a.createBufferSource(), buf=a.createBuffer(1,a.sampleRate*0.18,a.sampleRate), d2=buf.getChannelData(0);
             for(let j=0;j<d2.length;j++) d2[j]=(Math.random()*2-1)*(1-j/d2.length);
             const fl2=a.createBiquadFilter(); fl2.type="bandpass"; fl2.frequency.value=1400; const g2=a.createGain(); g2.gain.value=.14;
@@ -5959,7 +5961,7 @@ const F1={
           c.fillText(ADS[idx%ADS.length],bx2,py2-bh3*1.83); } } }
     // 🏟️ TRIBUNA con PÚBLICO: cada ~700 m una grada llena de hinchas de colores que SALTAN; al pasar, OVACIÓN
     { const zT=Math.floor(this.dist/700)*700+520, relT=zT-this.dist;
-      if(relT>0&&relT<520){ const pt3=this.proj(zT);
+      if(relT>0&&relT<520 && !(zT>tCand-40&&zT<tCand+300)){ const pt3=this.proj(zT);   // 🐛FIX ronda2: tribunas fuera de los túneles
         if(pt3.y>hor&&pt3.y<H+20&&pt3.pers>0.06){ const gw=pt3.pers*W*0.3, gh=gw*0.34, gx3=pt3.roadX+pt3.rw*1.75, gy3=pt3.y;
           c.fillStyle="#3a3f4a"; c.fillRect(gx3-gw/2,gy3-gh,gw,gh);
           c.fillStyle="#23272e"; c.fillRect(gx3-gw/2,gy3-gh*1.12,gw,gh*0.14);
@@ -5974,7 +5976,7 @@ const F1={
             const g2=a.createGain(); g2.gain.value=.16; n.buffer=buf; n.connect(fl2); fl2.connect(g2); g2.connect(a.destination); n.start(); } }catch(e){} } } }
     // 🤖 WALLY ESPECTADOR: cada ~1.5 km saluda desde el costado con sus balizas y el brazo arriba
     { const zW2=Math.floor(this.dist/1500)*1500+1120, relW=zW2-this.dist;
-      if(relW>0&&relW<520){ const pw3=this.proj(zW2);
+      if(relW>0&&relW<520 && !(zW2>tCand-40&&zW2<tCand+300)){ const pw3=this.proj(zW2);   // 🐛FIX ronda2: WALLY no saluda dentro del túnel
         if(pw3.y>hor&&pw3.y<H+20&&pw3.pers>0.06){ const s3=pw3.pers*W*0.09, wx3=pw3.roadX-pw3.rw*1.45, wy3=pw3.y;
           const blink=Math.sin(performance.now()*0.007)>0;
           c.fillStyle="#3468d0"; c.fillRect(wx3-s3*0.45,wy3-s3*1.0,s3*0.9,s3*0.62);
@@ -5992,7 +5994,7 @@ const F1={
             g.gain.exponentialRampToValueAtTime(0.0001,st+0.12); o.stop(st+0.13); }); } }catch(e){} } } }
     // 🏁 ARCO DE META cada 1000 m: pilares rojos + banner cuadriculado con el km
     const nextKm=Math.ceil((this.dist+1)/1000)*1000, relKm=nextKm-this.dist;
-    if(relKm<560){ const pk=this.proj(nextKm);
+    if(relKm<560 && !(nextKm>tCand-40&&nextKm<tCand+300)){ const pk=this.proj(nextKm);   // 🐛FIX ronda2: no dibujar el arco dentro del túnel
       if(pk.y>hor&&pk.y<H+30&&pk.pers>0.05){ const ph=pk.pers*W*0.34, pw=Math.max(2,pk.pers*W*0.028), bh=Math.max(3,pk.pers*W*0.075);
         const xL=pk.roadX-pk.rw*1.18, xR=pk.roadX+pk.rw*1.18, by=pk.y-ph, bwid=xR-xL;
         c.fillStyle="#c8102e"; c.fillRect(xL-pw/2,by,pw,ph); c.fillRect(xR-pw/2,by,pw,ph);
@@ -6003,7 +6005,7 @@ const F1={
       } }
     // 🏆 META DORADA de tu récord: parada en la pista justo donde llegaste la mejor vez
     if(!this._recPassed && this.best>0){ const relRec=this.best-this.dist;
-      if(relRec>0 && relRec<560){ const pr=this.proj(this.best);
+      if(relRec>0 && relRec<560 && !(this.best>tCand-40&&this.best<tCand+300)){ const pr=this.proj(this.best);   // 🐛FIX ronda2: la meta dorada no se mete al túnel
         if(pr.y>hor&&pr.y<H+30&&pr.pers>0.05){ const ph2=pr.pers*W*0.3, pw2=Math.max(2,pr.pers*W*0.022);
           const xL2=pr.roadX-pr.rw*1.1, xR2=pr.roadX+pr.rw*1.1, by2=pr.y-ph2;
           c.fillStyle="#ffd12e"; c.fillRect(xL2-pw2/2,by2,pw2,ph2); c.fillRect(xR2-pw2/2,by2,pw2,ph2);
@@ -6549,9 +6551,10 @@ $("f1Close").onclick=()=>F1.close();
 $("f1Start").onclick=()=>F1.start();
 (function(){ const b=$("f1Nitro"), on=e=>{ e.preventDefault(); F1._btnNitro=true; }, off=()=>{ F1._btnNitro=false; };
   b.addEventListener("pointerdown",on); b.addEventListener("pointerup",off); b.addEventListener("pointercancel",off); b.addEventListener("pointerleave",off); })();
-$("f1Canvas").addEventListener("pointerdown",e=>{ F1._touchX=e.clientX; });
+$("f1Canvas").addEventListener("pointerdown",e=>{ F1._touchX=e.clientX; try{ e.target.setPointerCapture(e.pointerId); }catch(_){} });   // 🐛FIX ronda2: captura el puntero para no perder el pointerup fuera del canvas
 $("f1Canvas").addEventListener("pointermove",e=>{ if(e.buttons||e.pressure>0) F1._touchX=e.clientX; });
 $("f1Canvas").addEventListener("pointerup",()=>{ F1._touchX=null; });
+$("f1Canvas").addEventListener("pointercancel",()=>{ F1._touchX=null; });   // 🐛FIX ronda2: un touch cancelado dejaba la dirección "pegada" para siempre
 document.addEventListener("keydown",e=>{ if(!$("f1Fs").classList.contains("open")) return; F1.keys[e.key]=true; if(e.key===" ") e.preventDefault(); if(e.key==="Escape") F1.close();
   // ⏸ pausa de carrera con P (motor incluido)
   if((e.key==="p"||e.key==="P") && F1.running && F1.cdT<=0){ F1.paused=!F1.paused; if(F1.paused) F1.engineOff(); else F1.engineOn(); } });

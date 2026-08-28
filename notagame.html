@@ -575,6 +575,7 @@ function openDrawer(d){
   document.getElementById("clues").textContent=cluesGot; [523,659,784].forEach((fq,k)=>setTimeout(()=>snd(fq,"triangle",0.2,0.08),k*100)); snd(300,"square",0.12,0.06);   // 🎵 acorde de pista
   showStory(d.note + (cluesGot<7 ? "   ·   📜 te faltan "+(7-cluesGot)+" pista"+(7-cluesGot>1?"s":"") : ""));
   if(cluesGot>=7){
+    running=false;   // 🐛FIX ronda2: durante la cinemática el juego queda CONGELADO (antes un zombie podía "matarte" en plena victoria y los fundidos chocaban)
     // 🎬 CIERRE DEL CASO con drama: fanfarria + narrador + fundido blanco antes de la pantalla final
     [392,523,659,784,1047].forEach((fq,k)=>setTimeout(()=>snd(fq,"triangle",0.25,0.09),k*130));
     narrate("La última pista. El caso está cerrado, agente.");
@@ -620,7 +621,7 @@ function updShieldHUD(){ const w=document.getElementById("hpwrap"); if(!w) retur
 
 // ---------- input ----------
 const keys={};
-addEventListener("keydown",e=>{ keys[e.code]=true; if(e.code==="Space"&&P.onGround&&running){P.vy=6.2;P.onGround=false;} if(e.code==="KeyE"&&running){ tryDrawer(); petDog(); talkWallyN(); }
+addEventListener("keydown",e=>{ keys[e.code]=true; if(e.code==="Space"&&P.onGround&&running&&!nPaused){P.vy=6.2;P.onGround=false;} if(e.code==="KeyE"&&running&&!nPaused){ tryDrawer(); petDog(); talkWallyN(); }   // 🐛FIX ronda2: en pausa no se salta ni se abren cajones
   if(e.code==="KeyP"&&running&&!gameOver){ nPaused=!nPaused; const po=document.getElementById("nPauseOv"); if(po) po.style.display=nPaused?"flex":"none"; snd(nPaused?300:600,"square",0.08,0.06); } });
 addEventListener("keyup",e=>{ keys[e.code]=false; });
 document.addEventListener("pointerlockchange",()=>{
@@ -669,7 +670,7 @@ function howlSnd(){ try{ AC=AC||new (window.AudioContext||window.webkitAudioCont
   o.connect(g); g.connect(AC.destination); o.start(t0); o.stop(t0+1.6); }catch(e){} }
 
 function shoot(){
-  if(!running||gameOver||shootCd>0) return; shootCd=(heliMode?0.07:0.18)*(rapidT>0?0.5:1);   // metralla en el heli · ⚡ el doble de rápido con el power-up
+  if(!running||gameOver||nPaused||shootCd>0) return; shootCd=(heliMode?0.07:0.18)*(rapidT>0?0.5:1);   // metralla en el heli · ⚡ el doble de rápido con el power-up (🐛FIX ronda2: no se dispara en pausa)
   muzzle=0.07; snd(210,"square",0.08,0.12); snd(90,"sawtooth",0.14,0.1);
   const fwd=new THREE.Vector3(); camera.getWorldDirection(fwd);
   const origin=new THREE.Vector3(P.x,P.y-0.15,P.z);
@@ -731,6 +732,7 @@ function startGame(){
   rapidT=0; tracer.material.color.setHex(0xffe066); rapidDrops.forEach(r2=>scene.remove(r2.m)); rapidDrops.length=0;   // ⚡ reset
   hordeT=90+Math.random()*70; hordeOn=0;   // 🚨 reset horda
   nPaused=false; const po4=document.getElementById("nPauseOv"); if(po4) po4.style.display="none";   // ⏸ reset pausa
+  bloodMoon=false; lastDayF=0; dawnFog=0;   // 🐛FIX ronda2: la luna de sangre y la niebla se filtraban a la partida nueva
   shield=false; updShieldHUD(); shieldDrops.forEach(s2=>scene.remove(s2.m)); shieldDrops.length=0;
   if(boss){ scene.remove(boss.grp); boss=null; } bossAt=25;
   document.getElementById("kills").textContent="0"; document.getElementById("clues").textContent="0";

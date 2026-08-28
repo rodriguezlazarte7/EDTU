@@ -171,6 +171,7 @@ function startRace(){
   if(state==="count") return;   // ya hay una cuenta corriendo
   document.getElementById("intro").classList.add("hide");
   aiGen++;   // 🐛FIX: invalida cualquier cadena aiStep en vuelo de la carrera anterior
+  aiWinT=0; camA.position.set(1000+5,5,7); camA.lookAt(1000,0,0);   // 🐛FIX ronda2: la vuelta de la victoria de la IA invadía la cuenta regresiva de la revancha
   clearTimeout(aiTimer); ended=false; state="count"; moveCount=0; document.getElementById("mvs").textContent="🔄 0";
   undoStack.length=0; document.getElementById("timer").textContent="0.0s";
   // ⏱️ CUENTA REGRESIVA estilo F1: 3.. 2.. 1.. ¡YA! y recién ahí se revuelve y parte la IA
@@ -224,7 +225,8 @@ function showMv(id,face,dir){ const el=document.getElementById(id); if(!el) retu
 const undoStack=[];
 function undoMove(){ if(state!=="race"||player.busy||!undoStack.length) return; const m=undoStack.pop();
   moveCount++; document.getElementById("mvs").textContent="🔄 "+moveCount; snd(240,"square",0.06,0.05);
-  move(player,m.face,-m.dir,150,()=>{ drawNet(); updFaces(); if(!ended && isSolved(player)) finish("player"); }); }
+  move(player,m.face,-m.dir,150,()=>{ drawNet(); updFaces(); if(!ended && isSolved(player)) finish("player");
+    else if(ended && state==="race" && isSolved(player)){ state="done"; showMsg("✅ ¡Lo terminaste igual! (modo práctica)\n🔄 "+moveCount+" movs","#8fd0ff"); [523,659,784].forEach((f,i)=>setTimeout(()=>snd(f,"triangle",0.2,0.07),i*120)); } }); }   // 🐛FIX ronda2: resolver con DESHACER en modo práctica quedaba mudo
 
 // 🏆 victorias contra la IA (localStorage)
 function loadRW(){ try{ return parseInt(localStorage.getItem("rubik_wins")||"0",10)||0; }catch(e){ return 0; } }
@@ -265,7 +267,7 @@ function finish(who){
     const tf=parseFloat(t), bt=loadBT(diff), isBT=!bt||tf<bt; if(isBT) saveBT(diff,tf);   // ⏱️ ¿nuevo mejor tiempo?
     const bm=loadBM(diff), isBM=!bm||moveCount<bm; if(isBM) saveBM(diff,moveCount);   // 🔄 ¿menos movimientos que nunca?
     const stk=loadStreak()+1; saveStreak(stk);   // 👑 sigue la racha
-    if(diff==="imposible") setTimeout(()=>aiSay("¡¿Qué?! ¡Nadie me había ganado en imposible! Eres una leyenda."),1500);   // 💀 shock de la IA
+    if(diff==="imposible") setTimeout(()=>{ try{ if(window.speechSynthesis){ const u2=new SpeechSynthesisUtterance("¡¿Qué?! ¡Nadie me había ganado en imposible! Eres una leyenda."); u2.lang="es-ES"; u2.pitch=1.6; u2.rate=1.15; u2.volume=0.8; speechSynthesis.speak(u2); } }catch(e){} },1500);   // 💀 shock de la IA (🐛FIX ronda2: sin cancel(), se ENCOLA tras la celebración en vez de cortarla a mitad de frase)
     showMsg("🎉 ¡GANASTE!\n"+t+"s · 🔄 "+moveCount+" movs · 🏆 victorias: "+loadRW()+(stk>=2?"\n👑 ¡"+stk+" victorias SEGUIDAS!":"")+(isBT?"\n⏱️ ¡MEJOR TIEMPO en "+diff+"!":"\n⏱️ Tu mejor: "+bt.toFixed(1)+"s")+(isBM?"\n🔄 ¡MENOS MOVIMIENTOS QUE NUNCA!":"\n🔄 Récord movs: "+bm),"#39ff14");
     buildDiffs(document.getElementById("diffs")); buildDiffs(document.getElementById("introDiffs"));
     [523,659,784,1047].forEach((f,i)=>setTimeout(()=>snd(f,"triangle",0.25,0.09),i*130));   // 🎺 fanfarria
@@ -304,7 +306,7 @@ addEventListener("keydown",e=>{ const k=e.key.toUpperCase();
   if(FACES[k] && !e.repeat) playerMove(k, e.shiftKey?-1:1); });
 document.getElementById("introStart").onclick=startRace; updRW();
 // selector de dificultad (arriba y en el intro)
-function buildDiffs(container){ container.innerHTML=""; [["facil","🟢 Fácil"],["medio","🟡 Medio"],["dificil","🔴 Difícil"],["imposible","💀 Imposible"]].forEach(([k,lbl])=>{ const b=document.createElement("button"); b.className="diff"+(diff===k?" sel":""); const bt=loadBT(k); b.textContent=lbl+(bt?" ⏱️"+bt.toFixed(1)+"s":""); b.onclick=()=>{ diff=k; buildDiffs(document.getElementById("diffs")); buildDiffs(document.getElementById("introDiffs")); }; container.appendChild(b); }); }
+function buildDiffs(container){ container.innerHTML=""; [["facil","🟢 Fácil"],["medio","🟡 Medio"],["dificil","🔴 Difícil"],["imposible","💀 Imposible"]].forEach(([k,lbl])=>{ const b=document.createElement("button"); b.className="diff"+(diff===k?" sel":""); const bt=loadBT(k); b.textContent=lbl+(bt?" ⏱️"+bt.toFixed(1)+"s":""); b.onclick=()=>{ if(state==="race"||state==="count") return; diff=k; buildDiffs(document.getElementById("diffs")); buildDiffs(document.getElementById("introDiffs")); }; container.appendChild(b); }); }   // 🐛FIX ronda2: cambiar dificultad EN PLENA carrera alteraba la IA y guardaba récords falsos
 buildDiffs(document.getElementById("diffs")); buildDiffs(document.getElementById("introDiffs"));
 
 // ---- orbitar la vista del jugador ----

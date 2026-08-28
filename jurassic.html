@@ -841,7 +841,7 @@ function update(dt){
   $("flF").style.width=flashBatt+"%"; $("flTxt").textContent="🔦 LINTERNA "+Math.round(flashBatt)+"%";
   $("clock").textContent="DÍA "+Math.min(day,7)+" — "+String(hh).padStart(2,"0")+":"+String(mm).padStart(2,"0")+(isNight?" 🌙":" ☀️");
   // radio intermitente (una vez por día aprox)
-  if(day!==lastRadio){ lastRadio=day; if(day>1){ const msg=radioMsgs[(day-2)%radioMsgs.length]; showStory("📻 "+msg); radioSay(msg); }
+  if(day!==lastRadio){ lastRadio=day; if(day>1 && day<=7){ const msg=radioMsgs[(day-2)%radioMsgs.length]; showStory("📻 "+msg); radioSay(msg); }   // 🐛FIX ronda2: al llegar al "día 8" (victoria) sonaba un mensaje de radio espurio sobre la pantalla de rescate
     const dtl=$("dayTitle"); if(dtl && day<=7){ dtl.textContent=day===7?"⚠ DÍA 7 — ÚLTIMO DÍA":"DÍA "+day; dtl.classList.add("on"); clearTimeout(dtl._t); dtl._t=setTimeout(()=>dtl.classList.remove("on"),day===7?2600:1400);
       if(day===7){ [523,494,466,440].forEach((fq,k)=>setTimeout(()=>snd(fq,"sawtooth",0.3,0.08),k*220));   // ⚠ tensión descendente
         setTimeout(()=>radioSay("Último día. El equipo de rescate está en camino. Resiste hasta el final."),1800); }
@@ -938,7 +938,7 @@ function update(dt){
 
   // HUD barras
   $("hpF").style.width=hp+"%"; $("huF").style.width=hunger+"%"; $("thF").style.width=thirst+"%";
-  $("hurt").style.boxShadow="inset 0 0 120px 30px rgba(180,10,30,"+(danger?0.35:0)+(hp<30?0.3:0)+")";
+  $("hurt").style.boxShadow="inset 0 0 120px 30px rgba(180,10,30,"+((danger?0.35:0)+(hp<30?0.3:0))+")";   // 🐛FIX ronda2: era concatenación de strings ("0.350.3" = CSS inválido) y el aviso rojo fallaba justo en el peor momento
   drawJRadar();
   // 🧭 flecha a la TORRE DE RADIO cuando tienes las 3 baterías (y aún no enciendes la radio)
   { const tr=$("toRadio");

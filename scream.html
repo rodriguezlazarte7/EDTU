@@ -274,7 +274,7 @@ const NOTE_SPOTS=[
  {f:5,x:-HH+16,z:-HH+16,h:"DÍA 32",t:"Se vuelve invisible por rachas. Solo el visor térmico la detecta. NO uses la linterna si no quieres que te encuentre."},
  {f:6,x:0,z:HH-16,h:"ÚLTIMO REGISTRO",t:"La máquina de la zona segura es la única salida. Si lees esto... corre. Y no dejes que te encuentre."}
 ];
-const valves=[], samples=[], notes=[]; let valvesGot=0, samplesGot=0, notesGot=0, craftT=0, timeLeft=1200, won=false, allAnn=false;
+const valves=[], samples=[], notes=[]; let valvesGot=0, samplesGot=0, notesGot=0, craftT=0, timeLeft=1200, won=false, allAnn=false, clockBonus=0;
 const glassZones=[]; let glassWarned=false;   // 🍾 vidrios rotos
 // 🪳 CUCARACHAS (pool de 6): salen disparadas de los cadáveres cuando te acercas
 const roaches=[]; const roachM=new THREE.MeshStandardMaterial({color:0x2a1c10,roughness:.8});
@@ -724,7 +724,7 @@ function start(){ $("start").classList.add("hide"); $("end").classList.add("hide
   P.x=0; P.z=HH-7; yaw=Math.PI; pitch=0; running=true; gameOver=false; tPrev=performance.now(); flashOn=true; curFloor=0; floorCd=0;
   if(nvOn) toggleNV();
   const D=DIFFS[diff]; hpMax=D.hp; invDur=D.inv; ambushInt=D.amb; gameTime=D.time;
-  spiderDead=false; valvesGot=0; samplesGot=0; craftT=0; timeLeft=gameTime; won=false; hbT=0; spiderFloor=0; allAnn=false;
+  spiderDead=false; valvesGot=0; samplesGot=0; craftT=0; timeLeft=gameTime; won=false; hbT=0; spiderFloor=0; allAnn=false; clockBonus=0;
   statFloors.clear(); statFlares=0; statDist=0; lastPX=null;   // 📊 estadísticas desde cero
   manqF=Math.floor(Math.random()*FLOORS); placeManq(false); manqT=6; manqMoveT=25; manqSting=false;   // 🧍 maniquí nuevo
   phoneActive=false; phoneT=35+Math.random()*35; placePhone();   // 📞 teléfono nuevo
@@ -750,7 +750,7 @@ function start(){ $("start").classList.add("hide"); $("end").classList.add("hide
 function endGame(win,info){ running=false; gameOver=true; sprintHeld=false; $("lowhp").classList.remove("on"); try{document.exitPointerLock();}catch(e){} $("touch").classList.remove("on"); $("touch").classList.add("hide"); $("tflash").classList.add("hide"); $("tnv").classList.add("hide"); $("sprint").classList.add("hide"); $("tmap").classList.add("hide"); $("tflare").classList.add("hide"); $("thelp").classList.add("hide"); mapOpen=false; $("map").classList.remove("on"); helpOpen=false; $("help").classList.remove("on");
   const t=$("endTitle"); if(win){ t.textContent="✓ SOBREVIVISTE"; t.className="big win"; } else { t.textContent="✕ TE ATRAPÓ"; t.className="big lose"; }
   // 📊 resumen de la partida
-  const surv=Math.max(0,Math.floor(gameTime-timeLeft)), smm=Math.floor(surv/60), sss=surv%60;
+  const surv=Math.max(0,Math.floor(gameTime+clockBonus-timeLeft)), smm=Math.floor(surv/60), sss=surv%60;
   $("endInfo").innerHTML=info+"<div style='margin-top:10px;font-size:13px;color:#9fb6c9;line-height:1.9'>📊 <b>ESTADÍSTICAS</b><br>⏱ Aguantaste "+smm+":"+String(sss).padStart(2,"0")+" · 🚶 "+Math.round(statDist)+" m recorridos<br>🔧 Válvulas "+valvesGot+"/4 · 🧪 Muestras "+samplesGot+"/3 · 📄 Notas "+notesGot+"/6<br>🏢 Pisos visitados "+statFloors.size+"/7 · 🧨 Bengalas usadas "+statFlares+" · ⏰ Relojes "+clocks.filter(c2=>c2.got).length+"/2</div>";
   snd(win?660:60,win?"triangle":"sawtooth",0.6,0.13);
   if(win){ $("end").classList.remove("hide"); }
@@ -881,7 +881,7 @@ function update(dt){
     ck.grp.rotation.y+=dt*1.5; ck.grp.position.y=ck.f*FLOOR_H+1+Math.sin(now*2.5)*0.15;
     const cd2=Math.hypot(P.x-ck.x,P.z-ck.z);
     if(cd2<14 && Math.random()<dt*1.8) snd(1150,"square",0.03,0.02);
-    if(cd2<1.9){ ck.got=true; ck.grp.visible=false; timeLeft+=60;
+    if(cd2<1.9){ ck.got=true; ck.grp.visible=false; timeLeft+=60; clockBonus+=60;   // 🐛FIX ronda2: el bono se descuenta del tiempo real (los relojes ya no "mejoraban" el récord en falso)
       [659,784,988,1319].forEach((fq,k)=>setTimeout(()=>snd(fq,"triangle",0.16,0.08),k*80));
       showStory("⏰ ¡RELOJ DORADO! +60 segundos"); vib(60); } }
   // ❤️ botiquines: flotan girando; solo se recogen si te falta un corazón
@@ -1087,7 +1087,7 @@ function update(dt){
     if(craftT===0) machineSay("Síntesis de antídoto iniciada. No se aleje de la máquina.");   // 🗣️ voz al empezar
     craftT+=dt; cbar.style.display="block"; cbar.firstElementChild.style.width=Math.min(100,craftT/8*100)+"%";
     if(Math.random()<dt*3) snd(360+Math.random()*300,"square",0.06,0.05);
-    if(craftT>=8){ won=true; running=false; const elapsed=gameTime-timeLeft; let best=loadBest(); const isNew=(best==null||elapsed<best); if(isNew){ best=elapsed; saveBest(best); } addWin();
+    if(craftT>=8){ won=true; running=false; const elapsed=gameTime+clockBonus-timeLeft; let best=loadBest(); const isNew=(best==null||elapsed<best); if(isNew){ best=elapsed; saveBest(best); } addWin();
       const bd=loadBestD(diff), isNewD=(bd==null||elapsed<bd); if(isNewD) saveBestD(diff,elapsed); buildDiffs();   // 🏆 récord de esta dificultad
       try{ localStorage.setItem("scream_win_"+diff,"1"); }catch(e){}   // 🏅 medalla de esta dificultad
       const winMsg="🧪 ¡Fabricaste el ANTÍDOTO y escapaste del hospital de 7 pisos! ✅<br><br>⏱ Tu tiempo: <b>"+fmtT(elapsed)+"</b>"+(isNew?"<br>🏆 ¡NUEVO RÉCORD!":"<br>🏆 Mejor: <b>"+fmtT(best)+"</b>")+(isNewD?"<br>⭐ ¡MEJOR TIEMPO en "+DIFFS[diff].lbl+"!":"<br>⭐ Mejor en "+DIFFS[diff].lbl+": <b>"+fmtT(bd)+"</b>")+"<br>🚁 Escapes totales: <b>"+loadWins()+"</b>";
