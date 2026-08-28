@@ -572,7 +572,14 @@ function openDrawer(d){
   if(d.open) return; d.open=true; cluesGot++;
   document.getElementById("clues").textContent=cluesGot; [523,659,784].forEach((fq,k)=>setTimeout(()=>snd(fq,"triangle",0.2,0.08),k*100)); snd(300,"square",0.12,0.06);   // 🎵 acorde de pista
   showStory(d.note + (cluesGot<7 ? "   ·   📜 te faltan "+(7-cluesGot)+" pista"+(7-cluesGot>1?"s":"") : ""));
-  if(cluesGot>=7) endGame(true);   // caso resuelto al reunir las 7 pistas (los zombies son infinitos)
+  if(cluesGot>=7){
+    // 🎬 CIERRE DEL CASO con drama: fanfarria + narrador + fundido blanco antes de la pantalla final
+    [392,523,659,784,1047].forEach((fq,k)=>setTimeout(()=>snd(fq,"triangle",0.25,0.09),k*130));
+    narrate("La última pista. El caso está cerrado, agente.");
+    try{ if(navigator.vibrate) navigator.vibrate([0,60,40,60,40,140]); }catch(e){}
+    const fd=document.getElementById("fade");
+    setTimeout(()=>{ if(fd){ fd.style.background="#e8f2ff"; fd.style.opacity="0.92"; } },900);
+    setTimeout(()=>{ if(fd){ fd.style.opacity="0"; setTimeout(()=>{ fd.style.background="#000"; },400); } if(!gameOver) endGame(true); },2400); }
 }
 function tryDrawer(){ let best=null,bd=2.4; for(const d of drawers){ if(d.open)continue; const dist=Math.hypot(P.x-d.cx,P.z-d.cz); if(dist<bd){bd=dist;best=d;} } if(best) openDrawer(best); }
 
