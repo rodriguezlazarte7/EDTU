@@ -1,8 +1,8 @@
 # 🛰️ EDTU — Resumen de la sesión autónoma (2026-08-28)
 
-**Bucle de mejora continua mientras David estaba fuera** — dos tandas: la primera (~iter 205 → 302) y, tras el "sigue sin parar" de David, la segunda (iter 303 → 345 y sigue). **343 commits desde el 26/8** (~260 en esta gran sesión), con deploy a Heroku y verificación en vivo en cada paso. **Ningún juego quedó roto en ningún momento** (chequeos de salud cada 10 iteraciones: todos verdes; el último, iter 345, Heroku v1155).
+**Bucle de mejora continua mientras David estaba fuera** — dos tandas: la primera (~iter 205 → 302) y, tras el "sigue sin parar" de David, la segunda y tercera (iter 303 → 359 y sigue). **356 commits desde el 26/8** (~270 en esta gran sesión), con deploy a Heroku y verificación en vivo en cada paso. **Ningún juego quedó roto en ningún momento** (chequeos de salud cada 10 iteraciones: todos verdes; el último, iter 355, Heroku v1172).
 
-**Números actuales**: 🕷️ SCREAM **102** 🏆 · 🦖 JURASSIC **105** 🏆 · 🧟 NOT A GAME **96** · 🏎️ F1 **67** · 🧩 CUBO **57** · dos juegos superaron las 100 features · 345 iteraciones de bucle verificadas sanas · páginas en vivo todas HTTP 200.
+**Números actuales**: 🕷️ SCREAM **104** 🏆 · 🦖 JURASSIC **107** 🏆 · 🧟 NOT A GAME **98** · 🏎️ F1 **70** · 🧩 CUBO **59** · dos juegos superaron las 100 features · 359 iteraciones de bucle verificadas sanas · páginas en vivo todas HTTP 200.
 
 ## 🔍 Auditoría multi-agente (ultracode)
 - 2 rondas con agentes buscadores + verificadores adversarios: **25 hallazgos, 24 bugs reales corregidos** (1 refutado)
@@ -65,6 +65,14 @@
 - 🧩 **CUBO**: 📅 **DESAFÍO DEL DÍA** (la misma revoltura para todos, semilla por fecha; mejor tiempo del día guardado) + **preview de la revoltura** en notación (R U' F…) para compartirla con amigos
 - 🏠 **Menú / Sala de Trofeos**: línea **"Récords de la semana"** (🏎️ m · 🦖 días · 🧟 kills · 🕷️ tiempo, se renuevan cada lunes) · sección **📖 ÚLTIMAS AVENTURAS** con la entrada más reciente de cada diario · WALLY chat: pregúntale por la **"semana"** (te resume los récords y te anima) o por tu **"aventura"/"diario"** (te cuenta las tres últimas)
 - 🩺 Chequeos de salud en 310, 320, 330, 335 y 345: todo verde
+
+## 🆕 Tercera tanda (iter 346-359) — diarios, memoria y desafíos del día
+- 📖 **DIARIOS en los 5 juegos**: 🦖 *Diario del explorador* (peces, cocos, bayas, fogatas, picadas, manada, huevo, heridas) · 🕷️ *Diario del sobreviviente* (apariciones de la araña, mordidas, botiquines, generador, vitrola, ascensor) · 🧟 *Expediente del caso* (kills, pistas, noches, gigantes, gato, Dr. VZ, helicóptero, túnel, lápidas, sirena) · 🏎️ *Diario de carrera* (metros, sectores, pits, DRS, KÓNDOR, clima) · 🧩 *Bitácora de cubero* (dificultad, tiempo, giros, pistas, racha perfecta). Cada juego guarda sus últimas 3 partidas y muestra "Última aventura" en su portada; la Sala de Trofeos las reúne en **📖 ÚLTIMAS AVENTURAS**
+- 🧠 **MEMORIA de la partida anterior en los 5 mundos**: WALLY en la isla y en el edificio te recuerda cómo te fue ("la última vez pescaste 2 peces... ¿hoy superas eso?", "la araña te apareció 5 veces... con la linterna apagada no te encuentra"), el 🐕 perro de NAG lo ladra al acariciarlo, el HUD de F1 te muestra "la última vez: 4210 m — ¡a superarlo!" en la cuenta regresiva, y la 🤖 IA del cubo te provoca con voz ("la última vez te gané en 48s... ¿revancha?"). Y el WALLY presentador de la Sala te saluda con un dato de tu diario
+- 📅 **DESAFÍO DEL DÍA en los 5 juegos** (semilla = fecha, "lo mismo para todos hoy"): 🧩 misma revoltura (con preview en notación para compartir) · 🕷️ mismo edificio (válvulas, muestras, relojes, botiquines, generador, vitrola, WALLY, teléfono, maniquí, crías, araña) · 🦖 misma isla (huevo, objetos, dinos y crías) · 🧟 misma ciudad (casas, autos, cajones de pistas) · 🏎️ mismo clima y tráfico. Cada uno guarda tu mejor marca del día; la Sala muestra **📅 DESAFÍOS DE HOY** ("¡los cinco! 🏅" o cuáles te faltan) y la **🔥 RACHA DE DÍAS** seguidos jugando desafíos (con récord y aviso rojo si se pierde a medianoche)
+- 📻 **RADIO DE LA CENTRAL** (NAG): si llevas 45 s sin pista, la central te dice a cuántos metros y hacia dónde está la más cercana (estática + voz)
+- 🤖 **Chat WALLY** nuevas palabras: *semana* (récords semanales), *aventura/diario* (tus últimas partidas), *desafío/hoy* (marcas del día), *racha* (días seguidos) y *mejoras* (celebra las 350+ mejoras de la sesión)
+- 🩺 Chequeos de salud en 345 y 355: todo verde
 
 ## 🤖 WALLY por todos lados
 Frases x8 por juego, celebra el 21/21 con voz, escanea pisos/baterías/cajones, certifica el póster... y presume su carrera de mBots en todas partes 🏁
