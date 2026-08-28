@@ -453,6 +453,13 @@ function makeSpider(){
   return {grp:g,sp:3.2,legs,bodyMats,eyes,eyeGlow,camo:0.14,ambushT:8,wdir:0,invPhase:false,invT:30,climb:0,pingT:0,blink:0};
 }
 for(let f=0;f<FLOORS;f++) buildFloor(f);
+// 👤 LA SOMBRA: silueta oscura que a veces cruza el pasillo a lo lejos y desaparece
+const shadowFig=new THREE.Group();
+{ const sm2=new THREE.MeshBasicMaterial({color:0x000000,transparent:true,opacity:0.9});
+  const b2=new THREE.Mesh(new THREE.BoxGeometry(0.62,1.35,0.3),sm2); b2.position.y=1.0; shadowFig.add(b2);
+  const h2=new THREE.Mesh(new THREE.SphereGeometry(0.26,10,8),sm2); h2.position.y=1.92; shadowFig.add(h2);
+  shadowFig.visible=false; scene.add(shadowFig); }
+let shadowT=35, shadowMove=0, shadowDir=1;
 // 🐀 RATAS decorativas que corretean por los pisos (con chillidos)
 const rats=[];
 (function makeRats(){ const rm=new THREE.MeshStandardMaterial({color:0x24201e,roughness:.95});
@@ -741,6 +748,15 @@ function update(dt){
   // 🧨 registrar cadáveres con bengala
   for(const lc of lootCorpses){ if(lc.looted||lc.f!==curFloor) continue;
     if(Math.hypot(P.x-lc.x,P.z-lc.z)<1.6){ lc.looted=true; lc.item.visible=false; flares++; updFlareHUD(); snd(640,"triangle",0.18,0.08); showStory("🧨 Registraste el cadáver: +1 bengala"); } }
+  // 👤 la SOMBRA cruza el pasillo a lo lejos (solo se insinúa — nunca la alcanzas)
+  shadowT-=dt;
+  if(shadowT<=0 && !shadowFig.visible){ shadowT=40+Math.random()*35;
+    const fx3=-Math.sin(yaw), fz3=-Math.cos(yaw); const dist3=16+Math.random()*8;
+    shadowFig.position.set(P.x+fx3*dist3, curFloor*FLOOR_H, P.z+fz3*dist3);
+    shadowDir=Math.random()<0.5?1:-1; shadowMove=0; shadowFig.visible=true; snd(120,"sine",0.5,0.045); }
+  if(shadowFig.visible){ shadowMove+=dt; const lx3=Math.cos(yaw)*shadowDir, lz3=-Math.sin(yaw)*shadowDir;
+    shadowFig.position.x+=lx3*6*dt; shadowFig.position.z+=lz3*6*dt; shadowFig.rotation.y=yaw;
+    if(shadowMove>1.1) shadowFig.visible=false; }
   // 🐀 ratas: arrancan en carreritas cortas y chillan si pasan cerca
   for(const rt of rats){ if(rt.f!==curFloor) continue; rt.st-=dt;
     // 💡 huyen de tu linterna: si las alumbras de cerca, salen disparadas en dirección contraria
