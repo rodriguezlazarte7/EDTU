@@ -931,17 +931,22 @@ function start(){ $("start").classList.add("hide"); $("end").classList.add("hide
   showStory("«...¿hay alguien ahí?...» — la señal desaparece. Escuchas un rugido a lo lejos.");
 }
 function loadJBest(){ try{ return parseFloat(localStorage.getItem("jurassic_best")||"0")||0; }catch(e){ return 0; } }
+// 📅 récord SEMANAL de días (misma clave de semana que el menú y F1)
+function weekKey(){ const d=new Date(), j=new Date(d.getFullYear(),0,1); return d.getFullYear()+"-"+Math.floor(((d-j)/86400000+j.getDay())/7); }
+function loadJWeek(){ try{ return parseFloat(localStorage.getItem("jurassic_week_"+weekKey())||"0")||0; }catch(e){ return 0; } }
 function saveJBest(v){ try{ localStorage.setItem("jurassic_best",String(v)); }catch(e){} }
 function updJBest(){ const b=loadJBest(), el=$("jbest"); if(!el) return;
   // 🏅 medallas de RESCATE: una por dificultad en la que lograste que te rescaten
   const med=["facil","normal","dificil","extincion"].map(k=>{ let got=false; try{ got=localStorage.getItem("jurassic_win_"+k)==="1"; }catch(e){}
     return JDIFFS[k].lbl.split(" ")[0]+(got?"✔":"–"); }).join(" ");
-  el.textContent = (b>0?("🏆 Récord: "+b.toFixed(1)+" días sobrevividos"):"🏆 Aún sin récord — ¡sobrevive!") + "  ·  🏅 "+med + (function(){ try{ return localStorage.getItem("jurassic_egg")==="1"?"  ·  🥚 HUEVO DORADO":""; }catch(e){ return ""; } })(); }
+  const jw=loadJWeek();
+  el.textContent = (b>0?("🏆 Récord: "+b.toFixed(1)+" días sobrevividos"):"🏆 Aún sin récord — ¡sobrevive!") + (jw>0?"  ·  📅 esta semana: "+jw.toFixed(1)+" días":"") + "  ·  🏅 "+med + (function(){ try{ return localStorage.getItem("jurassic_egg")==="1"?"  ·  🥚 HUEVO DORADO":""; }catch(e){ return ""; } })(); }
 function endGame(win,info){ running=false; gameOver=true; try{document.exitPointerLock();}catch(e){} $("touch").classList.remove("on"); $("touch").classList.add("hide"); $("fire").classList.add("hide"); $("jump").classList.add("hide"); $("jhelp").classList.add("hide"); $("jpauseBtn").classList.add("hide"); $("jmapBtn").classList.add("hide"); jMapOpen=false; const jm3=$("jmap"); if(jm3) jm3.style.display="none"; jhelpOpen=false; $("jhelpS").classList.remove("on");
   if(freeMode) info="🏝️ (aventura en modo libre) "+info;   // sin récords nuevos: los días topan en 7 igual
   { const fb2=$("freeBtn"); if(fb2) fb2.style.display=win?"inline-block":"none"; }   // 🏝️ solo tras GANAR
   setRainSnd(false);   // 🐛FIX auditoría: la lluvia seguía sonando en bucle infinito sobre la pantalla de fin
   const days=Math.min(7, elapsed/DAY_LEN); const prev=loadJBest(); const isRec=days>prev; if(isRec) saveJBest(days);
+  try{ if(days>loadJWeek()) localStorage.setItem("jurassic_week_"+weekKey(),String(days)); }catch(e){}   // 📅 mejor de la semana
   const t=$("endTitle"); if(win){ t.textContent="✓ RESCATADO"; t.className="big win"; try{ localStorage.setItem("jurassic_win_"+jdiff,"1"); }catch(e){} } else { t.textContent="✕ NO SOBREVIVISTE"; t.className="big lose";
     const MOTIV=["La próxima lo logras, agente 💪","WALLY cree en ti 🤖","La isla respeta a quien vuelve a intentarlo","Cada día sobrevivido cuenta","Hasta los T-Rex fallan a veces"];
     info+="<br><span style='color:#8fd0a8'>💙 "+MOTIV[Math.floor(Math.random()*MOTIV.length)]+"</span>"; }
