@@ -175,12 +175,12 @@ function box(x,y,z,w,h,d,mat){ const m=new THREE.Mesh(new THREE.BoxGeometry(w,h,
 function collide(nx,nz){ const pr=0.4; for(const w of walls){ if(nx>w.x0-pr&&nx<w.x1+pr&&nz>w.z0-pr&&nz<w.z1+pr) return true; } return false; }
 
 // océano + suelo isla
-const ocean=new THREE.Mesh(new THREE.CircleGeometry(560,48),new THREE.MeshStandardMaterial({color:0x14406a,roughness:.4,metalness:.2})); ocean.rotation.x=-Math.PI/2; ocean.position.y=-0.6; scene.add(ocean);
+const ocean=new THREE.Mesh(new THREE.CircleGeometry(560,48),new THREE.MeshStandardMaterial({color:0x14406a,roughness:.4,metalness:.2,emissive:0x0a2a4a,emissiveIntensity:.25})); ocean.rotation.x=-Math.PI/2; ocean.position.y=-0.6; scene.add(ocean);
 const ground=new THREE.Mesh(new THREE.CircleGeometry(ISLR,64),new THREE.MeshStandardMaterial({map:grassTex,roughness:1})); ground.rotation.x=-Math.PI/2; ground.position.y=0; scene.add(ground);
 const beach=new THREE.Mesh(new THREE.RingGeometry(ISLR-8,ISLR,64),new THREE.MeshStandardMaterial({map:sandTex,roughness:1})); beach.rotation.x=-Math.PI/2; beach.position.y=0.02; scene.add(beach);
 // LAGO (con Mosasaurus)
 const LAKE={x:70,z:-40,r:34};
-const lake=new THREE.Mesh(new THREE.CircleGeometry(LAKE.r,40),new THREE.MeshStandardMaterial({color:0x1d6f8a,roughness:.35,metalness:.2,transparent:true,opacity:.92})); lake.rotation.x=-Math.PI/2; lake.position.set(LAKE.x,0.05,LAKE.z); scene.add(lake);
+const lake=new THREE.Mesh(new THREE.CircleGeometry(LAKE.r,40),new THREE.MeshStandardMaterial({color:0x1d6f8a,roughness:.35,metalness:.2,transparent:true,opacity:.92,emissive:0x0a4a5a,emissiveIntensity:.3})); lake.rotation.x=-Math.PI/2; lake.position.set(LAKE.x,0.05,LAKE.z); scene.add(lake);
 
 // árboles
 const trunkMat=new THREE.MeshStandardMaterial({map:barkTex,roughness:1});
@@ -414,6 +414,9 @@ function update(dt){
   const lightF = df<0.5 ? Math.min(1,df/0.12) : Math.max(0,1-(df-0.5)/0.12);  // sube al amanecer, baja al anochecer
   ambient.intensity=0.12+lightF*0.7; sun.intensity=lightF*1.1;
   scene.fog.density=0.02-lightF*0.009; scene.background.copy(bgNight).lerp(bgDay,lightF);
+  // 🌊 agua animada: leve oleaje (sube y baja) + brillo que ondula
+  lake.position.y=0.05+Math.sin(elapsed*1.3)*0.06; lake.material.emissiveIntensity=0.2+Math.abs(Math.sin(elapsed*1.7))*0.4;
+  ocean.position.y=-0.6+Math.sin(elapsed*0.8)*0.08; ocean.material.emissiveIntensity=0.15+Math.abs(Math.sin(elapsed*1.1))*0.25;
   // 🔦 batería de la linterna: se gasta cuando alumbra fuerte (de noche); si se agota, casi no ilumina
   const want=3.4-lightF*2.4;                         // cuánta luz querría dar según la hora
   flashBatt=Math.max(0, flashBatt - dt*(1-lightF)*0.5);   // dura MUCHO más (~0.5%/s de noche)
