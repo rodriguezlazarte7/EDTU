@@ -183,6 +183,9 @@ function loadRW(){ try{ return parseInt(localStorage.getItem("rubik_wins")||"0",
 // ⏱️ mejor tiempo por dificultad (récord de velocidad)
 function loadBT(d){ try{ return parseFloat(localStorage.getItem("rubik_bt_"+d)||"0")||0; }catch(e){ return 0; } }
 function saveBT(d,t){ try{ localStorage.setItem("rubik_bt_"+d,String(t)); }catch(e){} }
+// 🔄 récord de MENOS movimientos por dificultad
+function loadBM(d){ try{ return parseInt(localStorage.getItem("rubik_bm_"+d)||"0",10)||0; }catch(e){ return 0; } }
+function saveBM(d,m){ try{ localStorage.setItem("rubik_bm_"+d,String(m)); }catch(e){} }
 function updRW(){ const el=document.getElementById("rwins"); if(el){ const w=loadRW(); el.textContent=w>0?("🏆 Victorias contra la IA: "+w):""; } }
 // 🎊 CONFETI al ganar: lluvia de papelitos de colores que giran y caen
 let confC=null, confParts=[], confRun=false;
@@ -206,7 +209,8 @@ function finish(who){
   const t=((performance.now()-raceStart)/1000).toFixed(1);
   if(who==="player"){ try{ localStorage.setItem("rubik_wins",String(loadRW()+1)); }catch(e){}
     const tf=parseFloat(t), bt=loadBT(diff), isBT=!bt||tf<bt; if(isBT) saveBT(diff,tf);   // ⏱️ ¿nuevo mejor tiempo?
-    showMsg("🎉 ¡GANASTE!\n"+t+"s · 🔄 "+moveCount+" movs · 🏆 victorias: "+loadRW()+(isBT?"\n⏱️ ¡MEJOR TIEMPO en "+diff+"!":"\n⏱️ Tu mejor: "+bt.toFixed(1)+"s"),"#39ff14");
+    const bm=loadBM(diff), isBM=!bm||moveCount<bm; if(isBM) saveBM(diff,moveCount);   // 🔄 ¿menos movimientos que nunca?
+    showMsg("🎉 ¡GANASTE!\n"+t+"s · 🔄 "+moveCount+" movs · 🏆 victorias: "+loadRW()+(isBT?"\n⏱️ ¡MEJOR TIEMPO en "+diff+"!":"\n⏱️ Tu mejor: "+bt.toFixed(1)+"s")+(isBM?"\n🔄 ¡MENOS MOVIMIENTOS QUE NUNCA!":"\n🔄 Récord movs: "+bm),"#39ff14");
     buildDiffs(document.getElementById("diffs")); buildDiffs(document.getElementById("introDiffs"));
     [523,659,784,1047].forEach((f,i)=>setTimeout(()=>snd(f,"triangle",0.25,0.09),i*130));   // 🎺 fanfarria
     startConfetti();   // 🎊
