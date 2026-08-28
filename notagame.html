@@ -558,6 +558,8 @@ function startGame(){
   showStory("Estás en la calle frente a la CASA 13. Investiga...");
 }
 function loadNKills(){ try{ return parseInt(localStorage.getItem("nag_best_kills")||"0",10)||0; }catch(e){ return 0; } }
+// 🗣️ voz de narrador (grave, para el final del caso)
+function narrate(txt){ try{ if(!window.speechSynthesis) return; const u=new SpeechSynthesisUtterance(txt); u.lang="es-ES"; u.pitch=0.5; u.rate=0.9; u.volume=0.85; speechSynthesis.cancel(); speechSynthesis.speak(u); }catch(e){} }
 function endGame(win,customInfo){
   running=false; gameOver=true; document.body.classList.remove("playing");
   try{ document.exitPointerLock(); }catch(e){}
@@ -567,9 +569,11 @@ function endGame(win,customInfo){
   const prevK=loadNKills(); const isRec=kills>prevK; if(isRec){ try{ localStorage.setItem("nag_best_kills",String(kills)); }catch(e){} }
   const recTxt="<br>🧟 Eliminados: <b>"+kills+"</b>"+(isRec?" 🏆 ¡RÉCORD!":" · Récord: <b>"+prevK+"</b>");
   if(win){ t.textContent="✓ CASO RESUELTO"; t.className="big win"; inf.innerHTML=(customInfo||"Reuniste las pistas y eliminaste el brote.<br>La ciudad está a salvo. 🏙️")+recTxt; snd(660,"triangle",0.3,0.1);
+    narrate("Caso resuelto, agente. La ciudad está a salvo.");
     document.getElementById("end").classList.remove("hide"); }
   else { t.textContent="✕ FIN"; t.className="big lose"; inf.innerHTML=(customInfo||("Los zombies te alcanzaron en la oscuridad.<br>Pistas: <b>"+cluesGot+"/7</b>"))+recTxt; snd(60,"sawtooth",0.6,0.12); snd(35,"sawtooth",1.2,0.14);
     try{ if(navigator.vibrate) navigator.vibrate([0,200,80,250]); }catch(e){}   // 📳 te atraparon
+    narrate("Te infectaron, agente. El caso queda abierto.");
     // 💥 muerte impactante: FUNDIDO ROJO sangre y recién ahí la pantalla de fin
     const fd=document.getElementById("fade");
     if(fd){ fd.style.background="#4a0006"; fd.style.opacity="1"; setTimeout(()=>{ document.getElementById("end").classList.remove("hide"); fd.style.opacity="0"; setTimeout(()=>{ fd.style.background="#000"; },400); },750); }
