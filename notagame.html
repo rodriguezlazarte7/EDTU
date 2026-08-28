@@ -596,7 +596,13 @@ function shoot(){
         respawnZombie(best); }   // ∞: reaparece otro
       // 🔥 RACHA: kills seguidos en menos de 4s suman combo; el tono sube con cada uno
       comboN=(comboT>0)?comboN+1:1; comboT=4;
-      if(comboN>=2){ const cb=document.getElementById("combo"); cb.textContent="🔥 RACHA x"+comboN;
+      if(comboN>maxCombo){ maxCombo=comboN;
+        // 🏆 superaste tu mejor racha histórica: cartel dorado + se guarda al instante
+        if(maxCombo>loadNCombo() && maxCombo>=3){ try{ localStorage.setItem("nag_best_combo",String(maxCombo)); }catch(e){}
+          const cb2=document.getElementById("combo"); cb2.textContent="🏆 ¡MEJOR RACHA! x"+maxCombo; cb2.style.color="#ffd12e";
+          cb2.style.opacity="1"; cb2.style.transform="translate(-50%,-50%) scale(1.6)"; comboPop=1.6;
+          snd(880,"triangle",0.2,0.09); snd(1175,"triangle",0.25,0.08); } }
+      if(comboN>=2 && comboPop<1.5){ const cb=document.getElementById("combo"); cb.style.color="#ffb020"; cb.textContent="🔥 RACHA x"+comboN;
         cb.style.opacity="1"; cb.style.transform="translate(-50%,-50%) scale("+Math.min(1.9,1+comboN*0.09).toFixed(2)+")"; comboPop=1.2;
         snd(240+Math.min(comboN,12)*70,"square",0.12,0.055);
         if(comboN===5) narrate("Racha de cinco, agente. Sigue así."); else if(comboN===10) narrate("Diez seguidos. Eres imparable."); }
@@ -613,7 +619,7 @@ function startGame(){
   cluesGot=0; gameOver=false; muzzle=0; shootCd=0;
   startT=performance.now()/1000;   // reinicia el ciclo día/noche (empieza de noche)
   zombies.forEach(z=>scene.remove(z.grp)); zombies.length=0; spawnZombies(12); kills=0; heliMode=false;
-  comboN=0; comboT=0; comboPop=0; document.getElementById("combo").style.opacity="0";
+  comboN=0; comboT=0; comboPop=0; maxCombo=0; document.getElementById("combo").style.opacity="0";
   shield=false; updShieldHUD(); shieldDrops.forEach(s2=>scene.remove(s2.m)); shieldDrops.length=0;
   if(boss){ scene.remove(boss.grp); boss=null; } bossAt=25;
   document.getElementById("kills").textContent="0"; document.getElementById("clues").textContent="0";
@@ -628,6 +634,9 @@ function startGame(){
   showStory("Estás en la calle frente a la CASA 13. Investiga...");
 }
 function loadNKills(){ try{ return parseInt(localStorage.getItem("nag_best_kills")||"0",10)||0; }catch(e){ return 0; } }
+// 🔥 récord de mejor RACHA
+function loadNCombo(){ try{ return parseInt(localStorage.getItem("nag_best_combo")||"0",10)||0; }catch(e){ return 0; } }
+let maxCombo=0;
 // 🗣️ voz de narrador (grave, para el final del caso)
 function narrate(txt){ try{ if(!window.speechSynthesis) return; const u=new SpeechSynthesisUtterance(txt); u.lang="es-ES"; u.pitch=0.5; u.rate=0.9; u.volume=0.85; speechSynthesis.cancel(); speechSynthesis.speak(u); }catch(e){} }
 function endGame(win,customInfo){
@@ -637,7 +646,7 @@ function endGame(win,customInfo){
   const t=document.getElementById("endTitle"),inf=document.getElementById("endInfo");
   // 🏆 récord de zombies eliminados
   const prevK=loadNKills(); const isRec=kills>prevK; if(isRec){ try{ localStorage.setItem("nag_best_kills",String(kills)); }catch(e){} }
-  const recTxt="<br>🧟 Eliminados: <b>"+kills+"</b>"+(isRec?" 🏆 ¡RÉCORD!":" · Récord: <b>"+prevK+"</b>");
+  const recTxt="<br>🧟 Eliminados: <b>"+kills+"</b>"+(isRec?" 🏆 ¡RÉCORD!":" · Récord: <b>"+prevK+"</b>")+(maxCombo>=2?"<br>🔥 Mejor racha: <b>x"+maxCombo+"</b> · Récord: <b>x"+loadNCombo()+"</b>":"");
   if(win){ t.textContent="✓ CASO RESUELTO"; t.className="big win"; inf.innerHTML=(customInfo||"Reuniste las pistas y eliminaste el brote.<br>La ciudad está a salvo. 🏙️")+recTxt; snd(660,"triangle",0.3,0.1);
     narrate("Caso resuelto, agente. La ciudad está a salvo.");
     document.getElementById("end").classList.remove("hide"); }
