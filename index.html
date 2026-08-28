@@ -7339,7 +7339,12 @@ $("posterFs").addEventListener("click",e=>{ if(e.target===$("posterFs")) $("post
     if(/gracias/.test(q)) return pick(["¡de nada, agente! para eso estoy","beep-boop 😊 ¡un gusto!"]);
     if(/ara[ñn]a|miedo|scream/.test(q)) return "truco: la araña solo se teletransporta con tu linterna PRENDIDA 🔦 y la vitrola la hipnotiza 🎵";
     if(/dino|jurassic|isla/.test(q)) return "truco: la fogata 🔥 espanta dinos y cura... y en la orilla del lago se puede PESCAR 🎣";
-    if(/zombie|zombi/.test(q)) return "truco: con 5 pistas se activa la TORRETA del helipuerto 🤖🔫 ¡y el gato espanta zombies!";
+    if(/zombie|zombi/.test(q)) return "truco: con 5 pistas se activa la TORRETA del helipuerto 🤖🔫 ¡y el gato espanta zombies! (NOT A GAME ya tiene 100 mejoras 🏆, ¡el tercer juego en llegar!)";
+    if(/\breto|retar|amig[oa]s?\b|desafiar/.test(q)){ try{ const d=new Date(), dk=d.getFullYear()*10000+(d.getMonth()+1)*100+d.getDate(); const dp=[];
+      const dv=parseFloat(g("rubik_daily_"+dk)||"0")||0, sv=parseFloat(g("scream_daily_"+dk)||"0")||0, jv=parseFloat(g("jurassic_daily_"+dk)||"0")||0, nv=parseInt(g("nag_daily_"+dk)||"0",10)||0, fv=parseFloat(g("edtu_f1_daily_"+dk)||"0")||0;
+      if(dv>0) dp.push("🧩 "+dv.toFixed(1)+"s"); if(sv>0) dp.push("🕷️ "+Math.floor(sv/60)+":"+String(Math.floor(sv%60)).padStart(2,"0")); if(jv>0) dp.push("🦖 "+jv.toFixed(1)+" días"); if(nv>0) dp.push("🧟 "+nv+" kills"); if(fv>0) dp.push("🏎️ "+Math.round(fv)+" m");
+      const how="⚔️ para RETAR a un amigo: juega un DESAFÍO DEL DÍA, pulsa 📤 COMPARTIR (en la Sala o al terminar) y mándale el link — cuando lo abra, el desafío se le activa solo con el MISMO mundo que el tuyo (misma revoltura, edificio, isla, ciudad o clima).";
+      return dp.length?how+" Tu reto de hoy listo para copiar: «📅 Desafío EDTU del "+d.getDate()+"/"+(d.getMonth()+1)+" — "+dp.join(" · ")+" · ¿me ganas? 👉 www.edtu.cl/?reto=1»":how+" Hoy aún no tienes marcas... ¡juega uno y vuelve!"; }catch(e){ return "⚔️ juega un desafío del día y pulsa 📤 COMPARTIR para retar a tus amigos"; } }
     if(/k[óo]ndor|auto|f1/.test(q)) return "KÓNDOR aparece a los 1500m... tócale la bocina con H 📯 jaja";
     if(/navidad|viejito pascuero/.test(q)) return "🎅 en diciembre me pongo el gorrito... ¡WALLY-noel reparte beeps de regalo!";
     if(/fr[íi]o|invierno/.test(q)) return "🧣 brrr, el invierno chileno congela mis circuitos... por suerte en JURASSIC hay fogata 🔥";
