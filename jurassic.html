@@ -630,6 +630,7 @@ function drawJMap(){ const cv=document.getElementById("jmapCv"); if(!cv) return;
   const emo=(x,z,t2)=>{ g.font="16px serif"; g.textAlign="center"; g.fillText(t2,px(x),pz(z)+6); };
   emo(SH.x,SH.z,"🏠"); emo(RADIO.x,RADIO.z,"📻"); emo(skel.position.x,skel.position.z,"🦴");
   emo(wally.position.x,wally.position.z,"🤖"); emo(turtle.position.x,turtle.position.z,"🐢"); emo(-150*K>-C?-150: -(ISLR+15), -165*K>-C?-165:-(ISLR+15),"🌋");
+  if(fireT>0) emo(campfire.position.x,campfire.position.z,"🔥"); emo(ptero.position.x,ptero.position.z,"🦅");
   for(const bb of berryBushes){ if(bb.ripe) dot(bb.x,bb.z,"#ff5a8a",4); }
   for(const ns of nests){ if(!ns.hatched) dot(ns.x,ns.z,"#ffd12e",4); }
   for(const d of dinos){ dot(d.grp.position.x,d.grp.position.z,d.T.passive?"#7dff5a":"#ff3a3a",6); }
@@ -904,6 +905,7 @@ function drawJRadar(){ const c=document.getElementById("jradar"); if(!c) return;
   for(const bb of berryBushes){ if(bb.ripe) poi(bb.x,bb.z,"#ff5a8a",2.4); }
   for(const ns of nests){ if(!ns.hatched) poi(ns.x,ns.z,"#ffd12e",2.4); }
   if(Math.sin(elapsed*6)>0) poi(wally.position.x,wally.position.z,"#4aa8ff",2.8);
+  if(fireT>0 && Math.sin(elapsed*8)>0) poi(campfire.position.x,campfire.position.z,"#ff7a20",3.4);   // 🔥 tu fogata encendida
   // 🦅 pterodáctilo: triángulo NARANJA volando de día, ROJO parpadeante si avisa o pica (nada si duerme)
   if(ptState==="warn"||ptState==="dive"||ptState==="circle"){
     const alert=(ptState!=="circle");
