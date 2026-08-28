@@ -7204,6 +7204,7 @@ function buildTrophies(){ try{
       if(fw>0) wr.push("🏎️ "+Math.round(fw)+" m"); if(jw>0) wr.push("🦖 "+jw.toFixed(1)+" días"); if(nw>0) wr.push("🧟 "+nw+" kills"); if(sw>0) wr.push("🕷️ "+fmtMS(sw));
       if(wr.length) h+="<br><span style='color:#9fd8c0'>Récords de la semana: "+wr.join(" · ")+"</span>"; }
   }catch(e){}
+  let shareTxt="";   // 📤 texto para COMPARTIR los desafíos de hoy (se enlaza tras pintar la sala)
   // 📅 DESAFÍOS DE HOY: mejores tiempos del día en el cubo (misma revoltura) y en SCREAM (mismo edificio)
   try{ const dd=new Date(), dk=dd.getFullYear()*10000+(dd.getMonth()+1)*100+dd.getDate(); const dv=parseFloat(g("rubik_daily_"+dk)||"0")||0, sv=parseFloat(g("scream_daily_"+dk)||"0")||0, jv=parseFloat(g("jurassic_daily_"+dk)||"0")||0, nv=parseInt(g("nag_daily_"+dk)||"0",10)||0, fv=parseFloat(g("edtu_f1_daily_"+dk)||"0")||0; const dp=[], miss=[];
     if(dv>0) dp.push("🧩 "+dv.toFixed(1)+"s"); else miss.push("🧩 el cubo"); if(sv>0) dp.push("🕷️ "+fmtMS(sv)); else miss.push("🕷️ SCREAM"); if(jv>0) dp.push("🦖 "+jv.toFixed(1)+" días"); else miss.push("🦖 JURASSIC"); if(nv>0) dp.push("🧟 "+nv+" kills"); else miss.push("🧟 NAG"); if(fv>0) dp.push("🏎️ "+Math.round(fv)+" m"); else miss.push("🏎️ F1");
@@ -7212,7 +7213,8 @@ function buildTrophies(){ try{
     const keyOf=(y,m,d)=>{ const t=new Date(y,m,d); return t.getFullYear()*10000+(t.getMonth()+1)*100+t.getDate(); };
     const today=hasDay(dk); let streak=0; { const y=dd.getFullYear(), mo=dd.getMonth(), da=dd.getDate(); for(let i=today?0:1;i<60;i++){ if(hasDay(keyOf(y,mo,da-i))) streak++; else break; } }
     let sbest=parseInt(g("edtu_daily_streak_best")||"0",10)||0; if(today && streak>sbest){ sbest=streak; try{ localStorage.setItem("edtu_daily_streak_best",String(streak)); }catch(e){} }
-    if(dp.length||streak>0){ h+="<div style='margin-top:8px;color:#ffd88a'><b>📅 DESAFÍOS DE HOY</b></div>"+(dp.length?dp.join(" · ")+(miss.length?"<span style='color:#9fb6c9'> · te falta"+(miss.length>1?"n":"")+" "+miss.join(", ")+"</span>":" · ¡los cinco! 🏅"):"<span style='color:#9fb6c9'>aún ninguno hoy...</span>");
+    if(dp.length||streak>0){ h+="<div style='margin-top:8px;color:#ffd88a'><b>📅 DESAFÍOS DE HOY</b></div>"+(dp.length?dp.join(" · ")+(miss.length?"<span style='color:#9fb6c9'> · te falta"+(miss.length>1?"n":"")+" "+miss.join(", ")+"</span>":" · ¡los cinco! 🏅"):"<span style='color:#9fb6c9'>aún ninguno hoy...</span>")+(dp.length?" <button id='shareDaily' class='btn btn-ghost' style='margin-left:6px;padding:2px 10px;font-size:12px;vertical-align:middle' title='Copia tus marcas de hoy para retar a tus amigos'>📤 COMPARTIR</button>":"");
+      if(dp.length) shareTxt="📅 Desafío EDTU del "+dd.getDate()+"/"+(dd.getMonth()+1)+" — "+dp.join(" · ")+(streak>1?" · 🔥 racha "+streak+" días":"")+" · ¿me ganas? 👉 www.edtu.cl";
       if(streak>0) h+="<br><span style='color:"+(today?"#ff9a3c":"#ff6a6a")+"'>🔥 RACHA: "+streak+" día"+(streak>1?"s":"")+" seguido"+(streak>1?"s":"")+" con desafíos"+(today?(streak>=sbest&&streak>1?" · ¡RÉCORD!":(sbest>streak?" · récord "+sbest:"")):" — ¡juega uno HOY o se pierde a medianoche!")+"</span>"; } }catch(e){}
   // 📖 ÚLTIMAS AVENTURAS: la entrada más reciente de cada diario (jurassic_diary / scream_diary / nag_diary)
   try{ const rd=k=>{ try{ const a=JSON.parse(g(k)||"[]"); return a.length?a[0]:null; }catch(e){ return null; } };
@@ -7224,6 +7226,11 @@ function buildTrophies(){ try{
     const cd=rd("rubik_diary"); if(cd) la.push("🧩 "+cd.date+": "+cd.diff+" · "+cd.t+"s · 🔄 "+cd.moves+" giros"+(cd.hints?" · 💡 "+cd.hints:"")+(cd.daily?" · 📅":"")+(cd.win?" ✓":" · 🤖 ganó la IA"));
     if(la.length) h+="<div style='margin-top:8px;color:#e8d9a8'><b>📖 ÚLTIMAS AVENTURAS</b></div>"+la.join("<br>"); }catch(e){}
   $("trophyBody").innerHTML=h;
+  // 📤 COMPARTIR desafío: share nativo en móvil; si no, portapapeles (con fallback a textarea)
+  { const sb=$("shareDaily"); if(sb&&shareTxt){ sb.onclick=async()=>{ const done=()=>{ sb.textContent="✅ COPIADO"; setTimeout(()=>{ sb.textContent="📤 COMPARTIR"; },2000); const ws2=document.getElementById("wallySpeech"); if(ws2) ws2.textContent="«¡enviado! que tiemblen tus amigos 😎»"; };
+      try{ if(navigator.share){ await navigator.share({text:shareTxt}); done(); return; } }catch(e){ if(e&&e.name==="AbortError") return; }
+      try{ await navigator.clipboard.writeText(shareTxt); done(); return; }catch(e){}
+      try{ const ta=document.createElement("textarea"); ta.value=shareTxt; ta.style.position="fixed"; ta.style.opacity="0"; document.body.appendChild(ta); ta.select(); document.execCommand("copy"); document.body.removeChild(ta); done(); }catch(e){ sb.textContent="❌ no se pudo"; setTimeout(()=>{ sb.textContent="📤 COMPARTIR"; },2000); } }; } }
   // 🤖 WALLY saluda (con corona si lo encontraste en los 4 mundos)
   { const wb=document.getElementById("wallyBot"), ws=document.getElementById("wallySpeech");
     // 🎩 adorno ESTACIONAL según el mes (calendario chileno: invierno jun-ago, patrias sep, primavera oct-nov... y sustos)
