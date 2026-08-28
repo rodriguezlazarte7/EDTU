@@ -34,7 +34,7 @@
 </head>
 <body>
 <canvas id="c"></canvas>
-<div id="top"><div id="timer">0.0s</div><div style="pointer-events:auto" id="diffs"></div></div>
+<div id="top"><div id="timer">0.0s</div><div id="mvs" style="font-family:Consolas,monospace;font-size:14px;font-weight:800;color:#8fd0ff;align-self:center">🔄 0</div><div style="pointer-events:auto" id="diffs"></div></div>
 <div id="labels"><div>🧑 TÚ</div><div class="ai">🤖 IA (en vivo)</div></div>
 <div id="msg"></div>
 
@@ -137,9 +137,10 @@ function resetCube(cu){ // vuelve cada cubie a su posición/orientación resuelt
   let i=0; for(let x=-1;x<=1;x++)for(let y=-1;y<=1;y++)for(let z=-1;z<=1;z++){ const c=cu.cubies[i++]; c.position.set(x,y,z); c.rotation.set(0,0,0); c.updateMatrix(); } cu.busy=false;
 }
 
+let moveCount=0;
 function startRace(){
   document.getElementById("intro").classList.add("hide");
-  ended=false; state="race";
+  ended=false; state="race"; moveCount=0; document.getElementById("mvs").textContent="🔄 0";
   newScramble();
   raceStart=performance.now();
   showMsg("");
@@ -154,6 +155,7 @@ function aiStep(){
   move(ai,m.face,m.dir,Math.min(pace*600,260),()=>{ if(!ended) aiTimer=setTimeout(aiStep, Math.max(40,pace*1000-260)); });
 }
 function playerMove(face,dir){ if(state!=="race"||player.busy) return; snd(340+Math.random()*60,"square",0.06,0.05); snd(180,"triangle",0.04,0.03);   // 🔊 clic de giro
+  moveCount++; document.getElementById("mvs").textContent="🔄 "+moveCount;   // contador de movimientos
   move(player,face,dir,150,()=>{ if(!ended && isSolved(player)) finish("player"); }); }
 
 // 🏆 victorias contra la IA (localStorage)
@@ -162,7 +164,7 @@ function updRW(){ const el=document.getElementById("rwins"); if(el){ const w=loa
 function finish(who){
   if(ended) return; ended=true; state="done"; clearTimeout(aiTimer);
   const t=((performance.now()-raceStart)/1000).toFixed(1);
-  if(who==="player"){ try{ localStorage.setItem("rubik_wins",String(loadRW()+1)); }catch(e){} showMsg("🎉 ¡GANASTE!\n"+t+"s · 🏆 victorias: "+loadRW(),"#39ff14");
+  if(who==="player"){ try{ localStorage.setItem("rubik_wins",String(loadRW()+1)); }catch(e){} showMsg("🎉 ¡GANASTE!\n"+t+"s · 🔄 "+moveCount+" movs · 🏆 victorias: "+loadRW(),"#39ff14");
     [523,659,784,1047].forEach((f,i)=>setTimeout(()=>snd(f,"triangle",0.25,0.09),i*130)); }   // 🎺 fanfarria
   else { showMsg("🤖 Ganó la IA\nTu tiempo corre aún...","#ff7ba3"); [400,300,220].forEach((f,i)=>setTimeout(()=>snd(f,"sawtooth",0.3,0.07),i*180)); }
   updRW();
