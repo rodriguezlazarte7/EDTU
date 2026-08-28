@@ -204,6 +204,20 @@ for(let i=0;i<8;i++){ const g=new THREE.Group();
   for(let p=0;p<3+((Math.random()*2)|0);p++){ const s=new THREE.Mesh(new THREE.SphereGeometry(8+Math.random()*7,10,8),cloudMat); s.scale.y=0.4; s.position.set((p-1.5)*11+Math.random()*5, Math.random()*3, Math.random()*7); g.add(s); }
   g.position.set((Math.random()*2-1)*220, 58+Math.random()*22, (Math.random()*2-1)*220);
   scene.add(g); clouds.push({g,spd:1.2+Math.random()*1.6}); }
+// 🌧️ LLUVIA: tormentas que llegan de vez en cuando, oscurecen el cielo y suenan de verdad
+const RAIN_N=900; const rainGeo=new THREE.BufferGeometry(); const rainPos=new Float32Array(RAIN_N*3);
+for(let i=0;i<RAIN_N;i++){ rainPos[i*3]=(Math.random()*2-1)*45; rainPos[i*3+1]=Math.random()*30; rainPos[i*3+2]=(Math.random()*2-1)*45; }
+rainGeo.setAttribute("position",new THREE.BufferAttribute(rainPos,3));
+const rainMat=new THREE.PointsMaterial({color:0xaad4ee,size:0.14,transparent:true,opacity:0,fog:false});
+const rain=new THREE.Points(rainGeo,rainMat); rain.visible=false; scene.add(rain);
+let rainOn=false, rainT=80+Math.random()*100, rainF=0, rainNoise=null;
+function setRainSnd(on){ try{ const a=snd.ctx||(snd.ctx=new (AudioContext||webkitAudioContext)());
+  if(on&&!rainNoise){ const len=a.sampleRate*2, buf=a.createBuffer(1,len,a.sampleRate), dch=buf.getChannelData(0);
+    for(let i=0;i<len;i++) dch[i]=(Math.random()*2-1)*0.35;
+    const src=a.createBufferSource(); src.buffer=buf; src.loop=true;
+    const fl=a.createBiquadFilter(); fl.type="lowpass"; fl.frequency.value=900;
+    const g2=a.createGain(); g2.gain.value=0.045; src.connect(fl); fl.connect(g2); g2.connect(a.destination); src.start(); rainNoise={src,g:g2}; }
+  else if(!on&&rainNoise){ try{ rainNoise.g.gain.exponentialRampToValueAtTime(0.0001,a.currentTime+1.5); rainNoise.src.stop(a.currentTime+1.6); }catch(e){} rainNoise=null; } }catch(e){} }
 const LAKE={x:70,z:-40,r:34};
 const lake=new THREE.Mesh(new THREE.CircleGeometry(LAKE.r,40),new THREE.MeshStandardMaterial({color:0x1d6f8a,roughness:.35,metalness:.2,transparent:true,opacity:.92,emissive:0x0a4a5a,emissiveIntensity:.3})); lake.rotation.x=-Math.PI/2; lake.position.set(LAKE.x,0.05,LAKE.z); scene.add(lake);
 
@@ -518,6 +532,15 @@ function update(dt){
   // ☁️ nubes: derivan con el viento y se oscurecen de noche
   cloudMat.opacity=0.2+lightF*0.6; cloudMat.color.setScalar(0.35+lightF*0.65);
   for(const cl2 of clouds){ cl2.g.position.x+=cl2.spd*dt; if(cl2.g.position.x>260) cl2.g.position.x=-260; }
+  // 🌧️ lluvia: llega, empapa la isla un rato y se va; con truenos lejanos
+  rainT-=dt; if(rainT<=0){ rainOn=!rainOn; rainT=rainOn?(35+Math.random()*40):(100+Math.random()*140); setRainSnd(rainOn); }
+  rainF+=((rainOn?1:0)-rainF)*Math.min(1,dt*1.2); rain.visible=rainF>0.02; rainMat.opacity=rainF*0.75;
+  if(rain.visible){ rain.position.set(P.x,0,P.z);
+    const pa=rainGeo.attributes.position;
+    for(let i=0;i<RAIN_N;i++){ let ry=pa.array[i*3+1]-dt*(26+(i%5)*2); if(ry<0) ry=28+Math.random()*4; pa.array[i*3+1]=ry; }
+    pa.needsUpdate=true;
+    ambient.intensity*=1-rainF*0.4; sun.intensity*=1-rainF*0.55; scene.fog.density+=rainF*0.011;   // cielo plomo
+    if(Math.random()<dt*0.055){ snd(55,"sawtooth",1.2,0.16); snd(38,"sine",1.6,0.13); } }   // ⛈️ trueno
   // 🔥 fogata que parpadea y "baila"
   if(fireLight){ fireLight.intensity=1.3+Math.random()*0.7; fireCone.scale.y=0.85+Math.random()*0.35; fireCone.rotation.y+=dt*2; }
   // 💦 salpicaduras: se expanden y desvanecen
