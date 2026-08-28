@@ -51,6 +51,7 @@
   <p>Carrera contra la IA: los dos empiezan con el <b>mismo revuelto</b>. Arma tu cubo girando las caras. Cuando termines, aprieta <b>✅ LISTO</b>.</p>
   <p>👀 Ves el cubo de la <b style="color:#ff7ba3">IA resolviéndose en tiempo real</b> a la derecha.<br>🖱️ Arrastra para girar la vista · botones para mover las caras.</p>
   <div class="row" id="introDiffs" style="margin:10px 0"></div>
+  <p id="rwins" style="color:#ffd12e;font-weight:800;font-size:13px;margin-bottom:8px"></p>
   <button class="btn go" id="introStart">▶ EMPEZAR</button>
 </div>
 
@@ -149,11 +150,15 @@ function aiStep(){
 }
 function playerMove(face,dir){ if(state!=="race"||player.busy) return; move(player,face,dir,150,()=>{ if(!ended && isSolved(player)) finish("player"); }); }
 
+// 🏆 victorias contra la IA (localStorage)
+function loadRW(){ try{ return parseInt(localStorage.getItem("rubik_wins")||"0",10)||0; }catch(e){ return 0; } }
+function updRW(){ const el=document.getElementById("rwins"); if(el){ const w=loadRW(); el.textContent=w>0?("🏆 Victorias contra la IA: "+w):""; } }
 function finish(who){
   if(ended) return; ended=true; state="done"; clearTimeout(aiTimer);
   const t=((performance.now()-raceStart)/1000).toFixed(1);
-  if(who==="player") showMsg("🎉 ¡GANASTE!\n"+t+"s","#39ff14");
+  if(who==="player"){ try{ localStorage.setItem("rubik_wins",String(loadRW()+1)); }catch(e){} showMsg("🎉 ¡GANASTE!\n"+t+"s · 🏆 victorias: "+loadRW(),"#39ff14"); }
   else showMsg("🤖 Ganó la IA\nTu tiempo corre aún...","#ff7ba3");
+  updRW();
 }
 function tryListo(){
   if(state!=="race") return;
@@ -169,7 +174,7 @@ FACE_LIST.forEach(face=>{
 });
 document.getElementById("startBtn").onclick=startRace;
 document.getElementById("listoBtn").onclick=tryListo;
-document.getElementById("introStart").onclick=startRace;
+document.getElementById("introStart").onclick=startRace; updRW();
 // selector de dificultad (arriba y en el intro)
 function buildDiffs(container){ container.innerHTML=""; [["facil","🟢 Fácil"],["medio","🟡 Medio"],["dificil","🔴 Difícil"]].forEach(([k,lbl])=>{ const b=document.createElement("button"); b.className="diff"+(diff===k?" sel":""); b.textContent=lbl; b.onclick=()=>{ diff=k; buildDiffs(document.getElementById("diffs")); buildDiffs(document.getElementById("introDiffs")); }; container.appendChild(b); }); }
 buildDiffs(document.getElementById("diffs")); buildDiffs(document.getElementById("introDiffs"));
