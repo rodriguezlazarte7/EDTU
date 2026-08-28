@@ -6852,6 +6852,18 @@ function updGameRecords(){ try{
     if(!wl){ const pick=$("pickScr") && $("pickScr").parentElement; if(pick){ wl=document.createElement("div"); wl.id="wallyHunt";
       wl.style.cssText="margin-top:10px;font:800 13px Consolas,monospace;color:#8fd0ff;text-align:center"; pick.appendChild(wl); } }
     if(wl) wl.textContent = wn>=4 ? "🤖 ¡ENCONTRASTE A WALLY EN LOS 4 MUNDOS! 🏅" : "🤖 Cacería de WALLY: "+wn+"/4 mundos — está escondido en cada juego"; }
+  // 🏅 LOGROS TOTALES DE EDTU: 16 medallas de los juegos + 4 WALLYs = 20
+  { const medKeys=[];
+    ["facil","normal","pesadilla","infierno"].forEach(k=>medKeys.push("scream_win_"+k));
+    ["facil","normal","dificil","extincion"].forEach(k=>medKeys.push("jurassic_win_"+k));
+    [25,50,100,200].forEach(t2=>medKeys.push("nag_kills_"+t2));
+    [1000,3000,5000,10000].forEach(t2=>medKeys.push("edtu_f1_km_"+t2));
+    ["wally_jurassic","wally_notagame","wally_scream","wally_f1"].forEach(k=>medKeys.push(k));
+    const n=medKeys.filter(k=>g(k)==="1").length;
+    let el2=document.getElementById("edtuLogros");
+    if(!el2){ const wl2=document.getElementById("wallyHunt"); if(wl2&&wl2.parentElement){ el2=document.createElement("div"); el2.id="edtuLogros";
+      el2.style.cssText="margin-top:4px;font:800 13px Consolas,monospace;color:#ffd15a;text-align:center"; wl2.parentElement.appendChild(el2); } }
+    if(el2) el2.textContent = n>=20 ? "🏆 ¡LOGROS EDTU COMPLETOS! 20/20 — ERES LEYENDA" : "🏅 Logros EDTU: "+n+"/20 (medallas de los 5 juegos + WALLYs)"; }
 }catch(e){} }
 $("lndPlay").onclick=()=>{ $("landing").classList.add("gaming"); updGameRecords(); $("gamePick").classList.add("open"); };   // PLAY = menú de TODOS los juegos
 
