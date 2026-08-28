@@ -7227,6 +7227,7 @@ $("posterFs").addEventListener("click",e=>{ if(e.target===$("posterFs")) $("post
     if(/edtu|cuartel|agencia/.test(q)) return "🛰️ EDTU: Espías De Tecnología Universal — el cuartel que David construyó desde cero. ¡Y tiene dominio propio: www.edtu.cl!";
     if(/ptero|p[áa]jaro|volador/.test(q)) return "🐣 si te rescataron alguna vez, un PTERO BEBÉ te acompaña en la isla... y chilla antes de que ataque el grande";
     if(/oro|dorado/.test(q)) return "👑 el CUBO DE ORO existe... pero solo para quien tenga los 21 logros. beep-brillante";
+    if(/perro|gato|mascota/.test(q)) return "🐕 el perro de NOT A GAME ladra cuando viene peligro y 🐈‍⬛ el gato (si lo acaricias con E) espanta zombies 60s. ¡Acarícialos de mi parte!";
     return pick(["beep-boop... no entendí 🤔 pregúntame por chistes, juegos, récords o trucos","mis circuitos no procesaron eso... ¡prueba con 'chiste'!","*gira la cabeza confundido* ¿me hablas de juegos, récords o chistes?"]); }
   catch(e){ return "beep... error de circuitos jaja"; } }
   function sendWally(){ const q=inp.value.trim(); if(!q) return; inp.value=""; wallyType(wallyReply(q)); }
