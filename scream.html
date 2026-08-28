@@ -273,6 +273,9 @@ const NOTE_SPOTS=[
 ];
 const valves=[], samples=[], notes=[]; let valvesGot=0, samplesGot=0, notesGot=0, craftT=0, timeLeft=1200, won=false;
 const glassZones=[]; let glassWarned=false;   // 🍾 vidrios rotos
+// 🪳 CUCARACHAS (pool de 6): salen disparadas de los cadáveres cuando te acercas
+const roaches=[]; const roachM=new THREE.MeshStandardMaterial({color:0x2a1c10,roughness:.8});
+for(let i=0;i<6;i++){ const r=new THREE.Mesh(new THREE.SphereGeometry(0.07,7,5),roachM); r.scale.set(1,0.5,1.6); r.visible=false; scene.add(r); roaches.push({m:r,t:0,dx:0,dz:0}); }
 const safeZone={x:-HH+16,z:HH-16,r:9,f:0}; const MACHINE={x:-HH+16,z:HH-16};
 const flick=[];                                    // luces que parpadean
 const webTraps=[];                                 // telarañas del piso que frenan
@@ -700,7 +703,7 @@ function start(){ $("start").classList.add("hide"); $("end").classList.add("hide
   placeWallyS();   // 🤖 WALLY en otro piso
   hp=hpMax; stam=100; hurtCd=0; safeTime=0; sprintHeld=false; visorBatt=100; updHP(); $("crack").style.opacity="0"; $("fade").style.background="#000"; $("fade").style.opacity="0";
   activeFlares.forEach(f=>{ if(f.parent){ f.parent.remove(f.glow); f.parent.remove(f.light); } }); activeFlares.length=0; flares=3; updFlareHUD(); panicWarned=false; webWarned=false; glassWarned=false;
-  lootCorpses.forEach(lc=>{ lc.looted=false; lc.item.visible=true; });
+  lootCorpses.forEach(lc=>{ lc.looted=false; lc.item.visible=true; lc.roached=false; });
   if(spider) spider.sp=D.sp;
   valves.forEach(v=>{ v.got=false; v.grp.visible=true; if(v.light) v.light.userData.fl=v.f; });
   samples.forEach(v=>{ v.got=false; v.grp.visible=true; if(v.light) v.light.userData.fl=v.f; });
@@ -880,6 +883,16 @@ function update(dt){
   // 👻 INVISIBILIDAD: 30s invisible / 30s visible — SIN AVISO (solo con el VISOR la ves)
   spider.invT-=dt; if(spider.invT<=0){ spider.invPhase=!spider.invPhase; spider.invT=invDur; }
   const invHidden = spider.invPhase && !nvOn;
+  // 🪳 cucarachas: al acercarte a un cadáver por PRIMERA vez, 6 salen disparadas en abanico y se esconden
+  for(const lc of lootCorpses){ if(lc.roached||lc.f!==curFloor) continue;
+    if(Math.hypot(P.x-lc.x,P.z-lc.z)<2.4){ lc.roached=true;
+      for(const rc of roaches){ rc.m.visible=true; rc.t=1+Math.random()*0.5; const ra=Math.random()*6.28;
+        rc.dx=Math.cos(ra)*(3+Math.random()*2); rc.dz=Math.sin(ra)*(3+Math.random()*2);
+        rc.m.position.set(lc.x,curFloor*FLOOR_H+0.06,lc.z); }
+      for(let j=0;j<4;j++) setTimeout(()=>snd(2600+Math.random()*1000,"square",0.03,0.03),j*70); vib(40); } }
+  for(const rc of roaches){ if(!rc.m.visible) continue; rc.t-=dt;
+    rc.m.position.x+=rc.dx*dt; rc.m.position.z+=rc.dz*dt; rc.m.rotation.y=Math.atan2(rc.dx,rc.dz);
+    if(rc.t<=0) rc.m.visible=false; }
   // 🍾 vidrios: crujido agudo SIEMPRE que los pises; si la araña anda a <25m en tu piso, ¡te escuchó! (ataca al tiro)
   for(const gz2 of glassZones){ if(gz2.f!==curFloor) continue; if(gz2.cd>0){ gz2.cd-=dt; continue; }
     if(moving && Math.hypot(P.x-gz2.x,P.z-gz2.z)<gz2.r){ gz2.cd=1.2;
