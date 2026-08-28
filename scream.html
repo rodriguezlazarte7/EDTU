@@ -144,7 +144,8 @@
     <li>🎯 Reúne <b>4 válvulas</b> 🔧 + <b>3 muestras</b> 🧪 por los 7 pisos y fabrica el antídoto en la <b>MÁQUINA</b> de tu zona segura antes de que se acabe el tiempo.</li>
     <li>🕷️ La araña se vuelve <b>invisible</b> por rachas (el visor la ve y detecta su RASTRO 👣), <b>trepa paredes</b> y a veces <b>CAE DEL TECHO</b>: si marca un círculo rojo bajo tus pies, ¡MUÉVETE!</li>
     <li>👂 Los bordes de la pantalla brillan rojo hacia donde está la araña. 🍾 Pisar VIDRIOS la alerta.</li>
-    <li>💎 Busca: ⏰ relojes (+60s), ❤️ botiquines, 📞 el teléfono que suena (pistas) y 🤖 WALLY. 🧍 Al maniquí... no le quites la vista.</li>
+    <li>💎 Busca: ⏰ relojes (+60s), ❤️ botiquines, 📞 el teléfono que suena (pistas), ⚡ el GENERADOR (3s a su lado = luz total 20s y araña congelada) y 🤖 WALLY. 🧍 Al maniquí... no le quites la vista.</li>
+    <li>🐀 Las RATAS chillan FUERTE si pasan cerca de la araña o del maniquí — úsalas de alarma.</li>
   </ul>
   <div class="cerrar">H o ❓ para cerrar</div>
 </div>
@@ -1108,6 +1109,14 @@ function update(dt){
     // 💡 huyen de tu linterna: si las alumbras de cerca, salen disparadas en dirección contraria
     const rd=Math.hypot(P.x-rt.grp.position.x,P.z-rt.grp.position.z);
     if(flashOn && rd<7 && !rt.mv){ rt.mv=true; rt.st=0.6+Math.random()*0.4; rt.dir=Math.atan2(rt.grp.position.z-P.z,rt.grp.position.x-P.x)+(Math.random()-0.5)*0.6; if(Math.random()<0.5) snd(1300+Math.random()*400,"square",0.05,0.03); }
+    // 🐀⚠️ DETECTOR DE PELIGRO: si una rata pasa cerca de la ARAÑA (aunque esté invisible) o del MANIQUÍ, CHILLA FUERTE y sale disparada — escúchalas
+    rt.dngCd=(rt.dngCd||0)-dt;
+    if(rt.dngCd<=0 && rd<26){ let dngX=null,dngZ=null;
+      if(!spiderDead && spiderFloor===curFloor){ const dsp=Math.hypot(rt.grp.position.x-spider.grp.position.x,rt.grp.position.z-spider.grp.position.z); if(dsp<6){ dngX=spider.grp.position.x; dngZ=spider.grp.position.z; } }
+      if(dngX===null && manqF===curFloor){ const dmq=Math.hypot(rt.grp.position.x-manq.position.x,rt.grp.position.z-manq.position.z); if(dmq<6){ dngX=manq.position.x; dngZ=manq.position.z; } }
+      if(dngX!==null){ rt.dngCd=6+Math.random()*4; rt.mv=true; rt.st=1.2;
+        rt.dir=Math.atan2(rt.grp.position.z-dngZ,rt.grp.position.x-dngX)+(Math.random()-0.5)*0.4;
+        snd(1900,"square",0.14,0.09); setTimeout(()=>snd(2300,"square",0.12,0.08),90); setTimeout(()=>snd(1700,"square",0.16,0.07),200); } }
     if(rt.st<=0){ rt.mv=!rt.mv; rt.st=rt.mv?(0.4+Math.random()*0.7):(0.8+Math.random()*2.2); if(rt.mv) rt.dir=Math.random()*6.28; }
     if(rt.mv){ const rx=rt.grp.position.x+Math.cos(rt.dir)*5.2*dt, rz=rt.grp.position.z+Math.sin(rt.dir)*5.2*dt;
       if(Math.abs(rx)<HH-2 && Math.abs(rz)<HH-2 && !collide(rx,rz,curFloor)){ rt.grp.position.x=rx; rt.grp.position.z=rz; rt.grp.rotation.y=-rt.dir+Math.PI/2; } else rt.dir=Math.random()*6.28;
