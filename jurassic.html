@@ -548,7 +548,8 @@ function jump(){ if(running && !gameOver && !jPaused && P.onGround){ P.vy=7.2; P
 let yaw=0,pitch=0,running=false,gameOver=false,tPrev=0,elapsed=0,roarT=2,stepT=0,wasInLake=false,lakeWarnCd=0;
 let jdiff="normal", jdSpeed=1, jdDmg=1, jdDet=1;
 const JDIFFS={facil:{sp:0.8,dmg:0.55,det:0.8,lbl:"🟢 FÁCIL"},normal:{sp:1,dmg:1,det:1,lbl:"🟡 NORMAL"},dificil:{sp:1.25,dmg:1.5,det:1.2,lbl:"🔴 DIFÍCIL"},extincion:{sp:1.5,dmg:2.2,det:1.5,lbl:"☄️ EXTINCIÓN"}};
-function buildJDiffs(){ const c=document.getElementById("jdiffs"); if(!c) return; c.innerHTML=""; for(const k of ["facil","normal","dificil","extincion"]){ const b=document.createElement("button"); b.className="diffbtn"+(jdiff===k?" sel":""); b.textContent=JDIFFS[k].lbl; b.onclick=()=>{ jdiff=k; buildJDiffs(); }; c.appendChild(b); } }
+try{ const jd0=localStorage.getItem("jurassic_diff"); if(jd0&&JDIFFS[jd0]) jdiff=jd0; }catch(e){}   // 🧠 recuerda tu dificultad
+function buildJDiffs(){ const c=document.getElementById("jdiffs"); if(!c) return; c.innerHTML=""; for(const k of ["facil","normal","dificil","extincion"]){ const b=document.createElement("button"); b.className="diffbtn"+(jdiff===k?" sel":""); b.textContent=JDIFFS[k].lbl; b.onclick=()=>{ jdiff=k; try{ localStorage.setItem("jurassic_diff",k); }catch(e){} buildJDiffs(); }; c.appendChild(b); } }
 let hp=100,hunger=100,thirst=100,invT=0,flashBatt=100,darts=6,dartCd=0,placeCd=0;
 let jStatDarts=0,jStatSleep=0,jStatWood=0,jStatDist=0,jLastX=null,jLastZ=0;   // 📊 estadísticas
 let jPaused=false;   // ⏸ pausa con P

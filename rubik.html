@@ -143,6 +143,7 @@ function isSolved(cube){
 
 // ---- estado del juego ----
 let diff="medio", DIFF={facil:{scr:6,pace:1.0},medio:{scr:12,pace:0.5},dificil:{scr:18,pace:0.25},imposible:{scr:20,pace:0.14}};
+try{ const rd0=localStorage.getItem("rubik_diff"); if(rd0&&DIFF[rd0]) diff=rd0; }catch(e){}   // 🧠 recuerda tu dificultad
 let state="idle", raceStart=0, ended=false, scramble=[], aiQueue=[], aiTimer=null;
 const FACE_LIST=["U","D","L","R","F","B"];
 function randMove(){ return {face:FACE_LIST[(Math.random()*6)|0], dir:Math.random()<0.5?1:-1}; }
@@ -306,7 +307,7 @@ addEventListener("keydown",e=>{ const k=e.key.toUpperCase();
   if(FACES[k] && !e.repeat) playerMove(k, e.shiftKey?-1:1); });
 document.getElementById("introStart").onclick=startRace; updRW();
 // selector de dificultad (arriba y en el intro)
-function buildDiffs(container){ container.innerHTML=""; [["facil","🟢 Fácil"],["medio","🟡 Medio"],["dificil","🔴 Difícil"],["imposible","💀 Imposible"]].forEach(([k,lbl])=>{ const b=document.createElement("button"); b.className="diff"+(diff===k?" sel":""); const bt=loadBT(k); b.textContent=lbl+(bt?" ⏱️"+bt.toFixed(1)+"s":""); b.onclick=()=>{ if(state==="race"||state==="count") return; diff=k; buildDiffs(document.getElementById("diffs")); buildDiffs(document.getElementById("introDiffs")); }; container.appendChild(b); }); }   // 🐛FIX ronda2: cambiar dificultad EN PLENA carrera alteraba la IA y guardaba récords falsos
+function buildDiffs(container){ container.innerHTML=""; [["facil","🟢 Fácil"],["medio","🟡 Medio"],["dificil","🔴 Difícil"],["imposible","💀 Imposible"]].forEach(([k,lbl])=>{ const b=document.createElement("button"); b.className="diff"+(diff===k?" sel":""); const bt=loadBT(k); b.textContent=lbl+(bt?" ⏱️"+bt.toFixed(1)+"s":""); b.onclick=()=>{ if(state==="race"||state==="count") return; diff=k; try{ localStorage.setItem("rubik_diff",k); }catch(e){} buildDiffs(document.getElementById("diffs")); buildDiffs(document.getElementById("introDiffs")); }; container.appendChild(b); }); }   // 🐛FIX ronda2: cambiar dificultad EN PLENA carrera alteraba la IA y guardaba récords falsos
 buildDiffs(document.getElementById("diffs")); buildDiffs(document.getElementById("introDiffs"));
 
 // ---- orbitar la vista del jugador ----
