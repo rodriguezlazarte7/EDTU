@@ -220,6 +220,14 @@ function makeTree(x,z){ const h=5+Math.random()*5;
 function inLake(x,z,m){ return Math.hypot(x-LAKE.x,z-LAKE.z) < LAKE.r+(m||0); }
 for(let i=0;i<160;i++){ const a=Math.random()*6.28, r=Math.random()*(ISLR-14); const x=Math.cos(a)*r, z=Math.sin(a)*r; if(inLake(x,z,6)) continue; if(Math.hypot(x,z)<10) continue; makeTree(x,z); }
 
+// 🌾 PASTO ALTO: mechones de tallos en planos cruzados
+const tuftTex=tex(x=>{ x.clearRect(0,0,256,256);
+  for(let i=0;i<26;i++){ const bx=20+Math.random()*216; x.strokeStyle="rgba("+(30+Math.random()*40|0)+","+(95+Math.random()*80|0)+","+(25+Math.random()*35|0)+",0.9)"; x.lineWidth=3+Math.random()*3;
+    x.beginPath(); x.moveTo(bx,256); x.quadraticCurveTo(bx+(Math.random()*2-1)*30,150, bx+(Math.random()*2-1)*55, 40+Math.random()*60); x.stroke(); } });
+const tuftMat=new THREE.MeshBasicMaterial({map:tuftTex,transparent:true,side:THREE.DoubleSide,depthWrite:false,alphaTest:0.15});
+for(let i=0;i<60;i++){ const a=Math.random()*6.28, r=Math.random()*(ISLR-12); const gx=Math.cos(a)*r, gz=Math.sin(a)*r; if(inLake(gx,gz,3)) continue;
+  const h2=1.1+Math.random()*0.9; const t1=new THREE.Mesh(new THREE.PlaneGeometry(1.6,h2),tuftMat); t1.position.set(gx,h2/2,gz); t1.rotation.y=Math.random()*3.14; scene.add(t1);
+  const t2=t1.clone(); t2.rotation.y+=Math.PI/2; scene.add(t2); }
 // 🦶 RASTROS de huellas gigantes (caminos de pisadas alternadas izq/der)
 (function makeTracks(){ const pm=new THREE.MeshBasicMaterial({map:printTex,transparent:true,opacity:0.8,depthWrite:false});
   for(let t=0;t<5;t++){ let a=Math.random()*6.28, r=20+Math.random()*(ISLR-40); let x=Math.cos(a)*r, z=Math.sin(a)*r; let dir=Math.random()*6.28;
