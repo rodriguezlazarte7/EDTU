@@ -39,6 +39,7 @@
 <div id="msg"></div>
 <div id="lastMvP" style="position:fixed;left:34%;bottom:32%;transform:translateX(-50%);z-index:5;font:900 42px Consolas,monospace;color:#8fd0ff;text-shadow:0 0 14px #2060ff;opacity:0;pointer-events:none;transition:opacity .45s"></div>
 <canvas id="net" width="168" height="126" style="position:fixed;left:12px;top:64px;z-index:5;opacity:.92;pointer-events:none"></canvas>
+<div id="scramShow" style="position:fixed;left:12px;top:198px;z-index:5;max-width:180px;font:700 12px Consolas,monospace;color:#8fb3ff;text-shadow:0 0 6px #000;line-height:1.6;pointer-events:none"></div>
 <div id="lastMvA" style="position:fixed;left:84%;bottom:32%;transform:translateX(-50%);z-index:5;font:900 36px Consolas,monospace;color:#ff9bb8;text-shadow:0 0 14px #ff2d6a;opacity:0;pointer-events:none;transition:opacity .45s"></div>
 
 <div id="ctrl">
@@ -168,6 +169,9 @@ function startRace(){
     if(n>0){ showMsg(String(n),"#ffd12e"); snd(440,"square",0.12,0.06); setTimeout(step,700); }
     else { showMsg("¡YA!","#39ff14"); snd(880,"square",0.3,0.08); setTimeout(()=>{ if(state==="race") showMsg(""); },500);
       state="race"; newScramble(); raceStart=performance.now(); setTimeout(drawNet,120);
+      // 📜 muestra la REVOLTURA exacta: deshacerla al revés (y con giros opuestos) resuelve el cubo
+      const ss=document.getElementById("scramShow");
+      if(ss) ss.innerHTML="📜 Revoltura:<br>"+scramble.map(m=>m.face+(m.dir<0?"'":"")).join(" ")+"<br><span style='color:#6a86b8'>(deshazla al revés para ganar)</span>";
       // IA resuelve deshaciendo el revuelto (en vivo)
       aiQueue=scramble.slice().reverse().map(m=>({face:m.face,dir:-m.dir}));
       aiTotal=aiQueue.length; aiT50=false; aiT90=false; updAIBar(); aiStep(); } };
