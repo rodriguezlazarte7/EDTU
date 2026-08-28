@@ -530,7 +530,7 @@ function throwFlare(){ if(!running||gameOver||flares<=0) return; flares--; updFl
   const sp=safeSpotF(x,z,curFloor); const by=curFloor*FLOOR_H, grp=floorGroups[curFloor]||scene;
   const glow=new THREE.Mesh(new THREE.SphereGeometry(0.3,10,8),new THREE.MeshBasicMaterial({color:0xff7a1a})); glow.position.set(sp.x,by+0.3,sp.z); grp.add(glow);
   const light=new THREE.PointLight(0xff8a2a,2.6,22); light.position.set(sp.x,by+1.2,sp.z); grp.add(light);
-  activeFlares.push({glow,light,parent:grp,life:16}); snd(300,"sawtooth",0.2,0.08); showStory("🧨 Bengala encendida (no delata como la linterna)"); }
+  activeFlares.push({glow,light,parent:grp,life:16,f:curFloor}); snd(300,"sawtooth",0.2,0.08); showStory("🧨 Bengala encendida — ¡la araña le TEME al fuego!"); }
 function toggleMap(){ if(!running) return; mapOpen=!mapOpen; $("map").classList.toggle("on",mapOpen); snd(mapOpen?500:280,"square",0.05,0.05); if(mapOpen) drawMap(); }
 function drawMap(){ const c=$("mapC"); if(!c) return; const g=c.getContext("2d"); g.clearRect(0,0,320,320);
   const sc=300/(HH*2), w2m=(x,z)=>[160+x*sc,160+z*sc];
@@ -721,6 +721,11 @@ function update(dt){
       const pm=1+panic*0.7;   // frenética en la recta final
       if(hunts){ const wob=Math.sin(now*6)*0.45; dirx=sx/sd+(-sz/sd)*wob; dirz=sz/sd+(sx/sd)*wob; spd=(sd<7?spider.sp*1.7:(sd>18?spider.sp*0.6:spider.sp))*pm; }
       else { dirx=Math.cos(spider.wdir); dirz=Math.sin(spider.wdir); spd=spider.sp*0.45*pm; if(Math.random()<dt*0.6) spider.wdir=Math.random()*6.28; }
+      // 🧨 le TEME AL FUEGO: si hay una bengala ardiendo a <9m, huye de ella chillando (te protege)
+      let flareX=0, flareZ=0, flareD=999;
+      for(const fr2 of activeFlares){ if(fr2.f!==curFloor) continue; const fd2=Math.hypot(spider.grp.position.x-fr2.glow.position.x,spider.grp.position.z-fr2.glow.position.z); if(fd2<flareD){ flareD=fd2; flareX=fr2.glow.position.x; flareZ=fr2.glow.position.z; } }
+      if(flareD<9){ const awx=spider.grp.position.x-flareX, awz=spider.grp.position.z-flareZ, al=Math.hypot(awx,awz)||1;
+        dirx=awx/al; dirz=awz/al; spd=spider.sp*1.25*pm; if(Math.random()<dt*1.1) snd(950+Math.random()*500,"sawtooth",0.14,0.05); }
       const dl=Math.hypot(dirx,dirz)||1; let nnx=spider.grp.position.x+dirx/dl*spd*dt, nnz=spider.grp.position.z+dirz/dl*spd*dt;
       nnx=Math.max(-HH+2,Math.min(HH-2,nnx)); nnz=Math.max(-HH+2,Math.min(HH-2,nnz));   // 🕷️ ATRAVIESA/TREPA paredes (implacable), solo la frena la zona segura
       if(!inSafe(nnx,spider.grp.position.z,curFloor)) spider.grp.position.x=nnx;
