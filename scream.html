@@ -272,6 +272,7 @@ const NOTE_SPOTS=[
  {f:6,x:0,z:HH-16,h:"ÚLTIMO REGISTRO",t:"La máquina de la zona segura es la única salida. Si lees esto... corre. Y no dejes que te encuentre."}
 ];
 const valves=[], samples=[], notes=[]; let valvesGot=0, samplesGot=0, notesGot=0, craftT=0, timeLeft=1200, won=false;
+const glassZones=[]; let glassWarned=false;   // 🍾 vidrios rotos
 const safeZone={x:-HH+16,z:HH-16,r:9,f:0}; const MACHINE={x:-HH+16,z:HH-16};
 const flick=[];                                    // luces que parpadean
 const webTraps=[];                                 // telarañas del piso que frenan
@@ -336,6 +337,15 @@ function buildFloor(fl){
   for(let i=0;i<6;i++){ let wx,wz,tw=0; do{ const a=Math.random()*6.28,r=8+Math.random()*(HH-14); wx=Math.cos(a)*r; wz=Math.sin(a)*r; tw++; }while((collide(wx,wz,fl)||inSafe(wx,wz,fl)||Math.hypot(wx-STAIRX,wz-STAIRZ)<8)&&tw<20);
     const wp=new THREE.Mesh(new THREE.PlaneGeometry(5,5),webMat); wp.rotation.x=-Math.PI/2; wp.rotation.z=Math.random()*6.28; wp.position.set(wx,by+0.06,wz); CURP.add(wp);
     webTraps.push({x:wx,z:wz,f:fl,r:2.5}); }
+  // 🍾 VIDRIOS ROTOS: 5 zonas por piso que CRUJEN al pisarlas y te delatan con la araña
+  if(!window._glassMat){ const gcv=document.createElement("canvas"); gcv.width=gcv.height=128; const gg=gcv.getContext("2d");
+    gg.strokeStyle="rgba(210,230,240,0.85)"; gg.lineWidth=2;
+    for(let j=0;j<22;j++){ const x=Math.random()*128,y=Math.random()*128,a=Math.random()*6.28,l=6+Math.random()*16;
+      gg.beginPath(); gg.moveTo(x,y); gg.lineTo(x+Math.cos(a)*l,y+Math.sin(a)*l); gg.stroke(); }
+    window._glassMat=new THREE.MeshBasicMaterial({map:new THREE.CanvasTexture(gcv),transparent:true,opacity:0.5}); }
+  for(let i=0;i<5;i++){ let gx,gz,tg=0; do{ const a=Math.random()*6.28,r=8+Math.random()*(HH-14); gx=Math.cos(a)*r; gz=Math.sin(a)*r; tg++; }while((collide(gx,gz,fl)||inSafe(gx,gz,fl))&&tg<20);
+    const gp=new THREE.Mesh(new THREE.PlaneGeometry(2.6,2.6),window._glassMat); gp.rotation.x=-Math.PI/2; gp.rotation.z=Math.random()*6.28; gp.position.set(gx,by+0.05,gz); CURP.add(gp);
+    glassZones.push({x:gx,z:gz,f:fl,r:1.5,cd:0}); }
   // 🩸 MUCHA SANGRE: manchas en el piso, salpicaduras en las paredes, y CADÁVERES
   for(let i=0;i<28;i++){ const a=Math.random()*6.28,r=Math.random()*(HH-6); const bd=new THREE.Mesh(new THREE.PlaneGeometry(2.5+Math.random()*6,2.5+Math.random()*6),bloodMat); bd.rotation.x=-Math.PI/2; bd.rotation.z=Math.random()*6.28; bd.position.set(Math.cos(a)*r,by+0.04+Math.random()*0.02,Math.sin(a)*r); CURP.add(bd); }
   // sangre en las paredes (planos verticales pegados a los muros exteriores)
@@ -689,7 +699,7 @@ function start(){ $("start").classList.add("hide"); $("end").classList.add("hide
   phoneActive=false; phoneT=35+Math.random()*35; placePhone();   // 📞 teléfono nuevo
   placeWallyS();   // 🤖 WALLY en otro piso
   hp=hpMax; stam=100; hurtCd=0; safeTime=0; sprintHeld=false; visorBatt=100; updHP(); $("crack").style.opacity="0"; $("fade").style.background="#000"; $("fade").style.opacity="0";
-  activeFlares.forEach(f=>{ if(f.parent){ f.parent.remove(f.glow); f.parent.remove(f.light); } }); activeFlares.length=0; flares=3; updFlareHUD(); panicWarned=false; webWarned=false;
+  activeFlares.forEach(f=>{ if(f.parent){ f.parent.remove(f.glow); f.parent.remove(f.light); } }); activeFlares.length=0; flares=3; updFlareHUD(); panicWarned=false; webWarned=false; glassWarned=false;
   lootCorpses.forEach(lc=>{ lc.looted=false; lc.item.visible=true; });
   if(spider) spider.sp=D.sp;
   valves.forEach(v=>{ v.got=false; v.grp.visible=true; if(v.light) v.light.userData.fl=v.f; });
@@ -869,6 +879,13 @@ function update(dt){
   // 👻 INVISIBILIDAD: 30s invisible / 30s visible — SIN AVISO (solo con el VISOR la ves)
   spider.invT-=dt; if(spider.invT<=0){ spider.invPhase=!spider.invPhase; spider.invT=invDur; }
   const invHidden = spider.invPhase && !nvOn;
+  // 🍾 vidrios: crujido agudo SIEMPRE que los pises; si la araña anda a <25m en tu piso, ¡te escuchó! (ataca al tiro)
+  for(const gz2 of glassZones){ if(gz2.f!==curFloor) continue; if(gz2.cd>0){ gz2.cd-=dt; continue; }
+    if(moving && Math.hypot(P.x-gz2.x,P.z-gz2.z)<gz2.r){ gz2.cd=1.2;
+      for(let j=0;j<3;j++) setTimeout(()=>snd(2000+Math.random()*1800,"square",0.04,0.05),j*60);
+      snd(300,"square",0.08,0.05);
+      if(!spiderDead && sameFloor && sd<25){ spider.ambushT=Math.min(spider.ambushT,1.5);
+        if(!glassWarned){ glassWarned=true; showStory("🍾 ¡Pisaste VIDRIOS! Te escuchó... ¡muévete!"); } } } }
   if(!spiderDead && flashOn){ spider.ambushT-=dt;   // 🔦 SOLO se teletransporta con la linterna PRENDIDA
     if(spider.ambushT<=0){ spider.ambushT=ambushInt*(1-panic*0.45);   // se teletransporta más seguido con poco tiempo
       if(sameFloor){ const fx=-Math.sin(yaw), fz=-Math.cos(yaw), dist=7+Math.random()*2; const sp2=safeSpotF(P.x+fx*dist,P.z+fz*dist,curFloor);   // aparece ADELANTE
