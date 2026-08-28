@@ -22,6 +22,9 @@
   #radio{position:absolute;top:64px;right:12px;font-size:12px;color:#9fe6ff;text-align:right;text-shadow:0 0 8px #000}
   #ammo{position:absolute;top:108px;right:12px;font-size:14px;font-weight:800;color:#a9ffdc;text-align:right;text-shadow:0 0 8px #000}
   #jradar{position:absolute;top:134px;right:12px;width:104px;height:104px;opacity:.92}
+  #toRadio{position:absolute;top:64px;left:0;right:0;text-align:center;display:none;color:#ff4ad0;font:800 13px Consolas,monospace;text-shadow:0 0 8px #000}
+  #toRadio.on{display:block}
+  #toRadio .arw{display:inline-block;font-size:20px;vertical-align:middle}
   #fire{position:fixed;right:24px;bottom:120px;z-index:6;width:78px;height:78px;border-radius:50%;background:rgba(60,180,140,.28);border:3px solid rgba(120,255,210,.6);color:#eafff5;font-size:26px;cursor:pointer;pointer-events:auto}
   #fire:active{transform:scale(.9);background:rgba(120,255,210,.5)}
   #jump{position:fixed;right:112px;bottom:120px;z-index:6;width:70px;height:70px;border-radius:50%;background:rgba(90,140,220,.28);border:3px solid rgba(150,190,255,.6);color:#eaf2ff;font-size:24px;cursor:pointer;pointer-events:auto}
@@ -75,6 +78,7 @@
   <div id="radio">📻 Radio: APAGADA<br>🔋 baterías: 0/3</div>
   <div id="ammo">💉 DARDOS: 6</div>
   <canvas id="jradar" width="104" height="104"></canvas>
+  <div id="toRadio"><span class="arw">▲</span> TORRE DE RADIO</div>
   <div id="hint"></div>
   <div id="story"></div>
   <div id="hurt"></div>
@@ -482,6 +486,11 @@ function update(dt){
   $("hpF").style.width=hp+"%"; $("huF").style.width=hunger+"%"; $("thF").style.width=thirst+"%";
   $("hurt").style.boxShadow="inset 0 0 120px 30px rgba(180,10,30,"+(danger?0.35:0)+(hp<30?0.3:0)+")";
   drawJRadar();
+  // 🧭 flecha a la TORRE DE RADIO cuando tienes las 3 baterías (y aún no enciendes la radio)
+  { const tr=$("toRadio");
+    if(!radioOn && inv.batt>=3){ tr.classList.add("on"); const s2=Math.sin(yaw),c2=Math.cos(yaw); const tx=RADIO.x-P.x, tz=RADIO.z-P.z;
+      const rgt=tx*c2-tz*s2, fw2=-tx*s2-tz*c2; tr.querySelector(".arw").style.transform="rotate("+(Math.atan2(rgt,fw2)*57.2958)+"deg)"; }
+    else tr.classList.remove("on"); }
   const hint=$("hint"); hint.textContent = danger?"⚠ ¡Un dinosaurio te persigue! ¡Corre o escóndete!":(safe?"🟢 Estás en una ZONA SEGURA (los dinos no entran)":(flashBatt<25&&isNight?(inv.batt>0?"🔦 ¡Batería baja! pulsa [3] o toca 🔋 para recargar":"🔦 ¡Batería baja! busca una 🔋"):(inv.batt>=3?"🔋 Lleva las baterías a la TORRE DE RADIO":"")));
 
   // muerte
