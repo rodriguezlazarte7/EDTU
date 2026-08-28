@@ -275,11 +275,17 @@ function talkWallyN(){ if(wallyNTalkCd>0||!running||gameOver||level!=="surface")
 const dog=new THREE.Group(); const dogM=new THREE.MeshStandardMaterial({color:0x8a6a42,roughness:.85});
 let dogTail=null, dogBarkCd=0, petCd=0, dogHappy=0, petTaught=false;
 // ❤️ acariciar al perro (E cerca de él): se alegra, cola a mil, ladrido feliz y corazón
+const DOG_QUIPS=["guau guau (traducción: eres el MEJOR agente)","¡guau! (huele a zombie... y a galletas 🍪)","grrr... (yo vigilo, tú dispara)","¡guau guau guau! (¡pocas pistas más y ganamos!)","(mueve la cola a mil por hora)","guau... (extraño los tiempos sin zombies)","¡GUAU! (¡cuidado a tu espalda!... es broma 😜)","(te mira con ojitos de buen chico 🥺)"];
 function petDog(){ if(petCd>0||level!=="surface"||!dog.visible) return;
   if(Math.hypot(P.x-dog.position.x,P.z-dog.position.z)>2.4) return;
   petCd=3; dogHappy=2.2; plusOne("❤️","#ff6a8a");
+  showStory("🐕 "+DOG_QUIPS[Math.floor(Math.random()*DOG_QUIPS.length)]);
   snd(720,"square",0.08,0.08); setTimeout(()=>snd(820,"square",0.07,0.07),140); setTimeout(()=>snd(760,"square",0.09,0.07),300);
   try{ if(navigator.vibrate) navigator.vibrate(30); }catch(e){} }
+// 🐕🎉 si el perro está cerca cuando matas un zombie, salta FELIZ y a veces ladra doble
+function dogCheer(){ if(!dog.visible||level!=="surface") return;
+  if(Math.hypot(dog.position.x-P.x,dog.position.z-P.z)>8) return;
+  dogHappy=1.4; if(Math.random()<0.45){ snd(560,"square",0.08,0.08); setTimeout(()=>snd(620,"square",0.08,0.08),150); } }
 (function makeDog(){ const body=new THREE.Mesh(new THREE.BoxGeometry(0.32,0.3,0.62),dogM); body.position.y=0.42; dog.add(body);
   const head=new THREE.Mesh(new THREE.BoxGeometry(0.24,0.24,0.26),dogM); head.position.set(0,0.62,0.4); dog.add(head);
   const hocico=new THREE.Mesh(new THREE.BoxGeometry(0.12,0.1,0.12),new THREE.MeshStandardMaterial({color:0x4a3520,roughness:.9})); hocico.position.set(0,0.58,0.56); dog.add(hocico);
@@ -626,6 +632,8 @@ function drawNRadar(){ const cv=document.getElementById("nradar"); if(!cv) retur
   if(level==="surface"){ zombies.forEach(z=>{ if(!z.dead) put(z.grp.position.x,z.grp.position.z,"#ff3b3b",3); });
     if(boss) put(boss.grp.position.x,boss.grp.position.z,"#ff8c1a",5.5);
     shieldDrops.forEach(sd2=>put(sd2.m.position.x,sd2.m.position.z,"#3fd0ff",3));
+    if(dog.visible) put(dog.position.x,dog.position.z,"#c8a06a",3);   // 🐕 el perro
+    if(catAlly>0) put(cat.position.x,cat.position.z,"#b48aff",2.6);   // 🐈‍⬛ gato aliado
     rapidDrops.forEach(rp=>put(rp.m.position.x,rp.m.position.z,"#ffb020",3));
     // 🔎 cajones con PISTA sin abrir: verdes y PARPADEANDO (guían a resolver el caso)
     if(Math.sin(performance.now()*0.008)>0) drawers.forEach(d=>{ if(!d.open) put(d.cx,d.cz,"#7dff5a",3.4); }); }
@@ -742,12 +750,12 @@ function shoot(){
   if(best){ best.hp--; snd(400,"square",0.06,0.06);
     if(best.hp<=0){
       if(best.isBoss){   // 👹 cae el gigante: vale 5 kills y SIEMPRE suelta escudo
-        kills+=5; nStatBoss++; document.getElementById("kills").textContent=kills; scene.remove(best.grp); boss=null; plusOne("+5 👹","#ffd12e");
+        kills+=5; nStatBoss++; document.getElementById("kills").textContent=kills; scene.remove(best.grp); boss=null; plusOne("+5 👹","#ffd12e"); dogCheer();
         snd(50,"sawtooth",0.9,0.16); snd(35,"sine",1.2,0.14); narrate("Derribaste al gigante. Vale por cinco.");
         const sm=new THREE.Mesh(new THREE.OctahedronGeometry(0.42),new THREE.MeshBasicMaterial({color:0x3fd0ff}));
         sm.position.set(best.grp.position.x,0.9,best.grp.position.z); scene.add(sm); shieldDrops.push({m:sm}); }
       else {
-        kills+=(sirenOn>0?2:1); document.getElementById("kills").textContent=kills; snd(70,"sawtooth",0.4,0.12); plusOne(sirenOn>0?"+2 🚨":"+1",sirenOn>0?"#ff5a5a":"#7dff5a");
+        kills+=(sirenOn>0?2:1); document.getElementById("kills").textContent=kills; snd(70,"sawtooth",0.4,0.12); plusOne(sirenOn>0?"+2 🚨":"+1",sirenOn>0?"#ff5a5a":"#7dff5a"); dogCheer();
         // 🛡️ 10%: el zombie suelta un ESCUDO brillante donde cayó
         if(Math.random()<(bloodMoon?0.25:0.10)){ const sm=new THREE.Mesh(new THREE.OctahedronGeometry(0.42),new THREE.MeshBasicMaterial({color:0x3fd0ff}));
           sm.position.set(best.grp.position.x,0.9,best.grp.position.z); scene.add(sm); shieldDrops.push({m:sm}); }
