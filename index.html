@@ -7186,6 +7186,13 @@ function buildTrophies(){ try{
       if(fw>0) wr.push("🏎️ "+Math.round(fw)+" m"); if(jw>0) wr.push("🦖 "+jw.toFixed(1)+" días"); if(nw>0) wr.push("🧟 "+nw+" kills"); if(sw>0) wr.push("🕷️ "+fmtMS(sw));
       if(wr.length) h+="<br><span style='color:#9fd8c0'>Récords de la semana: "+wr.join(" · ")+"</span>"; }
   }catch(e){}
+  // 📖 ÚLTIMAS AVENTURAS: la entrada más reciente de cada diario (jurassic_diary / scream_diary / nag_diary)
+  try{ const rd=k=>{ try{ const a=JSON.parse(g(k)||"[]"); return a.length?a[0]:null; }catch(e){ return null; } };
+    const jd=rd("jurassic_diary"), sd=rd("scream_diary"), nd=rd("nag_diary"); const la=[];
+    if(jd) la.push("🦖 "+jd.date+": "+jd.days+" días"+(jd.fish?" · 🐟 "+jd.fish:"")+(jd.pack?" · 🐾 manada":"")+(jd.egg?" · 🥚":"")+" · "+(jd.hits?"🩹 "+jd.hits:"🛡️ sin heridas")+(jd.win?" ✓":""));
+    if(sd) la.push("🕷️ "+sd.date+": "+fmtMS(sd.t)+" · 🔧 "+sd.v+"/4 · 🧪 "+sd.s+"/3 · 👁️ "+sd.spot+" apariciones · "+(sd.bites?"🩸 "+sd.bites:"🛡️ sin mordidas")+(sd.win?" ✓":""));
+    if(nd) la.push("🧟 "+nd.date+": "+nd.kills+" kills · 📜 "+nd.clues+"/7 · 🌙 "+nd.nights+(nd.drvz?" · 🧪 Dr. VZ":"")+(nd.cat?" · 🐱":"")+(nd.win?" ✓":""));
+    if(la.length) h+="<div style='margin-top:8px;color:#e8d9a8'><b>📖 ÚLTIMAS AVENTURAS</b></div>"+la.join("<br>"); }catch(e){}
   $("trophyBody").innerHTML=h;
   // 🤖 WALLY saluda (con corona si lo encontraste en los 4 mundos)
   { const wb=document.getElementById("wallyBot"), ws=document.getElementById("wallySpeech");
@@ -7288,6 +7295,9 @@ $("posterFs").addEventListener("click",e=>{ if(e.target===$("posterFs")) $("post
     if(/ptero|p[áa]jaro|volador/.test(q)) return "🐣 si te rescataron alguna vez, un PTERO BEBÉ te acompaña en la isla... y chilla antes de que ataque el grande";
     if(/oro|dorado/.test(q)) return "👑 el CUBO DE ORO existe... pero solo para quien tenga los 21 logros. beep-brillante";
     if(/perro|gato|mascota/.test(q)) return "🐕 el perro de NOT A GAME ladra cuando viene peligro y 🐈‍⬛ el gato (si lo acaricias con E) espanta zombies 60s. ¡Acarícialos de mi parte!";
+    if(/aventura|últim|ultim|diario|expediente/.test(q)){ try{ const rd=k=>{ const a=JSON.parse(g(k)||"[]"); return a.length?a[0]:null; }; const jd=rd("jurassic_diary"), sd=rd("scream_diary"), nd=rd("nag_diary"); const pa=[];
+      if(jd) pa.push("🦖 "+jd.days+" días en la isla"+(jd.win?" y te rescataron":"")); if(sd) pa.push("🕷️ "+Math.floor(sd.t/60)+":"+String(sd.t%60).padStart(2,"0")+" en el edificio con "+sd.spot+" sustos"+(sd.win?" y escapaste":"")); if(nd) pa.push("🧟 "+nd.kills+" zombies y "+nd.clues+"/7 pistas"+(nd.win?" — caso resuelto":""));
+      return pa.length?"📖 tus últimas aventuras: "+pa.join("; ")+". ¡Sigue escribiendo tu leyenda!":"📖 aún no hay diarios... ¡juega una partida y te la cuento!"; }catch(e){ return "📖 beep... el diario se mojó"; } }
     if(/semana|semanal|lunes/.test(q)){ try{ const d=new Date(), j=new Date(d.getFullYear(),0,1); const wk=d.getFullYear()+"-"+Math.floor(((d-j)/86400000+j.getDay())/7);
       const fw=parseFloat(g("edtu_f1_week_"+wk))||0, jw=parseFloat(g("jurassic_week_"+wk))||0, nw=parseInt(g("nag_week_"+wk)||"0",10)||0, sw=parseFloat(g("scream_week_"+wk))||0;
       const wp=[]; if(fw>0) wp.push("🏎️ "+Math.round(fw)+" m"); if(jw>0) wp.push("🦖 "+jw.toFixed(1)+" días"); if(nw>0) wp.push("🧟 "+nw+" kills"); if(sw>0) wp.push("🕷️ escape en "+Math.floor(sw/60)+":"+String(Math.floor(sw%60)).padStart(2,"0"));
