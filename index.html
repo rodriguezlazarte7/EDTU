@@ -5873,6 +5873,21 @@ const F1={
       const pl=this.proj(z2); if(pl.y<hor||pl.y>H) continue;
       const lw2=Math.max(2,pl.pers*W*0.05);
       c.fillStyle="rgba(255,190,90,.9)"; c.fillRect(pl.roadX-lw2/2, pl.y-pl.pers*W*0.315, lw2, Math.max(1.5,pl.pers*W*0.012)); } }
+    // ⚠️ SEÑAL DE CURVA: chevrones amarillos en el lado de AFUERA de la curva fuerte que viene
+    { const zW=this.dist+200, cw=this.curveAt(zW);
+      if(Math.abs(cw)>0.85){ const pw2=this.proj(zW);
+        if(pw2.y>hor&&pw2.y<H+20&&pw2.pers>0.06){ const side=cw>0?-1:1, sx2=pw2.roadX+side*pw2.rw*1.5;
+          const sw2=pw2.pers*W*0.13, sh2=sw2*0.5;
+          c.fillStyle="#3a3f4a"; c.fillRect(sx2-sw2*0.03,pw2.y-sh2*1.6,sw2*0.06,sh2*1.6);
+          c.fillStyle="#ffd12e"; c.fillRect(sx2-sw2/2,pw2.y-sh2*2.5,sw2,sh2);
+          c.fillStyle="#0a0a0a"; c.font="900 "+Math.max(7,Math.round(sh2*0.8))+"px system-ui,sans-serif"; c.textAlign="center";
+          c.fillText(cw>0?"⟩⟩⟩":"⟨⟨⟨",sx2,pw2.y-sh2*1.85);
+        }
+        const seg=Math.floor(zW/150);
+        if(this._curveWarn!==seg){ this._curveWarn=seg;
+          try{ const a=this.actx(); if(a){ const o=a.createOscillator(),g=a.createGain(); o.type="triangle"; o.frequency.value=740;
+            o.connect(g); g.connect(a.destination); o.start(); g.gain.setValueAtTime(.06,a.currentTime);
+            g.gain.exponentialRampToValueAtTime(0.0001,a.currentTime+0.14); o.stop(a.currentTime+0.15); } }catch(e){} } } }
     // 🪧 VALLAS publicitarias al costado: ¡anuncian los otros juegos de EDTU!
     { const ADS=["EDTU","SCREAM","JURASSIC","NOT A GAME","RUBIK 3x3","F1 RB RUSH"];
       for(let zB=Math.ceil(this.dist/350)*350; zB<this.dist+540; zB+=350){
