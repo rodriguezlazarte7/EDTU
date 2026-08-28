@@ -5778,7 +5778,7 @@ const F1={
       if((!bsec || st<bsec) && !this._mirror){ try{ localStorage.setItem("edtu_f1_sector",st.toFixed(1)); }catch(e){}
         this._secMsg="🟢 ¡SECTOR VERDE! "+st.toFixed(1)+"s"; this._secMsgT=3; this._secGreen=true;
         try{ const a=this.actx(); if(a){ [880,1175].forEach((fq,i)=>{ const o=a.createOscillator(),g=a.createGain(); o.type="triangle"; o.frequency.value=fq; g.gain.value=0.09; o.connect(g); g.connect(a.destination); o.start(a.currentTime+i*0.1); o.stop(a.currentTime+i*0.1+0.14); }); } }catch(e){} }
-      else { this._secMsg="⏱ sector: "+st.toFixed(1)+"s · récord "+bsec.toFixed(1)+"s"; this._secMsgT=2.4; this._secGreen=false; } }
+      else { this._secMsg="⏱ sector: "+st.toFixed(1)+"s"+(bsec?" · récord "+bsec.toFixed(1)+"s":""); this._secMsgT=2.4; this._secGreen=false; } }   // 🐛FIX: sin récord previo (ej. espejo) no mostrar 'récord 0.0s'
     // 👻 grabar el fantasma: muestra [dist, x] cada 20 m (cap 800 = 16 km)
     if(this._ghRec && !this._mirror && this.dist>=this._ghNext && this._ghRec.length<800){ this._ghRec.push([Math.round(this.dist),Math.round(this.x*1000)/1000]); this._ghNext=this.dist+20; }
     // 👻⚔️ DUELO: al pasar la última huella del fantasma en plena carrera, anuncio único
@@ -6666,7 +6666,9 @@ $("f1Close").onclick=()=>F1.close();
 $("f1Start").onclick=()=>F1.start();
 $("f1Horn").onclick=()=>F1.horn();   // 📯 claxon táctil
 $("f1Mirror").onclick=()=>{ try{ const on=localStorage.getItem("edtu_f1_mirror")==="1"; localStorage.setItem("edtu_f1_mirror",on?"0":"1");
-  F1._mirror=!on; F1._mir=F1._mirror?-1:1; $("f1Mirror").textContent="🪞 ESPEJO: "+(F1._mirror?"SÍ ✔":"NO"); }catch(e){} };
+  F1._mirror=!on; F1._mir=F1._mirror?-1:1; $("f1Mirror").textContent="🪞 ESPEJO: "+(F1._mirror?"SÍ ✔":"NO");
+  try{ const a=F1.actx(); if(a){ const o=a.createOscillator(),g=a.createGain(); o.type="triangle"; o.frequency.value=F1._mirror?880:440; g.gain.value=0.08; o.connect(g); g.connect(a.destination); o.start(); o.stop(a.currentTime+0.14); } }catch(e){}
+  try{ if(navigator.vibrate) navigator.vibrate(15); }catch(e){} }catch(e){} };
 (function(){ const b=$("f1Nitro"), on=e=>{ e.preventDefault(); F1._btnNitro=true; }, off=()=>{ F1._btnNitro=false; };
   b.addEventListener("pointerdown",on); b.addEventListener("pointerup",off); b.addEventListener("pointercancel",off); b.addEventListener("pointerleave",off); })();
 $("f1Canvas").addEventListener("pointerdown",e=>{ F1._touchX=e.clientX; try{ e.target.setPointerCapture(e.pointerId); }catch(_){} });   // 🐛FIX ronda2: captura el puntero para no perder el pointerup fuera del canvas
