@@ -843,6 +843,7 @@ function update(dt){
     if(wNBalR){ wNBalR.material.color.setHex(balPh<0?0xff4040:0x551010); wNBalB.material.color.setHex(balPh>0?0x4080ff:0x102055); }
     if(!wallyNSeen && Math.hypot(P.x-wallyN.position.x,P.z-wallyN.position.z)<5){ wallyNSeen=true;
       [880,1175,880,1568].forEach((fq,k)=>setTimeout(()=>snd(fq,"square",0.09,0.06),k*120));
+      try{ localStorage.setItem("wally_notagame","1"); }catch(e){}   // 🏅 cacería de WALLY
       showStory("🤖 ¡WALLY sobrevivió al brote! (beep-boop)"); }
     if(dn) dn.textContent = dayF>0.5 ? "☀️ DÍA" : (bloodMoon?"🔴 LUNA DE SANGRE":"🌙 NOCHE");
     // 🏮 faroles: se encienden al anochecer (algunos titilan)

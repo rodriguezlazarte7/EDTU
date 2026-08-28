@@ -5924,6 +5924,7 @@ const F1={
           const wave=Math.sin(performance.now()*0.012);
           c.strokeStyle="#3468d0"; c.lineWidth=Math.max(2,s3*0.12); c.beginPath(); c.moveTo(wx3+s3*0.45,wy3-s3*0.85); c.lineTo(wx3+s3*0.75,wy3-s3*(1.15+wave*0.15)); c.stroke(); }
         if(relW<8 && this._wallyBeeped!==zW2){ this._wallyBeeped=zW2;
+          try{ localStorage.setItem("wally_f1","1"); }catch(e){}   // 🏅 cacería de WALLY
           try{ const a=this.actx(); if(a){ [880,1175].forEach((fq,i2)=>{ const o=a.createOscillator(),g=a.createGain(); o.type="square"; o.frequency.value=fq;
             o.connect(g); g.connect(a.destination); const st=a.currentTime+i2*0.1; o.start(st); g.gain.setValueAtTime(.07,st);
             g.gain.exponentialRampToValueAtTime(0.0001,st+0.12); o.stop(st+0.13); }); } }catch(e){} } } }
@@ -6784,6 +6785,12 @@ function updGameRecords(){ try{
   const nk=parseInt(g("nag_best_kills")||"0",10)||0; tag("pickNag", nk>0?("🏆 "+nk+" zombies"):"");
   const fb=parseFloat(g("edtu_f1_best")); tag("pickF1", (fb&&fb>0)?("🏆 "+Math.round(fb)+" m"):"");
   const rw=parseInt(g("rubik_wins")||"0",10)||0; tag("pickRk", rw>0?("🏆 "+rw+" victorias vs IA"):"");
+  // 🤖 CACERÍA DE WALLY: cuenta en cuántos mundos lo has encontrado (comparte localStorage entre juegos)
+  { const wn=["wally_jurassic","wally_notagame","wally_scream","wally_f1"].filter(k=>g(k)==="1").length;
+    let wl=document.getElementById("wallyHunt");
+    if(!wl){ const pick=$("pickScr") && $("pickScr").parentElement; if(pick){ wl=document.createElement("div"); wl.id="wallyHunt";
+      wl.style.cssText="margin-top:10px;font:800 13px Consolas,monospace;color:#8fd0ff;text-align:center"; pick.appendChild(wl); } }
+    if(wl) wl.textContent = wn>=4 ? "🤖 ¡ENCONTRASTE A WALLY EN LOS 4 MUNDOS! 🏅" : "🤖 Cacería de WALLY: "+wn+"/4 mundos — está escondido en cada juego"; }
 }catch(e){} }
 $("lndPlay").onclick=()=>{ $("landing").classList.add("gaming"); updGameRecords(); $("gamePick").classList.add("open"); };   // PLAY = menú de TODOS los juegos
 

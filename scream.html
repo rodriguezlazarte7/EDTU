@@ -802,6 +802,7 @@ function update(dt){
   wallyS.visible=(wallySF===curFloor);
   if(!wallySSeen && wallySF===curFloor && Math.hypot(P.x-wallyS.position.x,P.z-wallyS.position.z)<4){ wallySSeen=true;
     [880,1175,880,1568].forEach((fq,k)=>setTimeout(()=>snd(fq,"square",0.09,0.06),k*120));
+    try{ localStorage.setItem("wally_scream","1"); }catch(e){}   // 🏅 cacería de WALLY
     showStory("🤖 ¡WALLY! ...no estás solo en este hospital"); vib(60); }
   // 📞 el teléfono: RIIING metálico en su piso (lejano y débil desde otros); contéstalo a <2m
   if(!phoneActive){ phoneT-=dt; if(phoneT<=0){ phoneActive=true; placePhone(); ringT=0; } }
