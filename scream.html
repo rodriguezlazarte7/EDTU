@@ -743,6 +743,9 @@ function update(dt){
     if(Math.hypot(P.x-lc.x,P.z-lc.z)<1.6){ lc.looted=true; lc.item.visible=false; flares++; updFlareHUD(); snd(640,"triangle",0.18,0.08); showStory("🧨 Registraste el cadáver: +1 bengala"); } }
   // 🐀 ratas: arrancan en carreritas cortas y chillan si pasan cerca
   for(const rt of rats){ if(rt.f!==curFloor) continue; rt.st-=dt;
+    // 💡 huyen de tu linterna: si las alumbras de cerca, salen disparadas en dirección contraria
+    const rd=Math.hypot(P.x-rt.grp.position.x,P.z-rt.grp.position.z);
+    if(flashOn && rd<7 && !rt.mv){ rt.mv=true; rt.st=0.6+Math.random()*0.4; rt.dir=Math.atan2(rt.grp.position.z-P.z,rt.grp.position.x-P.x)+(Math.random()-0.5)*0.6; if(Math.random()<0.5) snd(1300+Math.random()*400,"square",0.05,0.03); }
     if(rt.st<=0){ rt.mv=!rt.mv; rt.st=rt.mv?(0.4+Math.random()*0.7):(0.8+Math.random()*2.2); if(rt.mv) rt.dir=Math.random()*6.28; }
     if(rt.mv){ const rx=rt.grp.position.x+Math.cos(rt.dir)*5.2*dt, rz=rt.grp.position.z+Math.sin(rt.dir)*5.2*dt;
       if(Math.abs(rx)<HH-2 && Math.abs(rz)<HH-2 && !collide(rx,rz,curFloor)){ rt.grp.position.x=rx; rt.grp.position.z=rz; rt.grp.rotation.y=-rt.dir+Math.PI/2; } else rt.dir=Math.random()*6.28;
