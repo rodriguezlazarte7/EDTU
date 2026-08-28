@@ -519,6 +519,8 @@ const spTrail=[]; let trailT=0, trailIdx=0, trailHint=false;
 for(let i=0;i<24;i++){ const m=new THREE.Mesh(new THREE.PlaneGeometry(0.5,0.7),new THREE.MeshBasicMaterial({color:0x66ff99,transparent:true,opacity:0}));
   m.rotation.x=-Math.PI/2; scene.add(m); spTrail.push({m,life:0,f:-1}); }
 let hp=3, hpMax=3, hurtCd=0, stam=100, sprintHeld=false, safeTime=0, visorBatt=100, stepT=0, breathT=0.3;
+// 🎵 cajita musical de la zona segura (melodía antigua, dulce y siniestra)
+let mbT=0, mbI=0; const MB_NOTES=[659,622,659,622,659,494,587,523,440,0,262,330,440,494,0,330,415,494,523,0,0];
 function vib(p){ try{ if(navigator.vibrate) navigator.vibrate(p); }catch(e){} }
 let diff="normal", invDur=30, ambushInt=10, gameTime=1200;
 const DIFFS={facil:{sp:3.6,inv:20,time:1500,hp:4,amb:14,lbl:"🟢 FÁCIL"},normal:{sp:4.4,inv:30,time:1200,hp:3,amb:10,lbl:"🟡 NORMAL"},pesadilla:{sp:5.4,inv:40,time:900,hp:2,amb:8,lbl:"🔴 PESADILLA"}};
@@ -672,7 +674,11 @@ function update(dt){
   if(timeLeft<=0 && !gameOver){ endGame(false,"⏱ Se acabó el tiempo. El veneno te consumió en la oscuridad."); return; }
   if(hurtCd>0) hurtCd-=dt;
   // ❤️ recuperación en la zona segura (+1 corazón cada 10s)
-  if(inSafe(P.x,P.z,curFloor)){ safeTime+=dt; if(safeTime>10 && hp<hpMax){ hp=Math.min(hpMax,hp+1); safeTime=0; updHP(); snd(680,"sine",0.2,0.08); showStory("❤️ Te recuperas en la zona segura"); } } else safeTime=0;
+  if(inSafe(P.x,P.z,curFloor)){ safeTime+=dt; if(safeTime>10 && hp<hpMax){ hp=Math.min(hpMax,hp+1); safeTime=0; updHP(); snd(680,"sine",0.2,0.08); showStory("❤️ Te recuperas en la zona segura"); }
+    // 🎵 la CAJITA MUSICAL suena mientras descansas (nota a nota, con un armónico arriba)
+    mbT-=dt; if(mbT<=0){ mbT=0.42; const nf=MB_NOTES[mbI++%MB_NOTES.length];
+      if(nf){ snd(nf,"triangle",0.5,0.04); snd(nf*2,"sine",0.4,0.013); } } }
+  else { safeTime=0; mbI=0; mbT=0.6; }
   // gamepad: RT linterna, LT binoculares
   const gps=navigator.getGamepads&&navigator.getGamepads(); const gp=gps&&gps[0];
   if(gp){ const rt=(gp.buttons[7]&&gp.buttons[7].pressed); const lt=(gp.buttons[6]&&gp.buttons[6].pressed); if(rt&&!prevRT) toggleFlash(); if(lt&&!prevLT) toggleNV(); prevRT=rt; prevLT=lt; }
