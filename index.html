@@ -5757,8 +5757,9 @@ const F1={
       this._spawnT=Math.max(0.55,1.3-this.dist/4500);
       const LX=[-0.66,-0.22,0.22,0.66];
       const COLS=[["#a10d1f","#e8b6b6"],["#d8d8d8","#555"],["#ff7b1e","#3a2413"],["#1673ff","#bfe0ff"],["#12c48b","#0a3d2c"]];
+      const isMoto=Math.random()<0.2;   // 🏍️ 20% son MOTOS: más rápidas pero más flacas
       this.cars.push({ x:LX[Math.floor(Math.random()*4)], z:this.dist+260+Math.random()*160,
-        v:(115+Math.random()*80)/3.6, col:COLS[Math.floor(Math.random()*COLS.length)] });
+        v:(isMoto?(150+Math.random()*70):(115+Math.random()*80))/3.6, col:COLS[Math.floor(Math.random()*COLS.length)], moto:isMoto });
     }
     for(let i=this.cars.length-1;i>=0;i--){
       const c=this.cars[i]; c.z+=c.v*dt;
@@ -5778,7 +5779,7 @@ const F1={
             g.gain.exponentialRampToValueAtTime(0.0001,a.currentTime+0.14); o.stop(a.currentTime+0.15); } }catch(e){} }
         continue; }
       if(c.z>this.dist+600){ this.cars.splice(i,1); continue; }
-      if(Math.abs(c.z-this.dist)<4.4 && Math.abs(c.x-this.x)<0.36) return this.crash();
+      if(Math.abs(c.z-this.dist)<4.4 && Math.abs(c.x-this.x)<(c.moto?0.24:0.36)) return this.crash();
     }
     if(this.shake>0) this.shake=Math.max(0,this.shake-dt*22);
     if(this._ovT>0){ this._ovT-=dt; if(this._ovT<=0) this._ovCombo=0; }   // 🔥 la racha expira
@@ -5816,6 +5817,13 @@ const F1={
     const roadX=this.W/2 + curve*Math.pow(1-pers,2)*this.W*1.1 - this.x*pers*this.W*0.5;
     return { y, pers, roadX, rw:pers*this.W*0.62 };
   },
+  // 🏍️ moto vista desde atrás: rueda, cuerpo, hombros y casco
+  drawMotoBack(c,x,y,s,col){ c.save(); c.translate(x,y);
+    c.fillStyle="#111"; c.fillRect(-s*0.09,-s*0.1,s*0.18,s*0.3);
+    c.fillStyle=col[0]; c.fillRect(-s*0.12,-s*0.3,s*0.24,s*0.24);
+    c.fillStyle=col[1]; c.fillRect(-s*0.17,-s*0.36,s*0.34,s*0.09);
+    c.fillStyle="#222"; c.beginPath(); c.arc(0,-s*0.44,s*0.1,0,6.28); c.fill();
+    c.restore(); },
   drawCarBack(c,x,y,s,col,me){
     c.save(); c.translate(x,y);
     c.fillStyle="#111"; c.fillRect(-s*0.52,-s*0.22,s*0.2,s*0.34); c.fillRect(s*0.32,-s*0.22,s*0.2,s*0.34);   // ruedas traseras
@@ -5997,7 +6005,8 @@ const F1={
       const p=this.proj(car.z);
       if(p.y<hor||p.y>H+40) return;
       const sx=p.roadX + car.x*p.rw;
-      this.drawCarBack(c,sx,p.y,Math.max(14,p.pers*W*0.2),car.col,false);
+      if(car.moto) this.drawMotoBack(c,sx,p.y,Math.max(14,p.pers*W*0.2),car.col);
+      else this.drawCarBack(c,sx,p.y,Math.max(14,p.pers*W*0.2),car.col,false);
     });
     // TU auto (cámara detrás): se inclina al doblar
     const px=W/2 + this.steer*14, py=H*0.86;
