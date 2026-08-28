@@ -123,6 +123,7 @@
     <li><b>M / 🗺️</b> — MAPA de la isla · <b>P / ⏸</b> — pausa · <b>Enter</b> — reintentar</li>
     <li><b>C / 🔥</b> — FOGATA (45s): los dinos NO se acercan y te cura despacito a su lado</li>
     <li>🦅 ¿CHILLIDO arriba? ¡PICADA del pterodáctilo! corre o refúgiate (mira su sombra) · 🦕 ¿el suelo TIEMBLA? ¡ESTAMPIDA, apártate! · <b>F2</b> = modo foto 📸</li>
+    <li>🎣 En la ORILLA del lago: <b>E</b> lanza el sedal y cuando veas ❗ pulsa <b>E</b> otra vez ¡rápido! (🐟 = +1 comida)</li>
     <li><b>E</b> — acariciar crías 🐣 · junto a 🤖 WALLY: escanea dónde está la batería más cercana</li>
     <li>🎯 Sobrevive <b>7 días</b>. Cuida vida ❤, hambre 🍖 y sed 💧 (🫐 los arbustos de bayas dan comida y rebrotan).</li>
     <li>📻 Lleva <b>3 baterías</b> 🔋 a la TORRE DE RADIO para pedir rescate.</li>
@@ -595,7 +596,7 @@ let touchUI = window.matchMedia && !matchMedia("(pointer:fine)").matches;
 // input
 let jhelpOpen=false;
 function toggleJHelp(){ if(!running) return; jhelpOpen=!jhelpOpen; $("jhelpS").classList.toggle("on",jhelpOpen); snd(jhelpOpen?500:300,"square",0.05,0.05); }
-addEventListener("keydown",e=>{ keys[e.code]=true; if(e.code==="Digit1") useWater(); if(e.code==="Digit2") useFood(); if(e.code==="Digit3") chargeFlash(); if(e.code==="KeyB") placeWood(); if(e.code==="KeyF") fireDart(); if(e.code==="KeyH") toggleJHelp(); if(e.code==="KeyE") petBaby(); if(e.code==="KeyC") buildFire();
+addEventListener("keydown",e=>{ keys[e.code]=true; if(e.code==="Digit1") useWater(); if(e.code==="Digit2") useFood(); if(e.code==="Digit3") chargeFlash(); if(e.code==="KeyB") placeWood(); if(e.code==="KeyF") fireDart(); if(e.code==="KeyH") toggleJHelp(); if(e.code==="KeyE"){ petBaby(); tryFish(); } if(e.code==="KeyC") buildFire();
   if(e.code==="KeyM") toggleJMap();
   if(e.code==="KeyP") togglePauseJ();
   if(e.code==="F2"){ e.preventDefault(); togglePhotoJ(); }   // 📸 modo foto
@@ -698,6 +699,24 @@ ptShadow.rotation.x=-Math.PI/2; ptShadow.position.y=0.03; scene.add(ptShadow);
 let ptState="circle", ptA=Math.random()*6.28, ptT=45, ptWarnT=0, ptTarget=null, ptFlap=0;
 // 🦕💨 ESTAMPIDA: cada tanto (solo de día) los herbívoros corren TODOS en una dirección
 let stampT=100+Math.random()*120, stampOn=0, stampWarn=0, stampDX=1, stampDZ=0;
+// 🎣 PESCA en la orilla del lago: E lanza el sedal → espera el ❗ → E rápido para atrapar (pez = +1 comida)
+let fishSt=0, fishT=0, fishCd=0, fishCount=0;
+function tryFish(){ if(!running||jPaused||gameOver||fishCd>0) return;
+  const dl=Math.hypot(P.x-LAKE.x,P.z-LAKE.z);
+  if(fishSt===0){ if(dl>LAKE.r+5||dl<LAKE.r-3) return;   // hay que estar en la ORILLA
+    fishSt=1; fishT=2+Math.random()*4;
+    toast2("🎣 lanzaste el sedal... espera la señal ❗"); snd(500,"sine",0.15,0.05); return; }
+  if(fishSt===2){ fishSt=0; fishCd=2; fishCount++;   // 🎉 ¡a tiempo!
+    if(Math.random()<0.18){ toast2("🥾 ...pescaste una BOTA VIEJA jajaja"); snd(120,"sawtooth",0.3,0.08); }
+    else { inv.food++; updInv(); toast2("🐟 ¡PEZ atrapado! +1 comida 🥫"); [659,784,988].forEach((fq,i)=>setTimeout(()=>snd(fq,"triangle",0.15,0.07),i*90)); }
+    return; }
+  if(fishSt===1){ fishSt=0; fishCd=1; toast2("🎣 recogiste muy pronto... nada"); } }
+function fishTick(dt){ if(fishCd>0) fishCd-=dt;
+  if(fishSt===1){ const dl=Math.hypot(P.x-LAKE.x,P.z-LAKE.z);
+    if(dl>LAKE.r+6||dl<LAKE.r-4){ fishSt=0; return; }   // te alejaste: se corta
+    fishT-=dt; if(fishT<=0){ fishSt=2; fishT=1;
+      toast2("❗ ¡PICÓ! ¡pulsa E YA!"); snd(1200,"square",0.12,0.08); setTimeout(()=>snd(1500,"square",0.1,0.06),90); vibJ(80); } }
+  else if(fishSt===2){ fishT-=dt; if(fishT<=0){ fishSt=0; fishCd=1.5; toast2("🐟 ...se escapó"); snd(200,"sine",0.3,0.05); } } }
 // 🐣🦅 PTERO BEBÉ: mascota voladora que te acompaña si ya te rescataron alguna vez (o tienes el huevo dorado)
 const petPt=new THREE.Group();
 { const bM2=new THREE.MeshStandardMaterial({color:0x9a6a4a,roughness:.85});
@@ -817,6 +836,7 @@ function start(){ $("start").classList.add("hide"); $("end").classList.add("hide
   eggPlace();   // 🥚 huevo dorado en un escondite nuevo
   legendSaid=false;   // 👑 WALLY puede volver a celebrar el 21/21 una vez por partida
   stampT=100+Math.random()*120; stampOn=0; stampWarn=0;   // 🦕💨 estampida desde cero
+  fishSt=0; fishT=0; fishCd=0; fishCount=0;   // 🎣 pesca desde cero
   petPtOn=false; try{ petPtOn=["facil","normal","dificil","extincion"].some(k=>localStorage.getItem("jurassic_win_"+k)==="1")||localStorage.getItem("jurassic_egg")==="1"; }catch(e){}
   petPt.visible=petPtOn; petPtA=0; petPtWarned=false; petPt.position.set(P.x,P.y+1.3,P.z);
   if(petPtOn) setTimeout(()=>toast2("🐣 ¡tu PTERO BEBÉ te acompaña! (premio por tus rescates)"),1200);   // 🐣 mascota desbloqueada
@@ -931,6 +951,7 @@ function update(dt){
       else { jTutOn=false; try{ localStorage.setItem("jur_tut1","1"); }catch(e){} } } }
   fireTick(dt);   // 🔥 fogata (llama, luz, cura, apagado)
   eggTick(dt);    // 🥚 huevo dorado (brillo pulsante y recogida)
+  fishTick(dt);   // 🎣 pesca (espera del pique y ventana de captura)
   const hh=Math.floor(df*24), mm=Math.floor((df*24*60)%60);
   const isNight = df>0.5;
   if(!jPaused) pteroTick(dt,isNight);   // 🦅 pterodáctilo
