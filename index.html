@@ -5754,7 +5754,7 @@ const F1={
     }
     if(this.shake>0) this.shake=Math.max(0,this.shake-dt*22);
     this.draw();
-    $("f1Hud").textContent="⚡ "+Math.round(this.speed)+" km/h · 📏 "+(this.dist>=1000?(this.dist/1000).toFixed(2)+" km":Math.round(this.dist)+" m")+" · 🏁 "+this.overt+(this.drs?" · 🟢 DRS":"")+(this._wRain>0.4?" · 🌧️ LLUVIA":"");
+    $("f1Hud").textContent="⚡ "+Math.round(this.speed)+" km/h · 📏 "+(this.dist>=1000?(this.dist/1000).toFixed(2)+" km":Math.round(this.dist)+" m")+" · 🏁 "+this.overt+(this.drs?" · 🟢 DRS":"")+(this._wRain>0.4?" · 🌧️ LLUVIA":"")+(this._nightF>0.5?" · 🌙 NOCHE":"");
   },
   crash(){
     try{ if(navigator.vibrate) navigator.vibrate([0,120,60,180]); }catch(e){}   // 📳 golpe de choque
@@ -5801,12 +5801,24 @@ const F1={
     c.save();
     if(this.shake>0) c.translate((Math.random()*2-1)*this.shake,(Math.random()*2-1)*this.shake);
     // cielo con sol y montañas (se mueven con las curvas)
-    const rF=this._wRain||0, mixc=(c1,c2,t)=>{ const A=parseInt(c1.slice(1),16),B=parseInt(c2.slice(1),16);
-      const r=((A>>16)&255)+(((B>>16)&255)-((A>>16)&255))*t|0, g2=((A>>8)&255)+(((B>>8)&255)-((A>>8)&255))*t|0, b2=(A&255)+((B&255)-(A&255))*t|0;
-      return "rgb("+r+","+g2+","+b2+")"; };
-    const sky=c.createLinearGradient(0,0,0,hor); sky.addColorStop(0,mixc("#3d7ff0","#4a5560",rF)); sky.addColorStop(1,mixc("#bfe3ff","#8f9aa3",rF));
+    const rF=this._wRain||0;
+    const h2v=s=>{ const A=parseInt(s.slice(1),16); return [(A>>16)&255,(A>>8)&255,A&255]; };
+    const mixv=(a,b,t)=>[a[0]+(b[0]-a[0])*t,a[1]+(b[1]-a[1])*t,a[2]+(b[2]-a[2])*t];
+    const v2s=v=>"rgb("+(v[0]|0)+","+(v[1]|0)+","+(v[2]|0)+")";
+    // 🌅 CICLO DE DÍA según los metros: día → atardecer naranja → NOCHE → amanecer
+    const cyc=(this.dist%5000)/5000; let top=h2v("#3d7ff0"), bot=h2v("#bfe3ff"), nightF=0;
+    if(cyc>=0.4&&cyc<0.6){ const t2=(cyc-0.4)/0.2; top=mixv(top,h2v("#2a2a5e"),t2); bot=mixv(bot,h2v("#ff9a52"),t2); }
+    else if(cyc>=0.6&&cyc<0.85){ nightF=Math.min(1,(cyc-0.6)/0.08); top=mixv(h2v("#2a2a5e"),h2v("#070b18"),nightF); bot=mixv(h2v("#ff9a52"),h2v("#101a30"),nightF); }
+    else if(cyc>=0.85){ const t2=(cyc-0.85)/0.15; nightF=1-t2; top=mixv(h2v("#070b18"),h2v("#3d7ff0"),t2); bot=mixv(h2v("#101a30"),h2v("#bfe3ff"),t2); }
+    this._nightF=nightF;
+    top=mixv(top,h2v("#4a5560"),rF*(1-nightF)); bot=mixv(bot,h2v("#8f9aa3"),rF*(1-nightF));   // 🌧️ gris de lluvia (de día)
+    const sky=c.createLinearGradient(0,0,0,hor); sky.addColorStop(0,v2s(top)); sky.addColorStop(1,v2s(bot));
     c.fillStyle=sky; c.fillRect(-8,-8,W+16,hor+8);
-    if(rF<0.5){ c.fillStyle="#fff2a8"; c.beginPath(); c.arc(W*0.78-this.bgShift*0.15%W,hor*0.3,30,0,Math.PI*2); c.fill(); }
+    // ⭐ estrellas fijas de noche + 🌙 luna o ☀️ sol
+    if(nightF>0.1){ c.fillStyle="rgba(255,255,255,"+(nightF*0.9).toFixed(2)+")";
+      for(let i=0;i<40;i++){ const sxr=((i*97+13)%100)/100*W, syr=((i*61+7)%100)/100*hor*0.85; c.fillRect(sxr,syr,2,2); } }
+    if(rF<0.5){ if(nightF>0.5){ c.fillStyle="#e8ecff"; c.beginPath(); c.arc(W*0.78-this.bgShift*0.15%W,hor*0.3,22,0,Math.PI*2); c.fill(); }
+      else { c.fillStyle="#fff2a8"; c.beginPath(); c.arc(W*0.78-this.bgShift*0.15%W,hor*0.3,30,0,Math.PI*2); c.fill(); } }
     c.fillStyle="#274b7a";
     for(let i=0;i<7;i++){ const mw=W/5, mx=((i*mw - this.bgShift*0.5)%(W+mw*2)+(W+mw*2))%(W+mw*2)-mw;
       c.beginPath(); c.moveTo(mx,hor); c.lineTo(mx+mw*0.5,hor-40-((i*37)%50)); c.lineTo(mx+mw,hor); c.closePath(); c.fill(); }
@@ -5875,6 +5887,11 @@ const F1={
       for(let i=0;i<10;i++){ const ang=Math.random()*6.283; const cx2=W/2, cy2=H*0.42;
         const r1=Math.max(W,H)*0.34+Math.random()*60, r2=r1+50+Math.random()*110*spF;
         c.beginPath(); c.moveTo(cx2+Math.cos(ang)*r1, cy2+Math.sin(ang)*r1); c.lineTo(cx2+Math.cos(ang)*r2, cy2+Math.sin(ang)*r2); c.stroke(); } }
+    // 🌙 de NOCHE todo se oscurece y tus FAROS iluminan la pista adelante
+    if(nightF>0.05){ c.fillStyle="rgba(4,8,20,"+(nightF*0.38).toFixed(3)+")"; c.fillRect(-8,hor,W+16,H-hor+8);
+      const hg=c.createRadialGradient(W/2,H*0.62,20,W/2,H*0.62,W*0.45);
+      hg.addColorStop(0,"rgba(255,240,190,"+(nightF*0.30).toFixed(3)+")"); hg.addColorStop(1,"rgba(255,240,190,0)");
+      c.fillStyle=hg; c.fillRect(-8,hor,W+16,H-hor+8); }
     // 🌧️ gotas de lluvia cruzando la pantalla
     if(rF>0.02){ c.strokeStyle="rgba(200,225,255,"+(rF*0.4).toFixed(3)+")"; c.lineWidth=1.5;
       for(let i=0;i<55;i++){ const rx=Math.random()*W, ry=Math.random()*H; c.beginPath(); c.moveTo(rx,ry); c.lineTo(rx-6,ry+16); c.stroke(); } }
