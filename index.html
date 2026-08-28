@@ -5639,6 +5639,7 @@ const F1={
     this._lastKm=0;   // 🏁 arcos de km
     this._wRain=0; this._wRainOn=false; this._wRainT=30+Math.random()*40;   // 🌧️ clima
     this.pickups=[]; this._nextPick=400;   // ⚡ recargas de nitro en pista
+    this._ovCombo=0; this._ovT=0; this._ovMsgT=0;   // 🔥 combo de adelantamientos
     this._recPassed=false;   // 🏆 marcador de récord en la pista
     this._nearN=0; this._nearT=0;   // 😅 casi-choques
     $("f1Overlay").style.display="none";
@@ -5768,11 +5769,19 @@ const F1={
             for(let j=0;j<d2.length;j++) d2[j]=(Math.random()*2-1)*(1-j/d2.length);
             const fl2=a.createBiquadFilter(); fl2.type="bandpass"; fl2.frequency.value=1400; const g2=a.createGain(); g2.gain.value=.14;
             n.buffer=buf; n.connect(fl2); fl2.connect(g2); g2.connect(a.destination); n.start(); } }catch(e){} } }
-      if(c.z<this.dist-12){ this.cars.splice(i,1); this.overt++; continue; }
+      if(c.z<this.dist-12){ this.cars.splice(i,1); this.overt++;
+        // 🔥 racha de adelantamientos: varios en <5s arman combo con tono ascendente
+        this._ovCombo=(this._ovT>0)?this._ovCombo+1:1; this._ovT=5;
+        if(this._ovCombo>=2){ this._ovMsgT=1;
+          try{ const a=this.actx(); if(a){ const o=a.createOscillator(),g=a.createGain(); o.type="square"; o.frequency.value=300+Math.min(this._ovCombo,10)*80;
+            o.connect(g); g.connect(a.destination); o.start(); g.gain.setValueAtTime(.06,a.currentTime);
+            g.gain.exponentialRampToValueAtTime(0.0001,a.currentTime+0.14); o.stop(a.currentTime+0.15); } }catch(e){} }
+        continue; }
       if(c.z>this.dist+600){ this.cars.splice(i,1); continue; }
       if(Math.abs(c.z-this.dist)<4.4 && Math.abs(c.x-this.x)<0.36) return this.crash();
     }
     if(this.shake>0) this.shake=Math.max(0,this.shake-dt*22);
+    if(this._ovT>0){ this._ovT-=dt; if(this._ovT<=0) this._ovCombo=0; }   // 🔥 la racha expira
     this.draw();
     $("f1Hud").textContent="⚡ "+Math.round(this.speed)+" km/h · 📏 "+(this.dist>=1000?(this.dist/1000).toFixed(2)+" km":Math.round(this.dist)+" m")+" · 🏁 "+this.overt+(this.drs?" · 🟢 DRS":"")+(this._wRain>0.4?" · 🌧️ LLUVIA":"")+(this._inTun?" · 🚇 TÚNEL":(this._nightF>0.5?" · 🌙 NOCHE":""));
   },
@@ -6014,6 +6023,9 @@ const F1={
     // 😅 cartel de casi-choque
     if(this._nearT>0){ this._nearT-=0.016; c.fillStyle="rgba(255,209,46,"+Math.min(1,this._nearT*1.6).toFixed(2)+")";
       c.font="900 "+Math.min(34,W*0.055)+"px system-ui,sans-serif"; c.textAlign="center"; c.fillText("😅 ¡CERCA!",W/2,H*0.55); }
+    // 🔥 cartel de racha de adelantamientos
+    if(this._ovMsgT>0){ this._ovMsgT-=0.016; c.fillStyle="rgba(255,120,26,"+Math.min(1,this._ovMsgT*1.5).toFixed(2)+")";
+      c.font="900 "+Math.min(30,W*0.05)+"px system-ui,sans-serif"; c.textAlign="center"; c.fillText("🔥 x"+this._ovCombo+" SEGUIDOS",W/2,H*0.61); }
     // 🌙 de NOCHE todo se oscurece y tus FAROS iluminan la pista adelante
     if(nightF>0.05){ c.fillStyle="rgba(4,8,20,"+(nightF*0.38).toFixed(3)+")"; c.fillRect(-8,hor,W+16,H-hor+8);
       const hg=c.createRadialGradient(W/2,H*0.62,20,W/2,H*0.62,W*0.45);
