@@ -304,7 +304,8 @@ const undoStack=[];
 const histSolve=[]; let hintsLeft=3;
 // 🔥 RACHA de giros perfectos: cada giro que ACERCA el cubo a resuelto suma; un error la corta
 let streakP=0, streakPMax=0;
-function updStreak(good){ if(good){ streakP++; if(streakP>streakPMax) streakPMax=streakP; }
+function updStreak(good){ if(good){ streakP++; if(streakP>streakPMax){ streakPMax=streakP;
+    try{ const bp=parseInt(localStorage.getItem("rubik_best_streakP")||"0",10)||0; if(streakPMax>bp) localStorage.setItem("rubik_best_streakP",String(streakPMax)); }catch(e){} } }
   else { if(streakP>=3) snd(160,"square",0.1,0.05); streakP=0; }
   const el=document.getElementById("pstreak"); if(!el) return;
   if(streakP>=2){ el.textContent="🔥 x"+streakP+" perfectos"; el.style.opacity="1";
@@ -344,7 +345,7 @@ function updPodium(){ const el=document.getElementById("rpodium"); if(!el) retur
 function loadBM(d){ try{ return parseInt(localStorage.getItem("rubik_bm_"+d)||"0",10)||0; }catch(e){ return 0; } }
 function saveBM(d,m){ try{ localStorage.setItem("rubik_bm_"+d,String(m)); }catch(e){} }
 function updRW(){ const el=document.getElementById("rwins"); if(el){ const w=loadRW(), st=loadStreak(), l=loadRL(), tot=w+l;
-  el.textContent=(w>0?("🏆 Victorias: "+w):"")+(l>0?(" · 🤖 Derrotas: "+l):"")+(tot>=3?(" · 📊 "+Math.round(w/tot*100)+"% ganadas"):"")+(st>=2?(" · 👑 Racha: "+st):""); } }
+  el.textContent=(w>0?("🏆 Victorias: "+w):"")+(l>0?(" · 🤖 Derrotas: "+l):"")+(tot>=3?(" · 📊 "+Math.round(w/tot*100)+"% ganadas"):"")+(st>=2?(" · 👑 Racha: "+st):"")+(function(){ try{ const bp=parseInt(localStorage.getItem("rubik_best_streakP")||"0",10)||0; return bp>=3?(" · 🔥 giros perfectos: x"+bp):""; }catch(e){ return ""; } })(); } }
 // 🎊 CONFETI al ganar: lluvia de papelitos de colores que giran y caen
 let confC=null, confParts=[], confRun=false;
 function startConfetti(){
