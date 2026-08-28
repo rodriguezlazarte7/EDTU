@@ -159,6 +159,7 @@ DÍA 1 — 00:00 · La radio se enciende... «...¿hay alguien ahí?...» La se�
   <div id="endTitle" class="big"></div>
   <div id="endInfo" style="margin:12px 0;color:#cfe6b8;max-width:460px"></div>
   <button class="btn" id="againBtn">↺ Reintentar</button>
+  <button class="btn" id="freeBtn" style="display:none;border-color:rgba(125,255,90,.6);color:#7dff5a">🏝️ SEGUIR EXPLORANDO</button>
 </div>
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
@@ -587,6 +588,7 @@ let hp=100,hunger=100,thirst=100,invT=0,flashBatt=100,darts=6,dartCd=0,placeCd=0
 let jStatDarts=0,jStatSleep=0,jStatWood=0,jStatDist=0,jLastX=null,jLastZ=0;   // 📊 estadísticas
 const jPath=[]; let jPathT=0;   // 🗺️ rastro de tu ruta (un punto cada 3s) para dibujar la aventura al final
 let jPaused=false;   // ⏸ pausa con P
+let freeMode=false;  // 🏝️ modo libre tras el rescate (sin re-victoria ni récords nuevos)
 let jTutOn=false, jTutStep=0, jTutT=0;   // 🎓 mini-tutorial de primera vez
 let jPhoto=false;   // 📸 modo foto (F2)
 function togglePhotoJ(){ jPhoto=!jPhoto; document.body.classList.toggle("photo",jPhoto); toast2(jPhoto?"📸 MODO FOTO — HUD oculto · F2 para volver":"📸 modo foto apagado"); }
@@ -868,6 +870,7 @@ function start(){ $("start").classList.add("hide"); $("end").classList.add("hide
   stampT=100+Math.random()*120; stampOn=0; stampWarn=0;   // 🦕💨 estampida desde cero
   fishSt=0; fishT=0; fishCd=0; fishCount=0;   // 🎣 pesca desde cero
   qsIn=false; qsSink=0; qsEsc=0; qsT=0; qsZone=null;   // 🏜️ arena desde cero
+  freeMode=false; { const fb3=$("freeBtn"); if(fb3) fb3.style.display="none"; }   // 🏝️ modo libre apagado
   petPtOn=false; try{ petPtOn=["facil","normal","dificil","extincion"].some(k=>localStorage.getItem("jurassic_win_"+k)==="1")||localStorage.getItem("jurassic_egg")==="1"; }catch(e){}
   petPt.visible=petPtOn; petPtA=0; petPtWarned=false; petPt.position.set(P.x,P.y+1.3,P.z);
   if(petPtOn) setTimeout(()=>toast2("🐣 ¡tu PTERO BEBÉ te acompaña! (premio por tus rescates)"),1200);   // 🐣 mascota desbloqueada
@@ -885,6 +888,8 @@ function updJBest(){ const b=loadJBest(), el=$("jbest"); if(!el) return;
     return JDIFFS[k].lbl.split(" ")[0]+(got?"✔":"–"); }).join(" ");
   el.textContent = (b>0?("🏆 Récord: "+b.toFixed(1)+" días sobrevividos"):"🏆 Aún sin récord — ¡sobrevive!") + "  ·  🏅 "+med + (function(){ try{ return localStorage.getItem("jurassic_egg")==="1"?"  ·  🥚 HUEVO DORADO":""; }catch(e){ return ""; } })(); }
 function endGame(win,info){ running=false; gameOver=true; try{document.exitPointerLock();}catch(e){} $("touch").classList.remove("on"); $("touch").classList.add("hide"); $("fire").classList.add("hide"); $("jump").classList.add("hide"); $("jhelp").classList.add("hide"); $("jpauseBtn").classList.add("hide"); $("jmapBtn").classList.add("hide"); jMapOpen=false; const jm3=$("jmap"); if(jm3) jm3.style.display="none"; jhelpOpen=false; $("jhelpS").classList.remove("on");
+  if(freeMode) info="🏝️ (aventura en modo libre) "+info;   // sin récords nuevos: los días topan en 7 igual
+  { const fb2=$("freeBtn"); if(fb2) fb2.style.display=win?"inline-block":"none"; }   // 🏝️ solo tras GANAR
   setRainSnd(false);   // 🐛FIX auditoría: la lluvia seguía sonando en bucle infinito sobre la pantalla de fin
   const days=Math.min(7, elapsed/DAY_LEN); const prev=loadJBest(); const isRec=days>prev; if(isRec) saveJBest(days);
   const t=$("endTitle"); if(win){ t.textContent="✓ RESCATADO"; t.className="big win"; try{ localStorage.setItem("jurassic_win_"+jdiff,"1"); }catch(e){} } else { t.textContent="✕ NO SOBREVIVISTE"; t.className="big lose"; }
@@ -915,6 +920,12 @@ function endGame(win,info){ running=false; gameOver=true; try{document.exitPoint
     else $("end").classList.remove("hide"); }
 }
 $("startBtn").onclick=start; $("againBtn").onclick=start; updJBest(); buildJDiffs();
+// 🏝️ MODO LIBRE: seguir explorando la isla después del rescate (sin nueva victoria, la partida sigue viva)
+$("freeBtn").onclick=()=>{ if(!gameOver) return;
+  freeMode=true; gameOver=false; running=true; tPrev=performance.now();
+  $("end").classList.add("hide"); $("freeBtn").style.display="none";
+  if(touchUI){ $("touch").classList.remove("hide"); $("touch").classList.add("on"); $("fire").classList.remove("hide"); $("jump").classList.remove("hide"); $("jhelp").classList.remove("hide"); $("jpauseBtn").classList.remove("hide"); $("jmapBtn").classList.remove("hide"); }
+  toast2("🏝️ MODO LIBRE: la isla es tuya — explora sin rescate (récords ya guardados)"); snd(660,"triangle",0.25,0.08); };
 
 // ---------- fundido ----------
 function fade(fn){ const f=$("fade"); f.style.opacity="1"; setTimeout(()=>{ fn&&fn(); f.style.opacity="0"; },250); }
@@ -1272,7 +1283,7 @@ function update(dt){
   // muerte
   if(hp<=0 && !gameOver){ endGame(false,"Caíste en la isla el DÍA "+Math.min(day,7)+".<br>Sobreviviste "+((elapsed/DAY_LEN).toFixed(1))+" días. La isla te reclamó. 🦖"); }
   // victoria: sobrevivir 7 días
-  if(elapsed>=7*DAY_LEN && !gameOver){ const good=radioOn; endGame(true, good ? "🚁 El helicóptero de rescate te encontró gracias a la radio.<br>¡SOBREVIVISTE LOS 7 DÍAS Y ESCAPASTE DE LA ISLA!" : "🚁 Aguantaste 7 días. El rescate te halló de milagro (¡la próxima enciende la radio!).<br>¡SOBREVIVISTE!"); }
+  if(elapsed>=7*DAY_LEN && !gameOver && !freeMode){ const good=radioOn; endGame(true, good ? "🚁 El helicóptero de rescate te encontró gracias a la radio.<br>¡SOBREVIVISTE LOS 7 DÍAS Y ESCAPASTE DE LA ISLA!" : "🚁 Aguantaste 7 días. El rescate te halló de milagro (¡la próxima enciende la radio!).<br>¡SOBREVIVISTE!"); }
 }
 function hurt(dmg,name){ if(invT>0) return; invT=0.6; hp=Math.max(0,hp-dmg*0.35); snd(90,"sawtooth",0.25,0.12); showStory("¡"+name+" te atacó!"); }
 
