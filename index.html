@@ -5689,6 +5689,7 @@ const F1={
     this._ovCombo=0; this._ovT=0; this._ovMsgT=0; this._ovMax=0;   // 🔥 combo de adelantamientos
     this._raceT=0; this._secStart=0; this._nextSec=2000; this._secMsg=""; this._secMsgT=0; this._secGreen=false;   // ⏱️ sectores de 2000 m
     this._kSpawned=false; this._kDone=false; this._kBeat=false; this._kBanT=0; this._kBanTxt="";   // 🦅 rival KÓNDOR
+    this._meteors=[]; this._metT=2;   // ☄️ meteoros nocturnos
     this.paused=false;   // ⏸
     this._recPassed=false;   // 🏆 marcador de récord en la pista
     this._nearN=0; this._nearT=0;   // 😅 casi-choques
@@ -5991,6 +5992,19 @@ const F1={
     // ⭐ estrellas fijas de noche + 🌙 luna o ☀️ sol
     if(nightF>0.1 && !inTun){ c.fillStyle="rgba(255,255,255,"+(nightF*0.9).toFixed(2)+")";
       for(let i=0;i<40;i++){ const sxr=((i*97+13)%100)/100*W, syr=((i*61+7)%100)/100*hor*0.85; c.fillRect(sxr,syr,2,2); } }
+    // ☄️ LLUVIA DE METEOROS nocturna: estrellas fugaces cruzan el cielo (a veces una DORADA)
+    if(nightF>0.5 && !inTun){ this._metT=(this._metT||0)-0.016;
+      if(this._metT<=0){ this._metT=3.5+Math.random()*6; this._meteors=this._meteors||[];
+        this._meteors.push({x:Math.random()*W*0.9,y:Math.random()*hor*0.3,vx:(2.2+Math.random()*2.5)*(Math.random()<0.5?1:-1),vy:1.6+Math.random()*1.4,life:1,gold:Math.random()<0.15}); } }
+    if(this._meteors&&this._meteors.length){
+      for(let i=this._meteors.length-1;i>=0;i--){ const mt=this._meteors[i];
+        mt.x+=mt.vx*3; mt.y+=mt.vy*3; mt.life-=0.02;
+        if(mt.life<=0||mt.y>hor*0.9){ this._meteors.splice(i,1); continue; }
+        const tl=14+10*mt.life;
+        const gr2=c.createLinearGradient(mt.x,mt.y,mt.x-mt.vx*tl,mt.y-mt.vy*tl);
+        const colM=mt.gold?"255,209,46":"210,230,255";
+        gr2.addColorStop(0,"rgba("+colM+","+Math.max(0,0.9*mt.life*nightF).toFixed(2)+")"); gr2.addColorStop(1,"rgba("+colM+",0)");
+        c.strokeStyle=gr2; c.lineWidth=mt.gold?2.4:1.6; c.beginPath(); c.moveTo(mt.x,mt.y); c.lineTo(mt.x-mt.vx*tl,mt.y-mt.vy*tl); c.stroke(); } }
     if(rF<0.5){ if(nightF>0.5){ c.fillStyle="#e8ecff"; c.beginPath(); c.arc(W*0.78-this.bgShift*0.15%W,hor*0.3,22,0,Math.PI*2); c.fill(); }
       else { c.fillStyle="#fff2a8"; c.beginPath(); c.arc(W*0.78-this.bgShift*0.15%W,hor*0.3,30,0,Math.PI*2); c.fill(); } }
     c.fillStyle="#274b7a";
