@@ -46,9 +46,9 @@
   <div id="moves"></div>
   <div class="row">
     <button class="btn go" id="startBtn">▶ EMPEZAR CARRERA</button>
-    <button class="btn done" id="listoBtn">✅ LISTO</button>
-    <button class="btn" id="undoBtn" style="border-color:rgba(255,209,46,.6);color:#ffd12e">↩ DESHACER</button>
-    <button class="btn" id="hintBtn" style="border-color:rgba(143,208,255,.6);color:#8fd0ff">💡 PISTA x3</button>
+    <button class="btn done" id="listoBtn" title="Avisa que terminaste de armar el cubo">✅ LISTO</button>
+    <button class="btn" id="undoBtn" title="Revierte tu último giro (Z) — cuenta como movimiento" style="border-color:rgba(255,209,46,.6);color:#ffd12e">↩ DESHACER</button>
+    <button class="btn" id="hintBtn" title="Te dice el próximo giro correcto (T) — máx 3 por carrera" style="border-color:rgba(143,208,255,.6);color:#8fd0ff">💡 PISTA x3</button>
   </div>
 </div>
 
@@ -61,9 +61,9 @@
   <p id="rwins" style="color:#ffd12e;font-weight:800;font-size:13px;margin-bottom:8px"></p>
   <p id="rpodium" style="color:#8fd0ff;font-weight:800;font-size:12px;margin-bottom:8px"></p>
   <button class="btn go" id="introStart">▶ EMPEZAR</button>
-  <button class="btn" id="introPractice" style="border-color:rgba(143,208,255,.6);color:#8fd0ff">🎓 PRÁCTICA LIBRE</button>
-  <button class="btn" id="introSym" style="border-color:rgba(255,209,46,.5);color:#ffd88a;font-size:12px">🎨 MODO SÍMBOLOS: NO</button>
-  <button class="btn" id="introGold" style="display:none;border-color:rgba(255,215,0,.7);color:#ffd700;font-size:12px">👑 CUBO DE ORO: NO</button>
+  <button class="btn" id="introPractice" title="Resuelve a tu ritmo: sin IA, sin reloj, con pistas infinitas" style="border-color:rgba(143,208,255,.6);color:#8fd0ff">🎓 PRÁCTICA LIBRE</button>
+  <button class="btn" id="introSym" title="Cada color lleva su figura: ideal si no distingues colores" style="border-color:rgba(255,209,46,.5);color:#ffd88a;font-size:12px">🎨 MODO SÍMBOLOS: NO</button>
+  <button class="btn" id="introGold" title="Skin metálica exclusiva de los 21 logros EDTU" style="display:none;border-color:rgba(255,215,0,.7);color:#ffd700;font-size:12px">👑 CUBO DE ORO: NO</button>
 </div>
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
