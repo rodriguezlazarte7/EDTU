@@ -1,8 +1,8 @@
 # 🛰️ EDTU — Resumen de la sesión autónoma (2026-08-28)
 
-**Bucle de mejora continua mientras David estaba fuera** — dos tandas: la primera (~iter 205 → 302) y, tras el "sigue sin parar" de David, la segunda y tercera (iter 303 → 359 y sigue). **356 commits desde el 26/8** (~270 en esta gran sesión), con deploy a Heroku y verificación en vivo en cada paso. **Ningún juego quedó roto en ningún momento** (chequeos de salud cada 10 iteraciones: todos verdes; el último, iter 355, Heroku v1172).
+**Bucle de mejora continua mientras David estaba fuera** — dos tandas: la primera (~iter 205 → 302) y, tras el "sigue sin parar" de David, la segunda, tercera y cuarta (iter 303 → 369 y sigue). **365 commits desde el 26/8** (~280 en esta gran sesión), con deploy a Heroku y verificación en vivo en cada paso. **Ningún juego quedó roto en ningún momento** (chequeos de salud cada 10 iteraciones: todos verdes; el último, iter 365, Heroku v1189).
 
-**Números actuales**: 🕷️ SCREAM **104** 🏆 · 🦖 JURASSIC **107** 🏆 · 🧟 NOT A GAME **98** · 🏎️ F1 **70** · 🧩 CUBO **59** · dos juegos superaron las 100 features · 359 iteraciones de bucle verificadas sanas · páginas en vivo todas HTTP 200.
+**Números actuales**: 🕷️ SCREAM **106** 🏆 · 🦖 JURASSIC **109** 🏆 · 🧟 NOT A GAME **100** 🏆 · 🏎️ F1 **71** · 🧩 CUBO **61** · **tres juegos superaron las 100 features** · 369 iteraciones de bucle verificadas sanas · páginas en vivo todas HTTP 200.
 
 ## 🔍 Auditoría multi-agente (ultracode)
 - 2 rondas con agentes buscadores + verificadores adversarios: **25 hallazgos, 24 bugs reales corregidos** (1 refutado)
@@ -73,6 +73,13 @@
 - 📻 **RADIO DE LA CENTRAL** (NAG): si llevas 45 s sin pista, la central te dice a cuántos metros y hacia dónde está la más cercana (estática + voz)
 - 🤖 **Chat WALLY** nuevas palabras: *semana* (récords semanales), *aventura/diario* (tus últimas partidas), *desafío/hoy* (marcas del día), *racha* (días seguidos) y *mejoras* (celebra las 350+ mejoras de la sesión)
 - 🩺 Chequeos de salud en 345 y 355: todo verde
+
+## 🆕 Cuarta tanda (iter 360-369) — compartir y retar
+- 📤 **COMPARTIR**: en la Sala de Trofeos (tus desafíos de hoy + racha), en el cubo (la revoltura del día en notación) y al terminar SCREAM, JURASSIC, NAG y F1 si la partida fue desafío del día — usa el menú de compartir del celular o copia al portapapeles ("✅ COPIADO — ¡a retar amigos!")
+- ⚔️ **RECIBIR UN RETO**: los links compartidos llevan `?reto=1`; cuando tu amigo lo abre, el desafío del día se le activa solo **con el mismo mundo que el tuyo** — en el menú WALLY cruza avisando "¡TE RETARON!", en el cubo el botón se vuelve "📅 DESAFÍO DEL DÍA ⚔️ ¡ACEPTAR RETO!", SCREAM y JURASSIC lo anuncian en la portada y NAG recarga una vez para generar la misma ciudad
+- 🤖 WALLY chat *"reto"/"amigo"* explica cómo retar y te arma el texto listo para copiar con tus 5 marcas del día; los desafíos quedan **persistentes** en los 5 juegos (recuerdan si los dejaste activados)
+- 🏆 **NOT A GAME llegó a 100 features** — el tercer juego en cruzar la barrera (con SCREAM y JURASSIC)
+- 🩺 Chequeo de salud en 365: todo verde
 
 ## 🤖 WALLY por todos lados
 Frases x8 por juego, celebra el 21/21 con voz, escanea pisos/baterías/cajones, certifica el póster... y presume su carrera de mBots en todas partes 🏁
