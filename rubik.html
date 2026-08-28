@@ -63,6 +63,7 @@
   <button class="btn go" id="introStart">▶ EMPEZAR</button>
   <button class="btn" id="introPractice" style="border-color:rgba(143,208,255,.6);color:#8fd0ff">🎓 PRÁCTICA LIBRE</button>
   <button class="btn" id="introSym" style="border-color:rgba(255,209,46,.5);color:#ffd88a;font-size:12px">🎨 MODO SÍMBOLOS: NO</button>
+  <button class="btn" id="introGold" style="display:none;border-color:rgba(255,215,0,.7);color:#ffd700;font-size:12px">👑 CUBO DE ORO: NO</button>
 </div>
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
@@ -247,6 +248,20 @@ function playerMove(face,dir){ if((state!=="race"&&state!=="practice")||player.b
   showMv("lastMvP",face,dir);   // 🔤 notación en grande
   move(player,face,dir,150,()=>{ drawNet(); updFaces(); if(!ended && isSolved(player)){ if(state==="practice") practiceDone(); else finish("player"); }
     else if(ended && state==="race" && isSolved(player)){ state="done"; showMsg("✅ ¡Lo terminaste igual! (modo práctica)\n🔄 "+moveCount+" movs","#8fd0ff"); [523,659,784].forEach((f,i)=>setTimeout(()=>snd(f,"triangle",0.2,0.07),i*120)); } }); }
+// 👑 CUBO DE ORO: skin metálica exclusiva para quien tiene los 21 logros EDTU (solo cambia lo VISUAL, la lógica de colores queda intacta)
+const GOLD_MAP={}; GOLD_MAP[COL.r]=0xc9722a; GOLD_MAP[COL.o]=0xb87333; GOLD_MAP[COL.w]=0xf5e7c4; GOLD_MAP[COL.y]=0xffd700; GOLD_MAP[COL.g]=0x8c7a2a; GOLD_MAP[COL.b]=0xcfcfcf; GOLD_MAP[COL.k]=0x1a1508;
+let goldSkin=false; try{ goldSkin=localStorage.getItem("rubik_gold")==="1"; }catch(e){}
+function skinCol(c2){ return goldSkin&&GOLD_MAP[c2]!==undefined?GOLD_MAP[c2]:c2; }
+function applySkin(){ [player,ai].forEach(cu=>cu.cubies.forEach(m2=>{ m2.userData.f.forEach((f2,i2)=>{ if(m2.material[i2]) m2.material[i2].color.setHex(skinCol(f2.c)); }); }));
+  starFields.forEach(pf=>pf.material.color.setHex(goldSkin?0xffd700:0x8fb3ff)); drawNet(); }
+function rubikLegend(){ try{ const g=k=>localStorage.getItem(k)==="1"; let n=0;
+  ["facil","normal","pesadilla","infierno"].forEach(k=>{ if(g("scream_win_"+k)) n++; });
+  ["facil","normal","dificil","extincion"].forEach(k=>{ if(g("jurassic_win_"+k)) n++; });
+  [25,50,100,200].forEach(k=>{ if(g("nag_kills_"+k)) n++; });
+  [1000,3000,5000,10000].forEach(k=>{ if(g("edtu_f1_km_"+k)) n++; });
+  ["wally_jurassic","wally_notagame","wally_scream","wally_f1"].forEach(k=>{ if(g(k)) n++; });
+  if(g("jurassic_egg")) n++;
+  return n>=21; }catch(e){ return false; } }
 // ♿🎨 MODO SÍMBOLOS (daltónico): cada color lleva su figura — ● blanco ■ amarillo ▲ rojo ✚ naranja ◆ verde ○ azul
 let symMode=false; try{ symMode=localStorage.getItem("rubik_symbols")==="1"; }catch(e){}
 function drawSym(g,sx,sy,colInt,s){
@@ -271,7 +286,7 @@ function drawNet(){ const cv=document.getElementById("net"); if(!cv) return; con
     for(let r=0;r<3;r++) for(let c2=0;c2<3;c2++){ const [px,py,pz]=posf(r,c2);
       const cub=player.cubies.find(cb=>Math.round(cb.position.x)===px&&Math.round(cb.position.y)===py&&Math.round(cb.position.z)===pz);
       let col=0x333333; if(cub){ const fc=faceColor(cub,dv); if(fc>=0&&fc!==COL.k) col=fc; }
-      g.fillStyle="#"+col.toString(16).padStart(6,"0"); g.fillRect(ox+c2*cell,oy+r*cell,cell-1,cell-1);
+      g.fillStyle="#"+skinCol(col).toString(16).padStart(6,"0"); g.fillRect(ox+c2*cell,oy+r*cell,cell-1,cell-1);
       if(symMode && col!==0x333333) drawSym(g,ox+c2*cell+(cell-1)/2,oy+r*cell+(cell-1)/2,col,3.1); } } }
 // 🔤 muestra la NOTACIÓN del último giro (flash grande que se desvanece)
 function showMv(id,face,dir){ const el=document.getElementById(id); if(!el) return;
@@ -387,6 +402,13 @@ function updSymUI(){ const sb=document.getElementById("introSym"); if(sb) sb.tex
   mvBtns.forEach(o2=>{ o2.b.textContent=o2.face+o2.suf+(symMode?" "+SYM_CHAR[o2.face]:""); }); drawNet(); }
 document.getElementById("introSym").onclick=()=>{ symMode=!symMode; try{ localStorage.setItem("rubik_symbols",symMode?"1":"0"); }catch(e){} updSymUI(); snd(symMode?880:440,"triangle",0.12,0.06); };
 updSymUI();
+// 👑 toggle del CUBO DE ORO (visible solo con los 21 logros EDTU)
+function updGoldUI(){ const gb=document.getElementById("introGold"); if(!gb) return;
+  gb.style.display=rubikLegend()?"inline-block":"none";
+  gb.textContent="👑 CUBO DE ORO: "+(goldSkin?"SÍ ✔":"NO"); }
+document.getElementById("introGold").onclick=()=>{ goldSkin=!goldSkin; try{ localStorage.setItem("rubik_gold",goldSkin?"1":"0"); }catch(e){}
+  applySkin(); updGoldUI(); [784,988,1175].forEach((fq,i)=>setTimeout(()=>snd(fq,"triangle",0.14,0.06),i*90)); };
+updGoldUI(); if(goldSkin) applySkin();
 document.getElementById("startBtn").onclick=startRace;
 document.getElementById("listoBtn").onclick=tryListo;
 document.getElementById("undoBtn").onclick=undoMove;
