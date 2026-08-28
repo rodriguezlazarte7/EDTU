@@ -566,6 +566,17 @@ function placeWallyS(){ wallySF=Math.floor(Math.random()*FLOORS); const s=randSp
 placeWallyS();
 // 🤖💬 HABLAR con WALLY (E cerca de él): escanea el piso y te dice qué objetos quedan aquí
 let wallyTalkCd=0;
+// ⚡ GENERADOR DE EMERGENCIA: en un piso al azar; quédate 3s a su lado y enciende TODO el edificio 20s (la araña se congela de miedo) — una vez por partida
+const genM=new THREE.Group();
+{ const bx2=new THREE.Mesh(new THREE.BoxGeometry(0.9,0.7,0.6),new THREE.MeshStandardMaterial({color:0x7a1f1f,roughness:.6,metalness:.3})); bx2.position.y=0.35; genM.add(bx2);
+  const pipe=new THREE.Mesh(new THREE.CylinderGeometry(0.05,0.05,0.5,6),new THREE.MeshStandardMaterial({color:0x222222,roughness:.5})); pipe.position.set(0.3,0.85,0); genM.add(pipe);
+  const bulb=new THREE.Mesh(new THREE.SphereGeometry(0.08,8,6),new THREE.MeshBasicMaterial({color:0xffd15a})); bulb.position.set(-0.25,0.8,0); genM.add(bulb); }
+scene.add(genM);
+let genF=0, genUsed=false, genOn=0, genCharge=0;
+function genBar(p){ let el=document.getElementById("genbar");
+  if(!el){ el=document.createElement("div"); el.id="genbar"; el.style.cssText="position:fixed;left:50%;top:60%;transform:translateX(-50%);width:220px;height:14px;background:rgba(0,0,0,.6);border:2px solid #ffd15a;border-radius:8px;z-index:6;overflow:hidden;display:none";
+    const i2=document.createElement("i"); i2.style.cssText="display:block;height:100%;width:0;background:#ffd15a"; el.appendChild(i2); document.body.appendChild(el); }
+  el.style.display=(p>=0&&p<1)?"block":"none"; el.firstElementChild.style.width=Math.max(0,Math.min(100,p*100))+"%"; }
 const WQUIPS_S=["¡Beep-boop! Qué oscuro está todo...","Mis sensores tiemblan... ¿o soy yo?","Si ves a la araña CORRE, yo solo ruedo","Una vez gané una carrera de mBots 🏁","Mi linterna nunca se queda sin pilas 😎","Cálculo: 87% de probabilidad de que ganes","Dejé las balizas prendidas para que me encuentres","Tú salva el edificio, yo vigilo este piso"];
 function talkWally(){ if(wallyTalkCd>0||!running||gameOver) return;
   if(wallySF!==curFloor || Math.hypot(P.x-wallyS.position.x,P.z-wallyS.position.z)>3) return;
@@ -744,6 +755,8 @@ function start(){ $("start").classList.add("hide"); $("end").classList.add("hide
   spiderDead=false; valvesGot=0; samplesGot=0; craftT=0; timeLeft=gameTime; won=false; hbT=0; spiderFloor=0; allAnn=false; clockBonus=0;
   statFloors.clear(); statFlares=0; statDist=0; lastPX=null;   // 📊 estadísticas desde cero
   manqF=Math.floor(Math.random()*FLOORS); placeManq(false); manqT=6; manqMoveT=25; manqSting=false;   // 🧍 maniquí nuevo
+  genF=Math.floor(Math.random()*FLOORS); { const gs=randSpotOnFloor(genF); genM.position.set(gs.x,genF*FLOOR_H,gs.z); }   // ⚡ generador nuevo
+  genUsed=false; genOn=0; genCharge=0; genBar(-1); ambient.intensity=0.05; ambient.color.setHex(0x241018);
   phoneActive=false; phoneT=35+Math.random()*35; placePhone();   // 📞 teléfono nuevo
   placeWallyS();   // 🤖 WALLY en otro piso
   hp=hpMax; stam=100; hurtCd=0; safeTime=0; sprintHeld=false; visorBatt=100; updHP(); $("crack").style.opacity="0"; $("fade").style.background="#000"; $("fade").style.opacity="0";
@@ -795,6 +808,17 @@ function update(dt){
       "🎓 Junta 4 válvulas 🟢 + 3 muestras 🟣 y fabrica el ANTÍDOTO en la zona segura 🛡️ ¡Suerte, agente!"];
       if(tutStep<TUT.length){ showStory(TUT[tutStep]); snd(980,"triangle",0.15,0.06); tutStep++; tutT=9.5; }
       else { tutOn=false; try{ localStorage.setItem("scream_tut1","1"); }catch(e){} } } }
+  // ⚡ GENERADOR DE EMERGENCIA: cargar 3s a su lado → LUZ TOTAL 20s y araña congelada
+  if(genOn>0){ genOn-=dt; ambient.intensity=0.9; ambient.color.setHex(0x8a7a58);
+    if(Math.random()<dt*8) snd(120+Math.random()*40,"sawtooth",0.06,0.03);   // runrún del motor
+    if(genOn<=0){ ambient.intensity=0.05; ambient.color.setHex(0x241018); showStory("⚡ el generador se apagó... vuelve la oscuridad"); snd(90,"sawtooth",0.8,0.1); } }
+  else if(!genUsed && genF===curFloor && running && !gameOver){
+    const gd=Math.hypot(P.x-genM.position.x,P.z-genM.position.z);
+    if(gd<2.6){ genCharge+=dt; genBar(genCharge/3); if(Math.random()<dt*6) snd(200+genCharge*160,"square",0.05,0.04);
+      if(genCharge>=3){ genUsed=true; genOn=20; genBar(2);
+        snd(60,"sawtooth",1.2,0.2); [392,523,659,784].forEach((fq,i)=>setTimeout(()=>snd(fq,"triangle",0.2,0.08),i*120));
+        showStory("⚡ ¡GENERADOR ACTIVADO! LUZ TOTAL 20s — la araña se CONGELA de miedo"); vib([0,60,40,60,40,200]); } }
+    else if(genCharge>0){ genCharge=0; genBar(-1); } }
   // 📊 pisos visitados y metros recorridos
   statFloors.add(curFloor);
   if(lastPX!==null) statDist+=Math.hypot(P.x-lastPX,P.z-lastPZ);
@@ -965,7 +989,7 @@ function update(dt){
       snd(300,"square",0.08,0.05);
       if(!spiderDead && sameFloor && sd<25){ spider.ambushT=Math.min(spider.ambushT,1.5);
         if(!glassWarned){ glassWarned=true; showStory("🍾 ¡Pisaste VIDRIOS! Te escuchó... ¡muévete!"); } } } }
-  if(!spiderDead && flashOn && ceilAtk.phase===0){ spider.ambushT-=dt;   // 🔦 SOLO se teletransporta con la linterna PRENDIDA (🐛FIX: y nunca en pleno ataque del techo — daba sustos falsos)
+  if(!spiderDead && flashOn && ceilAtk.phase===0 && genOn<=0){ spider.ambushT-=dt;   // 🔦 SOLO se teletransporta con la linterna PRENDIDA (🐛FIX: y nunca en pleno ataque del techo — daba sustos falsos) · ⚡ ni con el generador encendido
     if(spider.ambushT<=0){ spider.ambushT=ambushInt*(1-panic*0.45);   // se teletransporta más seguido con poco tiempo
       if(sameFloor){ const fx=-Math.sin(yaw), fz=-Math.cos(yaw), dist=7+Math.random()*2; const sp2=safeSpotF(P.x+fx*dist,P.z+fz*dist,curFloor);   // aparece ADELANTE
           spider.grp.position.x=sp2.x; spider.grp.position.z=sp2.z; spider.camo=1; screech(); snd(60,"sawtooth",0.7,0.18); const sf=$("sflash"); if(sf){ sf.style.opacity="0.55"; setTimeout(()=>sf.style.opacity="0",90);} doCrack(); vib([0,40,30,50]); showStory("🕷️ ¡APARECIÓ FRENTE A TI!"); }
@@ -983,8 +1007,8 @@ function update(dt){
         dirx=awx/al; dirz=awz/al; spd=spider.sp*1.25*pm; if(Math.random()<dt*1.1) snd(950+Math.random()*500,"sawtooth",0.14,0.05); }
       const dl=Math.hypot(dirx,dirz)||1; let nnx=spider.grp.position.x+dirx/dl*spd*dt, nnz=spider.grp.position.z+dirz/dl*spd*dt;
       nnx=Math.max(-HH+2,Math.min(HH-2,nnx)); nnz=Math.max(-HH+2,Math.min(HH-2,nnz));   // 🕷️ ATRAVIESA/TREPA paredes (implacable), solo la frena la zona segura
-      if(!inSafe(nnx,spider.grp.position.z,curFloor)) spider.grp.position.x=nnx;
-      if(!inSafe(spider.grp.position.x,nnz,curFloor)) spider.grp.position.z=nnz; }
+      if(genOn<=0 && !inSafe(nnx,spider.grp.position.z,curFloor)) spider.grp.position.x=nnx;
+      if(genOn<=0 && !inSafe(spider.grp.position.x,nnz,curFloor)) spider.grp.position.z=nnz; }   // ⚡ con el generador encendido queda CONGELADA
     // 👣 va dejando su rastro cada 0.4s (visible solo con el visor puesto)
     trailT-=dt; if(trailT<=0 && !spiderDead){ trailT=0.4; const tr=spTrail[trailIdx++%24]; tr.life=8; tr.f=spiderFloor;
       tr.m.position.set(spider.grp.position.x+(Math.random()-0.5)*0.4, spiderFloor*FLOOR_H+0.06, spider.grp.position.z+(Math.random()-0.5)*0.4);
@@ -1016,7 +1040,7 @@ function update(dt){
     if(sd<11){ const k=(11-sd)*0.018; camera.position.x+=(Math.random()-0.5)*k; camera.position.y+=(Math.random()-0.5)*k; }
     if(sd<8) danger=true;
     // 🕷️⬇️ ATAQUE DESDE EL TECHO: sube, marca un CÍRCULO ROJO pulsante donde estabas y CAE en picada
-    ceilT-=dt;
+    if(genOn<=0) ceilT-=dt;   // ⚡ el generador también congela el ataque del techo
     if(ceilAtk.phase===0 && ceilT<=0 && sd>10 && !inSafe(P.x,P.z,curFloor)){
       ceilT=45+Math.random()*40; ceilAtk.phase=1; ceilAtk.t=1.1; ceilAtk.x=P.x; ceilAtk.z=P.z; ceilAtk.f=curFloor;
       screech(); snd(1500,"square",0.2,0.07); }
@@ -1112,7 +1136,8 @@ function update(dt){
       for(const mk of medkits) if(!mk.got&&mk.f===curFloor) blip(mk.x,mk.z,(x,y)=>{ rg.fillStyle="#5aff9a"; rg.fillRect(x-3,y-1,6,2); rg.fillRect(x-1,y-3,2,6); });
       if(phoneActive&&phoneF===curFloor&&blink) blip(phone.position.x,phone.position.z,(x,y)=>{ rg.fillStyle="#3af0ff"; rg.beginPath(); rg.arc(x,y,3,0,6.28); rg.fill(); });
       if(wallySF===curFloor&&blink) blip(wallyS.position.x,wallyS.position.z,(x,y)=>{ rg.fillStyle="#38b6ff"; rg.beginPath(); rg.arc(x,y,3,0,6.28); rg.fill(); });
-      if(manqF===curFloor) blip(manq.position.x,manq.position.z,(x,y)=>{ rg.fillStyle="#cfc8bf"; rg.beginPath(); rg.arc(x,y,2.4,0,6.28); rg.fill(); }); }
+      if(manqF===curFloor) blip(manq.position.x,manq.position.z,(x,y)=>{ rg.fillStyle="#cfc8bf"; rg.beginPath(); rg.arc(x,y,2.4,0,6.28); rg.fill(); });
+      if(!genUsed&&genF===curFloor) blip(genM.position.x,genM.position.z,(x,y)=>{ rg.fillStyle="#ffd15a"; rg.fillRect(x-1.6,y-3,3.2,6); }); }
   }
 
   // 🧪 FABRICAR el antídoto en la MÁQUINA (zona segura, planta baja)
