@@ -755,7 +755,11 @@ function loadNKills(){ try{ return parseInt(localStorage.getItem("nag_best_kills
 // 🎖️ hitos de kills en UNA partida (medallas permanentes)
 const KILL_TH=[25,50,100,200];
 function killMedals(){ let s=""; KILL_TH.forEach(t2=>{ let got=false; try{ got=localStorage.getItem("nag_kills_"+t2)==="1"; }catch(e){} s+=(got?"🏅":"▫️")+t2+"  "; }); return s.trim(); }
-function updNagMedals(){ const el=document.getElementById("nagMedals"); if(el) el.textContent="🎖️ Hitos de una partida: "+killMedals(); }
+// ⏱ récord SPEEDRUN: caso resuelto más rápido
+function loadNCase(){ try{ const v=localStorage.getItem("nag_best_case"); return v==null?null:parseInt(v,10); }catch(e){ return null; } }
+function fmtCase(s){ return Math.floor(s/60)+":"+String(s%60).padStart(2,"0"); }
+function updNagMedals(){ const el=document.getElementById("nagMedals"); if(el){ const bc=loadNCase();
+  el.textContent="🎖️ Hitos de una partida: "+killMedals()+(bc!=null?"  ·  ⏱ Caso más rápido: "+fmtCase(bc):""); } }
 updNagMedals();
 // 🔥 récord de mejor RACHA
 function loadNCombo(){ try{ return parseInt(localStorage.getItem("nag_best_combo")||"0",10)||0; }catch(e){ return 0; } }
@@ -786,7 +790,12 @@ function endGame(win,customInfo){
   const survS=Math.max(0,Math.floor(performance.now()/1000-startT)), svm=Math.floor(survS/60), svs=survS%60;
   const recTxt="<br>🧟 Eliminados: <b>"+kills+"</b>"+(isRec?" 🏆 ¡RÉCORD!":" · Récord: <b>"+prevK+"</b>")+(maxCombo>=2?"<br>🔥 Mejor racha: <b>x"+maxCombo+"</b> · Récord: <b>x"+loadNCombo()+"</b>":"")
     +"<div style='margin-top:8px;font-size:13px;color:#9fb6c9;line-height:1.9'>📊 <b>ESTADÍSTICAS</b><br>⏱ Jugaste "+svm+":"+String(svs).padStart(2,"0")+" · 🚶 "+Math.round(nStatDist)+" m recorridos<br>🛡️ Escudos recogidos: "+nStatShields+" · 👹 Gigantes derribados: "+nStatBoss+"<br>🎖️ "+killMedals()+"</div>";
-  if(win){ t.textContent="✓ CASO RESUELTO"; t.className="big win"; inf.innerHTML=(customInfo||"Reuniste las pistas y eliminaste el brote.<br>La ciudad está a salvo. 🏙️")+recTxt; snd(660,"triangle",0.3,0.1);
+  if(win){ t.textContent="✓ CASO RESUELTO"; t.className="big win";
+    // ⏱ speedrun: ¿resolviste el caso más rápido que nunca?
+    let caseTxt=""; { const pc=loadNCase(); const isCR=(pc==null||survS<pc);
+      if(isCR){ try{ localStorage.setItem("nag_best_case",String(survS)); }catch(e){} }
+      caseTxt="<br>⏱ Caso resuelto en <b>"+fmtCase(survS)+"</b>"+(isCR?" 🏆 ¡CASO MÁS RÁPIDO!":" · Récord: <b>"+fmtCase(pc)+"</b>"); }
+    inf.innerHTML=(customInfo||"Reuniste las pistas y eliminaste el brote.<br>La ciudad está a salvo. 🏙️")+caseTxt+recTxt; snd(660,"triangle",0.3,0.1);
     narrate("Caso resuelto, agente. La ciudad está a salvo.");
     document.getElementById("end").classList.remove("hide"); }
   else { t.textContent="✕ FIN"; t.className="big lose"; inf.innerHTML=(customInfo||("Los zombies te alcanzaron en la oscuridad.<br>Pistas: <b>"+cluesGot+"/7</b>"))+recTxt; snd(60,"sawtooth",0.6,0.12); snd(35,"sawtooth",1.2,0.14);
