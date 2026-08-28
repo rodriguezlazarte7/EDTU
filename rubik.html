@@ -56,7 +56,7 @@
   <p>Carrera contra la IA: los dos empiezan con el <b>mismo revuelto</b>. Arma tu cubo girando las caras. Cuando termines, aprieta <b>✅ LISTO</b>.</p>
   <p>👀 Ves el cubo de la <b style="color:#ff7ba3">IA resolviéndose en tiempo real</b> a la derecha.<br>🖱️ Arrastra para girar la vista · botones para mover las caras.</p>
   <div class="row" id="introDiffs" style="margin:10px 0"></div>
-  <p style="color:#8fb3ff;font-size:12px;max-width:460px;line-height:1.7;font-family:Consolas,monospace">📖 Notación: <b style="color:#fff">U</b>=arriba · <b style="color:#fff">D</b>=abajo · <b style="color:#fff">L</b>=izquierda · <b style="color:#fff">R</b>=derecha · <b style="color:#fff">F</b>=frente · <b style="color:#fff">B</b>=atrás — con <b style="color:#ffd12e">'</b> gira al revés (ej: U' = arriba anti-horario)</p>
+  <p style="color:#8fb3ff;font-size:12px;max-width:460px;line-height:1.7;font-family:Consolas,monospace">📖 Notación: <b style="color:#fff">U</b>=arriba · <b style="color:#fff">D</b>=abajo · <b style="color:#fff">L</b>=izquierda · <b style="color:#fff">R</b>=derecha · <b style="color:#fff">F</b>=frente · <b style="color:#fff">B</b>=atrás — con <b style="color:#ffd12e">'</b> gira al revés (ej: U' = arriba anti-horario)<br>⌨️ <b style="color:#39ff14">SPEEDCUBING</b>: pulsa la LETRA para girar · <b style="color:#ffd12e">Shift+letra</b> = inverso · <b style="color:#ffd12e">Z</b> = deshacer</p>
   <p id="rwins" style="color:#ffd12e;font-weight:800;font-size:13px;margin-bottom:8px"></p>
   <button class="btn go" id="introStart">▶ EMPEZAR</button>
 </div>
@@ -287,6 +287,10 @@ FACE_LIST.forEach(face=>{
 document.getElementById("startBtn").onclick=startRace;
 document.getElementById("listoBtn").onclick=tryListo;
 document.getElementById("undoBtn").onclick=undoMove;
+// ⌨️ MODO SPEEDCUBING: teclas U D L R F B giran su cara; con SHIFT el giro es inverso ('); Z = deshacer
+addEventListener("keydown",e=>{ const k=e.key.toUpperCase();
+  if(k==="Z"){ undoMove(); return; }
+  if(FACES[k] && !e.repeat) playerMove(k, e.shiftKey?-1:1); });
 document.getElementById("introStart").onclick=startRace; updRW();
 // selector de dificultad (arriba y en el intro)
 function buildDiffs(container){ container.innerHTML=""; [["facil","🟢 Fácil"],["medio","🟡 Medio"],["dificil","🔴 Difícil"],["imposible","💀 Imposible"]].forEach(([k,lbl])=>{ const b=document.createElement("button"); b.className="diff"+(diff===k?" sel":""); const bt=loadBT(k); b.textContent=lbl+(bt?" ⏱️"+bt.toFixed(1)+"s":""); b.onclick=()=>{ diff=k; buildDiffs(document.getElementById("diffs")); buildDiffs(document.getElementById("introDiffs")); }; container.appendChild(b); }); }
