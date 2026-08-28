@@ -574,7 +574,7 @@ function howlSnd(){ try{ AC=AC||new (window.AudioContext||window.webkitAudioCont
   o.connect(g); g.connect(AC.destination); o.start(t0); o.stop(t0+1.6); }catch(e){} }
 
 function shoot(){
-  if(!running||gameOver||shootCd>0) return; shootCd=heliMode?0.07:0.18;   // metralla en el helicóptero
+  if(!running||gameOver||shootCd>0) return; shootCd=(heliMode?0.07:0.18)*(rapidT>0?0.5:1);   // metralla en el heli · ⚡ el doble de rápido con el power-up
   muzzle=0.07; snd(210,"square",0.08,0.12); snd(90,"sawtooth",0.14,0.1);
   const fwd=new THREE.Vector3(); camera.getWorldDirection(fwd);
   const origin=new THREE.Vector3(P.x,P.y-0.15,P.z);
@@ -602,6 +602,9 @@ function shoot(){
         // 🛡️ 10%: el zombie suelta un ESCUDO brillante donde cayó
         if(Math.random()<(bloodMoon?0.25:0.10)){ const sm=new THREE.Mesh(new THREE.OctahedronGeometry(0.42),new THREE.MeshBasicMaterial({color:0x3fd0ff}));
           sm.position.set(best.grp.position.x,0.9,best.grp.position.z); scene.add(sm); shieldDrops.push({m:sm}); }
+        // ⚡ 7%: suelta un RAYO naranja de disparo rápido
+        else if(Math.random()<0.07){ const rm=new THREE.Mesh(new THREE.TetrahedronGeometry(0.45),new THREE.MeshBasicMaterial({color:0xff8c1a}));
+          rm.position.set(best.grp.position.x,0.9,best.grp.position.z); scene.add(rm); rapidDrops.push({m:rm}); }
         respawnZombie(best); }   // ∞: reaparece otro
       // 🔥 RACHA: kills seguidos en menos de 4s suman combo; el tono sube con cada uno
       comboN=(comboT>0)?comboN+1:1; comboT=4;
@@ -630,6 +633,7 @@ function startGame(){
   zombies.forEach(z=>scene.remove(z.grp)); zombies.length=0; spawnZombies(12); kills=0; heliMode=false;
   comboN=0; comboT=0; comboPop=0; maxCombo=0; document.getElementById("combo").style.opacity="0";
   nStatDist=0; nLastX=null; nStatShields=0; nStatBoss=0;   // 📊 estadísticas desde cero
+  rapidT=0; tracer.material.color.setHex(0xffe066); rapidDrops.forEach(r2=>scene.remove(r2.m)); rapidDrops.length=0;   // ⚡ reset
   shield=false; updShieldHUD(); shieldDrops.forEach(s2=>scene.remove(s2.m)); shieldDrops.length=0;
   if(boss){ scene.remove(boss.grp); boss=null; } bossAt=25;
   document.getElementById("kills").textContent="0"; document.getElementById("clues").textContent="0";
@@ -649,6 +653,8 @@ function loadNCombo(){ try{ return parseInt(localStorage.getItem("nag_best_combo
 let maxCombo=0;
 // 📊 estadísticas de la partida
 let nStatDist=0, nLastX=null, nLastZ=0, nStatShields=0, nStatBoss=0;
+// ⚡ power-up DISPARO RÁPIDO
+let rapidT=0; const rapidDrops=[];
 // 🗣️ voz de narrador (grave, para el final del caso)
 function narrate(txt){ try{ if(!window.speechSynthesis) return; const u=new SpeechSynthesisUtterance(txt); u.lang="es-ES"; u.pitch=0.5; u.rate=0.9; u.volume=0.85; speechSynthesis.cancel(); speechSynthesis.speak(u); }catch(e){} }
 function endGame(win,customInfo){
@@ -762,6 +768,13 @@ function update(dt){
     // 🔥 la racha expira si pasan 4s sin matar; el cartel se desvanece solo
     if(comboT>0){ comboT-=dt; if(comboT<=0) comboN=0; }
     if(comboPop>0){ comboPop-=dt; if(comboPop<=0) document.getElementById("combo").style.opacity="0"; }
+    // ⚡ rayos naranjas en el suelo: recógelos para 12s de DISPARO RÁPIDO (láser naranja)
+    for(let i=rapidDrops.length-1;i>=0;i--){ const rp=rapidDrops[i]; rp.m.rotation.y+=dt*3; rp.m.position.y=0.9+Math.sin(now*3.4+i)*0.15;
+      if(level==="surface" && Math.hypot(P.x-rp.m.position.x,P.z-rp.m.position.z)<1.7){
+        rapidT=12; scene.remove(rp.m); rapidDrops.splice(i,1);
+        [523,659,784,988].forEach((f2,j)=>setTimeout(()=>snd(f2,"square",0.1,0.06),j*70));
+        showStory("⚡ ¡DISPARO RÁPIDO! 12 segundos de metralla"); } }
+    if(rapidT>0){ rapidT-=dt; tracer.material.color.setHex(0xff8c1a); if(rapidT<=0){ tracer.material.color.setHex(0xffe066); showStory("⚡ Se acabó el disparo rápido"); } }
     // 🛡️ escudos en el suelo: giran, flotan y se recogen al pasar por encima
     for(let i=shieldDrops.length-1;i>=0;i--){ const sdp=shieldDrops[i]; sdp.m.rotation.y+=dt*2.5; sdp.m.position.y=0.9+Math.sin(now*3+i)*0.15;
       if(level==="surface" && !shield && Math.hypot(P.x-sdp.m.position.x,P.z-sdp.m.position.z)<1.7){
