@@ -35,7 +35,7 @@
 <body>
 <canvas id="c"></canvas>
 <div id="top"><div id="timer">0.0s</div><div id="mvs" style="font-family:Consolas,monospace;font-size:14px;font-weight:800;color:#8fd0ff;align-self:center">🔄 0</div><div style="pointer-events:auto" id="diffs"></div></div>
-<div id="labels"><div>🧑 TÚ</div><div class="ai">🤖 IA (en vivo)</div></div>
+<div id="labels"><div>🧑 TÚ</div><div class="ai">🤖 IA (en vivo)<div id="aibar" style="width:130px;height:8px;background:rgba(255,255,255,.12);border-radius:6px;margin-top:4px;overflow:hidden"><div id="aifill" style="width:0%;height:100%;background:linear-gradient(90deg,#ff7ba3,#ff2d6a);border-radius:6px;transition:width .3s"></div></div><div id="aipct" style="font-size:11px;color:#ff9bb8;margin-top:2px">🧩 0%</div></div></div>
 <div id="msg"></div>
 
 <div id="ctrl">
@@ -138,6 +138,13 @@ function resetCube(cu){ // vuelve cada cubie a su posición/orientación resuelt
 }
 
 let moveCount=0;
+// 🤖 progreso de la IA en vivo + burlas para meterte presión
+let aiTotal=0, aiT50=false, aiT90=false;
+function aiSay(txt){ try{ if(!window.speechSynthesis) return; const u=new SpeechSynthesisUtterance(txt); u.lang="es-ES"; u.pitch=1.6; u.rate=1.15; u.volume=0.8; speechSynthesis.cancel(); speechSynthesis.speak(u); }catch(e){} }
+function updAIBar(){ const done=aiTotal?(aiTotal-aiQueue.length)/aiTotal:0; const f=document.getElementById("aifill"), p=document.getElementById("aipct");
+  if(f) f.style.width=Math.round(done*100)+"%"; if(p) p.textContent="🧩 "+Math.round(done*100)+"%";
+  if(done>=0.5&&!aiT50&&state==="race"&&!ended){ aiT50=true; aiSay("¡Ya voy por la mitad!"); }
+  if(done>=0.9&&!aiT90&&state==="race"&&!ended){ aiT90=true; aiSay("¡Casi termino! ¡Apúrate!"); } }
 function startRace(){
   document.getElementById("intro").classList.add("hide");
   ended=false; state="race"; moveCount=0; document.getElementById("mvs").textContent="🔄 0";
@@ -146,12 +153,13 @@ function startRace(){
   showMsg("");
   // IA resuelve deshaciendo el revuelto (en vivo)
   aiQueue=scramble.slice().reverse().map(m=>({face:m.face,dir:-m.dir}));
+  aiTotal=aiQueue.length; aiT50=false; aiT90=false; updAIBar();
   clearTimeout(aiTimer); aiStep();
 }
 function aiStep(){
   if(ended) return;
   if(aiQueue.length===0){ if(isSolved(ai)) finish("ai"); return; }
-  const m=aiQueue.shift(); const pace=DIFF[diff].pace, dur=Math.min(pace*0.6,260);
+  const m=aiQueue.shift(); updAIBar(); const pace=DIFF[diff].pace, dur=Math.min(pace*0.6,260);
   move(ai,m.face,m.dir,Math.min(pace*600,260),()=>{ if(!ended) aiTimer=setTimeout(aiStep, Math.max(40,pace*1000-260)); });
 }
 function playerMove(face,dir){ if(state!=="race"||player.busy) return; snd(340+Math.random()*60,"square",0.06,0.05); snd(180,"triangle",0.04,0.03);   // 🔊 clic de giro
