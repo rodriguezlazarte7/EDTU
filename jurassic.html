@@ -581,6 +581,7 @@ try{ const jd0=localStorage.getItem("jurassic_diff"); if(jd0&&JDIFFS[jd0]) jdiff
 function buildJDiffs(){ const c=document.getElementById("jdiffs"); if(!c) return; c.innerHTML=""; for(const k of ["facil","normal","dificil","extincion"]){ const b=document.createElement("button"); b.className="diffbtn"+(jdiff===k?" sel":""); b.textContent=JDIFFS[k].lbl; b.onclick=()=>{ jdiff=k; try{ localStorage.setItem("jurassic_diff",k); }catch(e){} buildJDiffs(); }; c.appendChild(b); } }
 let hp=100,hunger=100,thirst=100,invT=0,flashBatt=100,darts=6,dartCd=0,placeCd=0;
 let jStatDarts=0,jStatSleep=0,jStatWood=0,jStatDist=0,jLastX=null,jLastZ=0;   // 📊 estadísticas
+const jPath=[]; let jPathT=0;   // 🗺️ rastro de tu ruta (un punto cada 3s) para dibujar la aventura al final
 let jPaused=false;   // ⏸ pausa con P
 let jTutOn=false, jTutStep=0, jTutT=0;   // 🎓 mini-tutorial de primera vez
 let jPhoto=false;   // 📸 modo foto (F2)
@@ -779,6 +780,7 @@ function start(){ $("start").classList.add("hide"); $("end").classList.add("hide
   const JD=JDIFFS[jdiff]; jdSpeed=JD.sp; jdDmg=JD.dmg; jdDet=JD.det;
   P.x=0; P.z=22; P.y=1.7; P.vy=0; P.onGround=true; yaw=Math.PI; pitch=0; hp=100; hunger=100; thirst=100; flashBatt=100; darts=6; elapsed=0; radioOn=false; inv.water=2; inv.food=2; inv.wood=0; inv.batt=0; updAmmo();
   jStatDarts=0; jStatSleep=0; jStatWood=0; jStatDist=0; jLastX=null;   // 📊 estadísticas desde cero
+  jPath.length=0; jPathT=0;   // 🗺️ rastro desde cero
   jPaused=false; const po3=$("jPauseOv"); if(po3) po3.style.display="none";
   try{ jTutOn=!localStorage.getItem("jur_tut1"); }catch(e){ jTutOn=false; }  jTutStep=0; jTutT=5;   // 🎓 tutorial solo la primera vez
   rainOn=false; setRainSnd(false); rainF=0; rain.visible=false; rainT=80+Math.random()*100;   // 🌧️ clima desde cero
@@ -807,6 +809,21 @@ function endGame(win,info){ running=false; gameOver=true; try{document.exitPoint
   $("endInfo").innerHTML=info+(win&&jdiff==="extincion"?"<br>☄️ <b>¡SOBREVIVISTE A LA EXTINCIÓN!</b> — depredadores 1.5x más rápidos y daño doble. LEYENDA.":"")+"<br><br>🗓️ Días: <b>"+days.toFixed(1)+"</b>"+(isRec?" 🏆 ¡RÉCORD!":" · Récord: <b>"+prev.toFixed(1)+"</b>")
     +"<div style='margin-top:8px;font-size:13px;color:#bfe3d8;line-height:1.9'>📊 <b>ESTADÍSTICAS</b><br>💉 Dardos disparados: "+jStatDarts+" · 💤 Dinos dormidos: "+jStatSleep+"<br>🪵 Maderas puestas: "+jStatWood+" · 🚶 "+Math.round(jStatDist)+" m recorridos</div>"; snd(win?660:70,win?"triangle":"sawtooth",0.5,0.12);
   if(win){ $("end").classList.remove("hide");
+    // 🗺️ TU AVENTURA DIBUJADA: mini-mapa de la isla con la ruta exacta que recorriste
+    try{ const mp=document.createElement("canvas"); mp.width=300; mp.height=300; mp.style.cssText="display:block;margin:10px auto 0;border:1px solid rgba(150,220,150,.35);border-radius:10px;background:#06140a";
+      const g2=mp.getContext("2d"); const K2=140/ISLR, C2=150;
+      const px3=x2=>C2+x2*K2, pz3=z2=>C2+z2*K2;
+      g2.fillStyle="#0e2c14"; g2.beginPath(); g2.arc(C2,C2,ISLR*K2,0,6.28); g2.fill();
+      g2.fillStyle="#123a5c"; g2.beginPath(); g2.arc(px3(LAKE.x),pz3(LAKE.z),LAKE.r*K2,0,6.28); g2.fill();
+      g2.strokeStyle="#ffd12e"; g2.lineWidth=2; g2.beginPath();
+      jPath.forEach((pt,i2)=>{ const X=px3(pt[0]),Y=pz3(pt[1]); if(i2===0) g2.moveTo(X,Y); else g2.lineTo(X,Y); }); g2.stroke();
+      const emo3=(x2,z2,t3)=>{ g2.font="14px serif"; g2.textAlign="center"; g2.fillText(t3,px3(x2),pz3(z2)+5); };
+      emo3(SH.x,SH.z,"🏠"); emo3(RADIO.x,RADIO.z,"📻"); emo3(wally.position.x,wally.position.z,"🤖");
+      if(skelSeen) emo3(skel.position.x,skel.position.z,"🦴");
+      if(eggTaken) emo3(goldEgg.position.x,goldEgg.position.z,"🥚");
+      if(jPath.length){ const lp=jPath[jPath.length-1]; g2.fillStyle="#ffd12e"; g2.beginPath(); g2.arc(px3(lp[0]),pz3(lp[1]),4,0,6.28); g2.fill(); }
+      const cap=document.createElement("div"); cap.style.cssText="font-size:12px;color:#8fd0a8;margin-top:4px;text-align:center"; cap.textContent="🗺️ Tu aventura: la ruta que recorriste en la isla";
+      $("endInfo").appendChild(mp); $("endInfo").appendChild(cap); }catch(e){}
     // ☄️ homenaje al ser rescatado en EXTINCIÓN (voz encolada, sin cortar nada)
     if(jdiff==="extincion"){ try{ if(navigator.vibrate) navigator.vibrate([0,80,50,80,50,220]); }catch(e){}
       setTimeout(()=>{ try{ if(window.speechSynthesis){ const uL=new SpeechSynthesisUtterance("Sobreviviste a la extinción. Ni los depredadores más letales pudieron contigo. Eres una leyenda."); uL.lang="es-ES"; uL.pitch=0.6; uL.rate=0.85; uL.volume=0.95; speechSynthesis.speak(uL); } }catch(e){} },2500); } }
@@ -871,6 +888,7 @@ function update(dt){
   // 📊 metros recorridos
   if(jLastX!==null) jStatDist+=Math.hypot(P.x-jLastX,P.z-jLastZ);
   jLastX=P.x; jLastZ=P.z;
+  jPathT-=dt; if(jPathT<=0 && running){ jPathT=3; if(jPath.length<400) jPath.push([Math.round(P.x),Math.round(P.z)]); }   // 🗺️ rastro
   // 🎓 mini-tutorial de primera vez: 4 consejos espaciados, luego nunca más
   if(jTutOn && running && !jPaused){ jTutT-=dt;
     if(jTutT<=0){ const TUT=[
