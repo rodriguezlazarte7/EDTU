@@ -712,6 +712,23 @@ function pteroTick(dt,night){
   else if(ptState==="climb"){
     ptero.position.y+=dt*12;
     if(ptero.position.y>=25){ ptState="circle"; ptT=28+Math.random()*22; } } }
+// 🥚 HUEVO DORADO: secreto — un escondite distinto cada partida; logro permanente jurassic_egg
+const EGG_SPOTS=[{x:-88,z:60},{x:70,z:-84},{x:98,z:26},{x:0,z:6},{x:-106,z:88},{x:-40,z:-120}];
+const goldEgg=new THREE.Group();
+{ const em=new THREE.Mesh(new THREE.SphereGeometry(0.42,10,8),new THREE.MeshStandardMaterial({color:0xffd12e,emissive:0xaa7a00,emissiveIntensity:.8,metalness:.6,roughness:.25}));
+  em.scale.y=1.35; em.position.y=0.5; goldEgg.add(em); goldEgg.userData.egg=em;
+  const gl=new THREE.PointLight(0xffd15a,1.1,10); gl.position.y=1; goldEgg.add(gl); goldEgg.userData.light=gl; }
+goldEgg.visible=false; scene.add(goldEgg);
+let eggTaken=false, eggPulse=0;
+function eggPlace(){ const s=EGG_SPOTS[Math.floor(Math.random()*EGG_SPOTS.length)]; goldEgg.position.set(s.x,0,s.z); goldEgg.visible=true; eggTaken=false; }
+function eggTick(dt){ if(eggTaken||!goldEgg.visible) return;
+  eggPulse+=dt*3; const p2=1+Math.sin(eggPulse)*0.12; goldEgg.userData.egg.scale.set(p2,1.35*p2,p2);
+  goldEgg.userData.light.intensity=0.9+Math.sin(eggPulse)*0.4;
+  if(Math.hypot(P.x-goldEgg.position.x,P.z-goldEgg.position.z)<2.2){ eggTaken=true; goldEgg.visible=false;
+    let first=false; try{ first=localStorage.getItem("jurassic_egg")!=="1"; localStorage.setItem("jurassic_egg","1"); }catch(e){}
+    [659,784,988,1319].forEach((fq,i)=>setTimeout(()=>snd(fq,"triangle",0.22,0.09),i*130));
+    try{ if(navigator.vibrate) navigator.vibrate([0,60,40,60,40,180]); }catch(e){}
+    toast2(first?"🥚 ¡HUEVO DORADO! Logro SECRETO desbloqueado":"🥚 ¡El HUEVO DORADO, otra vez tuyo!"); updJBest(); } }
 $("sWater").onclick=useWater; $("sFood").onclick=useFood; $("sBatt").onclick=chargeFlash; $("sWood").onclick=placeWood; $("sFire").onclick=buildFire;
 $("jpauseBtn").onclick=togglePauseJ; $("jPauseOv").addEventListener("click",()=>{ if(jPaused) togglePauseJ(); });
 $("jmapBtn").onclick=toggleJMap; $("jmap").addEventListener("click",()=>{ if(jMapOpen) toggleJMap(); });
@@ -743,6 +760,7 @@ function start(){ $("start").classList.add("hide"); $("end").classList.add("hide
   rainOn=false; setRainSnd(false); rainF=0; rain.visible=false; rainT=80+Math.random()*100;   // 🌧️ clima desde cero
   fireT=0; fireCd=0; campfire.visible=false; { const iF=safeZones.findIndex(s2=>s2.fire); if(iF>=0) safeZones.splice(iF,1); }   // 🔥 fogata desde cero
   ptState="circle"; ptT=45; ptA=Math.random()*6.28; ptero.position.set(85,26,0);   // 🦅 pterodáctilo desde cero
+  eggPlace();   // 🥚 huevo dorado en un escondite nuevo
   pickups.forEach(p=>scene.remove(p.mesh)); pickups.length=0; seedPickups();
   dinos.forEach(d=>scene.remove(d.grp)); dinos.length=0; dinoBabies.forEach(b=>scene.remove(b.grp)); dinoBabies.length=0; if(mosa){scene.remove(mosa.grp);mosa=null;} spawnDinos();
   nests.forEach(ns=>{ ns.hatched=false; ns.eggs.forEach(e=>e.visible=true); ns.chick.visible=false; });   // 🐣 nidos como nuevos
@@ -755,7 +773,7 @@ function updJBest(){ const b=loadJBest(), el=$("jbest"); if(!el) return;
   // 🏅 medallas de RESCATE: una por dificultad en la que lograste que te rescaten
   const med=["facil","normal","dificil","extincion"].map(k=>{ let got=false; try{ got=localStorage.getItem("jurassic_win_"+k)==="1"; }catch(e){}
     return JDIFFS[k].lbl.split(" ")[0]+(got?"✔":"–"); }).join(" ");
-  el.textContent = (b>0?("🏆 Récord: "+b.toFixed(1)+" días sobrevividos"):"🏆 Aún sin récord — ¡sobrevive!") + "  ·  🏅 "+med; }
+  el.textContent = (b>0?("🏆 Récord: "+b.toFixed(1)+" días sobrevividos"):"🏆 Aún sin récord — ¡sobrevive!") + "  ·  🏅 "+med + (function(){ try{ return localStorage.getItem("jurassic_egg")==="1"?"  ·  🥚 HUEVO DORADO":""; }catch(e){ return ""; } })(); }
 function endGame(win,info){ running=false; gameOver=true; try{document.exitPointerLock();}catch(e){} $("touch").classList.remove("on"); $("touch").classList.add("hide"); $("fire").classList.add("hide"); $("jump").classList.add("hide"); $("jhelp").classList.add("hide"); $("jpauseBtn").classList.add("hide"); $("jmapBtn").classList.add("hide"); jMapOpen=false; const jm3=$("jmap"); if(jm3) jm3.style.display="none"; jhelpOpen=false; $("jhelpS").classList.remove("on");
   setRainSnd(false);   // 🐛FIX auditoría: la lluvia seguía sonando en bucle infinito sobre la pantalla de fin
   const days=Math.min(7, elapsed/DAY_LEN); const prev=loadJBest(); const isRec=days>prev; if(isRec) saveJBest(days);
@@ -831,6 +849,7 @@ function update(dt){
       if(jTutStep<TUT.length){ toast2(TUT[jTutStep]); snd(980,"triangle",0.15,0.06); jTutStep++; jTutT=10; }
       else { jTutOn=false; try{ localStorage.setItem("jur_tut1","1"); }catch(e){} } } }
   fireTick(dt);   // 🔥 fogata (llama, luz, cura, apagado)
+  eggTick(dt);    // 🥚 huevo dorado (brillo pulsante y recogida)
   const hh=Math.floor(df*24), mm=Math.floor((df*24*60)%60);
   const isNight = df>0.5;
   if(!jPaused) pteroTick(dt,isNight);   // 🦅 pterodáctilo

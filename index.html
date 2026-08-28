@@ -6942,11 +6942,12 @@ function updGameRecords(){ try{
     [25,50,100,200].forEach(t2=>medKeys.push("nag_kills_"+t2));
     [1000,3000,5000,10000].forEach(t2=>medKeys.push("edtu_f1_km_"+t2));
     ["wally_jurassic","wally_notagame","wally_scream","wally_f1"].forEach(k=>medKeys.push(k));
+    medKeys.push("jurassic_egg");   // 🥚 huevo dorado secreto
     const n=medKeys.filter(k=>g(k)==="1").length;
     let el2=document.getElementById("edtuLogros");
     if(!el2){ const wl2=document.getElementById("wallyHunt"); if(wl2&&wl2.parentElement){ el2=document.createElement("div"); el2.id="edtuLogros";
       el2.style.cssText="margin-top:4px;font:800 13px Consolas,monospace;color:#ffd15a;text-align:center"; wl2.parentElement.appendChild(el2); } }
-    if(el2) el2.textContent = n>=20 ? "🏆 ¡LOGROS EDTU COMPLETOS! 20/20 — ERES LEYENDA" : "🏅 Logros EDTU: "+n+"/20 (medallas de los 5 juegos + WALLYs)"; }
+    if(el2) el2.textContent = n>=21 ? "🏆 ¡LOGROS EDTU COMPLETOS! 21/21 — ERES LEYENDA" : "🏅 Logros EDTU: "+n+"/21 (medallas + WALLYs + secretos)"; }
 }catch(e){} }
 $("lndPlay").onclick=()=>{ $("landing").classList.add("gaming"); updGameRecords(); $("gamePick").classList.add("open"); };   // PLAY = menú de TODOS los juegos
 // 🏆 SALA DE TROFEOS: todos los récords, medallas y WALLYs de los 5 juegos en un solo panel
@@ -6959,7 +6960,8 @@ function buildTrophies(){ try{
   const KEYS=[["scream_win_",["facil","normal","pesadilla","infierno"]],["jurassic_win_",["facil","normal","dificil","extincion"]],["nag_kills_",[25,50,100,200]],["edtu_f1_km_",[1000,3000,5000,10000]]];
   let tot=0; KEYS.forEach(([p,arr])=>arr.forEach(k=>{ if(g(p+k)==="1") tot++; }));
   const wallys=["wally_jurassic","wally_notagame","wally_scream","wally_f1"].filter(k=>g(k)==="1").length; tot+=wallys;
-  h+="<div style='text-align:center;font-size:18px;color:#ffd12e;margin-bottom:8px'>"+(tot>=20?"🏆 20/20 — ¡ERES LEYENDA DE EDTU!":"🏅 "+tot+"/20 logros")+"</div>";
+  if(g("jurassic_egg")==="1") tot++;   // 🥚 secreto
+  h+="<div style='text-align:center;font-size:18px;color:#ffd12e;margin-bottom:8px'>"+(tot>=21?"🏆 21/21 — ¡ERES LEYENDA DE EDTU!":"🏅 "+tot+"/21 logros")+"</div>";
   // SCREAM
   const sb=parseFloat(g("scream_best")), sw=parseInt(g("scream_wins")||"0",10)||0;
   h+="<div style='color:#ff6a7a'><b>🕷️ SCREAM</b></div>"+(isNaN(sb)?"— sin escape aún":"⏱ Mejor escape: <b>"+fmtMS(sb)+"</b> · 🚁 x"+sw)+"<br>";
@@ -6967,7 +6969,7 @@ function buildTrophies(){ try{
   // JURASSIC
   const jb=parseFloat(g("jurassic_best"));
   h+="<div style='color:#7dff5a'><b>🦖 JURASSIC</b></div>"+((jb&&jb>0)?"🗓️ Récord: <b>"+jb.toFixed(1)+" días</b>":"— sin récord aún")+"<br>";
-  h+=["facil","normal","dificil","extincion"].map(k=>med(g("jurassic_win_"+k)==="1")).join(" ")+" <small>(🟢🟡🔴☄️)</small><br>";
+  h+=["facil","normal","dificil","extincion"].map(k=>med(g("jurassic_win_"+k)==="1")).join(" ")+" <small>(🟢🟡🔴☄️)</small> · "+(g("jurassic_egg")==="1"?"🥚 Huevo Dorado":"▫️ ¿secreto? 🤫")+"<br>";
   // NOT A GAME
   const nk=parseInt(g("nag_best_kills")||"0",10)||0, nc2=parseInt(g("nag_best_combo")||"0",10)||0, ncase=g("nag_best_case");
   h+="<div style='color:#ff2d55'><b>🧟 NOT A GAME</b></div>🧟 Récord kills: <b>"+nk+"</b>"+(nc2?" · 🔥 Racha: <b>x"+nc2+"</b>":"")+(ncase!=null?" · ⏱ Caso: <b>"+fmtMS(parseInt(ncase,10))+"</b>":"")+"<br>";
