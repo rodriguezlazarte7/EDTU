@@ -5834,6 +5834,16 @@ const F1={
     c.fillStyle="#274b7a";
     for(let i=0;i<7;i++){ const mw=W/5, mx=((i*mw - this.bgShift*0.5)%(W+mw*2)+(W+mw*2))%(W+mw*2)-mw;
       c.beginPath(); c.moveTo(mx,hor); c.lineTo(mx+mw*0.5,hor-40-((i*37)%50)); c.lineTo(mx+mw,hor); c.closePath(); c.fill(); }
+    // 🎈 DIRIGIBLE "EDTU" cruzando el cielo con parallax (de noche lleva luz roja de posición)
+    if(!inTun){ const bx=((performance.now()*0.004 - this.bgShift*0.3)%(W+300)+(W+300))%(W+300)-150, by2=hor*0.32;
+      const bw2=Math.min(90,W*0.09), bh2=bw2*0.38;
+      c.save(); c.globalAlpha=nightF>0.5?0.55:0.9;
+      c.fillStyle=nightF>0.5?"#5a6b8a":"#d8dde8"; c.beginPath(); c.ellipse(bx,by2,bw2/2,bh2/2,0,0,6.28); c.fill();
+      c.fillStyle=nightF>0.5?"#46536b":"#b8c0d0"; c.fillRect(bx-bw2*0.12,by2+bh2*0.45,bw2*0.24,bh2*0.22);
+      c.fillStyle="#c8102e"; c.beginPath(); c.moveTo(bx-bw2/2,by2); c.lineTo(bx-bw2/2-14,by2-9); c.lineTo(bx-bw2/2-14,by2+9); c.closePath(); c.fill();
+      c.fillStyle=nightF>0.5?"#ffd12e":"#1e2f66"; c.font="900 "+Math.round(bh2*0.55)+"px system-ui,sans-serif"; c.textAlign="center"; c.fillText("EDTU",bx,by2+bh2*0.18);
+      if(nightF>0.4){ c.fillStyle="#ff3b3b"; c.beginPath(); c.arc(bx+bw2/2,by2,2.5,0,6.28); c.fill(); }
+      c.restore(); }
     // carretera por líneas (perspectiva estilo NFS/OutRun)
     const camH=1.35, STEP=2;
     for(let y=H;y>hor;y-=STEP){
