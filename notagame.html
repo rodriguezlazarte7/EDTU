@@ -692,7 +692,8 @@ function toggleNMap(){ if(!running||gameOver) return;
   if(!nMapOpen && level!=="surface"){ showStory("🗺️ El mapa solo funciona en la SUPERFICIE"); return; }
   nMapOpen=!nMapOpen; const nm=document.getElementById("nmap"); if(nm) nm.style.display=nMapOpen?"flex":"none"; if(nMapOpen) drawNMap(); snd(nMapOpen?500:280,"square",0.05,0.05); }
 // ⏸ pausa compartida: tecla P y botón táctil (y tocar el overlay despausa)
-function togglePauseN(){ if(!running||gameOver) return; nPaused=!nPaused; const po=document.getElementById("nPauseOv"); if(po) po.style.display=nPaused?"flex":"none"; snd(nPaused?300:600,"square",0.08,0.06); }
+function togglePauseN(){ if(!running||gameOver) return; nPaused=!nPaused; const po=document.getElementById("nPauseOv"); if(po) po.style.display=nPaused?"flex":"none"; snd(nPaused?300:600,"square",0.08,0.06);
+  if(nPaused) setNRainSnd(false); else if(nRainOn) setNRainSnd(true); }   // 🌧️ la lluvia también pausa su sonido
 document.getElementById("npauseBtn").onclick=togglePauseN;
 document.getElementById("nPauseOv").addEventListener("click",()=>{ if(nPaused) togglePauseN(); });
 document.getElementById("nmapBtn").onclick=toggleNMap;
@@ -807,6 +808,7 @@ function startGame(){
   hordeT=90+Math.random()*70; hordeOn=0;   // 🚨 reset horda
   sirenOn=0; sirenDone=false; scene.fog.color.setHex(0x050308);   // 🚨 reset modo sirena
   catAlly=0; catScare=0; cat.visible=false; catT=20+Math.random()*30;   // 🐈‍⬛ reset gato
+  nRainOn=false; nRainF=0; setNRainSnd(false); nRain.visible=false;   // 🌧️ reset lluvia
   nPaused=false; const po4=document.getElementById("nPauseOv"); if(po4) po4.style.display="none";   // ⏸ reset pausa
   try{ nTutOn=!localStorage.getItem("nag_tut1"); }catch(e){ nTutOn=false; }  nTutStep=0; nTutT=5;   // 🎓 tutorial solo la primera vez
   bloodMoon=false; lastDayF=0; dawnFog=0;   // 🐛FIX ronda2: la luna de sangre y la niebla se filtraban a la partida nueva
@@ -845,6 +847,20 @@ let rapidT=0; const rapidDrops=[];
 let hordeT=90+Math.random()*70, hordeOn=0;
 // 🌫️ niebla del amanecer
 let dawnFog=0;
+// 🌧️ LLUVIA NOCTURNA: algunas noches (35%) llueve — partículas azuladas, ruido suave y zombies 12% más lentos
+const NRAIN_N=500; const nRainGeo=new THREE.BufferGeometry(); const nRainPos=new Float32Array(NRAIN_N*3);
+for(let i=0;i<NRAIN_N;i++){ nRainPos[i*3]=(Math.random()*2-1)*35; nRainPos[i*3+1]=Math.random()*22; nRainPos[i*3+2]=(Math.random()*2-1)*35; }
+nRainGeo.setAttribute("position",new THREE.BufferAttribute(nRainPos,3));
+const nRainMat=new THREE.PointsMaterial({color:0x8ab4de,size:0.1,transparent:true,opacity:0,fog:false});
+const nRain=new THREE.Points(nRainGeo,nRainMat); nRain.visible=false; scene.add(nRain);
+let nRainOn=false, nRainF=0, nRainNoise=null;
+function setNRainSnd(on){ try{ AC=AC||new (window.AudioContext||window.webkitAudioContext)();
+  if(on&&!nRainNoise){ const len=AC.sampleRate*2, buf=AC.createBuffer(1,len,AC.sampleRate), dch=buf.getChannelData(0);
+    for(let i=0;i<len;i++) dch[i]=(Math.random()*2-1)*0.35;
+    const src=AC.createBufferSource(); src.buffer=buf; src.loop=true;
+    const fl=AC.createBiquadFilter(); fl.type="lowpass"; fl.frequency.value=800;
+    const g2=AC.createGain(); g2.gain.value=0.035; src.connect(fl); fl.connect(g2); g2.connect(AC.destination); src.start(); nRainNoise={src,g:g2}; }
+  else if(!on&&nRainNoise){ try{ nRainNoise.g.gain.exponentialRampToValueAtTime(0.0001,AC.currentTime+1.2); nRainNoise.src.stop(AC.currentTime+1.3); }catch(e){} nRainNoise=null; } }catch(e){} }
 // 🚨 MODO SIRENA: a los 60 kills, 30s de niebla roja — zombies al DOBLE pero cada kill vale DOBLE
 let sirenOn=0, sirenDone=false;
 // ⏸ pausa con P
@@ -858,6 +874,7 @@ function endGame(win,customInfo){
   running=false; gameOver=true; document.body.classList.remove("playing");
   // 🐛FIX auditoría: si pausabas durante el cierre cinematográfico, el overlay de PAUSA quedaba tapando la pantalla final (softlock en móvil)
   nPaused=false; const poE=document.getElementById("nPauseOv"); if(poE) poE.style.display="none";
+  setNRainSnd(false);   // 🌧️ que no siga lloviendo sobre la pantalla final
   const npb=document.getElementById("npauseBtn"); if(npb) npb.style.display="none";
   const nmb=document.getElementById("nmapBtn"); if(nmb) nmb.style.display="none"; nMapOpen=false; const nm4=document.getElementById("nmap"); if(nm4) nm4.style.display="none";
   try{ document.exitPointerLock(); }catch(e){}
@@ -1032,8 +1049,20 @@ function update(dt){
     // 🔴 LUNA DE SANGRE: algunas noches (35%) la luna se tiñe de rojo — zombies enloquecidos pero sueltan MÁS escudos
     if(lastDayF>=0.42 && dayF<0.42){ bloodMoon=Math.random()<0.35;
       if(bloodMoon){ narrate("Luna de sangre, agente. Los zombies enloquecen esta noche."); howlSnd();
-        const c2=document.getElementById("combo"); if(c2){ c2.textContent="🔴 LUNA DE SANGRE"; c2.style.opacity="1"; c2.style.transform="translate(-50%,-50%) scale(1.2)"; comboPop=3; } } }
+        const c2=document.getElementById("combo"); if(c2){ c2.textContent="🔴 LUNA DE SANGRE"; c2.style.opacity="1"; c2.style.transform="translate(-50%,-50%) scale(1.2)"; comboPop=3; } }
+      nRainOn=Math.random()<0.35;   // 🌧️ ¿llueve esta noche?
+      if(nRainOn){ setNRainSnd(true); showStory("🌧️ Empieza a llover sobre la ciudad... los zombies patinan"); } }
     if(dayF>0.5 && bloodMoon) bloodMoon=false;
+    if(dayF>0.5 && nRainOn){ nRainOn=false; setNRainSnd(false); }   // 🌧️ escampa al amanecer
+    // 🌧️ animación de la lluvia (sigue al jugador; solo en superficie)
+    nRainF+=((nRainOn?1:0)-nRainF)*Math.min(1,dt*0.7);
+    if(nRainF>0.02 && level==="surface"){ nRain.visible=true; nRainMat.opacity=nRainF*0.5;
+      nRain.position.set(P.x,0,P.z);
+      const pa2=nRainGeo.attributes.position;
+      for(let i=0;i<NRAIN_N;i++){ let ry=pa2.array[i*3+1]-dt*(20+(i%5)*2); if(ry<0) ry=20+Math.random()*3; pa2.array[i*3+1]=ry; }
+      pa2.needsUpdate=true;
+      if(dog.visible && Math.random()<dt*0.02) dogHappy=0.8;   // 🐕 se sacude el agua
+    } else nRain.visible=false;
     // 🌫️ NIEBLA DEL AMANECER: al salir el sol la ciudad queda cubierta y se despeja sola en ~30s
     if(lastDayF<0.5 && dayF>=0.5){ dawnFog=0.032; showStory("🌫️ La niebla del amanecer cubre la ciudad..."); }
     if(dawnFog>0) dawnFog=Math.max(0,dawnFog-dt*0.001);
@@ -1106,6 +1135,7 @@ function update(dt){
     else hordeOn-=dt; }
   if(hordeOn>0) zMul*=1.2;
   if(sirenOn>0) zMul*=2;   // 🚨 niebla roja: van al DOBLE
+  if(nRainF>0.5) zMul*=0.88;   // 🌧️ con lluvia patinan un poco
   // 🎵 zumbido ominoso en el hospital
   if(level==="hospital"){ droneT-=dt; if(droneT<=0){ droneT=2.5+Math.random()*2.5; snd(38+Math.random()*8,"sawtooth",1.1,0.035); } }
   if(level==="surface") zombies.forEach(z=>{ if(z.dead)return;
