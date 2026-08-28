@@ -912,7 +912,7 @@ function collide(nx,nz){ const pr=0.35; for(const w of walls){ if(nx>w.x0-pr&&nx
 
 function startGame(){
   P.x=0;P.z=ARENA-5;P.y=1.7;P.vy=0;P.onGround=true;P.hp=100; yaw=0;pitch=0;
-  cluesGot=0; gameOver=false; muzzle=0; shootCd=0;
+  cluesGot=0; gameOver=false; muzzle=0; shootCd=0; radioT=45; radioClueN=0;   // 📻 radio desde cero
   startT=performance.now()/1000;   // reinicia el ciclo día/noche (empieza de noche)
   zombies.forEach(z=>scene.remove(z.grp)); zombies.length=0; spawnZombies(12); kills=0; heliMode=false;
   comboN=0; comboT=0; comboPop=0; maxCombo=0; document.getElementById("combo").style.opacity="0";
@@ -992,6 +992,23 @@ let sirenOn=0, sirenDone=false;
 let nPaused=false;
 let nTutOn=false, nTutStep=0, nTutT=0;   // 🎓 mini-tutorial de primera vez
 let heartT=0;   // 💓 latido de corazón por cercanía
+// 📻 RADIO DE LA CENTRAL: si llevas 45s sin encontrar pista, la central te transmite (estática + voz) a qué distancia y hacia dónde está la más cercana
+let radioT=45, radioClueN=0;
+function radioStatic(){ try{ AC=AC||new (window.AudioContext||window.webkitAudioContext)(); const n=AC.createBufferSource(), b=AC.createBuffer(1,Math.floor(AC.sampleRate*0.5),AC.sampleRate), d=b.getChannelData(0);
+  for(let j=0;j<d.length;j++) d[j]=(Math.random()*2-1)*((j<d.length*0.15||j>d.length*0.85)?1:0.25);
+  const f=AC.createBiquadFilter(); f.type="bandpass"; f.frequency.value=1500; f.Q.value=0.8; const g=AC.createGain(); g.gain.value=0.12; n.buffer=b; n.connect(f); f.connect(g); g.connect(AC.destination); n.start(); }catch(e){} }
+function radioTick(dt){ if(!running||gameOver||cluesGot>=7) return;
+  if(radioClueN!==cluesGot){ radioClueN=cluesGot; radioT=45; return; }   // acabas de encontrar una: la espera se reinicia
+  radioT-=dt; if(radioT>0) return; radioT=45;
+  let msg;
+  if(level!=="surface") msg="agente, las pistas del túnel están pegadas a las paredes del drenaje";
+  else { let best=null, bd=1e9; for(const d of drawers){ if(d.open) continue; if(CLUE_NOTES.indexOf(d.note)>=5) continue; const ds=Math.hypot(P.x-d.cx,P.z-d.cz); if(ds<bd){ bd=ds; best=d; } }
+    if(!best) msg="las últimas pistas están en el TÚNEL del drenaje, agente";
+    else { const s2=Math.sin(yaw), c2=Math.cos(yaw), tx=best.cx-P.x, tz=best.cz-P.z; const a=Math.atan2(tx*c2-tz*s2, -tx*s2-tz*c2);   // misma fórmula que la flecha al helipuerto
+      const dir=Math.abs(a)<0.5?"justo adelante":Math.abs(a)>2.6?"detrás de ti":(a>0?"a tu derecha":"a tu izquierda");
+      msg="la pista más cercana está a "+Math.round(bd)+" metros, "+dir; } }
+  radioStatic(); showStory("📻 CENTRAL: «"+msg+"»");
+  setTimeout(()=>{ try{ if(window.speechSynthesis){ const u=new SpeechSynthesisUtterance("Central a agente: "+msg); u.lang="es-ES"; u.pitch=0.7; u.rate=1.05; u.volume=0.75; speechSynthesis.speak(u); } }catch(e){} },350); }
 let nPhoto=false;   // 📸 modo foto (F2)
 function togglePhotoN(){ nPhoto=!nPhoto; document.body.classList.toggle("photo",nPhoto); showStory(nPhoto?"📸 MODO FOTO — HUD oculto · F2 para volver":"📸 modo foto apagado"); }
 // 🗣️ voz de narrador (grave, para el final del caso)
@@ -1253,6 +1270,7 @@ function update(dt){
       if(zn<13){ dogBarkCd=3.5; snd(520,"square",0.09,0.09); setTimeout(()=>snd(480,"square",0.11,0.09),170); dog.rotation.y+=0.4; } } }
   if(!nPaused) drVZTick(dt);   // 🧪 el doctor huye
   if(!nPaused) turretTick(dt); // 🤖🔫 torreta del helipuerto
+  if(!nPaused) radioTick(dt);  // 📻 la central te orienta si llevas mucho sin pista
   if(!nPaused) gravesTick(dt); // 🪦 inscripciones al acercarte
   // 🐈‍⬛ gato negro: cruza la calle... y si lo acaricias (E) se vuelve tu ALIADO 60s
   if(level==="surface"){
