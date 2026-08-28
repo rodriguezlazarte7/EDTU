@@ -488,7 +488,7 @@ function toggleFlash(){ if(!running) return; flashOn=!flashOn; snd(flashOn?520:1
 function toggleNV(){ if(!running) return; if(!nvOn && visorBatt<10){ snd(150,"square",0.15,0.08); showStory("🥽 Visor sin batería — espera a que cargue"); return; } nvOn=!nvOn; snd(nvOn?900:300,"square",0.08,0.06);
   $("nv").classList.toggle("on",nvOn); $("nvln").classList.toggle("on",nvOn); $("nvui").classList.toggle("on",nvOn);
   camera.fov=nvOn?40:78; camera.updateProjectionMatrix(); }
-let mapOpen=false, noteTimer, flares=3, panicWarned=false, helpOpen=false; const activeFlares=[];
+let mapOpen=false, noteTimer, flares=3, panicWarned=false, helpOpen=false, webWarned=false; const activeFlares=[];
 function toggleHelp(){ if(!running) return; helpOpen=!helpOpen; $("help").classList.toggle("on",helpOpen); snd(helpOpen?500:300,"square",0.05,0.05); }
 function updFlareHUD(){ const el=$("flareC"); if(el) el.textContent="🧨 x"+flares; }
 function throwFlare(){ if(!running||gameOver||flares<=0) return; flares--; updFlareHUD();
@@ -569,7 +569,7 @@ function start(){ $("start").classList.add("hide"); $("end").classList.add("hide
   const D=DIFFS[diff]; hpMax=D.hp; invDur=D.inv; ambushInt=D.amb; gameTime=D.time;
   spiderDead=false; valvesGot=0; samplesGot=0; craftT=0; timeLeft=gameTime; won=false; hbT=0; spiderFloor=0;
   hp=hpMax; stam=100; hurtCd=0; safeTime=0; sprintHeld=false; visorBatt=100; updHP(); $("crack").style.opacity="0"; $("fade").style.background="#000"; $("fade").style.opacity="0";
-  activeFlares.forEach(f=>{ if(f.parent){ f.parent.remove(f.glow); f.parent.remove(f.light); } }); activeFlares.length=0; flares=3; updFlareHUD(); panicWarned=false;
+  activeFlares.forEach(f=>{ if(f.parent){ f.parent.remove(f.glow); f.parent.remove(f.light); } }); activeFlares.length=0; flares=3; updFlareHUD(); panicWarned=false; webWarned=false;
   lootCorpses.forEach(lc=>{ lc.looted=false; lc.item.visible=true; });
   if(spider) spider.sp=D.sp;
   valves.forEach(v=>{ v.got=false; v.grp.visible=true; if(v.light) v.light.userData.fl=v.f; });
@@ -622,6 +622,7 @@ function update(dt){
   stam = Math.max(0,Math.min(100, stam + (sprinting?-dt*26:dt*17)));   // stamina
   const stI=$("stam").firstElementChild; if(stI) stI.style.width=stam+"%"; $("stam").style.opacity=(stam<99||sprinting)?"1":"0.35";
   let inWeb=false; for(const w of webTraps){ if(w.f===curFloor && Math.hypot(P.x-w.x,P.z-w.z)<w.r){ inWeb=true; break; } }
+  if(inWeb && !webWarned){ webWarned=true; showStory("🕸️ ¡TELARAÑA PEGAJOSA! Te frena — sal rápido y mira por dónde pisas"); snd(150,"square",0.35,0.1); vib(80); }
   if(inWeb && moving && Math.random()<dt*2.2) snd(180+Math.random()*80,"square",0.06,0.04);   // pegajoso
   const spdP=(nvOn?4.2:6.4)*(sprinting?1.7:1)*(inWeb?0.38:1);   // 🕸️ la telaraña te FRENA
   let dx=(f*(-sin)+s*cos)*spdP*dt, dz=(f*(-cos)+s*(-sin))*spdP*dt;
