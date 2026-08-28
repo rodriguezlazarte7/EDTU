@@ -554,6 +554,10 @@ function update(dt){
       if(!inLake(nx2,nz2,-2)&&!inSafe(nx2,nz2)&&!collide(nx2,nz2)&&Math.hypot(nx2,nz2)<ISLR-5){ d.grp.position.x=nx2; d.grp.position.z=nz2; d.grp.rotation.y=Math.atan2(tdx,tdz); } }
     if(d.grp.userData.legs) d.grp.userData.legs.forEach((lg,k)=> lg.rotation.x=Math.sin(elapsed*7+k*3)*0.5);
     if(d.hitCd>0) d.hitCd-=dt;
+    // 🦶 PISADAS que retumban: temblor de cámara + golpe grave rítmico cuando un carnívoro está MUY cerca
+    if(!d.T.passive && dd<14 && !safe){ const prox=(14-dd)/14; const k=prox*0.06;
+      camera.position.x+=(Math.random()-0.5)*k; camera.position.y+=(Math.random()-0.5)*k;
+      d.stompT=(d.stompT||0)-dt; if(d.stompT<=0){ d.stompT=0.42; snd(36,"sine",0.16,0.06+prox*0.09); } }
     if(!d.T.passive && dd<2.6 && d.hitCd<=0 && !safe){ d.hitCd=1.1; hurt(d.T.dmg*jdDmg, d.T.name); }
   }
   $("ammo").textContent="💉 DARDOS: ∞"+(asleep>0?"  ·  💤 dormidos: "+asleep:"");   // contador de dinos dormidos
