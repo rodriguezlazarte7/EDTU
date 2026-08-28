@@ -134,7 +134,7 @@ function isSolved(cube){
 }
 
 // ---- estado del juego ----
-let diff="medio", DIFF={facil:{scr:6,pace:1.0},medio:{scr:12,pace:0.5},dificil:{scr:18,pace:0.25}};
+let diff="medio", DIFF={facil:{scr:6,pace:1.0},medio:{scr:12,pace:0.5},dificil:{scr:18,pace:0.25},imposible:{scr:20,pace:0.14}};
 let state="idle", raceStart=0, ended=false, scramble=[], aiQueue=[], aiTimer=null;
 const FACE_LIST=["U","D","L","R","F","B"];
 function randMove(){ return {face:FACE_LIST[(Math.random()*6)|0], dir:Math.random()<0.5?1:-1}; }
@@ -250,6 +250,7 @@ function finish(who){
     const tf=parseFloat(t), bt=loadBT(diff), isBT=!bt||tf<bt; if(isBT) saveBT(diff,tf);   // ⏱️ ¿nuevo mejor tiempo?
     const bm=loadBM(diff), isBM=!bm||moveCount<bm; if(isBM) saveBM(diff,moveCount);   // 🔄 ¿menos movimientos que nunca?
     const stk=loadStreak()+1; saveStreak(stk);   // 👑 sigue la racha
+    if(diff==="imposible") setTimeout(()=>aiSay("¡¿Qué?! ¡Nadie me había ganado en imposible! Eres una leyenda."),1500);   // 💀 shock de la IA
     showMsg("🎉 ¡GANASTE!\n"+t+"s · 🔄 "+moveCount+" movs · 🏆 victorias: "+loadRW()+(stk>=2?"\n👑 ¡"+stk+" victorias SEGUIDAS!":"")+(isBT?"\n⏱️ ¡MEJOR TIEMPO en "+diff+"!":"\n⏱️ Tu mejor: "+bt.toFixed(1)+"s")+(isBM?"\n🔄 ¡MENOS MOVIMIENTOS QUE NUNCA!":"\n🔄 Récord movs: "+bm),"#39ff14");
     buildDiffs(document.getElementById("diffs")); buildDiffs(document.getElementById("introDiffs"));
     [523,659,784,1047].forEach((f,i)=>setTimeout(()=>snd(f,"triangle",0.25,0.09),i*130));   // 🎺 fanfarria
@@ -283,7 +284,7 @@ document.getElementById("listoBtn").onclick=tryListo;
 document.getElementById("undoBtn").onclick=undoMove;
 document.getElementById("introStart").onclick=startRace; updRW();
 // selector de dificultad (arriba y en el intro)
-function buildDiffs(container){ container.innerHTML=""; [["facil","🟢 Fácil"],["medio","🟡 Medio"],["dificil","🔴 Difícil"]].forEach(([k,lbl])=>{ const b=document.createElement("button"); b.className="diff"+(diff===k?" sel":""); const bt=loadBT(k); b.textContent=lbl+(bt?" ⏱️"+bt.toFixed(1)+"s":""); b.onclick=()=>{ diff=k; buildDiffs(document.getElementById("diffs")); buildDiffs(document.getElementById("introDiffs")); }; container.appendChild(b); }); }
+function buildDiffs(container){ container.innerHTML=""; [["facil","🟢 Fácil"],["medio","🟡 Medio"],["dificil","🔴 Difícil"],["imposible","💀 Imposible"]].forEach(([k,lbl])=>{ const b=document.createElement("button"); b.className="diff"+(diff===k?" sel":""); const bt=loadBT(k); b.textContent=lbl+(bt?" ⏱️"+bt.toFixed(1)+"s":""); b.onclick=()=>{ diff=k; buildDiffs(document.getElementById("diffs")); buildDiffs(document.getElementById("introDiffs")); }; container.appendChild(b); }); }
 buildDiffs(document.getElementById("diffs")); buildDiffs(document.getElementById("introDiffs"));
 
 // ---- orbitar la vista del jugador ----
