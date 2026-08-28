@@ -561,7 +561,9 @@ function drawNRadar(){ const cv=document.getElementById("nradar"); if(!cv) retur
   if(level==="surface"){ zombies.forEach(z=>{ if(!z.dead) put(z.grp.position.x,z.grp.position.z,"#ff3b3b",3); });
     if(boss) put(boss.grp.position.x,boss.grp.position.z,"#ff8c1a",5.5);
     shieldDrops.forEach(sd2=>put(sd2.m.position.x,sd2.m.position.z,"#3fd0ff",3));
-    rapidDrops.forEach(rp=>put(rp.m.position.x,rp.m.position.z,"#ffb020",3)); }
+    rapidDrops.forEach(rp=>put(rp.m.position.x,rp.m.position.z,"#ffb020",3));
+    // 🔎 cajones con PISTA sin abrir: verdes y PARPADEANDO (guían a resolver el caso)
+    if(Math.sin(performance.now()*0.008)>0) drawers.forEach(d=>{ if(!d.open) put(d.cx,d.cz,"#7dff5a",3.4); }); }
   g.fillStyle="#7dff5a"; g.beginPath(); g.arc(52,52,3.4,0,6.28); g.fill();
   g.strokeStyle="#7dff5a"; g.lineWidth=2; g.beginPath(); g.moveTo(52,52); g.lineTo(52,43); g.stroke(); }
 // ➕ numerito flotante junto a la mira al matar (sube y se desvanece)
