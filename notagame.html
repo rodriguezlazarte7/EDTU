@@ -121,6 +121,9 @@ addEventListener("resize",resize); resize();
 // luz: noche + linterna
 const ambient=new THREE.AmbientLight(0x252033,0.35); scene.add(ambient);
 const moon=new THREE.DirectionalLight(0x3344aa,0.6); moon.position.set(-8,20,-6); scene.add(moon);
+// 🌕 LUNA visible en el cielo (aparece de noche, con halo)
+const moonMesh=new THREE.Mesh(new THREE.SphereGeometry(6,20,18),new THREE.MeshBasicMaterial({color:0xe8ecff,transparent:true,opacity:0.95,fog:false})); moonMesh.position.set(-55,78,-70); scene.add(moonMesh);
+const moonHalo=new THREE.Mesh(new THREE.SphereGeometry(8.5,20,18),new THREE.MeshBasicMaterial({color:0x9fb0ff,transparent:true,opacity:0.18,fog:false})); moonHalo.position.copy(moonMesh.position); scene.add(moonHalo);
 const bgNight=new THREE.Color(0x03030a), bgDay=new THREE.Color(0x5a7290);
 const moonNight=new THREE.Color(0x3344aa), moonDay=new THREE.Color(0xfff2d0);
 const flash=new THREE.SpotLight(0xfff6e0,4.5,60,0.75,0.35,0.9); flash.position.set(0,0,0.3); camera.add(flash);
@@ -613,6 +616,7 @@ function update(dt){
     flash.intensity=5-dayF*3.6;
     scene.fog.density=0.05-dayF*0.038;
     scene.background.copy(bgNight).lerp(bgDay,dayF);
+    moonMesh.material.opacity=(1-dayF)*0.95; moonHalo.material.opacity=(1-dayF)*0.18;   // 🌕 la luna se ve de noche
     if(dn) dn.textContent = dayF>0.5 ? "☀️ DÍA" : "🌙 NOCHE";
   }
   // zombies: ¡un toque = muerte! (solo en la SUPERFICIE; el drenaje es refugio)
