@@ -321,6 +321,17 @@ const butterflies=[];
     g.position.set(Math.cos(a)*r,1+Math.random()*1.5,Math.sin(a)*r); scene.add(g);
     butterflies.push({g,wL,wR,mt,ph:Math.random()*6.28,vx:0,vz:0,turnT:0}); }
 })();
+// 🫐 ARBUSTOS DE BAYAS: pasa por encima y recoges comida; las bayas vuelven a crecer en ~60s
+const berryBushes=[];
+(function makeBushes(){ const bushM=new THREE.MeshStandardMaterial({color:0x1e5c28,roughness:.95});
+  const berryM=new THREE.MeshStandardMaterial({color:0xd11e3a,emissive:0x550a14,emissiveIntensity:.5,roughness:.4});
+  for(let i=0;i<8;i++){ const a=Math.random()*6.28, r=18+Math.random()*65; const bx=Math.cos(a)*r, bz=Math.sin(a)*r;
+    const g=new THREE.Group(); g.position.set(bx,0,bz); scene.add(g);
+    const bod=new THREE.Mesh(new THREE.SphereGeometry(0.75,10,8),bushM); bod.scale.y=0.75; bod.position.y=0.5; g.add(bod);
+    const berries=[]; for(let b2=0;b2<5;b2++){ const be=new THREE.Mesh(new THREE.SphereGeometry(0.09,7,6),berryM);
+      const ba=b2*1.26+Math.random()*0.5; be.position.set(Math.cos(ba)*0.62,0.55+Math.random()*0.35,Math.sin(ba)*0.62); g.add(be); berries.push(be); }
+    berryBushes.push({g,x:bx,z:bz,berries,ripe:true,regrowT:0}); }
+})();
 // 🐣 NIDOS DE HUEVOS: si te acercas, un huevo ECLOSIONA y nace una cría que da vueltas al nido
 function toast2(txt){ let el=document.getElementById("toast2"); if(!el){ el=document.createElement("div"); el.id="toast2";
   el.style.cssText="position:fixed;top:22%;left:50%;transform:translateX(-50%);z-index:8;font-weight:900;font-size:22px;color:#ffe9a8;text-shadow:0 0 12px #000;opacity:0;transition:opacity .3s;pointer-events:none;font-family:inherit";
@@ -603,6 +614,12 @@ function update(dt){
     const k=1+(0.9-sp2.life)*6; sp2.m.scale.set(k,k,k); sp2.m.material.opacity=sp2.life*0.9; }
   // ✨ luciérnagas: brillan de noche, titilan y "flotan" girando lento
   if(fireflies){ fireflyMat.opacity=(1-lightF)*(0.55+0.35*Math.abs(Math.sin(elapsed*2.2))); fireflies.position.y=Math.sin(elapsed*0.9)*0.35; fireflies.position.x=Math.sin(elapsed*0.5)*0.4; }
+  // 🫐 arbustos: si pasas cerca con bayas maduras, las recoges (+1 comida) y rebrotan en ~60s
+  for(const bb of berryBushes){
+    if(bb.ripe){ if(Math.hypot(P.x-bb.x,P.z-bb.z)<2){ bb.ripe=false; bb.regrowT=55+Math.random()*20;
+      bb.berries.forEach(be=>be.visible=false); inv.food++; updInv();
+      [523,659].forEach((fq,k)=>setTimeout(()=>snd(fq,"triangle",0.14,0.06),k*90)); toast2("🫐 ¡Bayas! +1 comida"); } }
+    else { bb.regrowT-=dt; if(bb.regrowT<=0){ bb.ripe=true; bb.berries.forEach(be=>be.visible=true); } } }
   // 🐣 nidos: al acercarte a <4m eclosiona un huevo — crack + píos + nace la cría
   for(const ns of nests){
     if(!ns.hatched && Math.hypot(P.x-ns.x,P.z-ns.z)<4){ ns.hatched=true; ns.eggs[0].visible=false; ns.chick.visible=true;
