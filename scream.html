@@ -681,6 +681,7 @@ function toggleNV(){ if(!running) return; if(!nvOn && visorBatt<10){ snd(150,"sq
   camera.fov=nvOn?40:78; camera.updateProjectionMatrix(); }
 let mapOpen=false, noteTimer, flares=3, panicWarned=false, helpOpen=false, webWarned=false, paused=false; const activeFlares=[];
 let tutOn=false, tutStep=0, tutT=0;   // 🎓 mini-tutorial de primera vez (solo si nunca jugaste)
+const sPath=[]; let sPathT=0;   // 🗺️ rastro del escape (punto [x,z,piso] cada 3s) para dibujarlo al ganar
 let photoMode=false;   // 📸 modo foto (F2)
 function togglePhoto(){ photoMode=!photoMode; document.body.classList.toggle("photo",photoMode); showStory(photoMode?"📸 MODO FOTO — HUD oculto · F2 para volver":"📸 modo foto apagado"); vib(20); }
 // 📊 estadísticas de la partida
@@ -815,6 +816,7 @@ function start(){ $("start").classList.add("hide"); $("end").classList.add("hide
   legendSaid=false;   // 👑 WALLY puede volver a celebrar el 21/21 una vez por partida
   vitF=Math.floor(Math.random()*FLOORS); { const vs=randSpotOnFloor(vitF); vit.position.set(vs.x,vitF*FLOOR_H,vs.z); } vitUsed=false; vitOn=0;   // 🎵 vitrola nueva
   ascWait=0; ascDing=0;   // 🛗 ascensor libre
+  sPath.length=0; sPathT=0;   // 🗺️ rastro desde cero
   phoneActive=false; phoneT=35+Math.random()*35; placePhone();   // 📞 teléfono nuevo
   placeWallyS();   // 🤖 WALLY en otro piso
   hp=hpMax; stam=100; hurtCd=0; safeTime=0; sprintHeld=false; visorBatt=100; updHP(); $("crack").style.opacity="0"; $("fade").style.background="#000"; $("fade").style.opacity="0";
@@ -841,7 +843,25 @@ function endGame(win,info){ running=false; gameOver=true; sprintHeld=false; $("l
   const surv=Math.max(0,Math.floor(gameTime+clockBonus-timeLeft)), smm=Math.floor(surv/60), sss=surv%60;
   $("endInfo").innerHTML=info+"<div style='margin-top:10px;font-size:13px;color:#9fb6c9;line-height:1.9'>📊 <b>ESTADÍSTICAS</b><br>⏱ Aguantaste "+smm+":"+String(sss).padStart(2,"0")+" · 🚶 "+Math.round(statDist)+" m recorridos<br>🔧 Válvulas "+valvesGot+"/4 · 🧪 Muestras "+samplesGot+"/3 · 📄 Notas "+notesGot+"/6<br>🏢 Pisos visitados "+statFloors.size+"/7 · 🧨 Bengalas usadas "+statFlares+" · ⏰ Relojes "+clocks.filter(c2=>c2.got).length+"/2</div>";
   snd(win?660:60,win?"triangle":"sawtooth",0.6,0.13);
-  if(win){ $("end").classList.remove("hide"); }
+  if(win){ $("end").classList.remove("hide");
+    // 🗺️ TU ESCAPE DIBUJADO: el edificio en 7 franjas (PB abajo → P6 arriba) con la ruta piso a piso
+    try{ const mp=document.createElement("canvas"); mp.width=300; mp.height=308; mp.style.cssText="display:block;margin:10px auto 0;border:1px solid rgba(177,75,255,.4);border-radius:10px;background:#0a0410";
+      const g2=mp.getContext("2d"); const stripH=40, gap=4;
+      const fy=f2=>308-((f2+1)*stripH+f2*gap);
+      for(let f2=0;f2<7;f2++){ const y0=fy(f2);
+        g2.fillStyle=f2%2?"#160a20":"#1a0d26"; g2.fillRect(4,y0,292,stripH);
+        g2.fillStyle="#8a6bb0"; g2.font="700 9px Consolas,monospace"; g2.textAlign="left"; g2.fillText(f2===0?"PB":"P"+f2,8,y0+12); }
+      const px3=x2=>8+(x2+HH)/(2*HH)*284;
+      const pz3=(z2,f2)=>fy(f2)+4+(z2+HH)/(2*HH)*(stripH-8);
+      g2.strokeStyle="#ffd12e"; g2.lineWidth=1.6;
+      for(let i2=1;i2<sPath.length;i2++){ const pa=sPath[i2-1], pb=sPath[i2]; if(pa[2]!==pb[2]) continue;
+        g2.beginPath(); g2.moveTo(px3(pa[0]),pz3(pa[1],pa[2])); g2.lineTo(px3(pb[0]),pz3(pb[1],pb[2])); g2.stroke(); }
+      g2.font="12px serif"; g2.textAlign="center";
+      g2.fillText("🧪",px3(MACHINE.x),pz3(MACHINE.z,0)+4);
+      g2.fillText("🛗",px3(ASC.x),pz3(ASC.z,3)+4);
+      if(sPath.length){ const lp=sPath[sPath.length-1]; g2.fillStyle="#ffd12e"; g2.beginPath(); g2.arc(px3(lp[0]),pz3(lp[1],lp[2]),3.4,0,6.28); g2.fill(); }
+      const cap=document.createElement("div"); cap.style.cssText="font-size:12px;color:#b88fd8;margin-top:4px;text-align:center"; cap.textContent="🗺️ Tu escape: la ruta piso a piso (PB abajo → P6 arriba)";
+      $("endInfo").appendChild(mp); $("endInfo").appendChild(cap); }catch(e){} }
   else { // 💥 muerte con FUNDIDO ROJO sangre antes de la pantalla de fin
     snd(35,"sawtooth",1.2,0.14); const fd=$("fade");
     if(fd){ fd.style.background="#4a0006"; fd.style.opacity="1"; setTimeout(()=>{ $("end").classList.remove("hide"); fd.style.opacity="0"; setTimeout(()=>{ fd.style.background="#000"; },400); },750); }
@@ -857,6 +877,7 @@ function update(dt){
   const mm=Math.floor(timeLeft/60), ss=Math.floor(timeLeft%60); const tel=$("timer"); if(tel){ tel.textContent="⏱ "+mm+":"+String(ss).padStart(2,"0"); tel.classList.toggle("warn",timeLeft<120); }
   // 🏢 indicador de piso fijo (clave para seguir las pistas del teléfono)
   const fInd=$("floorInd"); if(fInd) fInd.textContent=ascWait>0?("🛗 llega en "+Math.ceil(ascWait)+"s..."):("🏢 PISO "+(curFloor+1)+"/7");
+  sPathT-=dt; if(sPathT<=0 && running){ sPathT=3; if(sPath.length<400) sPath.push([Math.round(P.x),Math.round(P.z),curFloor]); }   // 🗺️ rastro
   // 🎓 mini-tutorial de primera vez: 4 consejos espaciados en los primeros ~40s, luego nunca más
   if(tutOn && running && !gameOver && !paused){ tutT-=dt;
     if(tutT<=0){ const TUT=[
