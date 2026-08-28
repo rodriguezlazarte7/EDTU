@@ -334,7 +334,7 @@ function makeDino(type){ const T=DTYPE[type], g=new THREE.Group(); const mat=new
   g.scale.setScalar(T.sc); scene.add(g); g.userData.legs=legs;
   return g;
 }
-const dinos=[]; let mosa=null;
+const dinos=[]; let mosa=null; const dinoBabies=[];
 // 💦 salpicaduras de agua (anillos que se expanden y desvanecen)
 const splashes=[];
 function doSplash(x,z,quiet){ const r=new THREE.Mesh(new THREE.RingGeometry(0.5,1.1,24),new THREE.MeshBasicMaterial({color:0xdfffff,transparent:true,opacity:quiet?0.5:0.85,side:THREE.DoubleSide,depthWrite:false}));
@@ -357,7 +357,9 @@ function spawnDinos(){
   for(const k of kinds){ let x,z; do{ const a=Math.random()*6.28,r=50+Math.random()*(ISLR-60); x=Math.cos(a)*r; z=Math.sin(a)*r; }while(inLake(x,z,6)||inSafe(x,z));
     const g=makeDino(k); g.position.set(x,0,z);
     const zzz=new THREE.Sprite(new THREE.SpriteMaterial({map:zzzTex,transparent:true,depthTest:false})); zzz.scale.setScalar(3/DTYPE[k].sc); zzz.position.set(0,5,0); zzz.visible=false; g.add(zzz);
-    dinos.push({grp:g,type:k,T:DTYPE[k],x,z,tx:x,tz:z,rt:0,hitCd:0,tranq:0,sleep:0,zzz}); }
+    const dd={grp:g,type:k,T:DTYPE[k],x,z,tx:x,tz:z,rt:0,hitCd:0,tranq:0,sleep:0,zzz}; dinos.push(dd);
+    // 🐣 los herbívoros a veces tienen una CRÍA que los sigue
+    if(DTYPE[k].passive && Math.random()<0.6){ const bg=makeDino(k); bg.scale.setScalar(DTYPE[k].sc*0.4); bg.position.set(x+3,0,z+3); dinoBabies.push({grp:bg,parent:dd,ph:Math.random()*6.28}); } }
   const mg=makeDino("mosa"); mg.position.set(LAKE.x,-3,LAKE.z); mg.visible=false; mosa={grp:mg,type:"mosa",T:DTYPE.mosa,hitCd:0};   // invisible bajo el agua
 }
 
@@ -426,7 +428,7 @@ function start(){ $("start").classList.add("hide"); $("end").classList.add("hide
   const JD=JDIFFS[jdiff]; jdSpeed=JD.sp; jdDmg=JD.dmg; jdDet=JD.det;
   P.x=0; P.z=22; P.y=1.7; P.vy=0; P.onGround=true; yaw=Math.PI; pitch=0; hp=100; hunger=100; thirst=100; flashBatt=100; darts=6; elapsed=0; radioOn=false; inv.water=2; inv.food=2; inv.wood=0; inv.batt=0; updAmmo();
   pickups.forEach(p=>scene.remove(p.mesh)); pickups.length=0; seedPickups();
-  dinos.forEach(d=>scene.remove(d.grp)); dinos.length=0; if(mosa){scene.remove(mosa.grp);mosa=null;} spawnDinos();
+  dinos.forEach(d=>scene.remove(d.grp)); dinos.length=0; dinoBabies.forEach(b=>scene.remove(b.grp)); dinoBabies.length=0; if(mosa){scene.remove(mosa.grp);mosa=null;} spawnDinos();
   running=true; gameOver=false; tPrev=performance.now(); updInv();
   showStory("«...¿hay alguien ahí?...» — la señal desaparece. Escuchas un rugido a lo lejos.");
 }
@@ -592,6 +594,11 @@ function update(dt){
     if(!d.T.passive && dd<2.6 && d.hitCd<=0 && !safe){ d.hitCd=1.1; hurt(d.T.dmg*jdDmg, d.T.name); }
   }
   $("ammo").textContent="💉 DARDOS: ∞"+(asleep>0?"  ·  💤 dormidos: "+asleep:"");   // contador de dinos dormidos
+  // 🐣 crías: trotan detrás de su papá/mamá con pasitos saltarines
+  for(const b of dinoBabies){ const pp=b.parent.grp.position; const bx2=pp.x-b.grp.position.x, bz2=pp.z-b.grp.position.z; const bd2=Math.hypot(bx2,bz2);
+    if(bd2>3.2){ b.grp.position.x+=bx2/bd2*3.4*dt; b.grp.position.z+=bz2/bd2*3.4*dt; b.grp.rotation.y=Math.atan2(bx2,bz2); b.grp.position.y=Math.abs(Math.sin(elapsed*9+b.ph))*0.25; }
+    else b.grp.position.y*=0.9;
+    if(b.grp.userData.legs) b.grp.userData.legs.forEach((lg,k)=> lg.rotation.x=Math.sin(elapsed*10+k*3+b.ph)*0.5); }
   // 🦖 RUGIDOS: más graves/fuertes/seguidos si hay un carnívoro cerca
   roarT-=dt; if(roarT<=0){ if(nearRoar<95){ const prox=Math.max(0,Math.min(1,(95-nearRoar)/95)); roarT=1.4+(1-prox)*4.5+Math.random()*2;
       const base=48-prox*18; snd(base,"sawtooth",0.55+prox*0.5,0.05+prox*0.13); snd(base*1.6,"square",0.25,0.03+prox*0.05); }
