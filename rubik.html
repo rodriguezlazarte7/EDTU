@@ -165,7 +165,8 @@ function finish(who){
   if(ended) return; ended=true; state="done"; clearTimeout(aiTimer);
   const t=((performance.now()-raceStart)/1000).toFixed(1);
   if(who==="player"){ try{ localStorage.setItem("rubik_wins",String(loadRW()+1)); }catch(e){} showMsg("🎉 ¡GANASTE!\n"+t+"s · 🔄 "+moveCount+" movs · 🏆 victorias: "+loadRW(),"#39ff14");
-    [523,659,784,1047].forEach((f,i)=>setTimeout(()=>snd(f,"triangle",0.25,0.09),i*130)); }   // 🎺 fanfarria
+    [523,659,784,1047].forEach((f,i)=>setTimeout(()=>snd(f,"triangle",0.25,0.09),i*130));   // 🎺 fanfarria
+    try{ if(window.speechSynthesis){ const u=new SpeechSynthesisUtterance("¡Le ganaste a la inteligencia artificial en "+t+" segundos! ¡Eres un crack del cubo!"); u.lang="es-ES"; u.pitch=1.25; u.rate=1.1; u.volume=0.9; speechSynthesis.cancel(); setTimeout(()=>{ try{ speechSynthesis.speak(u); }catch(e){} },700); } }catch(e){} }   // 🗣️ celebración
   else { showMsg("🤖 Ganó la IA\nTu tiempo corre aún...","#ff7ba3"); [400,300,220].forEach((f,i)=>setTimeout(()=>snd(f,"sawtooth",0.3,0.07),i*180)); }
   updRW();
 }
