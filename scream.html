@@ -912,12 +912,22 @@ function update(dt){
       if(phoneF===curFloor){ for(let j=0;j<6;j++) setTimeout(()=>snd(1350+(j%2)*250,"square",0.05,0.05),j*70); }
       else if(Math.random()<0.4) snd(1350,"square",0.06,0.012); }
     if(phoneF===curFloor && Math.hypot(P.x-phone.position.x,P.z-phone.position.z)<2){
-      phoneActive=false; phoneT=70+Math.random()*60; breath(0.09); whisper(); vib(80);
-      let hintTxt; const mv=valves.find(v=>!v.got), ms=samples.find(v=>!v.got);
-      if(mv) hintTxt="...la válvula... piso "+(mv.f+1)+"...";
-      else if(ms) hintTxt="...el antídoto... piso "+(ms.f+1)+"...";
-      else { const mc=clocks.find(c2=>!c2.got); hintTxt=mc?"...tic tac... piso "+(mc.f+1)+"...":"...ya lo tienes todo... CORRE..."; }
-      setTimeout(()=>showStory("📞 una voz susurra: \""+hintTxt+"\""),400); } }
+      phoneActive=false; phoneT=70+Math.random()*60; vib(80);
+      if(Math.random()<0.25){   // 🕴️ a veces llama EL DIRECTOR de la agencia (voz grave, da ánimo)
+        snd(440,"sine",0.12,0.04);
+        const DIR_MSGS=["Agente, la central confía en usted. Cambio.","Buen trabajo, agente. Siga con vida. Cambio.","La agencia observa sus progresos. No nos falle.","Recuerde su entrenamiento, agente. Cambio y fuera."];
+        const dm=DIR_MSGS[Math.floor(Math.random()*DIR_MSGS.length)];
+        try{ if(window.speechSynthesis){ const u=new SpeechSynthesisUtterance(dm); u.lang="es-ES"; u.pitch=0.4; u.rate=0.95; u.volume=0.9; speechSynthesis.speak(u); } }catch(e){}
+        setTimeout(()=>showStory("📞 EL DIRECTOR: «"+dm+"»"),400); }
+      else { breath(0.09); whisper();
+        let hintTxt; const mv=valves.find(v=>!v.got), ms=samples.find(v=>!v.got);
+        if(mv) hintTxt="...la válvula... piso "+(mv.f+1)+"...";
+        else if(ms) hintTxt="...el antídoto... piso "+(ms.f+1)+"...";
+        else { const mc=clocks.find(c2=>!c2.got);
+          if(mc) hintTxt="...tic tac... piso "+(mc.f+1)+"...";
+          else { const CREEPY=["...está detrás de ti... es broma... ¿o no?...","...no cuelgues... me siento solo...","...el maniquí me da miedo hasta a mí...","...¿escuchaste eso?... yo sí...","...las ratas saben más que tú...","...cuenta los pisos... siempre son siete... ¿verdad?...","...alguien más contesta este teléfono...","...ya lo tienes todo... CORRE..."];
+            hintTxt=CREEPY[Math.floor(Math.random()*CREEPY.length)]; } }
+        setTimeout(()=>showStory("📞 una voz susurra: \""+hintTxt+"\""),400); } } }
   // 🧍 el maniquí: congelado si lo miras; se acerca 3m cada vez que apartas la vista (para en 4m — puro susto)
   if(manqF===curFloor){ manq.visible=true;
     const mdx=P.x-manq.position.x, mdz=P.z-manq.position.z, md=Math.hypot(mdx,mdz);
