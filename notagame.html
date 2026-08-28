@@ -617,7 +617,14 @@ function update(dt){
   // 🚁 motor del helicóptero: "whup-whup" del rotor mientras estás abordado
   if(heliMode){ rotorT-=dt; if(rotorT<=0){ rotorT=0.11; snd(52,"sawtooth",0.1,0.07); snd(160,"triangle",0.05,0.03); } }
   const nearPad = level==="surface" && !boarded && foot<1.2 && Math.hypot(P.x-heliPad.x,P.z-heliPad.z)<4;
-  const hh=document.getElementById("hint"); if(hh) hh.textContent = heliMode ? "🚁 HELICÓPTERO — ¡dispara! (pisa el anillo verde para bajar)" : (nearPad ? "🚁 pisa el anillo azul para SUBIR al helicóptero" : (hh.textContent.startsWith("🚁")?"":hh.textContent));
+  // hint con prioridad clara (antes podía quedar texto pegado)
+  const hh=document.getElementById("hint");
+  if(hh){ const tGame=performance.now()/1000-startT;
+    hh.textContent = heliMode ? "🚁 HELICÓPTERO — ¡dispara! (pisa el anillo verde para bajar)"
+      : nearPad ? "🚁 pisa el anillo azul para SUBIR al helicóptero"
+      : level==="drain" ? "🕳️ Recorre el túnel: 2 pistas y la escalera verde al fondo"
+      : (tGame<12 && !touchUI) ? "Mueve el mouse para mirar · clic para disparar"
+      : ""; }
   if(shootCd>0) shootCd-=dt;
   const now=performance.now()/1000;
   const dn=document.getElementById("daynight");
