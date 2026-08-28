@@ -34,7 +34,7 @@
 </head>
 <body>
 <canvas id="c"></canvas>
-<div id="top"><div id="timer">0.0s</div><div id="mvs" style="font-family:Consolas,monospace;font-size:14px;font-weight:800;color:#8fd0ff;align-self:center">🔄 0</div><div id="faces" style="font-family:Consolas,monospace;font-size:14px;font-weight:800;color:#39ff14;align-self:center">✔ 0/6</div><div style="pointer-events:auto" id="diffs"></div></div>
+<div id="top"><div id="timer">0.0s</div><div id="mvs" style="font-family:Consolas,monospace;font-size:14px;font-weight:800;color:#8fd0ff;align-self:center">🔄 0</div><div id="faces" style="font-family:Consolas,monospace;font-size:14px;font-weight:800;color:#39ff14;align-self:center">✔ 0/6</div><div id="pstreak" style="font-family:Consolas,monospace;font-size:13px;font-weight:800;color:#ff9a3a;align-self:center;opacity:0;transition:opacity .3s"></div><div style="pointer-events:auto" id="diffs"></div></div>
 <div id="labels"><div>🧑 TÚ</div><div class="ai">🤖 IA (en vivo)<div id="aibar" style="width:130px;height:8px;background:rgba(255,255,255,.12);border-radius:6px;margin-top:4px;overflow:hidden"><div id="aifill" style="width:0%;height:100%;background:linear-gradient(90deg,#ff7ba3,#ff2d6a);border-radius:6px;transition:width .3s"></div></div><div id="aipct" style="font-size:11px;color:#ff9bb8;margin-top:2px">🧩 0%</div></div></div>
 <div id="msg"></div>
 <div id="lastMvP" style="position:fixed;left:34%;bottom:32%;transform:translateX(-50%);z-index:5;font:900 42px Consolas,monospace;color:#8fd0ff;text-shadow:0 0 14px #2060ff;opacity:0;pointer-events:none;transition:opacity .45s"></div>
@@ -186,6 +186,7 @@ function startRace(){
     else { showMsg("¡YA!","#39ff14"); snd(880,"square",0.3,0.08); setTimeout(()=>{ if(state==="race") showMsg(""); },500);
       state="race"; newScramble(); raceStart=performance.now(); setTimeout(()=>{ drawNet(); updFaces(); },120);
       histSolve.length=0; scramble.forEach(m=>histSolve.push({face:m.face,dir:m.dir})); hintsLeft=3;   // 💡 pistas listas
+      streakP=0; streakPMax=0; { const ps=document.getElementById("pstreak"); if(ps) ps.style.opacity="0"; }   // 🔥 racha desde cero
       { const hb0=document.getElementById("hintBtn"); if(hb0) hb0.textContent="💡 PISTA x3"; }
       // 📜 muestra la REVOLTURA exacta: deshacerla al revés (y con giros opuestos) resuelve el cubo
       const ss=document.getElementById("scramShow");
@@ -205,6 +206,7 @@ function startPractice(){
   undoStack.length=0; document.getElementById("timer").textContent="🎓";
   newScramble();
   histSolve.length=0; scramble.forEach(m=>histSolve.push({face:m.face,dir:m.dir})); hintsLeft=Infinity;
+  streakP=0; streakPMax=0; { const ps=document.getElementById("pstreak"); if(ps) ps.style.opacity="0"; }   // 🔥 racha desde cero
   { const hb=document.getElementById("hintBtn"); if(hb) hb.textContent="💡 PISTA ∞"; }
   { const af=document.getElementById("aifill"); if(af) af.style.width="0%"; const ap=document.getElementById("aipct"); if(ap) ap.textContent="🎓"; }
   setTimeout(()=>{ drawNet(); updFaces(); },120);
@@ -241,7 +243,7 @@ function playerMove(face,dir){ if((state!=="race"&&state!=="practice")||player.b
   const FN=FACE_NOTES[face]||440; snd(dir<0?FN*0.94:FN,"triangle",0.14,0.06); snd(FN/2,"sine",0.08,0.02);   // 🎵 nota de la cara (los ' suenan un pelín más graves)
   moveCount++; document.getElementById("mvs").textContent="🔄 "+moveCount;   // contador de movimientos
   undoStack.push({face,dir});   // ↩ para poder deshacer
-  { const hT=histSolve[histSolve.length-1]; if(hT&&hT.face===face&&hT.dir===-dir) histSolve.pop(); else histSolve.push({face,dir}); }   // 💡 seguir el camino a resuelto
+  { const hT=histSolve[histSolve.length-1]; if(hT&&hT.face===face&&hT.dir===-dir){ histSolve.pop(); updStreak(true); } else { histSolve.push({face,dir}); updStreak(false); } }   // 💡 seguir el camino a resuelto + 🔥 racha
   showMv("lastMvP",face,dir);   // 🔤 notación en grande
   move(player,face,dir,150,()=>{ drawNet(); updFaces(); if(!ended && isSolved(player)){ if(state==="practice") practiceDone(); else finish("player"); }
     else if(ended && state==="race" && isSolved(player)){ state="done"; showMsg("✅ ¡Lo terminaste igual! (modo práctica)\n🔄 "+moveCount+" movs","#8fd0ff"); [523,659,784].forEach((f,i)=>setTimeout(()=>snd(f,"triangle",0.2,0.07),i*120)); } }); }
@@ -279,6 +281,14 @@ function showMv(id,face,dir){ const el=document.getElementById(id); if(!el) retu
 const undoStack=[];
 // 💡 PISTAS: pila con los giros que separan tu cubo de estar resuelto (se actualiza con cada giro tuyo)
 const histSolve=[]; let hintsLeft=3;
+// 🔥 RACHA de giros perfectos: cada giro que ACERCA el cubo a resuelto suma; un error la corta
+let streakP=0, streakPMax=0;
+function updStreak(good){ if(good){ streakP++; if(streakP>streakPMax) streakPMax=streakP; }
+  else { if(streakP>=3) snd(160,"square",0.1,0.05); streakP=0; }
+  const el=document.getElementById("pstreak"); if(!el) return;
+  if(streakP>=2){ el.textContent="🔥 x"+streakP+" perfectos"; el.style.opacity="1";
+    el.style.color=streakP>=8?"#ff3a3a":(streakP>=5?"#ffd12e":"#ff9a3a"); }
+  else el.style.opacity="0"; }
 function hint(){ if((state!=="race"&&state!=="practice")||ended) return;
   if(hintsLeft<=0){ showMsg("💡 ya usaste tus 3 pistas","#ff7ba3"); setTimeout(()=>{ if(state==="race") showMsg(""); },1600); return; }
   if(!histSolve.length) return;
@@ -289,7 +299,7 @@ function hint(){ if((state!=="race"&&state!=="practice")||ended) return;
   snd(1175,"triangle",0.15,0.06);
   setTimeout(()=>{ if(state==="race"||state==="practice") showMsg(""); },2400); }
 function undoMove(){ if((state!=="race"&&state!=="practice")||player.busy||!undoStack.length) return; const m=undoStack.pop();
-  { const hU=histSolve[histSolve.length-1]; if(hU&&hU.face===m.face&&hU.dir===m.dir) histSolve.pop(); else histSolve.push({face:m.face,dir:-m.dir}); }   // 💡 el deshacer también cuenta
+  { const hU=histSolve[histSolve.length-1]; if(hU&&hU.face===m.face&&hU.dir===m.dir){ histSolve.pop(); updStreak(true); } else { histSolve.push({face:m.face,dir:-m.dir}); updStreak(false); } }   // 💡 el deshacer también cuenta
   moveCount++; document.getElementById("mvs").textContent="🔄 "+moveCount; snd(240,"square",0.06,0.05);
   move(player,m.face,-m.dir,150,()=>{ drawNet(); updFaces(); if(!ended && isSolved(player)){ if(state==="practice") practiceDone(); else finish("player"); }
     else if(ended && state==="race" && isSolved(player)){ state="done"; showMsg("✅ ¡Lo terminaste igual! (modo práctica)\n🔄 "+moveCount+" movs","#8fd0ff"); [523,659,784].forEach((f,i)=>setTimeout(()=>snd(f,"triangle",0.2,0.07),i*120)); } }); }   // 🐛FIX ronda2: resolver con DESHACER en modo práctica quedaba mudo
@@ -340,7 +350,7 @@ function finish(who){
     const podPos=pushTop3(diff,tf);   // 🏁 ¿entra al podio?
     const stk=loadStreak()+1; saveStreak(stk);   // 👑 sigue la racha
     if(diff==="imposible") setTimeout(()=>{ try{ if(window.speechSynthesis){ const u2=new SpeechSynthesisUtterance("¡¿Qué?! ¡Nadie me había ganado en imposible! Eres una leyenda."); u2.lang="es-ES"; u2.pitch=1.6; u2.rate=1.15; u2.volume=0.8; speechSynthesis.speak(u2); } }catch(e){} },1500);   // 💀 shock de la IA (🐛FIX ronda2: sin cancel(), se ENCOLA tras la celebración en vez de cortarla a mitad de frase)
-    showMsg("🎉 ¡GANASTE!\n"+t+"s · 🔄 "+moveCount+" movs · 🏆 victorias: "+loadRW()+(stk>=2?"\n👑 ¡"+stk+" victorias SEGUIDAS!":"")+(isBT?"\n⏱️ ¡MEJOR TIEMPO en "+diff+"!":"\n⏱️ Tu mejor: "+bt.toFixed(1)+"s")+(isBM?"\n🔄 ¡MENOS MOVIMIENTOS QUE NUNCA!":"\n🔄 Récord movs: "+bm)+"\n🏁 "+podiumTxt(diff)+(podPos===0?" — ¡ORO!":podPos===1?" — ¡PLATA!":podPos===2?" — ¡BRONCE!":""),"#39ff14");
+    showMsg("🎉 ¡GANASTE!\n"+t+"s · 🔄 "+moveCount+" movs · 🏆 victorias: "+loadRW()+(stk>=2?"\n👑 ¡"+stk+" victorias SEGUIDAS!":"")+(isBT?"\n⏱️ ¡MEJOR TIEMPO en "+diff+"!":"\n⏱️ Tu mejor: "+bt.toFixed(1)+"s")+(isBM?"\n🔄 ¡MENOS MOVIMIENTOS QUE NUNCA!":"\n🔄 Récord movs: "+bm)+"\n🏁 "+podiumTxt(diff)+(podPos===0?" — ¡ORO!":podPos===1?" — ¡PLATA!":podPos===2?" — ¡BRONCE!":"")+(streakPMax>=3?"\n🔥 mejor racha perfecta: x"+streakPMax:""),"#39ff14");
     buildDiffs(document.getElementById("diffs")); buildDiffs(document.getElementById("introDiffs"));
     confetti();   // 🎉 lluvia de papelitos
     [523,659,784,1047].forEach((f,i)=>setTimeout(()=>snd(f,"triangle",0.25,0.09),i*130));   // 🎺 fanfarria
