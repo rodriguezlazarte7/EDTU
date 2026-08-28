@@ -180,13 +180,16 @@ function undoMove(){ if(state!=="race"||player.busy||!undoStack.length) return; 
 
 // 🏆 victorias contra la IA (localStorage)
 function loadRW(){ try{ return parseInt(localStorage.getItem("rubik_wins")||"0",10)||0; }catch(e){ return 0; } }
+// 👑 racha de victorias seguidas contra la IA
+function loadStreak(){ try{ return parseInt(localStorage.getItem("rubik_streak")||"0",10)||0; }catch(e){ return 0; } }
+function saveStreak(v){ try{ localStorage.setItem("rubik_streak",String(v)); }catch(e){} }
 // ⏱️ mejor tiempo por dificultad (récord de velocidad)
 function loadBT(d){ try{ return parseFloat(localStorage.getItem("rubik_bt_"+d)||"0")||0; }catch(e){ return 0; } }
 function saveBT(d,t){ try{ localStorage.setItem("rubik_bt_"+d,String(t)); }catch(e){} }
 // 🔄 récord de MENOS movimientos por dificultad
 function loadBM(d){ try{ return parseInt(localStorage.getItem("rubik_bm_"+d)||"0",10)||0; }catch(e){ return 0; } }
 function saveBM(d,m){ try{ localStorage.setItem("rubik_bm_"+d,String(m)); }catch(e){} }
-function updRW(){ const el=document.getElementById("rwins"); if(el){ const w=loadRW(); el.textContent=w>0?("🏆 Victorias contra la IA: "+w):""; } }
+function updRW(){ const el=document.getElementById("rwins"); if(el){ const w=loadRW(), st=loadStreak(); el.textContent=(w>0?("🏆 Victorias contra la IA: "+w):"")+(st>=2?(" · 👑 Racha: "+st+" seguidas"):""); } }
 // 🎊 CONFETI al ganar: lluvia de papelitos de colores que giran y caen
 let confC=null, confParts=[], confRun=false;
 function startConfetti(){
@@ -210,12 +213,14 @@ function finish(who){
   if(who==="player"){ try{ localStorage.setItem("rubik_wins",String(loadRW()+1)); }catch(e){}
     const tf=parseFloat(t), bt=loadBT(diff), isBT=!bt||tf<bt; if(isBT) saveBT(diff,tf);   // ⏱️ ¿nuevo mejor tiempo?
     const bm=loadBM(diff), isBM=!bm||moveCount<bm; if(isBM) saveBM(diff,moveCount);   // 🔄 ¿menos movimientos que nunca?
-    showMsg("🎉 ¡GANASTE!\n"+t+"s · 🔄 "+moveCount+" movs · 🏆 victorias: "+loadRW()+(isBT?"\n⏱️ ¡MEJOR TIEMPO en "+diff+"!":"\n⏱️ Tu mejor: "+bt.toFixed(1)+"s")+(isBM?"\n🔄 ¡MENOS MOVIMIENTOS QUE NUNCA!":"\n🔄 Récord movs: "+bm),"#39ff14");
+    const stk=loadStreak()+1; saveStreak(stk);   // 👑 sigue la racha
+    showMsg("🎉 ¡GANASTE!\n"+t+"s · 🔄 "+moveCount+" movs · 🏆 victorias: "+loadRW()+(stk>=2?"\n👑 ¡"+stk+" victorias SEGUIDAS!":"")+(isBT?"\n⏱️ ¡MEJOR TIEMPO en "+diff+"!":"\n⏱️ Tu mejor: "+bt.toFixed(1)+"s")+(isBM?"\n🔄 ¡MENOS MOVIMIENTOS QUE NUNCA!":"\n🔄 Récord movs: "+bm),"#39ff14");
     buildDiffs(document.getElementById("diffs")); buildDiffs(document.getElementById("introDiffs"));
     [523,659,784,1047].forEach((f,i)=>setTimeout(()=>snd(f,"triangle",0.25,0.09),i*130));   // 🎺 fanfarria
     startConfetti();   // 🎊
     try{ if(window.speechSynthesis){ const u=new SpeechSynthesisUtterance("¡Le ganaste a la inteligencia artificial en "+t+" segundos! ¡Eres un crack del cubo!"); u.lang="es-ES"; u.pitch=1.25; u.rate=1.1; u.volume=0.9; speechSynthesis.cancel(); setTimeout(()=>{ try{ speechSynthesis.speak(u); }catch(e){} },700); } }catch(e){} }   // 🗣️ celebración
-  else { showMsg("🤖 Ganó la IA\nTu tiempo corre aún...","#ff7ba3"); [400,300,220].forEach((f,i)=>setTimeout(()=>snd(f,"sawtooth",0.3,0.07),i*180));
+  else { const hadStk=loadStreak(); saveStreak(0);   // 👑 se corta la racha
+    showMsg("🤖 Ganó la IA"+(hadStk>=2?"\n👑 Adiós a tu racha de "+hadStk+"...":"")+"\nTu tiempo corre aún...","#ff7ba3"); [400,300,220].forEach((f,i)=>setTimeout(()=>snd(f,"sawtooth",0.3,0.07),i*180));
     aiWinT=4.5; setTimeout(()=>aiSay("¡Gané! Inténtalo otra vez, humano."),700); }   // 🤖 vuelta de la victoria + burla
   updRW();
 }
