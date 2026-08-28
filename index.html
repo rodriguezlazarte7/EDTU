@@ -6589,6 +6589,7 @@ function updGameRecords(){ try{
   const jb=parseFloat(g("jurassic_best")); tag("pickJp", (jb&&jb>0)?("🏆 "+jb.toFixed(1)+" días"):"");
   const nk=parseInt(g("nag_best_kills")||"0",10)||0; tag("pickNag", nk>0?("🏆 "+nk+" zombies"):"");
   const fb=parseFloat(g("edtu_f1_best")); tag("pickF1", (fb&&fb>0)?("🏆 "+Math.round(fb)+" m"):"");
+  const rw=parseInt(g("rubik_wins")||"0",10)||0; tag("pickRk", rw>0?("🏆 "+rw+" victorias vs IA"):"");
 }catch(e){} }
 $("lndPlay").onclick=()=>{ $("landing").classList.add("gaming"); updGameRecords(); $("gamePick").classList.add("open"); };   // PLAY = menú de TODOS los juegos
 
