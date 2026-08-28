@@ -92,6 +92,7 @@
 <div class="screen" id="start">
   <div class="logo">NOT&nbsp;A&nbsp;<b>GAME</b></div>
   <div class="sub">EXPEDIENTE · CASA 13</div>
+  <button id="nagDailyBtn" style="font:800 12px Consolas,monospace;background:#1b2a3a;color:#ffd88a;border:1px solid #ffd88a66;border-radius:8px;padding:5px 10px;margin:4px 0;cursor:pointer" title="La misma ciudad para todos hoy (casas, autos y pistas) — compara tus kills con tus amigos"></button>
   <div id="nagMedals" style="font:800 13px Consolas,monospace;color:#ffd15a;margin:4px 0"></div>
   <div id="ndiary" style="font:12px Consolas,monospace;color:#c9d8e8;margin:2px 0"></div>
   <div class="case">
@@ -124,6 +125,12 @@
 <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
 <script>
 (function(){
+// 📅 DESAFÍO DEL DÍA: si está activo (nag_daily_on), Math.random se siembra con la fecha SOLO durante la generación de la ciudad en esta carga → la misma ciudad (casas, autos, cajones de pistas, WALLY) para todos hoy; se restaura antes de arrancar el loop, así la partida sigue al azar normal
+let dailyN=false; const _origRandom=Math.random;
+function mulberry32(a){ return function(){ a|=0; a=a+0x6D2B79F5|0; let t=Math.imul(a^a>>>15,1|a); t=t+Math.imul(t^t>>>7,61|t)^t; return ((t^t>>>14)>>>0)/4294967296; }; }
+function dailyKeyN(){ const d=new Date(); return d.getFullYear()*10000+(d.getMonth()+1)*100+d.getDate(); }
+function loadNDaily(){ try{ return parseInt(localStorage.getItem("nag_daily_"+dailyKeyN())||"0",10)||0; }catch(e){ return 0; } }
+try{ dailyN=localStorage.getItem("nag_daily_on")==="1"; }catch(e){} if(dailyN) Math.random=mulberry32(dailyKeyN());
 const canvas=document.getElementById("c");
 const isTouch=("ontouchstart" in window)||navigator.maxTouchPoints>0;
 // mostrar el joystick SOLO en dispositivos táctiles primarios (celu/tablet), no en laptops con pantalla táctil
@@ -971,7 +978,9 @@ function fmtCase(s){ return Math.floor(s/60)+":"+String(s%60).padStart(2,"0"); }
 function updNagMedals(){ updNDiary(); const el=document.getElementById("nagMedals"); if(el){ const bc=loadNCase();
   let bn=0; try{ bn=parseInt(localStorage.getItem("nag_best_nights")||"0",10)||0; }catch(e){}
   const nw=loadNWeek();
-  el.textContent="🎖️ Hitos de una partida: "+killMedals()+(bc!=null?"  ·  ⏱ Caso más rápido: "+fmtCase(bc):"")+(bn>0?"  ·  🌙 Récord: "+bn+" noche"+(bn>1?"s":""):"")+(nw>0?"  ·  📅 esta semana: "+nw+" kills":""); } }
+  el.textContent="🎖️ Hitos de una partida: "+killMedals()+(bc!=null?"  ·  ⏱ Caso más rápido: "+fmtCase(bc):"")+(bn>0?"  ·  🌙 Récord: "+bn+" noche"+(bn>1?"s":""):"")+(nw>0?"  ·  📅 esta semana: "+nw+" kills":"")+(function(){ const dv=loadNDaily(); return dv>0?"  ·  📅 HOY: "+dv+" kills":""; })(); } }
+// 📅 botón DESAFÍO DEL DÍA (cambia el flag y recarga: la ciudad se genera al cargar)
+{ const nb=document.getElementById("nagDailyBtn"); if(nb){ nb.textContent="📅 DESAFÍO DEL DÍA: "+(dailyN?"SÍ ✔ — la misma ciudad para todos hoy":"NO"); nb.onclick=()=>{ try{ localStorage.setItem("nag_daily_on",dailyN?"0":"1"); }catch(e){} location.reload(); }; } }
 updNagMedals();
 // 🔥 récord de mejor RACHA
 function loadNCombo(){ try{ return parseInt(localStorage.getItem("nag_best_combo")||"0",10)||0; }catch(e){ return 0; } }
@@ -1004,7 +1013,7 @@ let sirenOn=0, sirenDone=false;
 const nDiary={cat:0,drvz:false,heli:0,tunnel:0,graves:0,siren:false};
 function nDiaryReset(){ nDiary.cat=0; nDiary.drvz=false; nDiary.heli=0; nDiary.tunnel=0; nDiary.graves=0; nDiary.siren=false; }
 function nDiaryLine(e){ const p=["🧟 "+e.kills+" kills","📜 "+e.clues+"/7","🌙 "+e.nights+(e.nights===1?" noche":" noches")]; if(e.boss) p.push("👹 "+e.boss); if(e.cat) p.push("🐱 gato"); if(e.drvz) p.push("🧪 Dr. VZ"); if(e.heli) p.push("🚁 ×"+e.heli); if(e.tunnel) p.push("🕳️ túnel"); if(e.graves) p.push("🪦 "+e.graves); if(e.siren) p.push("🚨 sirena"); return p.join(" · "); }
-function nDiaryEnd(win,nights,survS){ const e=Object.assign({},nDiary); e.win=!!win; e.kills=kills; e.clues=cluesGot; e.nights=nights; e.boss=nStatBoss; e.t=survS; const d=new Date(); e.date=d.getDate()+"/"+(d.getMonth()+1);
+function nDiaryEnd(win,nights,survS){ const e=Object.assign({},nDiary); e.win=!!win; e.daily=!!dailyN; e.kills=kills; e.clues=cluesGot; e.nights=nights; e.boss=nStatBoss; e.t=survS; const d=new Date(); e.date=d.getDate()+"/"+(d.getMonth()+1);
   try{ const arr=JSON.parse(localStorage.getItem("nag_diary")||"[]"); arr.unshift(e); localStorage.setItem("nag_diary",JSON.stringify(arr.slice(0,3))); }catch(err){}
   return "<div style='margin-top:6px;font-size:13px;color:#c9d8e8;line-height:1.8'>📁 <b>EXPEDIENTE DEL CASO</b><br>"+nDiaryLine(e)+"</div>"; }
 function updNDiary(){ const el=document.getElementById("ndiary"); if(!el) return; try{ const arr=JSON.parse(localStorage.getItem("nag_diary")||"[]"); if(!arr.length){ el.textContent=""; return; }
@@ -1051,6 +1060,7 @@ function endGame(win,customInfo){
   // 🌙 NOCHES sobrevividas: cada ciclo de 360s empieza de noche; si ya amaneció, esa noche cuenta
   const nightsSurv=Math.floor(survS/360)+(((survS%360)/360)>=0.5?1:0);
   try{ if(kills>loadNWeek()) localStorage.setItem("nag_week_"+weekKey(),String(kills)); }catch(e){}   // 📅 mejor de la semana
+  if(dailyN){ try{ if(kills>loadNDaily()) localStorage.setItem("nag_daily_"+dailyKeyN(),String(kills)); }catch(e){} }   // 📅 mejor del DESAFÍO DEL DÍA (más kills en la ciudad de hoy)
   let bestN=0; try{ bestN=parseInt(localStorage.getItem("nag_best_nights")||"0",10)||0; if(nightsSurv>bestN){ bestN=nightsSurv; localStorage.setItem("nag_best_nights",String(nightsSurv)); } }catch(e){}
   const recTxt="<br>🧟 Eliminados: <b>"+kills+"</b>"+(isRec?" 🏆 ¡RÉCORD!":" · Récord: <b>"+prevK+"</b>")+(maxCombo>=2?"<br>🔥 Mejor racha: <b>x"+maxCombo+"</b> · Récord: <b>x"+loadNCombo()+"</b>":"")+"<br>🌙 Noches sobrevividas: <b>"+nightsSurv+"</b> · Récord: <b>"+bestN+"</b>"
     +"<div style='margin-top:8px;font-size:13px;color:#9fb6c9;line-height:1.9'>📊 <b>ESTADÍSTICAS</b><br>⏱ Jugaste "+svm+":"+String(svs).padStart(2,"0")+" · 🚶 "+Math.round(nStatDist)+" m recorridos<br>🛡️ Escudos recogidos: "+nStatShields+" · 👹 Gigantes derribados: "+nStatBoss+"<br>🎖️ "+killMedals()+"</div>"+nDiaryEnd(win,nightsSurv,survS);
@@ -1451,6 +1461,7 @@ function update(dt){
 }
 
 function loop(t){ const dt=Math.min(0.05,(t-tPrev)/1000); tPrev=t; if(running) update(dt); renderer.render(scene,camera); requestAnimationFrame(loop); }
+Math.random=_origRandom;   // 📅 fin de la generación de la ciudad: el juego vuelve al azar normal
 requestAnimationFrame(loop);
 
 document.getElementById("play").onclick=()=>{ startGame(); try{ canvas.requestPointerLock(); }catch(_){} };
