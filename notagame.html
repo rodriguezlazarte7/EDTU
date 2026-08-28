@@ -419,10 +419,20 @@ function spawnZombies(n){
     zombies.push({grp:g,hp:2,dead:false,sp:1.7+Math.random()*1.3,ph:Math.random()*6}); }
 }
 function respawnZombie(z){ const p=zPos(); z.grp.position.set(p.x,0,p.z); z.hp=2+Math.floor(kills/12); z.sp=1.7+Math.random()*1.3+Math.min(1.5,kills*0.02);
+  // 🟣 ESCUPIDOR: desde 80 kills, ~10% reaparecen flacos y verdosos: escupen ÁCIDO a distancia
+  z.spitter = kills>=80 && Math.random()<0.10;
   // 🏃‍♂️ CORREDOR: desde 40 kills, ~12% reaparecen flacos, con 1 SOLO HP pero el DOBLE de veloces
-  z.runner = kills>=40 && Math.random()<0.12;
-  if(z.runner){ z.hp=1; z.sp*=2.1; z.grp.scale.set(0.8,1.12,0.8); snd(880,"sawtooth",0.35,0.05); }
-  else z.grp.scale.set(1,1,1); }   // ∞: vuelve más fuerte
+  z.runner = !z.spitter && kills>=40 && Math.random()<0.12;
+  if(z.spitter){ z.hp=2; z.grp.scale.set(0.85,1.06,0.85); z.spitCd=2;
+    if(!z.spitG){ z.spitG=new THREE.Mesh(new THREE.SphereGeometry(0.09,7,6),new THREE.MeshBasicMaterial({color:0x7dff2a})); z.spitG.position.set(0,1.32,0.34); z.grp.add(z.spitG); }
+    z.spitG.visible=true; snd(520,"sawtooth",0.3,0.05); }
+  else if(z.runner){ z.hp=1; z.sp*=2.1; z.grp.scale.set(0.8,1.12,0.8); if(z.spitG) z.spitG.visible=false; snd(880,"sawtooth",0.35,0.05); }
+  else { z.grp.scale.set(1,1,1); if(z.spitG) z.spitG.visible=false; } }   // ∞: vuelve más fuerte
+// 🟣 proyectiles de ácido y aturdimiento
+const spitProj=[]; let acidT=0;
+function acidOverlay(){ let el=document.getElementById("acidFx");
+  if(!el){ el=document.createElement("div"); el.id="acidFx"; el.style.cssText="position:fixed;inset:0;z-index:5;pointer-events:none;background:radial-gradient(circle,rgba(80,255,60,.1),rgba(40,160,30,.42));opacity:0;transition:opacity .25s"; document.body.appendChild(el); }
+  return el; }
 
 // ---------- ascensor (te sube) ----------
 const elev={ mesh:box(12,-12,3,0.3,3,new THREE.MeshStandardMaterial({color:0x2a3a52,emissive:0x0a2436,emissiveIntensity:.6,metalness:.6,roughness:.3})),
@@ -697,7 +707,7 @@ function drawNMap(){ const cv=document.getElementById("nmapCv"); if(!cv) return;
   stairDowns.forEach(s=>dot2(s.x,s.z,"#b26bff",6));
   const emo2=(x,z,t2)=>{ g.font="16px serif"; g.textAlign="center"; g.fillText(t2,px2(x),pz2(z)+6); };
   emo2(wallyN.position.x,wallyN.position.z,"🤖"); if(dog.visible) emo2(dog.position.x,dog.position.z,"🐕");
-  zombies.forEach(z=>{ if(!z.dead) dot2(z.grp.position.x,z.grp.position.z,z.runner?"#ff8ade":"#ff3a3a",5); });
+  zombies.forEach(z=>{ if(!z.dead) dot2(z.grp.position.x,z.grp.position.z,z.spitter?"#7dff2a":(z.runner?"#ff8ade":"#ff3a3a"),5); });
   if(boss) dot2(boss.grp.position.x,boss.grp.position.z,"#ff8c1a",8);
   const fx=-Math.sin(yaw), fz=-Math.cos(yaw);
   g.fillStyle="#ffd12e"; g.beginPath();
@@ -824,6 +834,7 @@ function startGame(){
   catAlly=0; catScare=0; cat.visible=false; catT=20+Math.random()*30;   // 🐈‍⬛ reset gato
   nRainOn=false; nRainF=0; setNRainSnd(false); nRain.visible=false;   // 🌧️ reset lluvia
   legendSaid=false;   // 👑 WALLY puede volver a celebrar el 21/21 una vez por partida
+  spitProj.forEach(pr=>scene.remove(pr.m)); spitProj.length=0; acidT=0; canvas.style.filter=""; { const ax=document.getElementById("acidFx"); if(ax) ax.style.opacity="0"; }   // 🟣 reset ácido
   nPaused=false; const po4=document.getElementById("nPauseOv"); if(po4) po4.style.display="none";   // ⏸ reset pausa
   try{ nTutOn=!localStorage.getItem("nag_tut1"); }catch(e){ nTutOn=false; }  nTutStep=0; nTutT=5;   // 🎓 tutorial solo la primera vez
   bloodMoon=false; lastDayF=0; dawnFog=0;   // 🐛FIX ronda2: la luna de sangre y la niebla se filtraban a la partida nueva
@@ -956,7 +967,7 @@ function update(dt){
   // 👣 pasos con sonido (distinto en el drenaje: eco metálico)
   if((f||s) && P.onGround){ stepT-=dt; if(stepT<=0){ stepT=0.42; if(level==="drain"){ snd(95,"triangle",0.12,0.05); } else { snd(62+Math.random()*14,"sine",0.09,0.045); } } } else stepT=0.1;
   const sin=Math.sin(yaw),cos=Math.cos(yaw);
-  let dx=(f*(-sin)+s*cos)*P.speed*dt, dz=(f*(-cos)+s*(-sin))*P.speed*dt;
+  let dx=(f*(-sin)+s*cos)*P.speed*(acidT>0?0.6:1)*dt, dz=(f*(-cos)+s*(-sin))*P.speed*(acidT>0?0.6:1)*dt;   // 🟣 con ácido vas lento
   let nx=P.x+dx, nz=P.z+dz;
   if(level==="surface"){ const lim=ARENA-1; nx=Math.max(-lim,Math.min(lim,nx)); nz=Math.max(-lim,Math.min(lim,nz)); }   // el límite de la ciudad NO aplica en el drenaje
   if(!collide(nx,P.z)) P.x=nx;
@@ -1156,10 +1167,17 @@ function update(dt){
   if(level==="surface") zombies.forEach(z=>{ if(z.dead)return;
     const dxz=P.x-z.grp.position.x, dzz=P.z-z.grp.position.z, d=Math.hypot(dxz,dzz);
     const flee=(z.scared||0)>0?-1:1; if(flee<0) z.scared-=dt;   // 😾 espantado por el gato: huye
-    if(d>0.9||flee<0){ const nx=z.grp.position.x+dxz/d*z.sp*zMul*dt*flee, nz=z.grp.position.z+dzz/d*z.sp*zMul*dt*flee;   // chocan con paredes (velocidad según día/noche)
+    const spitHold=z.spitter&&flee>0&&d>6&&d<16;   // 🟣 el escupidor se PLANTA a media distancia
+    if((d>0.9||flee<0)&&!spitHold){ const nx=z.grp.position.x+dxz/d*z.sp*zMul*dt*flee, nz=z.grp.position.z+dzz/d*z.sp*zMul*dt*flee;   // chocan con paredes (velocidad según día/noche)
       if(!collide(nx,z.grp.position.z)) z.grp.position.x=nx;
       if(!collide(z.grp.position.x,nz)) z.grp.position.z=nz; }
     z.grp.rotation.y=Math.atan2(dxz*flee,dzz*flee);
+    if(z.spitter&&flee>0&&d<16&&d>4){ z.spitCd=(z.spitCd||0)-dt;   // 🟣 ¡ESCUPE! proyectil lento y esquivable
+      if(z.spitCd<=0){ z.spitCd=4;
+        const sm2=new THREE.Mesh(new THREE.SphereGeometry(0.16,8,6),new THREE.MeshBasicMaterial({color:0x7dff2a,transparent:true,opacity:0.9}));
+        sm2.position.set(z.grp.position.x,1.3,z.grp.position.z); scene.add(sm2);
+        spitProj.push({m:sm2,vx:dxz/d*8,vz:dzz/d*8,t:3});
+        snd(950,"sawtooth",0.18,0.06); snd(300,"square",0.1,0.04); } }
     z.grp.position.y=Math.abs(Math.sin(now*4+z.ph))*0.08;
     if(d<16 && Math.random()<dt*(0.15+(16-d)/16*0.5)){ const gf=(z.runner?290:55)+Math.random()*45; snd(gf,"sawtooth",0.5+Math.random()*0.4,0.02+(16-d)/16*0.05); snd(gf*1.5,"triangle",0.3,0.015); }   // 🧟 GEMIDO (los CORREDORES chillan agudo)
     if(d<3.5) danger=true;
@@ -1170,6 +1188,15 @@ function update(dt){
         const h=document.getElementById("hurt"); if(h){ h.style.opacity="0.6"; setTimeout(()=>h.style.opacity="0",180); } }
       else endGame(false); }
   });
+  // 🟣 proyectiles de ácido: vuelan hacia donde estabas; si te tocan → visión BORROSA y lentitud 2s
+  for(let i2=spitProj.length-1;i2>=0;i2--){ const pr=spitProj[i2]; pr.t-=dt;
+    pr.m.position.x+=pr.vx*dt; pr.m.position.z+=pr.vz*dt; pr.m.position.y=1.3+Math.sin(now*10+i2)*0.05;
+    const pd=Math.hypot(P.x-pr.m.position.x,P.z-pr.m.position.z);
+    if(pd<0.95 && !gameOver){ acidT=2; acidOverlay().style.opacity="1"; canvas.style.filter="blur(2.5px)";
+      snd(200,"sawtooth",0.4,0.1); try{ if(navigator.vibrate) navigator.vibrate(90); }catch(e){}
+      showStory("🟣 ¡ÁCIDO! la vista se te nubla... ¡corre a ciegas!"); scene.remove(pr.m); spitProj.splice(i2,1); continue; }
+    if(pr.t<=0 || collide(pr.m.position.x,pr.m.position.z)){ scene.remove(pr.m); spitProj.splice(i2,1); } }
+  if(acidT>0){ acidT-=dt; if(acidT<=0){ acidOverlay().style.opacity="0"; canvas.style.filter=""; } }
   // 👹 el GIGANTE persigue lento pero imparable: gruñe grave, retumba y su toque también mata (o rompe escudo)
   if(level==="surface" && boss){ const dxb=P.x-boss.grp.position.x, dzb=P.z-boss.grp.position.z, db=Math.hypot(dxb,dzb);
     if(db>1.6){ const nx=boss.grp.position.x+dxb/db*boss.sp*zMul*dt, nz=boss.grp.position.z+dzb/db*boss.sp*zMul*dt;
