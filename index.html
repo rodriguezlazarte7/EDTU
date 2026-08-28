@@ -5800,6 +5800,12 @@ const F1={
     c.save(); c.translate(px,py); c.rotate(this.steer*0.06); c.translate(-px,-py);
     this.drawCarBack(c,px,py,W*0.24,["#1e2f66","#c8102e"],true);
     c.restore();
+    // 💨 LÍNEAS DE VELOCIDAD radiales desde los bordes cuando vas a fondo
+    const spF=Math.max(0,(this.speed-290)/130);
+    if(spF>0){ c.strokeStyle="rgba(255,255,255,"+(0.10+spF*0.16).toFixed(3)+")"; c.lineWidth=2;
+      for(let i=0;i<10;i++){ const ang=Math.random()*6.283; const cx2=W/2, cy2=H*0.42;
+        const r1=Math.max(W,H)*0.34+Math.random()*60, r2=r1+50+Math.random()*110*spF;
+        c.beginPath(); c.moveTo(cx2+Math.cos(ang)*r1, cy2+Math.sin(ang)*r1); c.lineTo(cx2+Math.cos(ang)*r2, cy2+Math.sin(ang)*r2); c.stroke(); } }
     // barra de NITRO
     const bw=Math.min(260,W*0.5);
     c.fillStyle="rgba(255,255,255,.14)"; c.fillRect((W-bw)/2,H-26,bw,10);
