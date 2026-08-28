@@ -169,6 +169,7 @@ No dejes que te encuentre. El tiempo corre.</div>
   <p style="color:#c99;font-size:12px;max-width:540px">🎮 WASD/joystick moverte · ratón/dedo mirar · <b>CLIC IZQ / RT / 🔦 = LINTERNA</b> · <b>CLIC DER / LT / 🥽 = VISIÓN NOCTURNA</b> · 🕷️ la araña <b>TREPA las paredes</b> y se <b>vuelve INVISIBLE 30s cada 30s</b> (¡solo la ves con el VISOR 🥽!) · sigue el <b>RADAR</b> (arriba-izq) que la marca a ratos · <b>SHIFT / 🏃 = CORRER</b> (gasta stamina) · <b>M / 🗺️ = MAPA</b> · <b>G / 🧨 = BENGALA</b> · <b>H / ❓ = AYUDA</b> · tienes <b>3 ❤️</b> — te recuperas en la ZONA SEGURA · solo te caza con la linterna encendida</p>
   <div id="diffs"></div>
   <p id="bestT" style="color:#ffd15a;font-weight:800;font-size:13px;position:relative;z-index:2"></p>
+  <p id="sdiary" style="color:#d9c8e8;font-size:12px;margin-top:2px;position:relative;z-index:2"></p>
   <button class="btn" id="startBtn">▶ ENTRAR AL HOSPITAL</button>
 </div>
 <div id="end" class="hide">
@@ -599,7 +600,7 @@ function ascTick(dt){ if(ascWait<=0) return;
   if(Math.hypot(P.x-ASC.x,P.z-ASC.z)>4){ ascWait=0; showStory("🛗 te alejaste... el ascensor se fue sin ti"); return; }
   if(ascWait<=0){ const dest=curFloor<FLOORS-1?curFloor+1:curFloor-1;
     floorCd=1.5; snd(700,"triangle",0.3,0.08);
-    fade(()=>{ curFloor=dest; floorCd=1.2; const sp=safeSpotF(ASC.x+3,ASC.z+3,dest); P.x=sp.x; P.z=sp.z; $("floor").textContent=FLOORNAME[dest]; showStory("🛗 "+FLOORNAME[dest]);
+    fade(()=>{ curFloor=dest; floorCd=1.2; sDiary.asc++; const sp=safeSpotF(ASC.x+3,ASC.z+3,dest); P.x=sp.x; P.z=sp.z; $("floor").textContent=FLOORNAME[dest]; showStory("🛗 "+FLOORNAME[dest]);
       const ft3=$("floorTitle"); if(ft3){ ft3.textContent=FLOORNAME[dest]; ft3.classList.add("on"); clearTimeout(ft3._t); ft3._t=setTimeout(()=>ft3.classList.remove("on"),1100); } }); } }
 // 🎵 VITROLA: tocadiscos viejo en un piso al azar — actívala con E y la araña queda HIPNOTIZADA yendo hacia la música (25s, un uso)
 const vit=new THREE.Group();
@@ -611,7 +612,7 @@ let vitF=0, vitUsed=false, vitOn=0, vitNoteI=0, vitNoteT=0;
 const VIT_NOTES=[[587,0.3],[554,0.3],[587,0.9],[0,0.25],[523,0.25],[494,0.25],[466,0.25],[440,0.55],[466,0.55],[0,0.4]];
 function playVitrola(){ if(!running||gameOver||vitUsed||vitOn>0) return;
   if(vitF!==curFloor || Math.hypot(P.x-vit.position.x,P.z-vit.position.z)>2.5) return;
-  vitUsed=true; vitOn=25; vitNoteI=0; vitNoteT=0;
+  vitUsed=true; sDiary.vit=true; vitOn=25; vitNoteI=0; vitNoteT=0;
   showStory("🎵 la vitrola cruje y empieza a sonar... ¡a la araña le ENCANTA la música!"); vib(50); }
 const WQUIPS_S=["¡Beep-boop! Qué oscuro está todo...","Mis sensores tiemblan... ¿o soy yo?","Si ves a la araña CORRE, yo solo ruedo","Una vez gané una carrera de mBots 🏁","Mi linterna nunca se queda sin pilas 😎","Cálculo: 87% de probabilidad de que ganes","Dejé las balizas prendidas para que me encuentres","Tú salva el edificio, yo vigilo este piso","¿Escuchaste la vitrola? A la araña le encanta bailar","El ascensor hace ding... y algo siempre escucha el ding"];
 // 🏆 ¿los 21 logros EDTU completos? (mismo cálculo que el menú)
@@ -687,6 +688,15 @@ let photoMode=false;   // 📸 modo foto (F2)
 function togglePhoto(){ photoMode=!photoMode; document.body.classList.toggle("photo",photoMode); showStory(photoMode?"📸 MODO FOTO — HUD oculto · F2 para volver":"📸 modo foto apagado"); vib(20); }
 // 📊 estadísticas de la partida
 let statFlares=0, statDist=0, lastPX=null, lastPZ=0; const statFloors=new Set();
+// 📖 DIARIO DEL SOBREVIVIENTE: hitos del escape (apariciones de la araña, mordidas, botiquines, generador, vitrola, ascensor); últimas 3 en scream_diary
+const sDiary={spot:0,bites:0,med:0,gen:false,vit:false,asc:0};
+function sDiaryReset(){ sDiary.spot=0; sDiary.bites=0; sDiary.med=0; sDiary.gen=false; sDiary.vit=false; sDiary.asc=0; }
+function sDiaryLine(e){ const p=[]; p.push("🕷️ "+e.spot+" apariciones"); p.push(e.bites?("🩸 "+e.bites+" mordidas"):"🛡️ sin mordidas"); if(e.med) p.push("❤️ "+e.med+" botiquines"); if(e.gen) p.push("⚡ generador"); if(e.vit) p.push("🎶 vitrola"); if(e.asc) p.push("🛗 ascensor ×"+e.asc); return p.join(" · "); }
+function sDiaryEnd(win,surv){ const e=Object.assign({},sDiary); e.win=!!win; e.t=surv; e.v=valvesGot; e.s=samplesGot; e.fl=statFloors.size; const d=new Date(); e.date=d.getDate()+"/"+(d.getMonth()+1);
+  try{ const arr=JSON.parse(localStorage.getItem("scream_diary")||"[]"); arr.unshift(e); localStorage.setItem("scream_diary",JSON.stringify(arr.slice(0,3))); }catch(err){}
+  return "<div style='margin-top:6px;font-size:13px;color:#d9c8e8;line-height:1.8'>📖 <b>DIARIO DEL SOBREVIVIENTE</b><br>"+sDiaryLine(e)+"</div>"; }
+function updSDiary(){ const el=$("sdiary"); if(!el) return; try{ const arr=JSON.parse(localStorage.getItem("scream_diary")||"[]"); if(!arr.length){ el.textContent=""; return; }
+  const e=arr[0]; el.textContent="📖 Último escape ("+e.date+"): ⏱ "+Math.floor(e.t/60)+":"+String(e.t%60).padStart(2,"0")+" · 🔧 "+e.v+"/4 · 🧪 "+e.s+"/3 · 🏢 "+e.fl+"/7 · "+sDiaryLine(e)+(e.win?" · ✓ sobreviviste":""); }catch(err){ el.textContent=""; } }
 function toggleHelp(){ if(!running) return; helpOpen=!helpOpen; $("help").classList.toggle("on",helpOpen); snd(helpOpen?500:300,"square",0.05,0.05); }
 function updFlareHUD(){ const el=$("flareC"); if(el) el.textContent="🧨 x"+flares; }
 function throwFlare(){ if(!running||gameOver||flares<=0) return; flares--; statFlares++; updFlareHUD();
@@ -748,7 +758,7 @@ function loadWins(){ try{ return parseInt(localStorage.getItem("scream_wins")||"
 function loadBestD(d){ try{ const v=localStorage.getItem("scream_best_"+d); return v==null?null:parseFloat(v); }catch(e){ return null; } }
 function saveBestD(d,v){ try{ localStorage.setItem("scream_best_"+d,String(v)); }catch(e){} }
 function addWin(){ try{ localStorage.setItem("scream_wins",String(loadWins()+1)); }catch(e){} }
-function updBest(){ const b=loadBest(), w=loadWins(), el=$("bestT"); if(!el) return;
+function updBest(){ updSDiary(); const b=loadBest(), w=loadWins(), el=$("bestT"); if(!el) return;
   // 🏅 medallas: una por cada dificultad vencida
   const med=["facil","normal","pesadilla","infierno"].map(k=>{ let got=false; try{ got=localStorage.getItem("scream_win_"+k)==="1"; }catch(e){}
     return DIFFS[k].lbl.split(" ")[0]+(got?"✔":"–"); }).join(" ");
@@ -814,6 +824,7 @@ function start(){ $("start").classList.add("hide"); $("end").classList.add("hide
   const D=DIFFS[diff]; hpMax=D.hp; invDur=D.inv; ambushInt=D.amb; gameTime=D.time;
   spiderDead=false; valvesGot=0; samplesGot=0; craftT=0; timeLeft=gameTime; won=false; hbT=0; spiderFloor=0; allAnn=false; clockBonus=0;
   statFloors.clear(); statFlares=0; statDist=0; lastPX=null;   // 📊 estadísticas desde cero
+  sDiaryReset();   // 📖 diario en blanco
   manqF=Math.floor(Math.random()*FLOORS); placeManq(false); manqT=6; manqMoveT=25; manqSting=false;   // 🧍 maniquí nuevo
   genF=Math.floor(Math.random()*FLOORS); { const gs=randSpotOnFloor(genF); genM.position.set(gs.x,genF*FLOOR_H,gs.z); }   // ⚡ generador nuevo
   genUsed=false; genOn=0; genCharge=0; genBar(-1); ambient.intensity=0.05; ambient.color.setHex(0x241018);
@@ -848,7 +859,7 @@ function endGame(win,info){ running=false; gameOver=true; sprintHeld=false; $("l
     info+="<br><span style='color:#8fd0ff'>💙 "+MOTIV[Math.floor(Math.random()*MOTIV.length)]+"</span>"; }
   // 📊 resumen de la partida
   const surv=Math.max(0,Math.floor(gameTime+clockBonus-timeLeft)), smm=Math.floor(surv/60), sss=surv%60;
-  $("endInfo").innerHTML=info+"<div style='margin-top:10px;font-size:13px;color:#9fb6c9;line-height:1.9'>📊 <b>ESTADÍSTICAS</b><br>⏱ Aguantaste "+smm+":"+String(sss).padStart(2,"0")+" · 🚶 "+Math.round(statDist)+" m recorridos<br>🔧 Válvulas "+valvesGot+"/4 · 🧪 Muestras "+samplesGot+"/3 · 📄 Notas "+notesGot+"/6<br>🏢 Pisos visitados "+statFloors.size+"/7 · 🧨 Bengalas usadas "+statFlares+" · ⏰ Relojes "+clocks.filter(c2=>c2.got).length+"/2</div>";
+  $("endInfo").innerHTML=info+"<div style='margin-top:10px;font-size:13px;color:#9fb6c9;line-height:1.9'>📊 <b>ESTADÍSTICAS</b><br>⏱ Aguantaste "+smm+":"+String(sss).padStart(2,"0")+" · 🚶 "+Math.round(statDist)+" m recorridos<br>🔧 Válvulas "+valvesGot+"/4 · 🧪 Muestras "+samplesGot+"/3 · 📄 Notas "+notesGot+"/6<br>🏢 Pisos visitados "+statFloors.size+"/7 · 🧨 Bengalas usadas "+statFlares+" · ⏰ Relojes "+clocks.filter(c2=>c2.got).length+"/2</div>"+sDiaryEnd(win,surv);
   snd(win?660:60,win?"triangle":"sawtooth",0.6,0.13);
   if(win){ $("end").classList.remove("hide");
     // 🗺️ TU ESCAPE DIBUJADO: el edificio en 7 franjas (PB abajo → P6 arriba) con la ruta piso a piso
@@ -909,7 +920,7 @@ function update(dt){
   else if(!genUsed && genF===curFloor && running && !gameOver){
     const gd=Math.hypot(P.x-genM.position.x,P.z-genM.position.z);
     if(gd<2.6){ genCharge+=dt; genBar(genCharge/3); if(Math.random()<dt*6) snd(200+genCharge*160,"square",0.05,0.04);
-      if(genCharge>=3){ genUsed=true; genOn=20; genBar(2);
+      if(genCharge>=3){ genUsed=true; sDiary.gen=true; genOn=20; genBar(2);
         snd(60,"sawtooth",1.2,0.2); [392,523,659,784].forEach((fq,i)=>setTimeout(()=>snd(fq,"triangle",0.2,0.08),i*120));
         showStory("⚡ ¡GENERADOR ACTIVADO! LUZ TOTAL 20s — la araña se CONGELA de miedo"); vib([0,60,40,60,40,200]); } }
     else if(genCharge>0){ genCharge=0; genBar(-1); } }
@@ -1041,7 +1052,7 @@ function update(dt){
   // ❤️ botiquines: flotan girando; solo se recogen si te falta un corazón
   for(const mk of medkits){ if(mk.got||mk.f!==curFloor) continue;
     mk.grp.rotation.y+=dt*1.2; mk.grp.position.y=mk.f*FLOOR_H+0.6+Math.sin(now*2.2)*0.12;
-    if(hp<hpMax && Math.hypot(P.x-mk.x,P.z-mk.z)<1.9){ mk.got=true; mk.grp.visible=false;
+    if(hp<hpMax && Math.hypot(P.x-mk.x,P.z-mk.z)<1.9){ mk.got=true; mk.grp.visible=false; sDiary.med++;
       hp=Math.min(hpMax,hp+1); updHP(); [523,659,784].forEach((fq,k)=>setTimeout(()=>snd(fq,"sine",0.16,0.08),k*90));
       showStory("❤️ ¡BOTIQUÍN! +1 corazón"); vib(60); } }
   // 📄 notas de historia
@@ -1094,7 +1105,7 @@ function update(dt){
       if(!spiderDead && sameFloor && sd<25){ spider.ambushT=Math.min(spider.ambushT,1.5);
         if(!glassWarned){ glassWarned=true; showStory("🍾 ¡Pisaste VIDRIOS! Te escuchó... ¡muévete!"); } } } }
   if(!spiderDead && flashOn && ceilAtk.phase===0 && genOn<=0){ spider.ambushT-=dt;   // 🔦 SOLO se teletransporta con la linterna PRENDIDA (🐛FIX: y nunca en pleno ataque del techo — daba sustos falsos) · ⚡ ni con el generador encendido
-    if(spider.ambushT<=0){ spider.ambushT=ambushInt*(1-panic*0.45);   // se teletransporta más seguido con poco tiempo
+    if(spider.ambushT<=0){ spider.ambushT=ambushInt*(1-panic*0.45); sDiary.spot++;   // se teletransporta más seguido con poco tiempo
       if(sameFloor){ const fx=-Math.sin(yaw), fz=-Math.cos(yaw), dist=7+Math.random()*2; const sp2=safeSpotF(P.x+fx*dist,P.z+fz*dist,curFloor);   // aparece ADELANTE
           spider.grp.position.x=sp2.x; spider.grp.position.z=sp2.z; spider.camo=1; screech(); snd(60,"sawtooth",0.7,0.18); const sf=$("sflash"); if(sf){ sf.style.opacity="0.55"; setTimeout(()=>sf.style.opacity="0",90);} doCrack(); vib([0,40,30,50]); showStory("🕷️ ¡APARECIÓ FRENTE A TI!"); }
       else { spiderFloor=curFloor; const sp2=safeSpotF(STAIRX,STAIRZ,curFloor); spider.grp.position.x=sp2.x; spider.grp.position.z=sp2.z; spider.camo=1; screech(); snd(80,"sawtooth",0.9,0.16); showStory("🕷️ ¡SUBIÓ POR LAS ESCALERAS a tu piso!"); } } }
@@ -1161,12 +1172,12 @@ function update(dt){
           if(ceilAtk.t<=0){ ceilAtk.phase=0; atkRing.material.opacity=0; spider.grp.rotation.x=0;
             snd(60,"sawtooth",0.5,0.16); vib([0,60,40,80]);
             if(Math.hypot(P.x-ceilAtk.x,P.z-ceilAtk.z)<1.9 && hurtCd<=0 && !gameOver && !inSafe(P.x,P.z,curFloor)){
-              hp--; hurtCd=1.5; updHP(); vib(160); snd(1500,"square",0.14,0.1); doCrack();
+              hp--; sDiary.bites++; hurtCd=1.5; updHP(); vib(160); snd(1500,"square",0.14,0.1); doCrack();
               const sf3=$("sflash"); if(sf3){ sf3.style.opacity="0.7"; setTimeout(()=>sf3.style.opacity="0",110); }
               showStory("🕷️ ¡CAYÓ DEL TECHO SOBRE TI!");
               if(hp<=0 && !gameOver) endGame(false,"🕷️ Cayó sobre ti desde el TECHO. Nunca la viste venir."); } } } } }
     // 💥 CONTACTO: pierde 1 corazón (no muere de una), con empujón y destello
-    if(sd<1.4 && ceilAtk.phase===0 && hurtCd<=0 && !gameOver && !inSafe(P.x,P.z,curFloor)){ hp--; hurtCd=1.5; updHP(); vib(160); snd(90,"sawtooth",0.4,0.14); snd(1500,"square",0.14,0.1);
+    if(sd<1.4 && ceilAtk.phase===0 && hurtCd<=0 && !gameOver && !inSafe(P.x,P.z,curFloor)){ hp--; sDiary.bites++; hurtCd=1.5; updHP(); vib(160); snd(90,"sawtooth",0.4,0.14); snd(1500,"square",0.14,0.1);
       const sf=$("sflash"); if(sf){ sf.style.opacity="0.7"; setTimeout(()=>sf.style.opacity="0",110); } doCrack();
       const kx=Math.max(-HH+1,Math.min(HH-1,P.x+sx/(sd||1)*2.6)), kz=Math.max(-HH+1,Math.min(HH-1,P.z+sz/(sd||1)*2.6));
       if(!collide(kx,P.z,curFloor)) P.x=kx; if(!collide(P.x,kz,curFloor)) P.z=kz;
@@ -1186,7 +1197,7 @@ function update(dt){
     b.grp.position.y=b.f*FLOOR_H; b.grp.rotation.y=Math.atan2(bx,bz);
     b.legs.forEach((lg,i)=>{ lg.rotation.x=Math.sin(now*14+i*1.7)*0.45; });
     if(bd<6 && Math.random()<dt*0.6) snd(220+Math.random()*120,"sawtooth",0.06,0.025);   // patitas
-    if(bd<0.9 && hurtCd<=0 && !gameOver && !inSafe(P.x,P.z,curFloor)){ hp--; hurtCd=1.5; updHP(); vib(120); snd(120,"sawtooth",0.3,0.12); doCrack();
+    if(bd<0.9 && hurtCd<=0 && !gameOver && !inSafe(P.x,P.z,curFloor)){ hp--; sDiary.bites++; hurtCd=1.5; updHP(); vib(120); snd(120,"sawtooth",0.3,0.12); doCrack();
       if(hp<=0) endGame(false,"🕷️ Las CRÍAS de la araña te devoraron."); else showStory("💔 ¡Una CRÍA te mordió!"); } }
 
   // 🌫️ la niebla baja deriva lento
