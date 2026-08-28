@@ -708,6 +708,8 @@ let nStatDist=0, nLastX=null, nLastZ=0, nStatShields=0, nStatBoss=0;
 let rapidT=0; const rapidDrops=[];
 // 🚨 evento HORDA
 let hordeT=90+Math.random()*70, hordeOn=0;
+// 🌫️ niebla del amanecer
+let dawnFog=0;
 // 🗣️ voz de narrador (grave, para el final del caso)
 function narrate(txt){ try{ if(!window.speechSynthesis) return; const u=new SpeechSynthesisUtterance(txt); u.lang="es-ES"; u.pitch=0.5; u.rate=0.9; u.volume=0.85; speechSynthesis.cancel(); speechSynthesis.speak(u); }catch(e){} }
 function endGame(win,customInfo){
@@ -814,7 +816,7 @@ function update(dt){
     ambient.intensity=0.3+dayF*0.75;
     moon.intensity=0.5+dayF*0.9; moon.color.copy(moonNight).lerp(moonDay,dayF);
     flash.intensity=5-dayF*3.6;
-    scene.fog.density=0.05-dayF*0.038;
+    scene.fog.density=0.05-dayF*0.038+dawnFog;   // 🌫️ + niebla del amanecer si toca
     scene.background.copy(bgNight).lerp(bgDay,dayF);
     moonMesh.material.opacity=(1-dayF)*0.95; moonHalo.material.opacity=(1-dayF)*0.18;   // 🌕 la luna se ve de noche
     // 🌃 de noche: sirena lejana o aullido de perro cada tanto
@@ -853,6 +855,9 @@ function update(dt){
       if(bloodMoon){ narrate("Luna de sangre, agente. Los zombies enloquecen esta noche."); howlSnd();
         const c2=document.getElementById("combo"); if(c2){ c2.textContent="🔴 LUNA DE SANGRE"; c2.style.opacity="1"; c2.style.transform="translate(-50%,-50%) scale(1.2)"; comboPop=3; } } }
     if(dayF>0.5 && bloodMoon) bloodMoon=false;
+    // 🌫️ NIEBLA DEL AMANECER: al salir el sol la ciudad queda cubierta y se despeja sola en ~30s
+    if(lastDayF<0.5 && dayF>=0.5){ dawnFog=0.032; showStory("🌫️ La niebla del amanecer cubre la ciudad..."); }
+    if(dawnFog>0) dawnFog=Math.max(0,dawnFog-dt*0.001);
     moonMesh.material.color.setHex(bloodMoon?0xff5040:0xe8ecff); moonHalo.material.color.setHex(bloodMoon?0xff2a1a:0x9fb0ff);
     if(bloodMoon) moonHalo.material.opacity=(1-dayF)*0.3;
     lastDayF=dayF;
