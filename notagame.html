@@ -48,6 +48,8 @@
   #touch{position:fixed;inset:0;z-index:4;display:none;pointer-events:none}   /* la capa NO bloquea el mouse */
   #touch.on{display:block}
   #stick,#fire{pointer-events:auto}   /* solo el joystick y FUEGO reciben toques */
+  #clues{transition:color .3s,text-shadow .3s}
+  #clues.flash{color:#ffd12e;text-shadow:0 0 10px #ffd12e}
   /* 📸 modo foto (F2): oculta todo el HUD para capturas limpias */
   body.photo #hud,body.photo #touch,body.photo #fire,body.photo #nmapBtn,body.photo #npauseBtn,body.photo #nradar,body.photo #toPad,body.photo #hint,body.photo #cross,body.photo #combo,body.photo #plusone{visibility:hidden!important}
   #stick{position:absolute;left:24px;bottom:26px;width:128px;height:128px;border-radius:50%;border:2px solid rgba(200,200,200,.25);background:rgba(255,255,255,.04)}
@@ -585,6 +587,8 @@ function addDrawer(cx,cz,note){
   drawers.push({mesh:m,cx,cz,closedZ:cz,openZ:cz+0.6,open:false,note});
 }
 // 7 cajones = 7 pistas (colocados en las casas y el centro, sin quedar dentro de edificios)
+// 🗣️ resumen ultracorto de cada pista para que el narrador lo LEA en voz alta
+const CLUE_VOICE=["una jeringa con virus","alguien más estuvo ahí","los vigilaban desde la calle","el laboratorio está en un sótano","la llave del sótano","el paciente cero se creó aquí","el virus crea zombies"];
 const CLUE_NOTES=[
  "💉 PISTA 1: una jeringa con restos de un virus (VZ-13).",
  "🔦 PISTA 2: había alguien más en la Casa 13 esa noche.",
@@ -598,7 +602,16 @@ for(let i=0;i<5;i++){ const s=freeSpot(6,ARENA-4,2.4); addDrawer(s.x,s.z,CLUE_NO
 addDrawer(DRAINX-3,DRAINZ-14,CLUE_NOTES[5]); addDrawer(DRAINX+3,DRAINZ+14,CLUE_NOTES[6]);   // 2 pistas a lo largo del túnel
 function openDrawer(d){
   if(d.open) return; d.open=true; cluesGot++;
-  document.getElementById("clues").textContent=cluesGot; [523,659,784].forEach((fq,k)=>setTimeout(()=>snd(fq,"triangle",0.2,0.08),k*100)); snd(300,"square",0.12,0.06);   // 🎵 acorde de pista
+  { const ce=document.getElementById("clues"); ce.textContent=cluesGot; ce.classList.add("flash"); setTimeout(()=>ce.classList.remove("flash"),2000); }   // ✨ el contador brilla dorado
+  [523,659,784].forEach((fq,k)=>setTimeout(()=>snd(fq,"triangle",0.2,0.08),k*100)); snd(300,"square",0.12,0.06);   // 🎵 acorde de pista
+  // 📜 papel desplegándose (ruido corto filtrado)
+  try{ AC=AC||new (window.AudioContext||window.webkitAudioContext)(); const pn=AC.createBufferSource(), pbuf=AC.createBuffer(1,AC.sampleRate*0.28,AC.sampleRate), pd=pbuf.getChannelData(0);
+    for(let j=0;j<pd.length;j++) pd[j]=(Math.random()*2-1)*(1-j/pd.length)*(0.4+0.6*Math.abs(Math.sin(j*0.01)));
+    const pf=AC.createBiquadFilter(); pf.type="highpass"; pf.frequency.value=1800; const pg=AC.createGain(); pg.gain.value=0.1;
+    pn.buffer=pbuf; pn.connect(pf); pf.connect(pg); pg.connect(AC.destination); pn.start(); }catch(e){}
+  // 🗣️ el narrador LEE la pista (la 7ª no: tiene su propia cinemática); sin cancel() para no cortar otras voces
+  if(cluesGot<7){ try{ if(window.speechSynthesis){ const ci=CLUE_NOTES.indexOf(d.note);
+    const u=new SpeechSynthesisUtterance("Pista "+(ci>=0?ci+1:cluesGot)+": "+(ci>=0?CLUE_VOICE[ci]:"anotada en el expediente")); u.lang="es-ES"; u.pitch=0.6; u.rate=1.0; u.volume=0.8; speechSynthesis.speak(u); } }catch(e){} }
   showStory(d.note + (cluesGot<7 ? "   ·   📜 te faltan "+(7-cluesGot)+" pista"+(7-cluesGot>1?"s":"") : ""));
   if(cluesGot>=7){
     running=false;   // 🐛FIX ronda2: durante la cinemática el juego queda CONGELADO (antes un zombie podía "matarte" en plena victoria y los fundidos chocaban)
