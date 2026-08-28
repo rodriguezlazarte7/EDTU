@@ -443,7 +443,7 @@ for(let i=0;i<5;i++){ const s=freeSpot(6,ARENA-4,2.4); addDrawer(s.x,s.z,CLUE_NO
 addDrawer(DRAINX-3,DRAINZ-14,CLUE_NOTES[5]); addDrawer(DRAINX+3,DRAINZ+14,CLUE_NOTES[6]);   // 2 pistas a lo largo del túnel
 function openDrawer(d){
   if(d.open) return; d.open=true; cluesGot++;
-  document.getElementById("clues").textContent=cluesGot; snd(880,"triangle",0.2,0.08); snd(300,"square",0.12,0.06);
+  document.getElementById("clues").textContent=cluesGot; [523,659,784].forEach((fq,k)=>setTimeout(()=>snd(fq,"triangle",0.2,0.08),k*100)); snd(300,"square",0.12,0.06);   // 🎵 acorde de pista
   showStory(d.note + (cluesGot<7 ? "   ·   📜 te faltan "+(7-cluesGot)+" pista"+(7-cluesGot>1?"s":"") : ""));
   if(cluesGot>=7) endGame(true);   // caso resuelto al reunir las 7 pistas (los zombies son infinitos)
 }
