@@ -521,6 +521,15 @@ for(let i=0;i<24;i++){ const m=new THREE.Mesh(new THREE.PlaneGeometry(0.5,0.7),n
 let hp=3, hpMax=3, hurtCd=0, stam=100, sprintHeld=false, safeTime=0, visorBatt=100, stepT=0, breathT=0.3;
 // 🎵 cajita musical de la zona segura (melodía antigua, dulce y siniestra)
 let mbT=0, mbI=0; const MB_NOTES=[659,622,659,622,659,494,587,523,440,0,262,330,440,494,0,330,415,494,523,0,0];
+// 📞 EL TELÉFONO: un teléfono viejo empieza a SONAR en algún piso; si lo contestas, una voz susurra una PISTA real
+const phone=new THREE.Group();
+{ const base=new THREE.Mesh(new THREE.BoxGeometry(0.5,0.3,0.35),new THREE.MeshStandardMaterial({color:0x191919,roughness:.6})); base.position.y=1.05; phone.add(base);
+  const hs=new THREE.Mesh(new THREE.CylinderGeometry(0.06,0.06,0.42,7),new THREE.MeshStandardMaterial({color:0x0d0d0d,roughness:.5})); hs.rotation.z=Math.PI/2; hs.position.y=1.28; phone.add(hs);
+  const ped=new THREE.Mesh(new THREE.BoxGeometry(0.6,0.95,0.45),new THREE.MeshStandardMaterial({color:0x3a2f28,roughness:.9})); ped.position.y=0.48; phone.add(ped); }
+scene.add(phone);
+let phoneF=0, phoneActive=false, phoneT=35+Math.random()*35, ringT=0;
+function placePhone(){ phoneF=Math.floor(Math.random()*FLOORS); const s=randSpotOnFloor(phoneF); phone.position.set(s.x,phoneF*FLOOR_H,s.z); }
+placePhone();
 // 🧍 EL MANIQUÍ: una figura pálida SIN CARA que solo se mueve cuando NO la miras (nunca ataca... solo se acerca)
 const manq=new THREE.Group(); const manqM=new THREE.MeshStandardMaterial({color:0xd8cfc4,roughness:.9});
 { const mb=new THREE.Mesh(new THREE.CylinderGeometry(0.26,0.3,1.3,10),manqM); mb.position.y=0.95; manq.add(mb);
@@ -657,6 +666,7 @@ function start(){ $("start").classList.add("hide"); $("end").classList.add("hide
   spiderDead=false; valvesGot=0; samplesGot=0; craftT=0; timeLeft=gameTime; won=false; hbT=0; spiderFloor=0;
   statFloors.clear(); statFlares=0; statDist=0; lastPX=null;   // 📊 estadísticas desde cero
   manqF=Math.floor(Math.random()*FLOORS); placeManq(false); manqT=6; manqMoveT=25; manqSting=false;   // 🧍 maniquí nuevo
+  phoneActive=false; phoneT=35+Math.random()*35; placePhone();   // 📞 teléfono nuevo
   hp=hpMax; stam=100; hurtCd=0; safeTime=0; sprintHeld=false; visorBatt=100; updHP(); $("crack").style.opacity="0"; $("fade").style.background="#000"; $("fade").style.opacity="0";
   activeFlares.forEach(f=>{ if(f.parent){ f.parent.remove(f.glow); f.parent.remove(f.light); } }); activeFlares.length=0; flares=3; updFlareHUD(); panicWarned=false; webWarned=false;
   lootCorpses.forEach(lc=>{ lc.looted=false; lc.item.visible=true; });
@@ -754,6 +764,19 @@ function update(dt){
     if(Math.hypot(P.x-v.x,P.z-v.z)<1.9){ v.got=true; v.grp.visible=false; if(v.light){ v.light.visible=false; v.light.userData.fl=-1; } valvesGot++; [392,494,587].forEach((fq,k)=>setTimeout(()=>snd(fq,"triangle",0.18,0.08),k*90)); showStory("🔧 Válvula "+valvesGot+"/4"); updObj(); } }   // 🎵 arpegio metálico
   for(const v of samples){ if(v.got||v.f!==curFloor) continue; v.grp.rotation.y+=dt*1.8; v.grp.position.y=curFloor*FLOOR_H+1+Math.sin(now*3)*0.15;
     if(Math.hypot(P.x-v.x,P.z-v.z)<1.9){ v.got=true; v.grp.visible=false; if(v.light){ v.light.visible=false; v.light.userData.fl=-1; } samplesGot++; [523,659,880].forEach((fq,k)=>setTimeout(()=>snd(fq,"sine",0.2,0.08),k*90)); showStory("🧪 Muestra de antídoto "+samplesGot+"/3"); updObj(); } }   // 🎵 arpegio cristalino
+  // 📞 el teléfono: RIIING metálico en su piso (lejano y débil desde otros); contéstalo a <2m
+  if(!phoneActive){ phoneT-=dt; if(phoneT<=0){ phoneActive=true; placePhone(); ringT=0; } }
+  else { ringT-=dt;
+    if(ringT<=0){ ringT=2.4;
+      if(phoneF===curFloor){ for(let j=0;j<6;j++) setTimeout(()=>snd(1350+(j%2)*250,"square",0.05,0.05),j*70); }
+      else if(Math.random()<0.4) snd(1350,"square",0.06,0.012); }
+    if(phoneF===curFloor && Math.hypot(P.x-phone.position.x,P.z-phone.position.z)<2){
+      phoneActive=false; phoneT=70+Math.random()*60; breath(0.09); whisper(); vib(80);
+      let hintTxt; const mv=valves.find(v=>!v.got), ms=samples.find(v=>!v.got);
+      if(mv) hintTxt="...la válvula... piso "+(mv.f+1)+"...";
+      else if(ms) hintTxt="...el antídoto... piso "+(ms.f+1)+"...";
+      else { const mc=clocks.find(c2=>!c2.got); hintTxt=mc?"...tic tac... piso "+(mc.f+1)+"...":"...ya lo tienes todo... CORRE..."; }
+      setTimeout(()=>showStory("📞 una voz susurra: \""+hintTxt+"\""),400); } }
   // 🧍 el maniquí: congelado si lo miras; se acerca 3m cada vez que apartas la vista (para en 4m — puro susto)
   if(manqF===curFloor){ manq.visible=true;
     const mdx=P.x-manq.position.x, mdz=P.z-manq.position.z, md=Math.hypot(mdx,mdz);
