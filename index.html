@@ -5639,6 +5639,7 @@ const F1={
     this._lastKm=0;   // 🏁 arcos de km
     this._wRain=0; this._wRainOn=false; this._wRainT=30+Math.random()*40;   // 🌧️ clima
     this._recPassed=false;   // 🏆 marcador de récord en la pista
+    this._nearN=0; this._nearT=0;   // 😅 casi-choques
     $("f1Overlay").style.display="none";
     this.engineOn();
     if(!this.raf){ const f=t=>{ if(!this.running){ this.raf=null; return; } try{ this.tick(t); }catch(e){} this.raf=requestAnimationFrame(f); }; this.raf=requestAnimationFrame(f); }
@@ -5748,6 +5749,13 @@ const F1={
     }
     for(let i=this.cars.length-1;i>=0;i--){
       const c=this.cars[i]; c.z+=c.v*dt;
+      // 😅 CASI-CHOQUE: lo pasaste rozando — whoosh + cartel + cuenta
+      if(!c.passed && c.z<this.dist+1){ c.passed=true; const gap=Math.abs(c.x-this.x);
+        if(Math.abs(c.z-this.dist)<6 && gap>=0.36 && gap<0.56){ this._nearN++; this._nearT=0.9;
+          try{ const a=this.actx(); if(a){ const n=a.createBufferSource(), buf=a.createBuffer(1,a.sampleRate*0.18,a.sampleRate), d2=buf.getChannelData(0);
+            for(let j=0;j<d2.length;j++) d2[j]=(Math.random()*2-1)*(1-j/d2.length);
+            const fl2=a.createBiquadFilter(); fl2.type="bandpass"; fl2.frequency.value=1400; const g2=a.createGain(); g2.gain.value=.14;
+            n.buffer=buf; n.connect(fl2); fl2.connect(g2); g2.connect(a.destination); n.start(); } }catch(e){} } }
       if(c.z<this.dist-12){ this.cars.splice(i,1); this.overt++; continue; }
       if(c.z>this.dist+600){ this.cars.splice(i,1); continue; }
       if(Math.abs(c.z-this.dist)<4.4 && Math.abs(c.x-this.x)<0.36) return this.crash();
@@ -5766,7 +5774,7 @@ const F1={
       try{ if(window.speechSynthesis){ const u=new SpeechSynthesisUtterance("¡Nuevo récord! ¡"+m+" metros! ¡Increíble carrera!"); u.lang="es-ES"; u.pitch=1.35; u.rate=1.15; u.volume=0.95; speechSynthesis.cancel(); setTimeout(()=>{ try{ speechSynthesis.speak(u); }catch(e){} },500); } }catch(e){} }
     $("f1Overlay").style.display="flex";
     $("f1Msg").textContent="💥 ¡CHOCASTE!";
-    $("f1Result").innerHTML=(rec?"🏆 ¡NUEVO RÉCORD!<br>":"")+"Distancia: <b>"+m+"</b> m · Adelantados: <b>"+this.overt+"</b> · ⚡ Vel. máx: <b>"+Math.round(this.maxSpd||0)+"</b> km/h · Récord: <b>"+Math.round(this.best)+"</b> m";
+    $("f1Result").innerHTML=(rec?"🏆 ¡NUEVO RÉCORD!<br>":"")+"Distancia: <b>"+m+"</b> m · Adelantados: <b>"+this.overt+"</b> · 😅 Casi-choques: <b>"+(this._nearN||0)+"</b> · ⚡ Vel. máx: <b>"+Math.round(this.maxSpd||0)+"</b> km/h · Récord: <b>"+Math.round(this.best)+"</b> m";
     $("f1Start").textContent="▶ CORRER OTRA VEZ";
     if(this.raf){ cancelAnimationFrame(this.raf); this.raf=null; }
   },
@@ -5903,6 +5911,9 @@ const F1={
       for(let i=0;i<10;i++){ const ang=Math.random()*6.283; const cx2=W/2, cy2=H*0.42;
         const r1=Math.max(W,H)*0.34+Math.random()*60, r2=r1+50+Math.random()*110*spF;
         c.beginPath(); c.moveTo(cx2+Math.cos(ang)*r1, cy2+Math.sin(ang)*r1); c.lineTo(cx2+Math.cos(ang)*r2, cy2+Math.sin(ang)*r2); c.stroke(); } }
+    // 😅 cartel de casi-choque
+    if(this._nearT>0){ this._nearT-=0.016; c.fillStyle="rgba(255,209,46,"+Math.min(1,this._nearT*1.6).toFixed(2)+")";
+      c.font="900 "+Math.min(34,W*0.055)+"px system-ui,sans-serif"; c.textAlign="center"; c.fillText("😅 ¡CERCA!",W/2,H*0.55); }
     // 🌙 de NOCHE todo se oscurece y tus FAROS iluminan la pista adelante
     if(nightF>0.05){ c.fillStyle="rgba(4,8,20,"+(nightF*0.38).toFixed(3)+")"; c.fillRect(-8,hor,W+16,H-hor+8);
       const hg=c.createRadialGradient(W/2,H*0.62,20,W/2,H*0.62,W*0.45);
