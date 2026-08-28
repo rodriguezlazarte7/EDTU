@@ -93,6 +93,7 @@
   <div class="logo">NOT&nbsp;A&nbsp;<b>GAME</b></div>
   <div class="sub">EXPEDIENTE · CASA 13</div>
   <div id="nagMedals" style="font:800 13px Consolas,monospace;color:#ffd15a;margin:4px 0"></div>
+  <div id="ndiary" style="font:12px Consolas,monospace;color:#c9d8e8;margin:2px 0"></div>
   <div class="case">
     Todo estaba tranquilo, una noche común. Hacía un poco de frío.<br>
     Pero en la <b>CASA 13</b> se oyó un <b>grito</b>. 🩸<br><br>
@@ -325,7 +326,7 @@ let catT=20+Math.random()*30, catRun=0, catDx=0, catDz=0;
 let catAlly=0, catScare=0;   // 🐈‍⬛ aliado: si lo acaricias (E) te sigue 60s y su aura espanta zombies
 function petCat(){ if(level!=="surface"||!cat.visible||catAlly>0||!running||nPaused) return;
   if(Math.hypot(P.x-cat.position.x,P.z-cat.position.z)>2.5) return;
-  catAlly=60; catRun=0;
+  catAlly=60; catRun=0; nDiary.cat++;
   snd(880,"sine",0.16,0.07); setTimeout(()=>snd(1040,"sine",0.2,0.06),150);   // miau feliz
   try{ if(navigator.vibrate) navigator.vibrate([0,30,30,60]); }catch(e){}
   showStory("🐈‍⬛ ¡El gato negro te ADOPTÓ 60s! Su aura espanta a los zombies cercanos"); }
@@ -453,7 +454,7 @@ function drVZTick(dt){ if(!drVZ||level!=="surface"||gameOver) return;
   const dx=drVZ.grp.position.x-P.x, dz=drVZ.grp.position.z-P.z, d=Math.hypot(dx,dz);
   if(d<1.9){   // 🎉 ¡lo alcanzaste!
     scene.remove(drVZ.grp); drVZ=null; drVZDone=true;
-    shield=true; updShieldHUD(); rapidT=12;
+    nDiary.drvz=true; shield=true; updShieldHUD(); rapidT=12;
     [523,659,784,1047].forEach((f2,j)=>setTimeout(()=>snd(f2,"triangle",0.2,0.08),j*110));
     try{ if(navigator.vibrate) navigator.vibrate([0,60,40,60,40,160]); }catch(e){}
     narrate("El doctor escapó de tus manos... pero dejó caer su maletín.");
@@ -560,7 +561,7 @@ function loadGraves(){ try{ const gr=JSON.parse(localStorage.getItem("nag_graves
   graves.forEach((gv,i)=>{ const d2=gr[i]; gv.txt=d2?("🪦 Aquí cayó el agente: "+d2.k+" kills, "+d2.c+" pistas ("+d2.d+")"):"🪦 ...lápida reservada..."; gv.cd=0; }); }catch(e){} }
 function gravesTick(dt){ if(level!=="surface") return;
   graves.forEach(gv=>{ if(gv.cd>0){ gv.cd-=dt; return; }
-    if(Math.hypot(P.x-gv.x,P.z-gv.z)<3){ gv.cd=20; showStory(gv.txt); snd(90,"sine",0.4,0.05); } }); }
+    if(Math.hypot(P.x-gv.x,P.z-gv.z)<3){ gv.cd=20; nDiary.graves++; showStory(gv.txt); snd(90,"sine",0.4,0.05); } }); }
 function turretTick(dt){ if(level!=="surface"||gameOver) return;
   const turOn=cluesGot>=5;
   turret.userData.lamp.material.color.setHex(turOn?0x39ff5a:0xff3030);
@@ -912,7 +913,7 @@ function collide(nx,nz){ const pr=0.35; for(const w of walls){ if(nx>w.x0-pr&&nx
 
 function startGame(){
   P.x=0;P.z=ARENA-5;P.y=1.7;P.vy=0;P.onGround=true;P.hp=100; yaw=0;pitch=0;
-  cluesGot=0; gameOver=false; muzzle=0; shootCd=0; radioT=45; radioClueN=0;   // 📻 radio desde cero
+  cluesGot=0; gameOver=false; muzzle=0; shootCd=0; radioT=45; radioClueN=0; nDiaryReset();   // 📻 radio y 📁 expediente desde cero
   startT=performance.now()/1000;   // reinicia el ciclo día/noche (empieza de noche)
   zombies.forEach(z=>scene.remove(z.grp)); zombies.length=0; spawnZombies(12); kills=0; heliMode=false;
   comboN=0; comboT=0; comboPop=0; maxCombo=0; document.getElementById("combo").style.opacity="0";
@@ -956,7 +957,7 @@ function killMedals(){ let s=""; KILL_TH.forEach(t2=>{ let got=false; try{ got=l
 // ⏱ récord SPEEDRUN: caso resuelto más rápido
 function loadNCase(){ try{ const v=localStorage.getItem("nag_best_case"); return v==null?null:parseInt(v,10); }catch(e){ return null; } }
 function fmtCase(s){ return Math.floor(s/60)+":"+String(s%60).padStart(2,"0"); }
-function updNagMedals(){ const el=document.getElementById("nagMedals"); if(el){ const bc=loadNCase();
+function updNagMedals(){ updNDiary(); const el=document.getElementById("nagMedals"); if(el){ const bc=loadNCase();
   let bn=0; try{ bn=parseInt(localStorage.getItem("nag_best_nights")||"0",10)||0; }catch(e){}
   const nw=loadNWeek();
   el.textContent="🎖️ Hitos de una partida: "+killMedals()+(bc!=null?"  ·  ⏱ Caso más rápido: "+fmtCase(bc):"")+(bn>0?"  ·  🌙 Récord: "+bn+" noche"+(bn>1?"s":""):"")+(nw>0?"  ·  📅 esta semana: "+nw+" kills":""); } }
@@ -988,6 +989,15 @@ function setNRainSnd(on){ try{ AC=AC||new (window.AudioContext||window.webkitAud
   else if(!on&&nRainNoise){ try{ nRainNoise.g.gain.exponentialRampToValueAtTime(0.0001,AC.currentTime+1.2); nRainNoise.src.stop(AC.currentTime+1.3); }catch(e){} nRainNoise=null; } }catch(e){} }
 // 🚨 MODO SIRENA: a los 60 kills, 30s de niebla roja — zombies al DOBLE pero cada kill vale DOBLE
 let sirenOn=0, sirenDone=false;
+// 📁 EXPEDIENTE DEL CASO: hitos de la partida (gato, Dr. VZ, helicóptero, túnel, lápidas, sirena) + últimos 3 casos en nag_diary + "Último caso" en la portada
+const nDiary={cat:0,drvz:false,heli:0,tunnel:0,graves:0,siren:false};
+function nDiaryReset(){ nDiary.cat=0; nDiary.drvz=false; nDiary.heli=0; nDiary.tunnel=0; nDiary.graves=0; nDiary.siren=false; }
+function nDiaryLine(e){ const p=["🧟 "+e.kills+" kills","📜 "+e.clues+"/7","🌙 "+e.nights+(e.nights===1?" noche":" noches")]; if(e.boss) p.push("👹 "+e.boss); if(e.cat) p.push("🐱 gato"); if(e.drvz) p.push("🧪 Dr. VZ"); if(e.heli) p.push("🚁 ×"+e.heli); if(e.tunnel) p.push("🕳️ túnel"); if(e.graves) p.push("🪦 "+e.graves); if(e.siren) p.push("🚨 sirena"); return p.join(" · "); }
+function nDiaryEnd(win,nights,survS){ const e=Object.assign({},nDiary); e.win=!!win; e.kills=kills; e.clues=cluesGot; e.nights=nights; e.boss=nStatBoss; e.t=survS; const d=new Date(); e.date=d.getDate()+"/"+(d.getMonth()+1);
+  try{ const arr=JSON.parse(localStorage.getItem("nag_diary")||"[]"); arr.unshift(e); localStorage.setItem("nag_diary",JSON.stringify(arr.slice(0,3))); }catch(err){}
+  return "<div style='margin-top:6px;font-size:13px;color:#c9d8e8;line-height:1.8'>📁 <b>EXPEDIENTE DEL CASO</b><br>"+nDiaryLine(e)+"</div>"; }
+function updNDiary(){ const el=document.getElementById("ndiary"); if(!el) return; try{ const arr=JSON.parse(localStorage.getItem("nag_diary")||"[]"); if(!arr.length){ el.textContent=""; return; }
+  const e=arr[0]; el.textContent="📁 Último caso ("+e.date+"): ⏱ "+Math.floor(e.t/60)+":"+String(e.t%60).padStart(2,"0")+" · "+nDiaryLine(e)+(e.win?" · ✓ resuelto":""); }catch(err){ el.textContent=""; } }
 // ⏸ pausa con P
 let nPaused=false;
 let nTutOn=false, nTutStep=0, nTutT=0;   // 🎓 mini-tutorial de primera vez
@@ -1032,7 +1042,7 @@ function endGame(win,customInfo){
   try{ if(kills>loadNWeek()) localStorage.setItem("nag_week_"+weekKey(),String(kills)); }catch(e){}   // 📅 mejor de la semana
   let bestN=0; try{ bestN=parseInt(localStorage.getItem("nag_best_nights")||"0",10)||0; if(nightsSurv>bestN){ bestN=nightsSurv; localStorage.setItem("nag_best_nights",String(nightsSurv)); } }catch(e){}
   const recTxt="<br>🧟 Eliminados: <b>"+kills+"</b>"+(isRec?" 🏆 ¡RÉCORD!":" · Récord: <b>"+prevK+"</b>")+(maxCombo>=2?"<br>🔥 Mejor racha: <b>x"+maxCombo+"</b> · Récord: <b>x"+loadNCombo()+"</b>":"")+"<br>🌙 Noches sobrevividas: <b>"+nightsSurv+"</b> · Récord: <b>"+bestN+"</b>"
-    +"<div style='margin-top:8px;font-size:13px;color:#9fb6c9;line-height:1.9'>📊 <b>ESTADÍSTICAS</b><br>⏱ Jugaste "+svm+":"+String(svs).padStart(2,"0")+" · 🚶 "+Math.round(nStatDist)+" m recorridos<br>🛡️ Escudos recogidos: "+nStatShields+" · 👹 Gigantes derribados: "+nStatBoss+"<br>🎖️ "+killMedals()+"</div>";
+    +"<div style='margin-top:8px;font-size:13px;color:#9fb6c9;line-height:1.9'>📊 <b>ESTADÍSTICAS</b><br>⏱ Jugaste "+svm+":"+String(svs).padStart(2,"0")+" · 🚶 "+Math.round(nStatDist)+" m recorridos<br>🛡️ Escudos recogidos: "+nStatShields+" · 👹 Gigantes derribados: "+nStatBoss+"<br>🎖️ "+killMedals()+"</div>"+nDiaryEnd(win,nightsSurv,survS);
   if(win){ t.textContent="✓ CASO RESUELTO"; t.className="big win";
     // ⏱ speedrun: ¿resolviste el caso más rápido que nunca?
     let caseTxt=""; { const pc=loadNCase(); const isCR=(pc==null||survS<pc);
@@ -1071,7 +1081,7 @@ function endGame(win,customInfo){
 // transición entre superficie y drenaje (con fundido)
 function safeSpot(x,z){ if(!collide(x,z)) return {x,z}; for(let r=0.8;r<=12;r+=0.6){ for(let a=0;a<6.28;a+=0.5){ const nx=x+Math.cos(a)*r, nz=z+Math.sin(a)*r; if(!collide(nx,nz)) return {x:nx,z:nz}; } } return {x,z}; }
 function fadeDo(fn){ const f=document.getElementById("fade"); if(f){ f.style.opacity="1"; setTimeout(()=>{ fn(); f.style.opacity="0"; },220); } else fn(); }
-function goDrain(){ if(level!=="surface")return; level="drain"; fadeDo(()=>{ const sp=safeSpot(DRAIN_ENTRY.x,DRAIN_ENTRY.z); P.x=sp.x; P.z=sp.z; P.y=1.7; P.vy=0; yaw=Math.PI; showStory("🕳️ DRENAJE — recorre el túnel: 2 pistas y la escalera verde al fondo"); }); }
+function goDrain(){ if(level!=="surface")return; level="drain"; nDiary.tunnel++; fadeDo(()=>{ const sp=safeSpot(DRAIN_ENTRY.x,DRAIN_ENTRY.z); P.x=sp.x; P.z=sp.z; P.y=1.7; P.vy=0; yaw=Math.PI; showStory("🕳️ DRENAJE — recorre el túnel: 2 pistas y la escalera verde al fondo"); }); }
 function goSurface(){ if(level!=="drain")return; level="surface"; fadeDo(()=>{ const sp=safeSpot(0,ARENA-6); P.x=sp.x; P.z=sp.z; P.y=1.7; P.vy=0; yaw=0; showStory("De vuelta en la superficie."); }); }
 
 function update(dt){
@@ -1090,7 +1100,7 @@ function update(dt){
       if(nTutStep<TUT.length){ showStory(TUT[nTutStep]); snd(980,"triangle",0.15,0.06); nTutStep++; nTutT=10; }
       else { nTutOn=false; try{ localStorage.setItem("nag_tut1","1"); }catch(e){} } } }
   // 🚨 MODO SIRENA: se dispara UNA vez al llegar a 60 kills
-  if(!sirenDone && kills>=60 && running && !gameOver){ sirenDone=true; sirenOn=30;
+  if(!sirenDone && kills>=60 && running && !gameOver){ sirenDone=true; nDiary.siren=true; sirenOn=30;
     sirenSnd(); setTimeout(()=>{ try{ if(running&&sirenOn>0) sirenSnd(); }catch(e){} },1700);
     narrate("Alerta máxima. Niebla roja detectada.");
     showStory("🚨 ¡SIRENA! NIEBLA ROJA 30s: zombies al DOBLE de rápido... ¡pero cada kill vale DOBLE!"); }
@@ -1137,7 +1147,7 @@ function update(dt){
   if(boardCd>0) boardCd-=dt;
   if(level==="surface" && heliRotor!=null && boardCd<=0){
     if(!boarded && foot<1.2 && Math.hypot(P.x-heliPad.x,P.z-heliPad.z)<2.0){   // pisas el anillo azul del suelo -> SUBES
-      P.x=heliSpot.x; P.z=heliSpot.z+1.6; P.y=heliSpot.y+1.7; P.vy=0; boarded=true; boardCd=0.8;
+      P.x=heliSpot.x; P.z=heliSpot.z+1.6; P.y=heliSpot.y+1.7; P.vy=0; boarded=true; boardCd=0.8; nDiary.heli++;
       showStory("🚁 ¡Abordaste el helicóptero! Dispara a los zombies de abajo.");
     } else if(boarded && foot>heliSpot.y-1 && Math.hypot(P.x-heliDown.x,P.z-heliDown.z)<1.8){   // pisas el anillo verde de arriba -> BAJAS
       const sp=safeSpot(heliPad.x,heliPad.z+3.5); P.x=sp.x; P.z=sp.z; P.y=1.7; P.vy=0; boarded=false; boardCd=0.8;
