@@ -374,6 +374,18 @@ const skel=new THREE.Group(); skel.position.set(-85,0,55); skel.rotation.y=0.8; 
     tb.rotation.x=Math.PI/2; tb.position.set(Math.sin(i*0.5)*0.9,0.2,9+i*1.2); skel.add(tb); }
 })();
 let skelSeen=false;
+// 🤖 EASTER EGG: WALLY, el robot de David, estacionado en un claro de la isla (balizas incluidas)
+const wally=new THREE.Group(); wally.position.set(96,0,18); wally.rotation.y=-0.6; scene.add(wally);
+let wallySeen=false, wBalR=null, wBalB=null;
+(function makeWally(){ const bodyM2=new THREE.MeshStandardMaterial({color:0x3468d0,metalness:.5,roughness:.4});
+  const b2=new THREE.Mesh(new THREE.BoxGeometry(0.9,0.7,1.2),bodyM2); b2.position.y=0.65; wally.add(b2);
+  const hd2=new THREE.Mesh(new THREE.BoxGeometry(0.55,0.45,0.5),bodyM2); hd2.position.set(0,1.25,0.25); wally.add(hd2);
+  for(const ex of [-0.14,0.14]){ const eye=new THREE.Mesh(new THREE.SphereGeometry(0.07,7,6),new THREE.MeshBasicMaterial({color:0x39ff5a})); eye.position.set(ex,1.3,0.52); wally.add(eye); }
+  const whM=new THREE.MeshStandardMaterial({color:0x14141a,roughness:.9});
+  for(const [wx2,wz2] of [[-0.5,-0.4],[0.5,-0.4],[-0.5,0.4],[0.5,0.4]]){ const wh2=new THREE.Mesh(new THREE.CylinderGeometry(0.24,0.24,0.16,10),whM); wh2.rotation.z=Math.PI/2; wh2.position.set(wx2,0.24,wz2); wally.add(wh2); }
+  wBalR=new THREE.Mesh(new THREE.SphereGeometry(0.09,7,6),new THREE.MeshBasicMaterial({color:0xff2020})); wBalR.position.set(-0.18,1.1,-0.35); wally.add(wBalR);
+  wBalB=new THREE.Mesh(new THREE.SphereGeometry(0.09,7,6),new THREE.MeshBasicMaterial({color:0x2060ff})); wBalB.position.set(0.18,1.1,-0.35); wally.add(wBalB);
+})();
 // 🐬 DELFINES: saltan en arco por el mar alrededor de la isla
 const dolphins=[];
 for(let i=0;i<3;i++){ const m=new THREE.Mesh(new THREE.SphereGeometry(0.5,10,8),new THREE.MeshStandardMaterial({color:0x7d8ea0,roughness:.4}));
@@ -687,6 +699,11 @@ function update(dt){
     for(const vb of vbombs){ if(!vb.on) continue; vb.vy-=22*dt; vb.m.position.x+=vb.vx*dt; vb.m.position.y+=vb.vy*dt; vb.m.position.z+=vb.vz*dt;
       if(vb.m.position.y<2){ const va=Math.random()*6.28; vb.m.position.set(0,48,0); vb.vx=Math.cos(va)*(4+Math.random()*7); vb.vz=Math.sin(va)*(4+Math.random()*7); vb.vy=16+Math.random()*12; } }
     if(erupT<=0){ vbombs.forEach(vb=>{ vb.on=false; vb.m.visible=false; }); crater.material.opacity=0.55; } }
+  // 🤖 WALLY: balizas alternando rojo/azul; al descubrirlo hace beep-boop y saluda
+  if(wBalR){ const wp2=Math.sin(elapsed*7); wBalR.material.color.setHex(wp2>0?0xff4040:0x551010); wBalB.material.color.setHex(wp2<0?0x4080ff:0x102055); }
+  if(!wallySeen && Math.hypot(P.x-wally.position.x,P.z-wally.position.z)<5){ wallySeen=true;
+    [880,1175,880,1568].forEach((fq,k)=>setTimeout(()=>snd(fq,"square",0.09,0.06),k*120));
+    toast2("🤖 ¡WALLY estuvo aquí! (beep-boop)"); }
   // 🦴 descubrir el esqueleto (una vez por partida): campanitas + cartel
   if(!skelSeen && Math.hypot(P.x-skel.position.x,P.z-skel.position.z)<10){ skelSeen=true;
     [330,262,196].forEach((fq,k)=>setTimeout(()=>snd(fq,"triangle",0.35,0.07),k*160));
