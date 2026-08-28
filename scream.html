@@ -213,6 +213,10 @@ function corpse(x,z,by){ const g=new THREE.Group(); g.position.set(x,by,z); g.ro
   const h=new THREE.Mesh(new THREE.SphereGeometry(0.32,10,8),skinMat); h.position.set(0.15,0.26,1.05); h.rotation.z=0.5; g.add(h);
   for(const s of [-1,1]){ const a=new THREE.Mesh(new THREE.BoxGeometry(0.17,0.17,0.95),skinMat); a.position.set(s*0.5,0.18,0.35); a.rotation.y=s*(0.5+Math.random()*0.5); g.add(a); }
   for(const s of [-1,1]){ const l=new THREE.Mesh(new THREE.BoxGeometry(0.22,0.22,1.05),clothMat); l.position.set(s*0.22,0.18,-1.0); l.rotation.y=s*(0.15+Math.random()*0.4); g.add(l); }
+  // 🧨 algunos cadáveres llevan una BENGALA encima (brilla naranja; regístralo para tomarla)
+  if(Math.random()<0.35){ const fl2=Math.round(by/FLOOR_H);
+    const it=new THREE.Mesh(new THREE.CylinderGeometry(0.07,0.07,0.5,7),new THREE.MeshStandardMaterial({color:0xff7a1e,emissive:0x7a2a00,emissiveIntensity:.9})); it.rotation.z=1.2; it.position.set(0,0.5,0.2); g.add(it);
+    lootCorpses.push({x,z,f:fl2,item:it,looted:false}); }
 }
 
 // ---------- luces ----------
@@ -255,6 +259,7 @@ const valves=[], samples=[], notes=[]; let valvesGot=0, samplesGot=0, notesGot=0
 const safeZone={x:-HH+16,z:HH-16,r:9,f:0}; const MACHINE={x:-HH+16,z:HH-16};
 const flick=[];                                    // luces que parpadean
 const webTraps=[];                                 // telarañas del piso que frenan
+const lootCorpses=[];                              // cadáveres con bengala para registrar
 const floorLights=[];                              // luces que SOLO se encienden en su piso
 function flight(l,fl){ l.userData.fl=fl; CURP.add(l); floorLights.push(l); return l; }
 
@@ -534,6 +539,7 @@ function start(){ $("start").classList.add("hide"); $("end").classList.add("hide
   spiderDead=false; valvesGot=0; samplesGot=0; craftT=0; timeLeft=gameTime; won=false; hbT=0; spiderFloor=0;
   hp=hpMax; stam=100; hurtCd=0; safeTime=0; sprintHeld=false; visorBatt=100; updHP(); $("crack").style.opacity="0"; $("fade").style.background="#000"; $("fade").style.opacity="0";
   activeFlares.forEach(f=>{ if(f.parent){ f.parent.remove(f.glow); f.parent.remove(f.light); } }); activeFlares.length=0; flares=3; updFlareHUD(); panicWarned=false;
+  lootCorpses.forEach(lc=>{ lc.looted=false; lc.item.visible=true; });
   if(spider) spider.sp=D.sp;
   valves.forEach(v=>{ v.got=false; v.grp.visible=true; if(v.light) v.light.userData.fl=v.f; });
   samples.forEach(v=>{ v.got=false; v.grp.visible=true; if(v.light) v.light.userData.fl=v.f; });
@@ -693,6 +699,9 @@ function update(dt){
     if(bd<0.9 && hurtCd<=0 && !gameOver && !inSafe(P.x,P.z,curFloor)){ hp--; hurtCd=1.5; updHP(); vib(120); snd(120,"sawtooth",0.3,0.12); doCrack();
       if(hp<=0) endGame(false,"🕷️ Las CRÍAS de la araña te devoraron."); else showStory("💔 ¡Una CRÍA te mordió!"); } }
 
+  // 🧨 registrar cadáveres con bengala
+  for(const lc of lootCorpses){ if(lc.looted||lc.f!==curFloor) continue;
+    if(Math.hypot(P.x-lc.x,P.z-lc.z)<1.6){ lc.looted=true; lc.item.visible=false; flares++; updFlareHUD(); snd(640,"triangle",0.18,0.08); showStory("🧨 Registraste el cadáver: +1 bengala"); } }
   // 🐀 ratas: arrancan en carreritas cortas y chillan si pasan cerca
   for(const rt of rats){ if(rt.f!==curFloor) continue; rt.st-=dt;
     if(rt.st<=0){ rt.mv=!rt.mv; rt.st=rt.mv?(0.4+Math.random()*0.7):(0.8+Math.random()*2.2); if(rt.mv) rt.dir=Math.random()*6.28; }
