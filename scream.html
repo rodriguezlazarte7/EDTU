@@ -250,6 +250,7 @@ const NOTE_SPOTS=[
 const valves=[], samples=[], notes=[]; let valvesGot=0, samplesGot=0, notesGot=0, craftT=0, timeLeft=1200, won=false;
 const safeZone={x:-HH+16,z:HH-16,r:9,f:0}; const MACHINE={x:-HH+16,z:HH-16};
 const flick=[];                                    // luces que parpadean
+const webTraps=[];                                 // telarañas del piso que frenan
 const floorLights=[];                              // luces que SOLO se encienden en su piso
 function flight(l,fl){ l.userData.fl=fl; CURP.add(l); floorLights.push(l); return l; }
 
@@ -299,6 +300,10 @@ function buildFloor(fl){
   for(const cx of [-HH+6,HH-6])for(const cz of [-HH+6,HH-6]){ const web=new THREE.Mesh(new THREE.PlaneGeometry(12,12),webMat); web.position.set(cx,by+HHY-1.5,cz); web.lookAt(0,by+2,0); CURP.add(web); }
   // hilos colgantes del techo
   for(let i=0;i<18;i++){ const a=Math.random()*6.28,r=Math.random()*(HH-6),len=2+Math.random()*4; const st=new THREE.Mesh(new THREE.CylinderGeometry(0.02,0.02,len,4),strandMat); st.position.set(Math.cos(a)*r,by+HHY-len/2,Math.sin(a)*r); CURP.add(st); }
+  // 🕸️ TELARAÑAS PEGAJOSAS en el piso (te FRENAN al pasar por encima)
+  for(let i=0;i<6;i++){ let wx,wz,tw=0; do{ const a=Math.random()*6.28,r=8+Math.random()*(HH-14); wx=Math.cos(a)*r; wz=Math.sin(a)*r; tw++; }while((collide(wx,wz,fl)||inSafe(wx,wz,fl)||Math.hypot(wx-STAIRX,wz-STAIRZ)<8)&&tw<20);
+    const wp=new THREE.Mesh(new THREE.PlaneGeometry(5,5),webMat); wp.rotation.x=-Math.PI/2; wp.rotation.z=Math.random()*6.28; wp.position.set(wx,by+0.06,wz); CURP.add(wp);
+    webTraps.push({x:wx,z:wz,f:fl,r:2.5}); }
   // 🩸 MUCHA SANGRE: manchas en el piso, salpicaduras en las paredes, y CADÁVERES
   for(let i=0;i<28;i++){ const a=Math.random()*6.28,r=Math.random()*(HH-6); const bd=new THREE.Mesh(new THREE.PlaneGeometry(2.5+Math.random()*6,2.5+Math.random()*6),bloodMat); bd.rotation.x=-Math.PI/2; bd.rotation.z=Math.random()*6.28; bd.position.set(Math.cos(a)*r,by+0.04+Math.random()*0.02,Math.sin(a)*r); CURP.add(bd); }
   // sangre en las paredes (planos verticales pegados a los muros exteriores)
@@ -543,7 +548,9 @@ function update(dt){
   if(moving && !mapOpen){ stepT-=dt; if(stepT<=0){ stepT=sprinting?0.28:0.46; snd(66+Math.random()*16,"sine",0.09,0.05); snd(150,"triangle",0.05,0.025); } } else stepT=0.12;
   stam = Math.max(0,Math.min(100, stam + (sprinting?-dt*26:dt*17)));   // stamina
   const stI=$("stam").firstElementChild; if(stI) stI.style.width=stam+"%"; $("stam").style.opacity=(stam<99||sprinting)?"1":"0.35";
-  const spdP=(nvOn?4.2:6.4)*(sprinting?1.7:1);
+  let inWeb=false; for(const w of webTraps){ if(w.f===curFloor && Math.hypot(P.x-w.x,P.z-w.z)<w.r){ inWeb=true; break; } }
+  if(inWeb && moving && Math.random()<dt*2.2) snd(180+Math.random()*80,"square",0.06,0.04);   // pegajoso
+  const spdP=(nvOn?4.2:6.4)*(sprinting?1.7:1)*(inWeb?0.38:1);   // 🕸️ la telaraña te FRENA
   let dx=(f*(-sin)+s*cos)*spdP*dt, dz=(f*(-cos)+s*(-sin))*spdP*dt;
   let nx=Math.max(-HH+1,Math.min(HH-1,P.x+dx)), nz=Math.max(-HH+1,Math.min(HH-1,P.z+dz));
   if(!collide(nx,P.z,curFloor)) P.x=nx;
