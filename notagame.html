@@ -538,6 +538,32 @@ function buildHeliTower(cx,cz){
   const bl=new THREE.PointLight(0xff2020,1.4,40); bl.position.set(cx,H+3.2,cz); scene.add(bl);
 }
 buildHeliTower(14,16);
+// 🤖🔫 TORRETA AUTOMÁTICA del helipuerto: se activa con 5+ pistas y dispara sola a zombies a <15m (cadencia 1.5s, no toca al GIGANTE)
+const turret=new THREE.Group();
+{ const tb=new THREE.Mesh(new THREE.CylinderGeometry(0.5,0.6,0.7,10),new THREE.MeshStandardMaterial({color:0x3a4a5c,metalness:.5,roughness:.5})); tb.position.y=0.35; turret.add(tb);
+  const th=new THREE.Mesh(new THREE.BoxGeometry(0.5,0.35,0.5),new THREE.MeshStandardMaterial({color:0x2a3644,metalness:.6,roughness:.4})); th.position.y=0.85; turret.add(th);
+  const barrel=new THREE.Mesh(new THREE.CylinderGeometry(0.06,0.06,1.1,8),new THREE.MeshStandardMaterial({color:0x111820,metalness:.7,roughness:.3})); barrel.rotation.x=Math.PI/2; barrel.position.set(0,0.85,0.6); turret.add(barrel);
+  const lamp=new THREE.Mesh(new THREE.SphereGeometry(0.08,8,6),new THREE.MeshBasicMaterial({color:0xff3030})); lamp.position.y=1.1; turret.add(lamp); turret.userData.lamp=lamp; }
+turret.position.set(heliPad.x+2.5,0,heliPad.z+2.5); scene.add(turret);
+const tTracer=new THREE.Line(new THREE.BufferGeometry().setFromPoints([new THREE.Vector3(),new THREE.Vector3()]),new THREE.LineBasicMaterial({color:0x8fd0ff,transparent:true,opacity:0})); scene.add(tTracer);
+let turCd=0, turWas=false, tTracerT=0;
+function turretTick(dt){ if(level!=="surface"||gameOver) return;
+  const turOn=cluesGot>=5;
+  turret.userData.lamp.material.color.setHex(turOn?0x39ff5a:0xff3030);
+  if(turOn&&!turWas){ narrate("Torreta del helipuerto activada, agente."); showStory("🤖🔫 ¡La TORRETA del helipuerto despertó! cubre la zona"); snd(880,"square",0.15,0.07); }
+  turWas=turOn;
+  if(turOn){ turCd-=dt;
+    if(turCd<=0){ let tg=null,td3=15;
+      zombies.forEach(z=>{ if(z.dead) return; const zd3=Math.hypot(turret.position.x-z.grp.position.x,turret.position.z-z.grp.position.z); if(zd3<td3){ td3=zd3; tg=z; } });
+      if(tg){ turCd=1.5;
+        turret.rotation.y=Math.atan2(tg.grp.position.x-turret.position.x,tg.grp.position.z-turret.position.z);
+        tTracer.geometry.setFromPoints([new THREE.Vector3(turret.position.x,1.2,turret.position.z),new THREE.Vector3(tg.grp.position.x,1.1,tg.grp.position.z)]);
+        tTracer.material.opacity=0.9; tTracerT=0.12;
+        snd(1500,"square",0.06,0.05); snd(180,"square",0.08,0.05);
+        tg.hp-=1;
+        if(tg.hp<=0){ kills+=(sirenOn>0?2:1); document.getElementById("kills").textContent=kills; plusOne(sirenOn>0?"+2 🤖":"+1 🤖","#8fd0ff"); dogCheer(); snd(70,"sawtooth",0.3,0.09); respawnZombie(tg); }
+      } else turCd=0.4; } }
+  if(tTracerT>0){ tTracerT-=dt; if(tTracerT<=0) tTracer.material.opacity=0; } }
 
 // ================= 🏥 HOSPITAL (nivel de la ARAÑA gigante) =================
 // Más grande que TODA la ciudad. Sin luz: tu linterna es el único foco.
@@ -887,6 +913,7 @@ function startGame(){
   nPath.length=0; nPathT=0;   // 🗺️ rastro desde cero
   if(drVZ){ scene.remove(drVZ.grp); drVZ=null; } drVZDone=false; drVZT=0;   // 🧪 doctor desde cero
   fBatt=100; battWarned=false; battPicks.forEach(bp=>{ bp.t=0; bp.m.visible=true; });   // 🔋 batería llena
+  turCd=0; turWas=false; tTracerT=0; tTracer.material.opacity=0;   // 🤖🔫 torreta en reposo
   nPaused=false; const po4=document.getElementById("nPauseOv"); if(po4) po4.style.display="none";   // ⏸ reset pausa
   try{ nTutOn=!localStorage.getItem("nag_tut1"); }catch(e){ nTutOn=false; }  nTutStep=0; nTutT=5;   // 🎓 tutorial solo la primera vez
   bloodMoon=false; lastDayF=0; dawnFog=0;   // 🐛FIX ronda2: la luna de sangre y la niebla se filtraban a la partida nueva
@@ -1189,6 +1216,7 @@ function update(dt){
       if(boss){ const bd2=Math.hypot(dog.position.x-boss.grp.position.x,dog.position.z-boss.grp.position.z); if(bd2<zn)zn=bd2; }
       if(zn<13){ dogBarkCd=3.5; snd(520,"square",0.09,0.09); setTimeout(()=>snd(480,"square",0.11,0.09),170); dog.rotation.y+=0.4; } } }
   if(!nPaused) drVZTick(dt);   // 🧪 el doctor huye
+  if(!nPaused) turretTick(dt); // 🤖🔫 torreta del helipuerto
   // 🐈‍⬛ gato negro: cruza la calle... y si lo acaricias (E) se vuelve tu ALIADO 60s
   if(level==="surface"){
     if(catAlly>0){ catAlly-=dt;
