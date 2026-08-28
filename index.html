@@ -5903,6 +5903,23 @@ const F1={
         c.strokeStyle="#ffd12e"; c.lineWidth=Math.max(1,pb.pers*3); c.strokeRect(bx2-bw3/2,py2-bh3*2.4,bw3,bh3);
         if(pb.pers>0.1){ c.fillStyle="#ffd12e"; c.font="900 "+Math.max(6,Math.round(bh3*0.42))+"px system-ui,sans-serif"; c.textAlign="center";
           c.fillText(ADS[idx%ADS.length],bx2,py2-bh3*1.83); } } }
+    // 🤖 WALLY ESPECTADOR: cada ~1.5 km saluda desde el costado con sus balizas y el brazo arriba
+    { const zW2=Math.floor(this.dist/1500)*1500+1120, relW=zW2-this.dist;
+      if(relW>0&&relW<520){ const pw3=this.proj(zW2);
+        if(pw3.y>hor&&pw3.y<H+20&&pw3.pers>0.06){ const s3=pw3.pers*W*0.09, wx3=pw3.roadX-pw3.rw*1.45, wy3=pw3.y;
+          const blink=Math.sin(performance.now()*0.007)>0;
+          c.fillStyle="#3468d0"; c.fillRect(wx3-s3*0.45,wy3-s3*1.0,s3*0.9,s3*0.62);
+          c.fillRect(wx3-s3*0.28,wy3-s3*1.45,s3*0.56,s3*0.45);
+          c.fillStyle="#39ff5a"; c.fillRect(wx3-s3*0.16,wy3-s3*1.32,s3*0.1,s3*0.1); c.fillRect(wx3+s3*0.06,wy3-s3*1.32,s3*0.1,s3*0.1);
+          c.fillStyle=blink?"#ff4040":"#551010"; c.beginPath(); c.arc(wx3-s3*0.14,wy3-s3*1.52,s3*0.07,0,6.28); c.fill();
+          c.fillStyle=blink?"#102055":"#4080ff"; c.beginPath(); c.arc(wx3+s3*0.14,wy3-s3*1.52,s3*0.07,0,6.28); c.fill();
+          c.fillStyle="#14141a"; c.beginPath(); c.arc(wx3-s3*0.34,wy3-s3*0.32,s3*0.16,0,6.28); c.arc(wx3+s3*0.34,wy3-s3*0.32,s3*0.16,0,6.28); c.fill();
+          const wave=Math.sin(performance.now()*0.012);
+          c.strokeStyle="#3468d0"; c.lineWidth=Math.max(2,s3*0.12); c.beginPath(); c.moveTo(wx3+s3*0.45,wy3-s3*0.85); c.lineTo(wx3+s3*0.75,wy3-s3*(1.15+wave*0.15)); c.stroke(); }
+        if(relW<8 && this._wallyBeeped!==zW2){ this._wallyBeeped=zW2;
+          try{ const a=this.actx(); if(a){ [880,1175].forEach((fq,i2)=>{ const o=a.createOscillator(),g=a.createGain(); o.type="square"; o.frequency.value=fq;
+            o.connect(g); g.connect(a.destination); const st=a.currentTime+i2*0.1; o.start(st); g.gain.setValueAtTime(.07,st);
+            g.gain.exponentialRampToValueAtTime(0.0001,st+0.12); o.stop(st+0.13); }); } }catch(e){} } } }
     // 🏁 ARCO DE META cada 1000 m: pilares rojos + banner cuadriculado con el km
     const nextKm=Math.ceil((this.dist+1)/1000)*1000, relKm=nextKm-this.dist;
     if(relKm<560){ const pk=this.proj(nextKm);
