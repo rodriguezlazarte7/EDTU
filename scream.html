@@ -628,10 +628,21 @@ let legendSaid=false;
 function wallyLegend(){ if(legendSaid||!edtuLegend()) return false; legendSaid=true;
   try{ if(window.speechSynthesis){ const u=new SpeechSynthesisUtterance("¡Veintiuno de veintiuno! ¡Eres leyenda de EDTU, agente!"); u.lang="es-ES"; u.pitch=1.6; u.rate=1.1; u.volume=0.9; speechSynthesis.speak(u); } }catch(e){}
   return true; }
+// 🧠 WALLY RECUERDA tu escape anterior (scream_diary[0]) la primera vez que hablas con él en cada partida
+let sMemSaid=false;
+function wallyMemS(){ if(sMemSaid) return null; sMemSaid=true; try{ const a=JSON.parse(localStorage.getItem("scream_diary")||"[]"); if(!a.length) return null; const e=a[0]; const opts=[];
+  if(e.spot) opts.push("la última vez la araña te apareció "+e.spot+(e.spot>1?" veces":" vez")+"... con la linterna apagada no te encuentra 🔦");
+  if(e.bites===0) opts.push("la última vez saliste sin mordidas, ¡crack! 🛡️"); else opts.push("la última vez te mordió "+e.bites+(e.bites>1?" veces":" vez")+"... los botiquines te esperan ❤️");
+  if(e.gen) opts.push("la última vez usaste el generador: la araña se congela 20 s ⚡");
+  if(e.vit) opts.push("la última vez la vitrola la distrajo... ¡buen truco! 🎶");
+  if(e.asc) opts.push("la última vez usaste el ascensor "+e.asc+(e.asc>1?" veces":" vez")+": recuerda que sus DINGs la atraen 🛗");
+  opts.push("tu último escape: "+e.v+"/4 válvulas y "+e.s+"/3 muestras en "+Math.floor(e.t/60)+":"+String(e.t%60).padStart(2,"0")+(e.win?" ✓ ¡hoy más rápido!":"... hoy lo logras"));
+  return opts[Math.floor(Math.random()*opts.length)]; }catch(err){ return null; } }
 function talkWally(){ if(wallyTalkCd>0||!running||gameOver) return;
   if(wallySF!==curFloor || Math.hypot(P.x-wallyS.position.x,P.z-wallyS.position.z)>3) return;
   wallyTalkCd=5; [880,1175,1320].forEach((fq,k)=>setTimeout(()=>snd(fq,"square",0.07,0.06),k*100));
   if(wallyLegend()){ showStory("🤖 WALLY: «¡21/21! Eres LEYENDA de EDTU, agente 👑»"); vib(80); return; }
+  { const mem=wallyMemS(); if(mem){ showStory("🤖 WALLY: «"+mem+"»"); vib(40); return; } }   // 🧠 recuerda tu escape anterior
   const v=valves.filter(x=>!x.got&&x.f===curFloor).length, s2=samples.filter(x=>!x.got&&x.f===curFloor).length,
         c3=clocks.filter(x=>!x.got&&x.f===curFloor).length, m2=medkits.filter(x=>!x.got&&x.f===curFloor).length;
   const parts=[]; if(v)parts.push(v+" válvula"+(v>1?"s":"")); if(s2)parts.push(s2+" muestra"+(s2>1?"s":"")); if(c3)parts.push(c3+" reloj"+(c3>1?"es":"")); if(m2)parts.push(m2+" botiquín"+(m2>1?"es":""));
@@ -829,7 +840,7 @@ function start(){ $("start").classList.add("hide"); $("end").classList.add("hide
   genF=Math.floor(Math.random()*FLOORS); { const gs=randSpotOnFloor(genF); genM.position.set(gs.x,genF*FLOOR_H,gs.z); }   // ⚡ generador nuevo
   genUsed=false; genOn=0; genCharge=0; genBar(-1); ambient.intensity=0.05; ambient.color.setHex(0x241018);
   if(genM.userData.bulb) genM.userData.bulb.material.color.setHex(0xffd15a);   // 💡 bombilla nueva
-  legendSaid=false;   // 👑 WALLY puede volver a celebrar el 21/21 una vez por partida
+  legendSaid=false; sMemSaid=false;   // 👑 WALLY puede volver a celebrar el 21/21 una vez por partida · 🧠 y recordar tu escape anterior
   vitF=Math.floor(Math.random()*FLOORS); { const vs=randSpotOnFloor(vitF); vit.position.set(vs.x,vitF*FLOOR_H,vs.z); } vitUsed=false; vitOn=0;   // 🎵 vitrola nueva
   ascWait=0; ascDing=0;   // 🛗 ascensor libre
   sPath.length=0; sPathT=0;   // 🗺️ rastro desde cero
