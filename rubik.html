@@ -198,6 +198,7 @@ function aiStep(gen){
   move(ai,m.face,m.dir,Math.min(pace*600,260),()=>{ if(!ended&&gen===aiGen) aiTimer=setTimeout(()=>aiStep(gen), Math.max(40,pace*1000-260)); });
 }
 function playerMove(face,dir){ if(state!=="race"||player.busy) return;
+  try{ if(navigator.vibrate) navigator.vibrate(12); }catch(e){}   // 📳 tick háptico por giro
   const FN=FACE_NOTES[face]||440; snd(dir<0?FN*0.94:FN,"triangle",0.14,0.06); snd(FN/2,"sine",0.08,0.02);   // 🎵 nota de la cara (los ' suenan un pelín más graves)
   moveCount++; document.getElementById("mvs").textContent="🔄 "+moveCount;   // contador de movimientos
   undoStack.push({face,dir});   // ↩ para poder deshacer
@@ -272,6 +273,7 @@ function finish(who){
     showMsg("🎉 ¡GANASTE!\n"+t+"s · 🔄 "+moveCount+" movs · 🏆 victorias: "+loadRW()+(stk>=2?"\n👑 ¡"+stk+" victorias SEGUIDAS!":"")+(isBT?"\n⏱️ ¡MEJOR TIEMPO en "+diff+"!":"\n⏱️ Tu mejor: "+bt.toFixed(1)+"s")+(isBM?"\n🔄 ¡MENOS MOVIMIENTOS QUE NUNCA!":"\n🔄 Récord movs: "+bm),"#39ff14");
     buildDiffs(document.getElementById("diffs")); buildDiffs(document.getElementById("introDiffs"));
     [523,659,784,1047].forEach((f,i)=>setTimeout(()=>snd(f,"triangle",0.25,0.09),i*130));   // 🎺 fanfarria
+    try{ if(navigator.vibrate) navigator.vibrate([0,60,40,60,40,160]); }catch(e){}   // 📳 vibración de victoria
     startConfetti();   // 🎊
     try{ if(window.speechSynthesis){ const u=new SpeechSynthesisUtterance("¡Le ganaste a la inteligencia artificial en "+t+" segundos! ¡Eres un crack del cubo!"); u.lang="es-ES"; u.pitch=1.25; u.rate=1.1; u.volume=0.9; speechSynthesis.cancel(); setTimeout(()=>{ try{ speechSynthesis.speak(u); }catch(e){} },700); } }catch(e){} }   // 🗣️ celebración
   else { const hadStk=loadStreak(); saveStreak(0); try{ localStorage.setItem("rubik_losses",String(loadRL()+1)); }catch(e){}   // 👑 se corta la racha + 📊 derrota anotada
