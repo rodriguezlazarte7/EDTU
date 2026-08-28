@@ -5668,7 +5668,7 @@ const F1={
       mb.style.display=unlocked?"inline-block":"none";
       this._mirror=unlocked&&localStorage.getItem("edtu_f1_mirror")==="1"; this._mir=this._mirror?-1:1;
       mb.textContent="🪞 ESPEJO: "+(this._mirror?"SÍ ✔":"NO"); } }catch(e){}
-    $("f1Result").innerHTML="Vista Need for Speed · ←→ o A/D conducir · 🔥 NITRO: espacio / Y / RT / botón · franjas verdes = DRS<br>⏸ <b>P</b> pausa · ↵ <b>Enter</b> correr otra vez · 📯 <b>H</b> claxon (¡los rivales se apartan!) · ¡Cuidado con las CURVAS ⚠️, el pasto y las 🏍️ motos!<br>🌧️ lluvia · 🌙 día y noche · 🚇 túneles · 🛸 zepelín · 🤖 WALLY cada 1500 m · ⚡ combo de adelantamientos · ⏱️ sectores de 2000 m (🟢 = récord) · 🦅 KÓNDOR te reta a los 1500 m · 🔧 PIT STOP cada 3000 m (pégate a la derecha: 2s lento, sales con nitro lleno y +5%)<br>🏆 Récord: <b>"+Math.round(this.best)+"</b> m<br>🎖️ "+this.medals()+(function(){ try{ return localStorage.getItem("edtu_f1_ghost")?"<br>👻 el FANTASMA de tu récord te espera en la pista... ¡véncelo!":""; }catch(e){ return ""; } })()+(function(){ try{ const w=parseInt(localStorage.getItem("edtu_f1_kondor_w")||"0",10)||0, l=parseInt(localStorage.getItem("edtu_f1_kondor_l")||"0",10)||0; return (w||l)?"<br>⚔️ vs 🦅 KÓNDOR: <b>"+w+"-"+l+"</b>":""; }catch(e){ return ""; } })()+(function(){ try{ const bs=parseFloat(localStorage.getItem("edtu_f1_sector")||"0")||0; return bs>0?" · ⏱️ mejor sector: <b>"+bs.toFixed(1)+"s</b>":""; }catch(e){ return ""; } })()+(function(){ try{ const pw=parseFloat(localStorage.getItem("edtu_f1_week_"+F1.wkKey())||"0")||0; return pw>0?"<br>📅 mejor de esta semana: <b>"+Math.round(pw)+" m</b>":""; }catch(e){ return ""; } })();
+    $("f1Result").innerHTML="Vista Need for Speed · ←→ o A/D conducir · 🔥 NITRO: espacio / Y / RT / botón · franjas verdes = DRS<br>⏸ <b>P</b> pausa · ↵ <b>Enter</b> correr otra vez · 📯 <b>H</b> claxon (¡los rivales se apartan!) · ¡Cuidado con las CURVAS ⚠️, el pasto y las 🏍️ motos!<br>🌧️ lluvia · 🌙 día y noche · 🚇 túneles · 🛸 zepelín · 🤖 WALLY cada 1500 m · ⚡ combo de adelantamientos · ⏱️ sectores de 2000 m (🟢 = récord) · 🦅 KÓNDOR te reta a los 1500 m · 🔧 PIT STOP cada 3000 m (pégate a la derecha: 2s lento, sales con nitro lleno y +5%)<br>🏆 Récord: <b>"+Math.round(this.best)+"</b> m<br>🎖️ "+this.medals()+(function(){ try{ return localStorage.getItem("edtu_f1_ghost")?"<br>👻 el FANTASMA de tu récord te espera en la pista... ¡véncelo!":""; }catch(e){ return ""; } })()+(function(){ try{ const w=parseInt(localStorage.getItem("edtu_f1_kondor_w")||"0",10)||0, l=parseInt(localStorage.getItem("edtu_f1_kondor_l")||"0",10)||0; return (w||l)?"<br>⚔️ vs 🦅 KÓNDOR: <b>"+w+"-"+l+"</b>":""; }catch(e){ return ""; } })()+(function(){ try{ const bs=parseFloat(localStorage.getItem("edtu_f1_sector")||"0")||0; return bs>0?" · ⏱️ mejor sector: <b>"+bs.toFixed(1)+"s</b>":""; }catch(e){ return ""; } })()+(function(){ try{ const pw=parseFloat(localStorage.getItem("edtu_f1_week_"+F1.wkKey())||"0")||0; return pw>0?"<br>📅 mejor de esta semana: <b>"+Math.round(pw)+" m</b>":""; }catch(e){ return ""; } })()+F1.diaryLine();
     this.draw();
   },
   close(){
@@ -5694,7 +5694,7 @@ const F1={
     this._sparks=[]; this._drsSpark=0; this._drsWas=false;   // ✨ chispas DRS
     this._falseStart=false; this._lcDone=false; this._lcWin=0; this._lcMsg=""; this._lcMsgT=0; this._lcGood=false;   // 🚦 launch control
     this._crashSlow=0; this._crashSlowDone=false;   // 🎬 cámara lenta del choque
-    this._pitOn=0; this._pitBoostT=0; this._pitDoneZ=-1; this._pitMsg=""; this._pitMsgT=0; this._pitTick=0; this._pitZ=2500;   // 🔧 pit stop
+    this._pitOn=0; this._pitBoostT=0; this._pitDoneZ=-1; this._pitMsg=""; this._pitMsgT=0; this._pitTick=0; this._pitZ=2500; this._pitN=0; this._drsN=0;   // 🔧 pit stop (+ contadores del 🏁 diario de carrera)
     this._wkBeat=false; try{ this._wkBest=parseFloat(localStorage.getItem("edtu_f1_week_"+this.wkKey())||"0")||0; }catch(e){ this._wkBest=0; }   // 📅 mejor de la semana
     this.paused=false;   // ⏸
     this._recPassed=false;   // 🏆 marcador de récord en la pista
@@ -5827,7 +5827,7 @@ const F1={
     // 🔧 PIT STOP: cada 3000 m hay una zona de boxes a la DERECHA; si te pegas al borde derecho entras: 2s lento y sales con nitro lleno + 5% de velocidad por 20s
     { let pitZ=Math.floor((this.dist-2500)/3000)*3000+2500; if(pitZ+60<this.dist) pitZ+=3000; this._pitZ=pitZ;
       const inZone=this.dist>=pitZ && this.dist<=pitZ+60;
-      if(inZone && this._pitOn<=0 && this._pitDoneZ!==pitZ && this.x>0.9 && this.x<1.1){ this._pitOn=2; this._pitDoneZ=pitZ; this._pitTick=0;
+      if(inZone && this._pitOn<=0 && this._pitDoneZ!==pitZ && this.x>0.9 && this.x<1.1){ this._pitOn=2; this._pitDoneZ=pitZ; this._pitTick=0; this._pitN=(this._pitN||0)+1;
         this._pitMsg="🔧 ¡PIT STOP! cambiando neumáticos..."; this._pitMsgT=2; }
       if(this._pitOn>0){ this._pitOn-=dt; target=Math.min(target,80); this._pitTick-=dt;
         if(this._pitTick<=0){ this._pitTick=0.22; try{ const a=this.actx(); if(a){ const o=a.createOscillator(),g=a.createGain(); o.type="square"; o.frequency.value=900+Math.random()*300; g.gain.value=0.06; o.connect(g); g.connect(a.destination); o.start(); o.stop(a.currentTime+0.04); } }catch(e){} try{ if(navigator.vibrate) navigator.vibrate(12); }catch(e){} }
@@ -5837,7 +5837,7 @@ const F1={
     if(this.nitroOn){ target*=1.35; this.fuel=Math.max(0,this.fuel-26*dt); }
     else this.fuel=Math.min(100,this.fuel+9*dt);
     this.drs = this.dist<this._drsEnd;
-    if(this.drs && !this._drsWas){ this._drsSpark=14;   // ✨ ¡DRS activado! chispas + doble beep
+    if(this.drs && !this._drsWas){ this._drsSpark=14; this._drsN=(this._drsN||0)+1;   // ✨ ¡DRS activado! chispas + doble beep
       try{ const a=this.actx(); if(a){ [1175,1568].forEach((fq,i)=>{ const o=a.createOscillator(),g=a.createGain(); o.type="triangle"; o.frequency.value=fq; g.gain.value=0.08; o.connect(g); g.connect(a.destination); o.start(a.currentTime+i*0.09); o.stop(a.currentTime+i*0.09+0.11); }); } }catch(e){} }
     this._drsWas=this.drs;
     if(this.drs) target*=1.15;
@@ -5981,7 +5981,12 @@ const F1={
     if(moved){ setTimeout(()=>{ try{ const a2=this.actx(); if(a2&&Math.random()<0.6){ const o2=a2.createOscillator(),g2=a2.createGain(); o2.type="square"; o2.frequency.value=330; g2.gain.value=0.05; o2.connect(g2); g2.connect(a2.destination); o2.start(); o2.stop(a2.currentTime+0.18); } }catch(e){} },420); } },
   // 📅 clave de la semana actual (misma fórmula que el progreso semanal del menú)
   wkKey(){ const d=new Date(), j=new Date(d.getFullYear(),0,1); return d.getFullYear()+"-"+Math.floor(((d-j)/86400000+j.getDay())/7); },
-  saveWeek(m){ if(this._mirror) return; try{ const k="edtu_f1_week_"+this.wkKey(); const pw=parseFloat(localStorage.getItem(k)||"0")||0; if(m>pw) localStorage.setItem(k,String(m)); }catch(e){} },
+  saveWeek(m){ this.saveDiary(m); if(this._mirror) return; try{ const k="edtu_f1_week_"+this.wkKey(); const pw=parseFloat(localStorage.getItem(k)||"0")||0; if(m>pw) localStorage.setItem(k,String(m)); }catch(e){} },
+  // 🏁 DIARIO DE CARRERA: últimas 3 carreras (metros, sectores, pits, DRS, KÓNDOR, espejo, noche/lluvia) en edtu_f1_diary
+  saveDiary(m){ try{ const d=new Date(); const e={date:d.getDate()+"/"+(d.getMonth()+1), m:m, sec:Math.max(0,Math.round((this._nextSec-2000)/2000)), pit:this._pitN||0, drs:this._drsN||0, kondor:this._kSpawned?(this._kBeat?"W":(this._kDone?"L":"")):"", mirror:!!this._mirror, night:(this._nightF||0)>0.5, rain:(this._wRain||0)>0.4};
+    const a=JSON.parse(localStorage.getItem("edtu_f1_diary")||"[]"); a.unshift(e); localStorage.setItem("edtu_f1_diary",JSON.stringify(a.slice(0,3))); }catch(e){} },
+  diaryLine(){ try{ const a=JSON.parse(localStorage.getItem("edtu_f1_diary")||"[]"); if(!a.length) return ""; const e=a[0];
+    return "<br>🏁 Última carrera ("+e.date+"): <b>"+e.m+" m</b> · ⏱️ "+e.sec+" sector"+(e.sec===1?"":"es")+" · 🔧 "+e.pit+" pit"+(e.drs?" · 🟢 DRS ×"+e.drs:"")+(e.kondor==="W"?" · 🦅 KÓNDOR vencido":e.kondor==="L"?" · 🦅 KÓNDOR escapó":"")+(e.night?" · 🌙":"")+(e.rain?" · 🌧️":"")+(e.mirror?" · 🪞":""); }catch(e){ return ""; } },
   // 🎖️ medallas por distancia en UNA carrera (1/3/5/10 km, permanentes)
   medals(){ let s=""; [1000,3000,5000,10000].forEach(t2=>{ let got=false; try{ got=localStorage.getItem("edtu_f1_km_"+t2)==="1"; }catch(e){}
     s+=(got?"🏅":"▫️")+(t2/1000)+"km "; }); return s.trim(); },
@@ -7192,6 +7197,7 @@ function buildTrophies(){ try{
     if(jd) la.push("🦖 "+jd.date+": "+jd.days+" días"+(jd.fish?" · 🐟 "+jd.fish:"")+(jd.pack?" · 🐾 manada":"")+(jd.egg?" · 🥚":"")+" · "+(jd.hits?"🩹 "+jd.hits:"🛡️ sin heridas")+(jd.win?" ✓":""));
     if(sd) la.push("🕷️ "+sd.date+": "+fmtMS(sd.t)+" · 🔧 "+sd.v+"/4 · 🧪 "+sd.s+"/3 · 👁️ "+sd.spot+" apariciones · "+(sd.bites?"🩸 "+sd.bites:"🛡️ sin mordidas")+(sd.win?" ✓":""));
     if(nd) la.push("🧟 "+nd.date+": "+nd.kills+" kills · 📜 "+nd.clues+"/7 · 🌙 "+nd.nights+(nd.drvz?" · 🧪 Dr. VZ":"")+(nd.cat?" · 🐱":"")+(nd.win?" ✓":""));
+    const fd=rd("edtu_f1_diary"); if(fd) la.push("🏎️ "+fd.date+": "+fd.m+" m · ⏱️ "+fd.sec+" sectores · 🔧 "+fd.pit+" pit"+(fd.drs?" · 🟢 DRS ×"+fd.drs:"")+(fd.kondor==="W"?" · 🦅 vencido":fd.kondor==="L"?" · 🦅 escapó":"")+(fd.mirror?" · 🪞":""));
     if(la.length) h+="<div style='margin-top:8px;color:#e8d9a8'><b>📖 ÚLTIMAS AVENTURAS</b></div>"+la.join("<br>"); }catch(e){}
   $("trophyBody").innerHTML=h;
   // 🤖 WALLY saluda (con corona si lo encontraste en los 4 mundos)
@@ -7296,7 +7302,7 @@ $("posterFs").addEventListener("click",e=>{ if(e.target===$("posterFs")) $("post
     if(/oro|dorado/.test(q)) return "👑 el CUBO DE ORO existe... pero solo para quien tenga los 21 logros. beep-brillante";
     if(/perro|gato|mascota/.test(q)) return "🐕 el perro de NOT A GAME ladra cuando viene peligro y 🐈‍⬛ el gato (si lo acaricias con E) espanta zombies 60s. ¡Acarícialos de mi parte!";
     if(/aventura|últim|ultim|diario|expediente/.test(q)){ try{ const rd=k=>{ const a=JSON.parse(g(k)||"[]"); return a.length?a[0]:null; }; const jd=rd("jurassic_diary"), sd=rd("scream_diary"), nd=rd("nag_diary"); const pa=[];
-      if(jd) pa.push("🦖 "+jd.days+" días en la isla"+(jd.win?" y te rescataron":"")); if(sd) pa.push("🕷️ "+Math.floor(sd.t/60)+":"+String(sd.t%60).padStart(2,"0")+" en el edificio con "+sd.spot+" sustos"+(sd.win?" y escapaste":"")); if(nd) pa.push("🧟 "+nd.kills+" zombies y "+nd.clues+"/7 pistas"+(nd.win?" — caso resuelto":""));
+      if(jd) pa.push("🦖 "+jd.days+" días en la isla"+(jd.win?" y te rescataron":"")); if(sd) pa.push("🕷️ "+Math.floor(sd.t/60)+":"+String(sd.t%60).padStart(2,"0")+" en el edificio con "+sd.spot+" sustos"+(sd.win?" y escapaste":"")); if(nd) pa.push("🧟 "+nd.kills+" zombies y "+nd.clues+"/7 pistas"+(nd.win?" — caso resuelto":"")); const fd=rd("edtu_f1_diary"); if(fd) pa.push("🏎️ "+fd.m+" metros con "+fd.pit+" pit stop"+(fd.kondor==="W"?" y venciste a KÓNDOR":""));
       return pa.length?"📖 tus últimas aventuras: "+pa.join("; ")+". ¡Sigue escribiendo tu leyenda!":"📖 aún no hay diarios... ¡juega una partida y te la cuento!"; }catch(e){ return "📖 beep... el diario se mojó"; } }
     if(/semana|semanal|lunes/.test(q)){ try{ const d=new Date(), j=new Date(d.getFullYear(),0,1); const wk=d.getFullYear()+"-"+Math.floor(((d-j)/86400000+j.getDay())/7);
       const fw=parseFloat(g("edtu_f1_week_"+wk))||0, jw=parseFloat(g("jurassic_week_"+wk))||0, nw=parseInt(g("nag_week_"+wk)||"0",10)||0, sw=parseFloat(g("scream_week_"+wk))||0;
