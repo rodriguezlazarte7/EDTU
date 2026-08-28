@@ -629,7 +629,8 @@ function updShieldHUD(){ const w=document.getElementById("hpwrap"); if(!w) retur
 const keys={};
 addEventListener("keydown",e=>{ keys[e.code]=true; if(e.code==="Space"&&P.onGround&&running&&!nPaused){P.vy=6.2;P.onGround=false;} if(e.code==="KeyE"&&running&&!nPaused){ tryDrawer(); petDog(); talkWallyN(); }   // 🐛FIX ronda2: en pausa no se salta ni se abren cajones
   if(e.code==="KeyM") toggleNMap();
-  if(e.code==="KeyP") togglePauseN(); });
+  if(e.code==="KeyP") togglePauseN();
+  if(e.code==="Enter" && gameOver) startGame(); });   // ↩ reintentar al instante
 // 🗺️ MAPA DE LA CIUDAD (M): pausa táctica con calles, pistas y amenazas
 let nMapOpen=false;
 function drawNMap(){ const cv=document.getElementById("nmapCv"); if(!cv) return; const g=cv.getContext("2d");

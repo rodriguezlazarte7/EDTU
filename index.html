@@ -6576,7 +6576,8 @@ $("f1Canvas").addEventListener("pointerup",()=>{ F1._touchX=null; });
 $("f1Canvas").addEventListener("pointercancel",()=>{ F1._touchX=null; });   // 🐛FIX ronda2: un touch cancelado dejaba la dirección "pegada" para siempre
 document.addEventListener("keydown",e=>{ if(!$("f1Fs").classList.contains("open")) return; F1.keys[e.key]=true; if(e.key===" ") e.preventDefault(); if(e.key==="Escape") F1.close();
   // ⏸ pausa de carrera con P (motor incluido)
-  if(e.key==="p"||e.key==="P") F1.togglePause(); });
+  if(e.key==="p"||e.key==="P") F1.togglePause();
+  if(e.key==="Enter" && !F1.running) F1.start(); });   // ↩ correr otra vez al instante
 $("f1Pause").addEventListener("click",()=>F1.togglePause());   // ⏸ botón táctil
 document.addEventListener("keyup",e=>{ F1.keys[e.key]=false; });
 
