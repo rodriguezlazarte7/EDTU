@@ -286,7 +286,7 @@ const NOTE_SPOTS=[
 ];
 const valves=[], samples=[], notes=[]; let valvesGot=0, samplesGot=0, notesGot=0, craftT=0, timeLeft=1200, won=false, allAnn=false, clockBonus=0;
 // 📅 DESAFÍO DEL DÍA: con dailyS activo, la distribución del edificio (ítems, relojes, botiquines, generador, vitrola, WALLY, teléfono, maniquí, crías y araña) se siembra con la fecha → el mismo edificio para todos hoy
-let sRng=null, dailyS=false;
+let sRng=null, dailyS=false; try{ dailyS=localStorage.getItem("scream_daily_on")==="1"; }catch(e){}   // 🧠 recuerda si dejaste el desafío activado
 function srnd(){ return sRng?sRng():Math.random(); }
 function mulberry32(a){ return function(){ a|=0; a=a+0x6D2B79F5|0; let t=Math.imul(a^a>>>15,1|a); t=t+Math.imul(t^t>>>7,61|t)^t; return ((t^t>>>14)>>>0)/4294967296; }; }
 function dailyKeyS(){ const d=new Date(); return d.getFullYear()*10000+(d.getMonth()+1)*100+d.getDate(); }
@@ -690,7 +690,7 @@ function buildDiffs(){ const c=$("diffs"); if(!c) return; c.innerHTML="";
   try{ if(localStorage.getItem("scream_win_infierno")==="1") dlist.push("pesadillaplus"); }catch(e){}   // 👑 la 6ª dificultad SECRETA solo si venciste INFIERNO
   for(const k of dlist){ const b=document.createElement("button"); b.className="diffbtn"+(diff===k?" sel":""); const bd=loadBestD(k); b.textContent=DIFFS[k].lbl+(bd!=null?" ⏱"+fmtT(bd):""); b.onclick=()=>{ diff=k; try{ localStorage.setItem("scream_diff",k); }catch(e){} buildDiffs(); }; c.appendChild(b); }
   // 📅 botón DESAFÍO DEL DÍA (mismo edificio para todos hoy; guarda tu mejor tiempo del día)
-  { const db=document.createElement("button"); db.className="diffbtn"+(dailyS?" sel":""); const dv=loadSDaily(); db.textContent="📅 DESAFÍO DEL DÍA"+(dailyS?" ✔":"")+(dv>0?" ⏱"+fmtT(dv):""); db.title="La misma distribución del edificio para todos hoy — compara tu tiempo con tus amigos"; db.onclick=()=>{ dailyS=!dailyS; buildDiffs(); updBest(); }; c.appendChild(db); } }
+  { const db=document.createElement("button"); db.className="diffbtn"+(dailyS?" sel":""); const dv=loadSDaily(); db.textContent="📅 DESAFÍO DEL DÍA"+(dailyS?" ✔":"")+(dv>0?" ⏱"+fmtT(dv):""); db.title="La misma distribución del edificio para todos hoy — compara tu tiempo con tus amigos"; db.onclick=()=>{ dailyS=!dailyS; try{ localStorage.setItem("scream_daily_on",dailyS?"1":"0"); }catch(e){} buildDiffs(); updBest(); }; c.appendChild(db); } }
 const keys={}, moveV={x:0,y:0};
 function updHP(){ let s=""; for(let i=0;i<hpMax;i++) s+= (i<hp?"❤️":"🖤"); $("hp").textContent=s;
   const lw=$("lowhp"); if(lw) lw.classList.toggle("on", hp===1 && !gameOver);   // 💔 alerta pulsante con 1 corazón
