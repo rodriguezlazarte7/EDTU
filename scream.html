@@ -564,13 +564,15 @@ function placeWallyS(){ wallySF=Math.floor(Math.random()*FLOORS); const s=randSp
 placeWallyS();
 // 🤖💬 HABLAR con WALLY (E cerca de él): escanea el piso y te dice qué objetos quedan aquí
 let wallyTalkCd=0;
+const WQUIPS_S=["¡Beep-boop! Qué oscuro está todo...","Mis sensores tiemblan... ¿o soy yo?","Si ves a la araña CORRE, yo solo ruedo","Una vez gané una carrera de mBots 🏁","Mi linterna nunca se queda sin pilas 😎","Cálculo: 87% de probabilidad de que ganes","Dejé las balizas prendidas para que me encuentres","Tú salva el edificio, yo vigilo este piso"];
 function talkWally(){ if(wallyTalkCd>0||!running||gameOver) return;
   if(wallySF!==curFloor || Math.hypot(P.x-wallyS.position.x,P.z-wallyS.position.z)>3) return;
   wallyTalkCd=5; [880,1175,1320].forEach((fq,k)=>setTimeout(()=>snd(fq,"square",0.07,0.06),k*100));
   const v=valves.filter(x=>!x.got&&x.f===curFloor).length, s2=samples.filter(x=>!x.got&&x.f===curFloor).length,
         c3=clocks.filter(x=>!x.got&&x.f===curFloor).length, m2=medkits.filter(x=>!x.got&&x.f===curFloor).length;
   const parts=[]; if(v)parts.push(v+" válvula"+(v>1?"s":"")); if(s2)parts.push(s2+" muestra"+(s2>1?"s":"")); if(c3)parts.push(c3+" reloj"+(c3>1?"es":"")); if(m2)parts.push(m2+" botiquín"+(m2>1?"es":""));
-  showStory(parts.length?("🤖 WALLY escanea: en este piso hay "+parts.join(", ")):"🤖 WALLY escanea: este piso está limpio... sigue buscando en otros"); vib(40); }
+  const q=WQUIPS_S[Math.floor(Math.random()*WQUIPS_S.length)];
+  showStory("🤖 WALLY: «"+q+"» · "+(parts.length?("escaneo: en este piso hay "+parts.join(", ")):"escaneo: piso limpio, busca en otros")); vib(40); }
 // 📞 EL TELÉFONO: un teléfono viejo empieza a SONAR en algún piso; si lo contestas, una voz susurra una PISTA real
 const phone=new THREE.Group();
 { const base=new THREE.Mesh(new THREE.BoxGeometry(0.5,0.3,0.35),new THREE.MeshStandardMaterial({color:0x191919,roughness:.6})); base.position.y=1.05; phone.add(base);
