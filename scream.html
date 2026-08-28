@@ -285,6 +285,12 @@ const NOTE_SPOTS=[
  {f:6,x:0,z:HH-16,h:"ÚLTIMO REGISTRO",t:"La máquina de la zona segura es la única salida. Si lees esto... corre. Y no dejes que te encuentre."}
 ];
 const valves=[], samples=[], notes=[]; let valvesGot=0, samplesGot=0, notesGot=0, craftT=0, timeLeft=1200, won=false, allAnn=false, clockBonus=0;
+// 📅 DESAFÍO DEL DÍA: con dailyS activo, la distribución del edificio (ítems, relojes, botiquines, generador, vitrola, WALLY, teléfono, maniquí, crías y araña) se siembra con la fecha → el mismo edificio para todos hoy
+let sRng=null, dailyS=false;
+function srnd(){ return sRng?sRng():Math.random(); }
+function mulberry32(a){ return function(){ a|=0; a=a+0x6D2B79F5|0; let t=Math.imul(a^a>>>15,1|a); t=t+Math.imul(t^t>>>7,61|t)^t; return ((t^t>>>14)>>>0)/4294967296; }; }
+function dailyKeyS(){ const d=new Date(); return d.getFullYear()*10000+(d.getMonth()+1)*100+d.getDate(); }
+function loadSDaily(){ try{ return parseFloat(localStorage.getItem("scream_daily_"+dailyKeyS())||"0")||0; }catch(e){ return 0; } }
 const glassZones=[]; let glassWarned=false;   // 🍾 vidrios rotos
 // 🪳 CUCARACHAS (pool de 6): salen disparadas de los cadáveres cuando te acercas
 const roaches=[]; const roachM=new THREE.MeshStandardMaterial({color:0x2a1c10,roughness:.8});
@@ -566,7 +572,7 @@ const wallyS=new THREE.Group(); let wallySF=0, wallySSeen=false, wSBalR=null, wS
   wSBalB=new THREE.Mesh(new THREE.SphereGeometry(0.09,7,6),new THREE.MeshBasicMaterial({color:0x2060ff})); wSBalB.position.set(0.18,1.1,-0.35); wallyS.add(wSBalB);
   scene.add(wallyS);
 })();
-function placeWallyS(){ wallySF=Math.floor(Math.random()*FLOORS); const s=randSpotOnFloor(wallySF); wallyS.position.set(s.x,wallySF*FLOOR_H,s.z); wallyS.rotation.y=Math.random()*6.28; wallySSeen=false; }
+function placeWallyS(){ wallySF=Math.floor(srnd()*FLOORS); const s=randSpotOnFloor(wallySF); wallyS.position.set(s.x,wallySF*FLOOR_H,s.z); wallyS.rotation.y=srnd()*6.28; wallySSeen=false; }
 placeWallyS();
 // 🤖💬 HABLAR con WALLY (E cerca de él): escanea el piso y te dice qué objetos quedan aquí
 let wallyTalkCd=0;
@@ -655,7 +661,7 @@ const phone=new THREE.Group();
   const ped=new THREE.Mesh(new THREE.BoxGeometry(0.6,0.95,0.45),new THREE.MeshStandardMaterial({color:0x3a2f28,roughness:.9})); ped.position.y=0.48; phone.add(ped); }
 scene.add(phone);
 let phoneF=0, phoneActive=false, phoneT=35+Math.random()*35, ringT=0;
-function placePhone(){ phoneF=Math.floor(Math.random()*FLOORS); const s=randSpotOnFloor(phoneF); phone.position.set(s.x,phoneF*FLOOR_H,s.z); }
+function placePhone(){ phoneF=Math.floor(srnd()*FLOORS); const s=randSpotOnFloor(phoneF); phone.position.set(s.x,phoneF*FLOOR_H,s.z); }
 placePhone();
 // 🧍 EL MANIQUÍ: una figura pálida SIN CARA que solo se mueve cuando NO la miras (nunca ataca... solo se acerca)
 const manq=new THREE.Group(); const manqM=new THREE.MeshStandardMaterial({color:0xd8cfc4,roughness:.9});
@@ -682,7 +688,9 @@ const SPIDER_SC=0.62;   // araña más chica
 function buildDiffs(){ const c=$("diffs"); if(!c) return; c.innerHTML="";
   const dlist=["facil","normal","pesadilla","infierno"];
   try{ if(localStorage.getItem("scream_win_infierno")==="1") dlist.push("pesadillaplus"); }catch(e){}   // 👑 la 6ª dificultad SECRETA solo si venciste INFIERNO
-  for(const k of dlist){ const b=document.createElement("button"); b.className="diffbtn"+(diff===k?" sel":""); const bd=loadBestD(k); b.textContent=DIFFS[k].lbl+(bd!=null?" ⏱"+fmtT(bd):""); b.onclick=()=>{ diff=k; try{ localStorage.setItem("scream_diff",k); }catch(e){} buildDiffs(); }; c.appendChild(b); } }
+  for(const k of dlist){ const b=document.createElement("button"); b.className="diffbtn"+(diff===k?" sel":""); const bd=loadBestD(k); b.textContent=DIFFS[k].lbl+(bd!=null?" ⏱"+fmtT(bd):""); b.onclick=()=>{ diff=k; try{ localStorage.setItem("scream_diff",k); }catch(e){} buildDiffs(); }; c.appendChild(b); }
+  // 📅 botón DESAFÍO DEL DÍA (mismo edificio para todos hoy; guarda tu mejor tiempo del día)
+  { const db=document.createElement("button"); db.className="diffbtn"+(dailyS?" sel":""); const dv=loadSDaily(); db.textContent="📅 DESAFÍO DEL DÍA"+(dailyS?" ✔":"")+(dv>0?" ⏱"+fmtT(dv):""); db.title="La misma distribución del edificio para todos hoy — compara tu tiempo con tus amigos"; db.onclick=()=>{ dailyS=!dailyS; buildDiffs(); updBest(); }; c.appendChild(db); } }
 const keys={}, moveV={x:0,y:0};
 function updHP(){ let s=""; for(let i=0;i<hpMax;i++) s+= (i<hp?"❤️":"🖤"); $("hp").textContent=s;
   const lw=$("lowhp"); if(lw) lw.classList.toggle("on", hp===1 && !gameOver);   // 💔 alerta pulsante con 1 corazón
@@ -775,7 +783,7 @@ function updBest(){ updSDiary(); const b=loadBest(), w=loadWins(), el=$("bestT")
     return DIFFS[k].lbl.split(" ")[0]+(got?"✔":"–"); }).join(" ");
   let crown=""; try{ if(localStorage.getItem("scream_win_pesadillaplus")==="1") crown="  ·  👑 PESADILLA+ VENCIDA"; }catch(e){}
   const sw=loadSWeek();
-  el.textContent = (b==null?"🏆 Aún sin récord — ¡sé el primero en escapar!":("🏆 Mejor escape: "+fmtT(b))) + (sw>0?"  ·  📅 esta semana: "+fmtT(sw):"") + (w>0?"  ·  🚁 Escapes: "+w:"") + "  ·  🏅 "+med + crown; }
+  el.textContent = (b==null?"🏆 Aún sin récord — ¡sé el primero en escapar!":("🏆 Mejor escape: "+fmtT(b))) + (sw>0?"  ·  📅 esta semana: "+fmtT(sw):"") + (function(){ const dv=loadSDaily(); return dv>0?"  ·  📅 mejor de HOY: "+fmtT(dv):""; })() + (w>0?"  ·  🚁 Escapes: "+w:"") + "  ·  🏅 "+med + crown; }
 // 💥 grietas de vidrio roto para el jumpscare
 function crackSVG(){ let p="";
   for(let i=0;i<12;i++){ const a=i/12*6.283+Math.random()*0.4; let x=200,y=200,d="M200 200"; const steps=6, len=140+Math.random()*200;
@@ -801,12 +809,12 @@ function goFloor(nf){ if(nf<0||nf>=FLOORS) return;
     const ft2=$("floorTitle"); if(ft2){ ft2.textContent=FLOORNAME[nf]; ft2.classList.add("on"); clearTimeout(ft2._t); ft2._t=setTimeout(()=>ft2.classList.remove("on"),1100); } }); }   // 👻 título fantasma
 
 // 🎲 posiciones aleatorias (evita paredes, zona segura y la escalera)
-function randSpotOnFloor(fl){ let x,z,t=0; do{ x=(Math.random()*2-1)*(HH-7); z=(Math.random()*2-1)*(HH-7); t++; }while((collide(x,z,fl)||inSafe(x,z,fl)||Math.hypot(x-STAIRX,z-STAIRZ)<7)&&t<50); return {x,z}; }
+function randSpotOnFloor(fl){ let x,z,t=0; do{ x=(srnd()*2-1)*(HH-7); z=(srnd()*2-1)*(HH-7); t++; }while((collide(x,z,fl)||inSafe(x,z,fl)||Math.hypot(x-STAIRX,z-STAIRZ)<7)&&t<50); return {x,z}; }
 function reposition(arr,yoff){ for(const v of arr){ const s=randSpotOnFloor(v.f); v.x=s.x; v.z=s.z; v.grp.position.set(s.x,v.f*FLOOR_H+yoff,s.z); if(v.light) v.light.position.set(s.x,v.f*FLOOR_H+yoff+0.4,s.z); } }
 // ⏰ RELOJES DORADOS: 2 por partida en pisos al azar — cada uno suma +60s al contador (se oye su tic-tac de cerca)
 const clocks=[];
 function spawnClocks(){ clocks.forEach(c2=>{ if(c2.grp.parent) c2.grp.parent.remove(c2.grp); }); clocks.length=0;
-  const fls=[]; while(fls.length<2){ const f2=Math.floor(Math.random()*FLOORS); if(!fls.includes(f2)) fls.push(f2); }
+  const fls=[]; while(fls.length<2){ const f2=Math.floor(srnd()*FLOORS); if(!fls.includes(f2)) fls.push(f2); }
   for(const f2 of fls){ const s=randSpotOnFloor(f2); const g=new THREE.Group();
     const goldM=new THREE.MeshStandardMaterial({color:0xffd12e,emissive:0x7a5a00,emissiveIntensity:.9,metalness:.6,roughness:.3});
     const body=new THREE.Mesh(new THREE.CylinderGeometry(0.45,0.45,0.18,14),goldM); body.rotation.x=Math.PI/2; g.add(body);
@@ -817,7 +825,7 @@ spawnClocks();
 // ❤️ BOTIQUINES: 2 por partida en pisos al azar — curan 1 corazón (solo se recogen si te falta vida)
 const medkits=[];
 function spawnMedkits(){ medkits.forEach(mk=>{ if(mk.grp.parent) mk.grp.parent.remove(mk.grp); }); medkits.length=0;
-  for(let k=0;k<2;k++){ const f2=Math.floor(Math.random()*FLOORS); const s=randSpotOnFloor(f2); const g=new THREE.Group();
+  for(let k=0;k<2;k++){ const f2=Math.floor(srnd()*FLOORS); const s=randSpotOnFloor(f2); const g=new THREE.Group();
     const box2=new THREE.Mesh(new THREE.BoxGeometry(0.7,0.45,0.5),new THREE.MeshStandardMaterial({color:0xf2f2f2,roughness:.4,emissive:0x333333,emissiveIntensity:.3})); box2.position.y=0.25; g.add(box2);
     const crossM=new THREE.MeshBasicMaterial({color:0xd11e1e});
     const c1=new THREE.Mesh(new THREE.BoxGeometry(0.32,0.1,0.02),crossM); c1.position.set(0,0.3,0.26); g.add(c1);
@@ -836,12 +844,13 @@ function start(){ $("start").classList.add("hide"); $("end").classList.add("hide
   spiderDead=false; valvesGot=0; samplesGot=0; craftT=0; timeLeft=gameTime; won=false; hbT=0; spiderFloor=0; allAnn=false; clockBonus=0;
   statFloors.clear(); statFlares=0; statDist=0; lastPX=null;   // 📊 estadísticas desde cero
   sDiaryReset();   // 📖 diario en blanco
-  manqF=Math.floor(Math.random()*FLOORS); placeManq(false); manqT=6; manqMoveT=25; manqSting=false;   // 🧍 maniquí nuevo
-  genF=Math.floor(Math.random()*FLOORS); { const gs=randSpotOnFloor(genF); genM.position.set(gs.x,genF*FLOOR_H,gs.z); }   // ⚡ generador nuevo
+  sRng=dailyS?mulberry32(dailyKeyS()):null;   // 📅 DESAFÍO DEL DÍA: desde aquí, toda la colocación sale de la semilla de la fecha
+  manqF=Math.floor(srnd()*FLOORS); placeManq(false); manqT=6; manqMoveT=25; manqSting=false;   // 🧍 maniquí nuevo
+  genF=Math.floor(srnd()*FLOORS); { const gs=randSpotOnFloor(genF); genM.position.set(gs.x,genF*FLOOR_H,gs.z); }   // ⚡ generador nuevo
   genUsed=false; genOn=0; genCharge=0; genBar(-1); ambient.intensity=0.05; ambient.color.setHex(0x241018);
   if(genM.userData.bulb) genM.userData.bulb.material.color.setHex(0xffd15a);   // 💡 bombilla nueva
   legendSaid=false; sMemSaid=false;   // 👑 WALLY puede volver a celebrar el 21/21 una vez por partida · 🧠 y recordar tu escape anterior
-  vitF=Math.floor(Math.random()*FLOORS); { const vs=randSpotOnFloor(vitF); vit.position.set(vs.x,vitF*FLOOR_H,vs.z); } vitUsed=false; vitOn=0;   // 🎵 vitrola nueva
+  vitF=Math.floor(srnd()*FLOORS); { const vs=randSpotOnFloor(vitF); vit.position.set(vs.x,vitF*FLOOR_H,vs.z); } vitUsed=false; vitOn=0;   // 🎵 vitrola nueva
   ascWait=0; ascDing=0;   // 🛗 ascensor libre
   sPath.length=0; sPathT=0;   // 🗺️ rastro desde cero
   phoneActive=false; phoneT=35+Math.random()*35; placePhone();   // 📞 teléfono nuevo
@@ -857,12 +866,13 @@ function start(){ $("start").classList.add("hide"); $("end").classList.add("hide
   samples.forEach(v=>{ v.got=false; v.grp.visible=true; if(v.light) v.light.userData.fl=v.f; });
   notes.forEach(v=>{ v.got=false; v.grp.visible=true; if(v.light) v.light.userData.fl=v.f; }); notesGot=0; $("note").classList.remove("on");
   reposition(valves,1); reposition(samples,1); reposition(notes,1.2);   // 🎲 ítems en lugares distintos cada partida
-  babies.forEach(b=>{ b.f=Math.floor(Math.random()*FLOORS); const bs=randSpotOnFloor(b.f); b.grp.position.set(bs.x,b.f*FLOOR_H,bs.z); b.grp.visible=true; b.hitCd=0; });
+  babies.forEach(b=>{ b.f=Math.floor(srnd()*FLOORS); const bs=randSpotOnFloor(b.f); b.grp.position.set(bs.x,b.f*FLOOR_H,bs.z); b.grp.visible=true; b.hitCd=0; });
   spawnClocks(); spawnMedkits();   // ⏰❤️ relojes y botiquines nuevos en pisos al azar
-  spiderFloor=Math.floor(Math.random()*FLOORS); const ss=randSpotOnFloor(spiderFloor);
+  spiderFloor=Math.floor(srnd()*FLOORS); const ss=randSpotOnFloor(spiderFloor);
   if(spider){ spider.grp.visible=true; spider.grp.rotation.set(0,0,0); spider.grp.scale.setScalar(SPIDER_SC); spider.grp.position.set(ss.x,spiderFloor*FLOOR_H,ss.z); spider.camo=0.12; spider.ambushT=8; spider.invPhase=false; spider.invT=invDur; spider.climb=0; spider.pingT=0; spider.bodyMats.forEach(m=>m.opacity=0.12); spider.eyes.forEach(e=>e.visible=true); if(spider.eyeGlow) spider.eyeGlow.visible=true; }
+  sRng=null;   // 📅 fin de la siembra: el resto de la partida vuelve al azar normal
   $("invtag").style.display="none";
-  $("floor").textContent=FLOORNAME[0]; updObj(); showStory("7 pisos a oscuras. Tienes 20 min: reúne 4 válvulas + 3 muestras y fabrica el antídoto en tu zona segura.");
+  $("floor").textContent=FLOORNAME[0]; updObj(); showStory((dailyS?"📅 DESAFÍO DEL DÍA (mismo edificio para todos hoy) · ":"")+"7 pisos a oscuras. Tienes 20 min: reúne 4 válvulas + 3 muestras y fabrica el antídoto en tu zona segura.");
 }
 function endGame(win,info){ running=false; gameOver=true; sprintHeld=false; $("lowhp").classList.remove("on"); try{document.exitPointerLock();}catch(e){} $("touch").classList.remove("on"); $("touch").classList.add("hide"); $("tflash").classList.add("hide"); $("tnv").classList.add("hide"); $("sprint").classList.add("hide"); $("tmap").classList.add("hide"); $("tflare").classList.add("hide"); $("thelp").classList.add("hide"); $("tpause").classList.add("hide"); mapOpen=false; $("map").classList.remove("on"); helpOpen=false; $("help").classList.remove("on");
   const t=$("endTitle"); if(win){ t.textContent="✓ SOBREVIVISTE"; t.className="big win"; } else { t.textContent="✕ TE ATRAPÓ"; t.className="big lose";
@@ -1288,6 +1298,7 @@ function update(dt){
     if(Math.random()<dt*3) snd(360+Math.random()*300,"square",0.06,0.05);
     if(craftT>=8){ won=true; running=false; const elapsed=gameTime+clockBonus-timeLeft; let best=loadBest(); const isNew=(best==null||elapsed<best); if(isNew){ best=elapsed; saveBest(best); } addWin();
       try{ const sw=loadSWeek(); if(!sw||elapsed<sw) localStorage.setItem("scream_week_"+weekKey(),String(elapsed)); }catch(e){}   // 📅 mejor escape de la semana
+      if(dailyS){ try{ const dv=loadSDaily(); if(!dv||elapsed<dv) localStorage.setItem("scream_daily_"+dailyKeyS(),String(elapsed)); }catch(e){} }   // 📅 mejor del DESAFÍO DEL DÍA
       const bd=loadBestD(diff), isNewD=(bd==null||elapsed<bd); if(isNewD) saveBestD(diff,elapsed); buildDiffs();   // 🏆 récord de esta dificultad
       try{ localStorage.setItem("scream_win_"+diff,"1"); }catch(e){}   // 🏅 medalla de esta dificultad
       const winMsg="🧪 ¡Fabricaste el ANTÍDOTO y escapaste del hospital de 7 pisos! ✅"+(diff==="infierno"?"<br>🔥 <b>¡VENCISTE AL INFIERNO!</b> — con 1 corazón y 10 minutos. LEYENDA ABSOLUTA.":"")+"<br><br>⏱ Tu tiempo: <b>"+fmtT(elapsed)+"</b>"+(isNew?"<br>🏆 ¡NUEVO RÉCORD!":"<br>🏆 Mejor: <b>"+fmtT(best)+"</b>")+(isNewD?"<br>⭐ ¡MEJOR TIEMPO en "+DIFFS[diff].lbl+"!":"<br>⭐ Mejor en "+DIFFS[diff].lbl+": <b>"+fmtT(bd)+"</b>")+"<br>🚁 Escapes totales: <b>"+loadWins()+"</b>";
