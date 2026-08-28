@@ -574,7 +574,10 @@ function radioSay(txt){ try{
   if(window.speechSynthesis){ const u=new SpeechSynthesisUtterance(txt.replace(/[«»…]/g,"")); u.lang="es-ES"; u.pitch=1.15; u.rate=0.9; u.volume=0.5; setTimeout(()=>{ try{ speechSynthesis.cancel(); speechSynthesis.speak(u); }catch(e){} },350); }
 }catch(e){} }
 const P={x:0,z:22,y:1.7,vy:0,onGround:true,speed:7.2};
-function jump(){ if(running && !gameOver && !jPaused && P.onGround){ P.vy=7.2; P.onGround=false; snd(420,"sine",0.1,0.06); } }   // 🐛FIX ronda2: nada de saltar en pausa
+function jump(){ if(!running||gameOver||jPaused) return;
+  if(qsIn){ qsEsc++; qsSink=Math.max(0,qsSink-0.22); snd(260+qsEsc*60,"square",0.08,0.06); vibJ(30);   // 🏜️ machaca ESPACIO para zafarte
+    if(qsEsc>=4) qsFree(true); return; }
+  if(P.onGround){ P.vy=7.2; P.onGround=false; snd(420,"sine",0.1,0.06); } }   // 🐛FIX ronda2: nada de saltar en pausa
 let yaw=0,pitch=0,running=false,gameOver=false,tPrev=0,elapsed=0,roarT=2,stepT=0,wasInLake=false,lakeWarnCd=0;
 let jdiff="normal", jdSpeed=1, jdDmg=1, jdDet=1;
 const JDIFFS={facil:{sp:0.8,dmg:0.55,det:0.8,lbl:"🟢 FÁCIL"},normal:{sp:1,dmg:1,det:1,lbl:"🟡 NORMAL"},dificil:{sp:1.25,dmg:1.5,det:1.2,lbl:"🔴 DIFÍCIL"},extincion:{sp:1.5,dmg:2.2,det:1.5,lbl:"☄️ EXTINCIÓN"}};
@@ -700,6 +703,31 @@ ptShadow.rotation.x=-Math.PI/2; ptShadow.position.y=0.03; scene.add(ptShadow);
 let ptState="circle", ptA=Math.random()*6.28, ptT=45, ptWarnT=0, ptTarget=null, ptFlap=0;
 // 🦕💨 ESTAMPIDA: cada tanto (solo de día) los herbívoros corren TODOS en una dirección
 let stampT=100+Math.random()*120, stampOn=0, stampWarn=0, stampDX=1, stampDZ=0;
+// 🏜️ ARENA MOVEDIZA: 3 pozos en el cuadrante del volcán — te hundes lento; MACHACA ESPACIO (x4) para zafarte
+const QSAND=[{x:-95,z:-95},{x:-115,z:-70},{x:-70,z:-118}]; const QS_R=4;
+QSAND.forEach(q=>{ const qc=new THREE.Mesh(new THREE.CircleGeometry(QS_R,20),new THREE.MeshStandardMaterial({color:0xd8c58a,roughness:1}));
+  qc.rotation.x=-Math.PI/2; qc.position.set(q.x,0.05,q.z); scene.add(qc);
+  q.bubs=[]; for(let i=0;i<3;i++){ const b2=new THREE.Mesh(new THREE.SphereGeometry(0.12,7,6),new THREE.MeshStandardMaterial({color:0xcbb87c,roughness:.9}));
+    b2.position.set(q.x+(Math.random()*2-1)*2.5,0.1,q.z+(Math.random()*2-1)*2.5); scene.add(b2); q.bubs.push(b2); } });
+let qsIn=false, qsT=0, qsSink=0, qsEsc=0, qsZone=null, qsBubT=0;
+function qsFree(byJump){ if(qsZone){ const ddx=P.x-qsZone.x, ddz=P.z-qsZone.z, dl2=Math.hypot(ddx,ddz)||1;
+    P.x=qsZone.x+ddx/dl2*(QS_R+1.6); P.z=qsZone.z+ddz/dl2*(QS_R+1.6); }
+  qsIn=false; qsSink=0; qsEsc=0; qsT=0; qsZone=null;
+  if(byJump){ toast2("🏜️ ¡te ZAFASTE de la arena movediza!"); snd(500,"triangle",0.2,0.08); } }
+function qsTick(dt){
+  const wasIn=qsIn; qsZone=null;
+  for(const q of QSAND){ if(Math.hypot(P.x-q.x,P.z-q.z)<QS_R && P.y<2.2){ qsZone=q; break; } }
+  qsIn=!!qsZone;
+  if(qsIn&&!wasIn){ qsT=0; qsEsc=0; toast2("🏜️ ¡ARENA MOVEDIZA! machaca ESPACIO para salir"); snd(90,"sawtooth",0.5,0.1); vibJ(120); }
+  if(!qsIn && wasIn && qsZone===null){ qsSink=0; qsEsc=0; qsT=0; }
+  if(qsIn){ qsT+=dt; qsSink=Math.min(0.8,qsSink+dt*0.1);
+    if(Math.random()<dt*2) snd(70+Math.random()*40,"sawtooth",0.15,0.05);   // succión
+    if(qsT>10){ hurt(43,"la ARENA MOVEDIZA"); qsFree(false); toast2("🏜️ la arena te ESCUPIÓ... por poco"); }
+    else camera.position.y-=qsSink; }
+  qsBubT+=dt;
+  for(const q of QSAND){ const pd2=Math.hypot(P.x-q.x,P.z-q.z);
+    if(pd2<26){ q.bubs.forEach((b3,i)=>{ b3.position.y=0.08+Math.abs(Math.sin(qsBubT*2+i*2.1))*0.16; });
+      if(pd2<10 && Math.random()<dt*0.8) snd(140+Math.random()*80,"sine",0.1,0.03); } } }   // 🫧 burbujeo delator
 // 🎣 PESCA en la orilla del lago: E lanza el sedal → espera el ❗ → E rápido para atrapar (pez = +1 comida)
 let fishSt=0, fishT=0, fishCd=0, fishCount=0;
 function tryFish(){ if(!running||jPaused||gameOver||fishCd>0) return;
@@ -838,6 +866,7 @@ function start(){ $("start").classList.add("hide"); $("end").classList.add("hide
   legendSaid=false;   // 👑 WALLY puede volver a celebrar el 21/21 una vez por partida
   stampT=100+Math.random()*120; stampOn=0; stampWarn=0;   // 🦕💨 estampida desde cero
   fishSt=0; fishT=0; fishCd=0; fishCount=0;   // 🎣 pesca desde cero
+  qsIn=false; qsSink=0; qsEsc=0; qsT=0; qsZone=null;   // 🏜️ arena desde cero
   petPtOn=false; try{ petPtOn=["facil","normal","dificil","extincion"].some(k=>localStorage.getItem("jurassic_win_"+k)==="1")||localStorage.getItem("jurassic_egg")==="1"; }catch(e){}
   petPt.visible=petPtOn; petPtA=0; petPtWarned=false; petPt.position.set(P.x,P.y+1.3,P.z);
   if(petPtOn) setTimeout(()=>toast2("🐣 ¡tu PTERO BEBÉ te acompaña! (premio por tus rescates)"),1200);   // 🐣 mascota desbloqueada
@@ -926,6 +955,7 @@ function update(dt){
   const sin=Math.sin(yaw),cos=Math.cos(yaw);
   let sp=P.speed*(inLake(P.x,P.z,0)?0.55:1);   // el agua frena
   let dx=(f*(-sin)+s*cos)*sp*dt, dz=(f*(-cos)+s*(-sin))*sp*dt;
+  if(qsIn){ dx*=0.3; dz*=0.3; }   // 🏜️ la arena movediza te frena muchísimo
   let nx=P.x+dx, nz=P.z+dz;
   const rr=Math.hypot(nx,nz); if(rr>ISLR-3){ nx*=(ISLR-3)/rr; nz*=(ISLR-3)/rr; }   // no salir de la isla
   if(!collide(nx,P.z)) P.x=nx;
@@ -954,6 +984,7 @@ function update(dt){
   fireTick(dt);   // 🔥 fogata (llama, luz, cura, apagado)
   eggTick(dt);    // 🥚 huevo dorado (brillo pulsante y recogida)
   fishTick(dt);   // 🎣 pesca (espera del pique y ventana de captura)
+  qsTick(dt);     // 🏜️ arena movediza (hundimiento y burbujas)
   const hh=Math.floor(df*24), mm=Math.floor((df*24*60)%60);
   const isNight = df>0.5;
   if(!jPaused) pteroTick(dt,isNight);   // 🦅 pterodáctilo
