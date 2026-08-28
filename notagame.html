@@ -554,9 +554,13 @@ function endGame(win,customInfo){
   // 🏆 récord de zombies eliminados
   const prevK=loadNKills(); const isRec=kills>prevK; if(isRec){ try{ localStorage.setItem("nag_best_kills",String(kills)); }catch(e){} }
   const recTxt="<br>🧟 Eliminados: <b>"+kills+"</b>"+(isRec?" 🏆 ¡RÉCORD!":" · Récord: <b>"+prevK+"</b>");
-  if(win){ t.textContent="✓ CASO RESUELTO"; t.className="big win"; inf.innerHTML=(customInfo||"Reuniste las pistas y eliminaste el brote.<br>La ciudad está a salvo. 🏙️")+recTxt; snd(660,"triangle",0.3,0.1); }
-  else { t.textContent="✕ FIN"; t.className="big lose"; inf.innerHTML=(customInfo||("Los zombies te alcanzaron en la oscuridad.<br>Pistas: <b>"+cluesGot+"/7</b>"))+recTxt; snd(60,"sawtooth",0.6,0.12); }
-  document.getElementById("end").classList.remove("hide");
+  if(win){ t.textContent="✓ CASO RESUELTO"; t.className="big win"; inf.innerHTML=(customInfo||"Reuniste las pistas y eliminaste el brote.<br>La ciudad está a salvo. 🏙️")+recTxt; snd(660,"triangle",0.3,0.1);
+    document.getElementById("end").classList.remove("hide"); }
+  else { t.textContent="✕ FIN"; t.className="big lose"; inf.innerHTML=(customInfo||("Los zombies te alcanzaron en la oscuridad.<br>Pistas: <b>"+cluesGot+"/7</b>"))+recTxt; snd(60,"sawtooth",0.6,0.12); snd(35,"sawtooth",1.2,0.14);
+    // 💥 muerte impactante: FUNDIDO ROJO sangre y recién ahí la pantalla de fin
+    const fd=document.getElementById("fade");
+    if(fd){ fd.style.background="#4a0006"; fd.style.opacity="1"; setTimeout(()=>{ document.getElementById("end").classList.remove("hide"); fd.style.opacity="0"; setTimeout(()=>{ fd.style.background="#000"; },400); },750); }
+    else document.getElementById("end").classList.remove("hide"); }
 }
 
 // transición entre superficie y drenaje (con fundido)
