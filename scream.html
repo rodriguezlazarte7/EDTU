@@ -334,6 +334,23 @@ function buildFloor(fl){
   for(let i=0;i<10;i++){ const side=(Math.random()*4)|0; const t=(Math.random()*2-1)*(HH-4); const sz=2+Math.random()*3.5; const bw=new THREE.Mesh(new THREE.PlaneGeometry(sz,sz),bloodMat);
     if(side===0){ bw.position.set(t,by+1+Math.random()*3,-HH+0.6); } else if(side===1){ bw.position.set(t,by+1+Math.random()*3,HH-0.6); bw.rotation.y=Math.PI; } else if(side===2){ bw.position.set(-HH+0.6,by+1+Math.random()*3,t); bw.rotation.y=Math.PI/2; } else { bw.position.set(HH-0.6,by+1+Math.random()*3,t); bw.rotation.y=-Math.PI/2; }
     bw.rotation.z=Math.random()*6.28; CURP.add(bw); }
+  // 🩸 MENSAJES ESCRITOS EN SANGRE en las paredes (con goteos; solo se ven al alumbrarlos)
+  if(!window._bloodTex){ window._bloodTex=(txt)=>{ const cv=document.createElement("canvas"); cv.width=512; cv.height=200; const g=cv.getContext("2d");
+    g.font="900 58px Georgia,serif"; g.textAlign="center"; g.fillStyle="#5c070d"; g.fillText(txt,256,96);
+    g.strokeStyle="#43050a"; g.fillStyle="#43050a";
+    for(let j=0;j<26;j++){ const x=40+Math.random()*432, y=90+Math.random()*18, len=10+Math.random()*55;
+      g.lineWidth=1.5+Math.random()*1.5; g.beginPath(); g.moveTo(x,y); g.lineTo(x+(Math.random()*4-2),y+len); g.stroke();
+      g.beginPath(); g.arc(x,y+len,1.6+Math.random()*2,0,7); g.fill(); }
+    return new THREE.CanvasTexture(cv); }; }
+  const BLOOD_MSGS=["SAL DE AQUÍ","TE ESTÁ MIRANDO","ELLA TIENE HAMBRE","NO HAY SALIDA","CORRE","DETRÁS DE TI","NO CONFÍES EN LA LUZ","AÚN ESTÁ VIVA","NADIE ESCAPÓ","¿OYES SUS PATAS?","YA ES TARDE","NO MIRES ARRIBA","EL PISO 7 MIENTE","SOMOS SU COMIDA"];
+  for(let k=0;k<2;k++){ const msg=BLOOD_MSGS[(fl*2+k)%BLOOD_MSGS.length];
+    const bm=new THREE.Mesh(new THREE.PlaneGeometry(7.5,2.9),new THREE.MeshLambertMaterial({map:window._bloodTex(msg),transparent:true}));
+    const side=(fl+k*2)%4; const off=(Math.random()*2-1)*(HH-16);
+    if(side===0) bm.position.set(off,by+2.4,-HH+0.7);
+    else if(side===1){ bm.position.set(off,by+2.4,HH-0.7); bm.rotation.y=Math.PI; }
+    else if(side===2){ bm.position.set(-HH+0.7,by+2.4,off); bm.rotation.y=Math.PI/2; }
+    else { bm.position.set(HH-0.7,by+2.4,off); bm.rotation.y=-Math.PI/2; }
+    CURP.add(bm); }
   // 💀 CADÁVERES tirados por el piso (cada uno con su charco)
   for(let i=0;i<8;i++){ let cx3,cz3,tr=0; do{ const a=Math.random()*6.28,r=6+Math.random()*(HH-12); cx3=Math.cos(a)*r; cz3=Math.sin(a)*r; tr++; }while((collide(cx3,cz3,fl)||inSafe(cx3,cz3,fl))&&tr<20); corpse(cx3,cz3,by); }
   for(let i=0;i<7;i++){ const a=Math.random()*6.28,r=12+Math.random()*(HH-18); const cx2=Math.cos(a)*r,cz2=Math.sin(a)*r;
