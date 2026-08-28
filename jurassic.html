@@ -737,6 +737,15 @@ function update(dt){
     if(d.zzz){ d.zzz.visible=d.sleep>0; if(d.sleep>0) d.zzz.position.y=5+Math.sin(elapsed*3)*0.4; }   // ícono de sueño flotante
     if(d.sleep>0){ d.sleep-=dt; d.grp.rotation.z=1.4;   // 💤 dormido por el tranquilizante
       d.grp.children.forEach(ch=>{}); if(d.sleep<=0){ d.grp.rotation.z=0; showStory(d.T.name+" despertó"); } continue; }
+    // 🌙 los HERBÍVOROS duermen de noche: se acuestan, sale su 💤 y RONCAN; si te acercas a <6m se despiertan asustados
+    if(d.T.passive && isNight){
+      if(dd<6){ if(d.nSleep){ d.nSleep=false; d.nWake=8; d.grp.rotation.z=0; snd(220,"square",0.25,0.07); snd(150,"sawtooth",0.3,0.05); } }
+      else if(!d.nSleep && (d.nWake||0)<=0) d.nSleep=true;
+      if((d.nWake||0)>0) d.nWake-=dt;
+      if(d.nSleep){ d.grp.rotation.z=1.2; if(d.zzz){ d.zzz.visible=true; d.zzz.position.y=5+Math.sin(elapsed*3)*0.4; }
+        if(Math.random()<dt*0.25) snd(70+Math.random()*20,"sine",0.5,0.035);   // ronquido grave
+        continue; } }
+    else if(d.nSleep){ d.nSleep=false; d.grp.rotation.z=0; }   // ☀️ al amanecer se levantan
     if(!d.T.passive && dd<nearRoar) nearRoar=dd;
     const sees = !d.T.passive && dd < d.T.det*detMul*jdDet && !safe;   // los HERBÍVOROS nunca persiguen
     // 👁️ ¡TE VIO! — alerta con rugido fuerte la primera vez que te detecta
