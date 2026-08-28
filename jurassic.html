@@ -518,7 +518,10 @@ function update(dt){
 
   // pickups
   for(let i=pickups.length-1;i>=0;i--){ const p=pickups[i]; p.mesh.rotation.y+=dt*1.5; p.mesh.position.y=0.7+Math.sin(elapsed*2+i)*0.12;
-    if(Math.hypot(P.x-p.mesh.position.x,P.z-p.mesh.position.z)<1.6){ if(p.kind==="dart"){ darts+=2; updAmmo(); } else inv[p.kind]++; snd(880,"triangle",0.12,0.07); scene.remove(p.mesh); pickups.splice(i,1); updInv(); showStory("Recogiste "+KIND[p.kind].ic); } }
+    if(Math.hypot(P.x-p.mesh.position.x,P.z-p.mesh.position.z)<1.6){ if(p.kind==="dart"){ darts+=2; updAmmo(); } else inv[p.kind]++;
+      if(p.kind==="batt"){ [440,554,659,880].forEach((fq,k)=>setTimeout(()=>snd(fq,"triangle",0.18,0.09),k*90)); showStory("🔋 ¡Batería! ("+inv.batt+"/3 para la radio)"); }   // 🎵 arpegio especial
+      else { snd(880,"triangle",0.12,0.07); showStory("Recogiste "+KIND[p.kind].ic); }
+      scene.remove(p.mesh); pickups.splice(i,1); updInv(); } }
   if(pickups.length<44 && Math.random()<dt*0.5){ const r=Math.random(); spawnPickup(r<0.42?"water":r<0.82?"food":"batt"); }
   if(tracerT>0){ tracerT-=dt; tracer.material.opacity=Math.max(0,tracerT*10); }
 
