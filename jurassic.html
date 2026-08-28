@@ -520,9 +520,15 @@ const RADIO={x:-100,z:80}; let radioLight;
   addWall(cx-4,cx+4,cz-4,cz+4);
 })();
 
+// 📅 DESAFÍO DEL DÍA: con dailyJ activo, huevo dorado, pickups y dinos iniciales (+crías) se siembran con la fecha → la misma isla para todos hoy (clima, pterodáctilo, estampidas y tormentas siguen al azar)
+let jRng=null, dailyJ=false;
+function jrnd(){ return jRng?jRng():Math.random(); }
+function mulberry32(a){ return function(){ a|=0; a=a+0x6D2B79F5|0; let t=Math.imul(a^a>>>15,1|a); t=t+Math.imul(t^t>>>7,61|t)^t; return ((t^t>>>14)>>>0)/4294967296; }; }
+function dailyKeyJ(){ const d=new Date(); return d.getFullYear()*10000+(d.getMonth()+1)*100+d.getDate(); }
+function loadJDaily(){ try{ return parseFloat(localStorage.getItem("jurassic_daily_"+dailyKeyJ())||"0")||0; }catch(e){ return 0; } }
 // ---------- pickups (inventario tipo Minecraft) ----------
 const pickups=[]; const KIND={water:{c:0x2ea6ff,ic:"💧"},food:{c:0x9a9a9a,ic:"🥫"},wood:{c:0x7a4a22,ic:"🪵"},batt:{c:0x39ff5a,ic:"🔋"},dart:{c:0xff6ad0,ic:"💉"}};
-function spawnPickup(kind){ let x,z,tries=0; do{ const a=Math.random()*6.28,r=8+Math.random()*(ISLR-20); x=Math.cos(a)*r; z=Math.sin(a)*r; tries++; }while((inLake(x,z,3)||collide(x,z))&&tries<20);
+function spawnPickup(kind){ let x,z,tries=0; do{ const a=jrnd()*6.28,r=8+jrnd()*(ISLR-20); x=Math.cos(a)*r; z=Math.sin(a)*r; tries++; }while((inLake(x,z,3)||collide(x,z))&&tries<20);
   let m; if(kind==="water"||kind==="food"||kind==="dart"){ m=new THREE.Mesh(new THREE.CylinderGeometry(0.3,0.3,0.9,10),new THREE.MeshStandardMaterial({color:KIND[kind].c,roughness:.5,metalness:.3,emissive:kind==="dart"?0x5a0a3a:0x000000,emissiveIntensity:.5})); }
   else { m=new THREE.Mesh(new THREE.BoxGeometry(0.7,0.7,0.7),new THREE.MeshStandardMaterial({color:KIND[kind].c,roughness:.6,emissive:kind==="batt"?0x0a3a12:0x000000,emissiveIntensity:.6})); }
   const g=new THREE.Group(); g.add(m);
@@ -576,12 +582,12 @@ const pteros=[];
 const zzzTex=(function(){ const c=document.createElement("canvas"); c.width=c.height=128; const x=c.getContext("2d"); x.font="92px serif"; x.textAlign="center"; x.textBaseline="middle"; x.fillText("💤",64,70); return new THREE.CanvasTexture(c); })();
 function spawnDinos(){
   const kinds=["trex","indo","disto","exor","braq","tric","gali","braq","tric","gali"];   // 4 carnívoros + 6 pacíficos
-  for(const k of kinds){ let x,z; do{ const a=Math.random()*6.28,r=50+Math.random()*(ISLR-60); x=Math.cos(a)*r; z=Math.sin(a)*r; }while(inLake(x,z,6)||inSafe(x,z));
+  for(const k of kinds){ let x,z; do{ const a=jrnd()*6.28,r=50+jrnd()*(ISLR-60); x=Math.cos(a)*r; z=Math.sin(a)*r; }while(inLake(x,z,6)||inSafe(x,z));
     const g=makeDino(k); g.position.set(x,0,z);
     const zzz=new THREE.Sprite(new THREE.SpriteMaterial({map:zzzTex,transparent:true,depthTest:false})); zzz.scale.setScalar(3/DTYPE[k].sc); zzz.position.set(0,5,0); zzz.visible=false; g.add(zzz);
     const dd={grp:g,type:k,T:DTYPE[k],x,z,tx:x,tz:z,rt:0,hitCd:0,tranq:0,sleep:0,zzz}; dinos.push(dd);
     // 🐣 los herbívoros a veces tienen una CRÍA que los sigue
-    if(DTYPE[k].passive && Math.random()<0.6){ const bg=makeDino(k); bg.scale.setScalar(DTYPE[k].sc*0.4); bg.position.set(x+3,0,z+3); dinoBabies.push({grp:bg,parent:dd,ph:Math.random()*6.28}); } }
+    if(DTYPE[k].passive && jrnd()<0.6){ const bg=makeDino(k); bg.scale.setScalar(DTYPE[k].sc*0.4); bg.position.set(x+3,0,z+3); dinoBabies.push({grp:bg,parent:dd,ph:jrnd()*6.28}); } }
   const mg=makeDino("mosa"); mg.position.set(LAKE.x,-3,LAKE.z); mg.visible=false; mosa={grp:mg,type:"mosa",T:DTYPE.mosa,hitCd:0};   // invisible bajo el agua
 }
 
@@ -604,7 +610,9 @@ let yaw=0,pitch=0,running=false,gameOver=false,tPrev=0,elapsed=0,roarT=2,stepT=0
 let jdiff="normal", jdSpeed=1, jdDmg=1, jdDet=1;
 const JDIFFS={facil:{sp:0.8,dmg:0.55,det:0.8,lbl:"🟢 FÁCIL"},normal:{sp:1,dmg:1,det:1,lbl:"🟡 NORMAL"},dificil:{sp:1.25,dmg:1.5,det:1.2,lbl:"🔴 DIFÍCIL"},extincion:{sp:1.5,dmg:2.2,det:1.5,lbl:"☄️ EXTINCIÓN"}};
 try{ const jd0=localStorage.getItem("jurassic_diff"); if(jd0&&JDIFFS[jd0]) jdiff=jd0; }catch(e){}   // 🧠 recuerda tu dificultad
-function buildJDiffs(){ const c=document.getElementById("jdiffs"); if(!c) return; c.innerHTML=""; for(const k of ["facil","normal","dificil","extincion"]){ const b=document.createElement("button"); b.className="diffbtn"+(jdiff===k?" sel":""); b.textContent=JDIFFS[k].lbl; b.onclick=()=>{ jdiff=k; try{ localStorage.setItem("jurassic_diff",k); }catch(e){} buildJDiffs(); }; c.appendChild(b); } }
+function buildJDiffs(){ const c=document.getElementById("jdiffs"); if(!c) return; c.innerHTML=""; for(const k of ["facil","normal","dificil","extincion"]){ const b=document.createElement("button"); b.className="diffbtn"+(jdiff===k?" sel":""); b.textContent=JDIFFS[k].lbl; b.onclick=()=>{ jdiff=k; try{ localStorage.setItem("jurassic_diff",k); }catch(e){} buildJDiffs(); }; c.appendChild(b); }
+  // 📅 botón DESAFÍO DEL DÍA (misma isla para todos hoy; guarda tus mejores días de hoy)
+  { const db=document.createElement("button"); db.className="diffbtn"+(dailyJ?" sel":""); const dv=loadJDaily(); db.textContent="📅 DESAFÍO DEL DÍA"+(dailyJ?" ✔":"")+(dv>0?" 🗓️"+dv.toFixed(1):""); db.title="La misma isla para todos hoy (huevo, objetos y dinos) — compara tus días con tus amigos"; db.onclick=()=>{ dailyJ=!dailyJ; buildJDiffs(); updJBest(); }; c.appendChild(db); } }
 let hp=100,hunger=100,thirst=100,invT=0,flashBatt=100,darts=6,dartCd=0,placeCd=0;
 let jStatDarts=0,jStatSleep=0,jStatWood=0,jStatDist=0,jLastX=null,jLastZ=0;   // 📊 estadísticas
 const jPath=[]; let jPathT=0;   // 🗺️ rastro de tu ruta (un punto cada 3s) para dibujar la aventura al final
@@ -887,7 +895,7 @@ const goldEgg=new THREE.Group();
   const gl=new THREE.PointLight(0xffd15a,1.1,10); gl.position.y=1; goldEgg.add(gl); goldEgg.userData.light=gl; }
 goldEgg.visible=false; scene.add(goldEgg);
 let eggTaken=false, eggPulse=0;
-function eggPlace(){ const s=EGG_SPOTS[Math.floor(Math.random()*EGG_SPOTS.length)]; goldEgg.position.set(s.x,0,s.z); goldEgg.visible=true; eggTaken=false; }
+function eggPlace(){ const s=EGG_SPOTS[Math.floor(jrnd()*EGG_SPOTS.length)]; goldEgg.position.set(s.x,0,s.z); goldEgg.visible=true; eggTaken=false; }
 function eggTick(dt){ if(eggTaken||!goldEgg.visible) return;
   eggPulse+=dt*3; const p2=1+Math.sin(eggPulse)*0.12; goldEgg.userData.egg.scale.set(p2,1.35*p2,p2);
   goldEgg.userData.light.intensity=0.9+Math.sin(eggPulse)*0.4;
@@ -929,6 +937,7 @@ function start(){ $("start").classList.add("hide"); $("end").classList.add("hide
   rainOn=false; setRainSnd(false); rainF=0; rain.visible=false; rainT=80+Math.random()*100;   // 🌧️ clima desde cero
   fireT=0; fireCd=0; campfire.visible=false; { const iF=safeZones.findIndex(s2=>s2.fire); if(iF>=0) safeZones.splice(iF,1); }   // 🔥 fogata desde cero
   ptState="circle"; ptT=45; ptA=Math.random()*6.28; ptero.position.set(85,26,0);   // 🦅 pterodáctilo desde cero
+  jRng=dailyJ?mulberry32(dailyKeyJ()):null;   // 📅 DESAFÍO DEL DÍA: desde aquí huevo, pickups y dinos salen de la semilla de la fecha
   eggPlace();   // 🥚 huevo dorado en un escondite nuevo
   legendSaid=false; jMemSaid=false;   // 👑 WALLY puede volver a celebrar el 21/21 una vez por partida · 🧠 y recordar tu aventura anterior
   stampT=100+Math.random()*120; stampOn=0; stampWarn=0;   // 🦕💨 estampida desde cero
@@ -942,10 +951,10 @@ function start(){ $("start").classList.add("hide"); $("end").classList.add("hide
   petPt.visible=petPtOn; petPtA=0; petPtWarned=false; petPt.position.set(P.x,P.y+1.3,P.z);
   if(petPtOn) setTimeout(()=>toast2("🐣 ¡tu PTERO BEBÉ te acompaña! (premio por tus rescates)"),1200);   // 🐣 mascota desbloqueada
   pickups.forEach(p=>scene.remove(p.mesh)); pickups.length=0; seedPickups();
-  dinos.forEach(d=>scene.remove(d.grp)); dinos.length=0; dinoBabies.forEach(b=>scene.remove(b.grp)); dinoBabies.length=0; if(mosa){scene.remove(mosa.grp);mosa=null;} spawnDinos();
+  dinos.forEach(d=>scene.remove(d.grp)); dinos.length=0; dinoBabies.forEach(b=>scene.remove(b.grp)); dinoBabies.length=0; if(mosa){scene.remove(mosa.grp);mosa=null;} spawnDinos(); jRng=null;   // 📅 fin de la siembra: el resto vuelve al azar
   nests.forEach(ns=>{ ns.hatched=false; ns.eggs.forEach(e=>e.visible=true); ns.chick.visible=false; });   // 🐣 nidos como nuevos
   running=true; gameOver=false; tPrev=performance.now(); updInv();
-  showStory("«...¿hay alguien ahí?...» — la señal desaparece. Escuchas un rugido a lo lejos.");
+  showStory((dailyJ?"📅 DESAFÍO DEL DÍA (misma isla para todos hoy) · ":"")+"«...¿hay alguien ahí?...» — la señal desaparece. Escuchas un rugido a lo lejos.");
 }
 function loadJBest(){ try{ return parseFloat(localStorage.getItem("jurassic_best")||"0")||0; }catch(e){ return 0; } }
 // 📅 récord SEMANAL de días (misma clave de semana que el menú y F1)
@@ -954,7 +963,7 @@ function loadJWeek(){ try{ return parseFloat(localStorage.getItem("jurassic_week
 function saveJBest(v){ try{ localStorage.setItem("jurassic_best",String(v)); }catch(e){} }
 // 📖 DIARIO DEL EXPLORADOR: resumen de hitos al final + últimas 3 aventuras guardadas (jurassic_diary) + "Última aventura" en la portada
 function jDiaryLine(e){ const p=[]; if(e.fish) p.push("🐟 "+e.fish+" peces"); if(e.cocos) p.push("🥥 "+e.cocos); if(e.berries) p.push("🫐 "+e.berries); if(e.fires) p.push("🔥 "+e.fires+(e.fires>1?" fogatas":" fogata")); if(e.ptero) p.push("🦅 "+e.ptero+" picadas"); if(e.pack) p.push("🐾 la manada te aceptó"); if(e.egg) p.push("🥚 huevo dorado"); p.push(e.hits?("🩹 "+e.hits+" ataques"):"🛡️ sin heridas"); return p.join(" · "); }
-function jDiaryEnd(win,days){ const e=Object.assign({},jDiary); e.days=+days.toFixed(1); e.win=!!win; e.diff=jdiff; const d=new Date(); e.date=d.getDate()+"/"+(d.getMonth()+1);
+function jDiaryEnd(win,days){ const e=Object.assign({},jDiary); e.days=+days.toFixed(1); e.win=!!win; e.diff=jdiff; e.daily=!!dailyJ; const d=new Date(); e.date=d.getDate()+"/"+(d.getMonth()+1);
   try{ const arr=JSON.parse(localStorage.getItem("jurassic_diary")||"[]"); arr.unshift(e); localStorage.setItem("jurassic_diary",JSON.stringify(arr.slice(0,3))); }catch(err){}
   return "<div style='margin-top:6px;font-size:13px;color:#e8d9a8;line-height:1.8'>📖 <b>DIARIO DEL EXPLORADOR</b><br>"+jDiaryLine(e)+"</div>"; }
 function updJDiary(){ const el=$("jdiary"); if(!el) return; try{ const arr=JSON.parse(localStorage.getItem("jurassic_diary")||"[]"); if(!arr.length){ el.textContent=""; return; }
@@ -964,13 +973,14 @@ function updJBest(){ updJDiary(); const b=loadJBest(), el=$("jbest"); if(!el) re
   const med=["facil","normal","dificil","extincion"].map(k=>{ let got=false; try{ got=localStorage.getItem("jurassic_win_"+k)==="1"; }catch(e){}
     return JDIFFS[k].lbl.split(" ")[0]+(got?"✔":"–"); }).join(" ");
   const jw=loadJWeek();
-  el.textContent = (b>0?("🏆 Récord: "+b.toFixed(1)+" días sobrevividos"):"🏆 Aún sin récord — ¡sobrevive!") + (jw>0?"  ·  📅 esta semana: "+jw.toFixed(1)+" días":"") + "  ·  🏅 "+med + (function(){ try{ return localStorage.getItem("jurassic_egg")==="1"?"  ·  🥚 HUEVO DORADO":""; }catch(e){ return ""; } })(); }
+  el.textContent = (b>0?("🏆 Récord: "+b.toFixed(1)+" días sobrevividos"):"🏆 Aún sin récord — ¡sobrevive!") + (jw>0?"  ·  📅 esta semana: "+jw.toFixed(1)+" días":"") + (function(){ const dv=loadJDaily(); return dv>0?"  ·  📅 mejor de HOY: "+dv.toFixed(1)+" días":""; })() + "  ·  🏅 "+med + (function(){ try{ return localStorage.getItem("jurassic_egg")==="1"?"  ·  🥚 HUEVO DORADO":""; }catch(e){ return ""; } })(); }
 function endGame(win,info){ running=false; gameOver=true; try{document.exitPointerLock();}catch(e){} $("touch").classList.remove("on"); $("touch").classList.add("hide"); $("fire").classList.add("hide"); $("jump").classList.add("hide"); $("jhelp").classList.add("hide"); $("jpauseBtn").classList.add("hide"); $("jmapBtn").classList.add("hide"); jMapOpen=false; const jm3=$("jmap"); if(jm3) jm3.style.display="none"; jhelpOpen=false; $("jhelpS").classList.remove("on");
   if(freeMode) info="🏝️ (aventura en modo libre) "+info;   // sin récords nuevos: los días topan en 7 igual
   { const fb2=$("freeBtn"); if(fb2) fb2.style.display=win?"inline-block":"none"; }   // 🏝️ solo tras GANAR
   setRainSnd(false);   // 🐛FIX auditoría: la lluvia seguía sonando en bucle infinito sobre la pantalla de fin
   const days=Math.min(7, elapsed/DAY_LEN); const prev=loadJBest(); const isRec=days>prev; if(isRec) saveJBest(days);
   try{ if(days>loadJWeek()) localStorage.setItem("jurassic_week_"+weekKey(),String(days)); }catch(e){}   // 📅 mejor de la semana
+  if(dailyJ){ try{ if(days>loadJDaily()) localStorage.setItem("jurassic_daily_"+dailyKeyJ(),String(days)); }catch(e){} }   // 📅 mejor del DESAFÍO DEL DÍA
   const t=$("endTitle"); if(win){ t.textContent="✓ RESCATADO"; t.className="big win"; try{ localStorage.setItem("jurassic_win_"+jdiff,"1"); }catch(e){} } else { t.textContent="✕ NO SOBREVIVISTE"; t.className="big lose";
     const MOTIV=["La próxima lo logras, agente 💪","WALLY cree en ti 🤖","La isla respeta a quien vuelve a intentarlo","Cada día sobrevivido cuenta","Hasta los T-Rex fallan a veces"];
     info+="<br><span style='color:#8fd0a8'>💙 "+MOTIV[Math.floor(Math.random()*MOTIV.length)]+"</span>"; }
