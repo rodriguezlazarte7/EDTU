@@ -5711,6 +5711,7 @@ const F1={
     $("f1Hud").textContent="⚡ "+Math.round(this.speed)+" km/h · 📏 "+(this.dist>=1000?(this.dist/1000).toFixed(2)+" km":Math.round(this.dist)+" m")+" · 🏁 "+this.overt+(this.drs?" · 🟢 DRS":"");
   },
   crash(){
+    try{ if(navigator.vibrate) navigator.vibrate([0,120,60,180]); }catch(e){}   // 📳 golpe de choque
     this.crashSound(); this.engineOff(); this.running=false;
     if(navigator.vibrate){ try{ navigator.vibrate([120,60,180]); }catch(e){} }
     const m=Math.round(this.dist), rec=m>this.best;
