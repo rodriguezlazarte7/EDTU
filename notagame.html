@@ -461,7 +461,7 @@ scene.add(tracer); let tracerT=0;
 
 // ---------- jugador ----------
 const P={x:0,z:ARENA-5,y:1.7,vy:0,onGround:true,speed:6.5,hp:100};
-let yaw=0, pitch=0, running=false, gameOver=false, tPrev=0, cluesGot=0, kills=0, muzzle=0, shootCd=0, startT=0, level="surface", heliMode=false, stepT=0, rotorT=0, ambT=10;
+let yaw=0, pitch=0, running=false, gameOver=false, tPrev=0, cluesGot=0, kills=0, muzzle=0, shootCd=0, startT=0, level="surface", heliMode=false, stepT=0, rotorT=0, ambT=10, lastDayF=0, zMul=1;
 
 // ---------- input ----------
 const keys={};
@@ -655,14 +655,17 @@ function update(dt){
     if(heliLamp){ heliLamp.intensity=0.4+(1-dayF)*2.2; heliLamp.target.position.x=heliSpot.x+Math.sin(now*0.5)*8; heliLamp.target.position.z=heliSpot.z+6+Math.cos(now*0.5)*5; }   // 🔦 foco del heli barre el suelo
     if(casa13Sign){ const on=Math.random()<0.94; casa13Sign.material.opacity=on?1:0.15; if(casa13Light) casa13Light.intensity=(on?0.9:0.1)+(1-dayF)*0.6; }   // 🏚️ neón "13" fallando
     if(dn) dn.textContent = dayF>0.5 ? "☀️ DÍA" : "🌙 NOCHE";
+    lastDayF=dayF;
   }
   // zombies: ¡un toque = muerte! (solo en la SUPERFICIE; el drenaje es refugio)
   let danger=false, fear=0;
+  // ⚖️ balance día/noche: lentos de día (0.8x), RÁPIDOS de noche (1.25x)
+  zMul = 0.8 + (1-lastDayF)*0.45;
   // 🎵 zumbido ominoso en el hospital
   if(level==="hospital"){ droneT-=dt; if(droneT<=0){ droneT=2.5+Math.random()*2.5; snd(38+Math.random()*8,"sawtooth",1.1,0.035); } }
   if(level==="surface") zombies.forEach(z=>{ if(z.dead)return;
     const dxz=P.x-z.grp.position.x, dzz=P.z-z.grp.position.z, d=Math.hypot(dxz,dzz);
-    if(d>0.9){ const nx=z.grp.position.x+dxz/d*z.sp*dt, nz=z.grp.position.z+dzz/d*z.sp*dt;   // chocan con paredes
+    if(d>0.9){ const nx=z.grp.position.x+dxz/d*z.sp*zMul*dt, nz=z.grp.position.z+dzz/d*z.sp*zMul*dt;   // chocan con paredes (velocidad según día/noche)
       if(!collide(nx,z.grp.position.z)) z.grp.position.x=nx;
       if(!collide(z.grp.position.x,nz)) z.grp.position.z=nz; }
     z.grp.rotation.y=Math.atan2(dxz,dzz);
