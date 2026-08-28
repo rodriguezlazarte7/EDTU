@@ -313,6 +313,24 @@ const butterflies=[];
     g.position.set(Math.cos(a)*r,1+Math.random()*1.5,Math.sin(a)*r); scene.add(g);
     butterflies.push({g,wL,wR,mt,ph:Math.random()*6.28,vx:0,vz:0,turnT:0}); }
 })();
+// 🐣 NIDOS DE HUEVOS: si te acercas, un huevo ECLOSIONA y nace una cría que da vueltas al nido
+function toast2(txt){ let el=document.getElementById("toast2"); if(!el){ el=document.createElement("div"); el.id="toast2";
+  el.style.cssText="position:fixed;top:22%;left:50%;transform:translateX(-50%);z-index:8;font-weight:900;font-size:22px;color:#ffe9a8;text-shadow:0 0 12px #000;opacity:0;transition:opacity .3s;pointer-events:none;font-family:inherit";
+  document.body.appendChild(el); } el.textContent=txt; el.style.opacity="1"; clearTimeout(el._t); el._t=setTimeout(()=>{ el.style.opacity="0"; },2600); }
+const nests=[];
+(function makeNests(){ const spots=[[-60,20],[40,70],[-30,-65]];
+  const twigM=new THREE.MeshStandardMaterial({color:0x6b4a26,roughness:1});
+  const eggM=new THREE.MeshStandardMaterial({color:0xf2ead8,roughness:.6});
+  const chickM=new THREE.MeshStandardMaterial({color:0x9ac26a,roughness:.8});
+  for(const [nx,nz] of spots){ const g=new THREE.Group(); g.position.set(nx,0,nz); scene.add(g);
+    const ring=new THREE.Mesh(new THREE.TorusGeometry(1.1,0.32,8,18),twigM); ring.rotation.x=Math.PI/2; ring.position.y=0.25; g.add(ring);
+    const eggs=[]; for(let e=0;e<3;e++){ const egg=new THREE.Mesh(new THREE.SphereGeometry(0.34,10,8),eggM); egg.scale.y=1.35;
+      const ea=e*2.1; egg.position.set(Math.cos(ea)*0.45,0.45,Math.sin(ea)*0.45); g.add(egg); eggs.push(egg); }
+    const chick=new THREE.Group(); const cb=new THREE.Mesh(new THREE.SphereGeometry(0.26,10,8),chickM); cb.position.y=0.3; chick.add(cb);
+    const ch=new THREE.Mesh(new THREE.SphereGeometry(0.16,8,7),chickM); ch.position.set(0,0.58,0.2); chick.add(ch);
+    chick.visible=false; g.add(chick);
+    nests.push({g,x:nx,z:nz,eggs,chick,hatched:false,ph:Math.random()*6.28}); }
+})();
 // ---------- ZONAS SEGURAS (los dinos NO entran) ----------
 const safeZones=[{x:SH.x,z:SH.z,r:7}];   // la cabaña
 function addSafeZone(x,z,r){ safeZones.push({x,z,r});
@@ -476,6 +494,7 @@ function start(){ $("start").classList.add("hide"); $("end").classList.add("hide
   P.x=0; P.z=22; P.y=1.7; P.vy=0; P.onGround=true; yaw=Math.PI; pitch=0; hp=100; hunger=100; thirst=100; flashBatt=100; darts=6; elapsed=0; radioOn=false; inv.water=2; inv.food=2; inv.wood=0; inv.batt=0; updAmmo();
   pickups.forEach(p=>scene.remove(p.mesh)); pickups.length=0; seedPickups();
   dinos.forEach(d=>scene.remove(d.grp)); dinos.length=0; dinoBabies.forEach(b=>scene.remove(b.grp)); dinoBabies.length=0; if(mosa){scene.remove(mosa.grp);mosa=null;} spawnDinos();
+  nests.forEach(ns=>{ ns.hatched=false; ns.eggs.forEach(e=>e.visible=true); ns.chick.visible=false; });   // 🐣 nidos como nuevos
   running=true; gameOver=false; tPrev=performance.now(); updInv();
   showStory("«...¿hay alguien ahí?...» — la señal desaparece. Escuchas un rugido a lo lejos.");
 }
@@ -570,6 +589,14 @@ function update(dt){
     const k=1+(0.9-sp2.life)*6; sp2.m.scale.set(k,k,k); sp2.m.material.opacity=sp2.life*0.9; }
   // ✨ luciérnagas: brillan de noche, titilan y "flotan" girando lento
   if(fireflies){ fireflyMat.opacity=(1-lightF)*(0.55+0.35*Math.abs(Math.sin(elapsed*2.2))); fireflies.position.y=Math.sin(elapsed*0.9)*0.35; fireflies.position.x=Math.sin(elapsed*0.5)*0.4; }
+  // 🐣 nidos: al acercarte a <4m eclosiona un huevo — crack + píos + nace la cría
+  for(const ns of nests){
+    if(!ns.hatched && Math.hypot(P.x-ns.x,P.z-ns.z)<4){ ns.hatched=true; ns.eggs[0].visible=false; ns.chick.visible=true;
+      snd(190,"sawtooth",0.08,0.09); setTimeout(()=>snd(150,"sawtooth",0.09,0.09),120);
+      [1400,1650,1400].forEach((fq,k)=>setTimeout(()=>snd(fq,"triangle",0.09,0.05),300+k*160));
+      toast2("🐣 ¡Un huevo eclosionó! Nació una cría"); }
+    if(ns.hatched){ const ca=elapsed*1.4+ns.ph; ns.chick.position.set(Math.cos(ca)*0.9,Math.abs(Math.sin(elapsed*7+ns.ph))*0.12,Math.sin(ca)*0.9);
+      ns.chick.rotation.y=-ca+Math.PI/2; if(Math.random()<dt*0.25) snd(1500+Math.random()*250,"triangle",0.07,0.03); } }
   // 🦋 mariposas: aletean, dan vueltas al azar y solo se ven con luz de día
   for(const bf of butterflies){ bf.mt.opacity=lightF*0.95; bf.g.visible=lightF>0.05; if(!bf.g.visible) continue;
     const fw=Math.sin(elapsed*14+bf.ph)*0.9; bf.wL.rotation.y=fw; bf.wR.rotation.y=-fw;
