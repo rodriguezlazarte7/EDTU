@@ -200,6 +200,17 @@ for(let i=0;i<5;i++){ const s=freeSpot(10,ARENA-6,3);
   const head=new THREE.Mesh(new THREE.SphereGeometry(0.28,10,8),new THREE.MeshBasicMaterial({color:0xffd890})); head.position.set(s.x,4.7,s.z); scene.add(head);
   const ll=new THREE.PointLight(0xffc46a,0,13); ll.position.set(s.x,4.4,s.z); scene.add(ll);
   streetLamps.push({l:ll,b:head}); addWall(s.x-0.2,s.x+0.2,s.z-0.2,s.z+0.2); }
+// 🚗 AUTOS ABANDONADOS en las calles (algunos con puertas abiertas, uno volcado)
+const carCols=[0x5a1e1e,0x1e3a5a,0x4a4a42,0x2a4a2a,0x5a5240];
+for(let i=0;i<6;i++){ const s=freeSpot(9,ARENA-6,3.4); const rot=Math.random()*6.28; const col=carCols[i%carCols.length];
+  const cg=new THREE.Group(); cg.position.set(s.x,0,s.z); cg.rotation.y=rot; scene.add(cg);
+  const bodyM=new THREE.MeshStandardMaterial({color:col,metalness:.5,roughness:.6});
+  const body=new THREE.Mesh(new THREE.BoxGeometry(1.9,0.55,4.2),bodyM); body.position.y=0.55; cg.add(body);
+  const cab=new THREE.Mesh(new THREE.BoxGeometry(1.7,0.5,2.1),new THREE.MeshStandardMaterial({color:0x101820,metalness:.3,roughness:.4})); cab.position.set(0,1.05,-0.2); cg.add(cab);
+  for(const c of [[-0.95,1.45],[0.95,1.45],[-0.95,-1.45],[0.95,-1.45]]){ const wl=new THREE.Mesh(new THREE.CylinderGeometry(0.32,0.32,0.22,10),new THREE.MeshStandardMaterial({color:0x0c0c0c,roughness:.9})); wl.rotation.z=Math.PI/2; wl.position.set(c[0],0.32,c[1]); cg.add(wl); }
+  if(i===0){ cg.rotation.z=Math.PI; cg.position.y=1.15; }   // uno VOLCADO de techo
+  if(i===1){ const door=new THREE.Mesh(new THREE.BoxGeometry(0.08,0.5,1.1),bodyM); door.position.set(1.15,0.6,0.6); door.rotation.y=0.9; cg.add(door); }   // puerta abierta
+  addWall(s.x-1.6,s.x+1.6,s.z-1.6,s.z+1.6); }
 
 // ---------- DRENAJE: túnel de LADRILLO con bóveda (alcantarilla) ----------
 const DRAINX=0, DRAINZ=200, DW=11, DL=64;   // ancho (colisión) y largo del túnel (a lo largo de z)
