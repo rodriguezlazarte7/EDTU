@@ -200,6 +200,15 @@ for(let i=0;i<5;i++){ const s=freeSpot(10,ARENA-6,3);
   const head=new THREE.Mesh(new THREE.SphereGeometry(0.28,10,8),new THREE.MeshBasicMaterial({color:0xffd890})); head.position.set(s.x,4.7,s.z); scene.add(head);
   const ll=new THREE.PointLight(0xffc46a,0,13); ll.position.set(s.x,4.4,s.z); scene.add(ll);
   streetLamps.push({l:ll,b:head}); addWall(s.x-0.2,s.x+0.2,s.z-0.2,s.z+0.2); }
+// 🐦‍⬛ CUERVOS posados que LEVANTAN VUELO si te acercas (con graznido)
+const crows=[]; const crowM=new THREE.MeshStandardMaterial({color:0x0a0a10,roughness:.9});
+for(let i=0;i<6;i++){ const s=freeSpot(8,ARENA-4,1.5); const g=new THREE.Group();
+  const b2=new THREE.Mesh(new THREE.SphereGeometry(0.16,8,7),crowM); b2.scale.set(1,0.9,1.5); b2.position.y=0.15; g.add(b2);
+  const hd=new THREE.Mesh(new THREE.SphereGeometry(0.09,7,6),crowM); hd.position.set(0,0.26,0.2); g.add(hd);
+  const wL=new THREE.Mesh(new THREE.BoxGeometry(0.42,0.03,0.2),crowM); wL.position.set(-0.24,0.2,0); g.add(wL);
+  const wR=wL.clone(); wR.position.x=0.24; g.add(wR);
+  g.position.set(s.x,0,s.z); g.rotation.y=Math.random()*6.28; scene.add(g);
+  crows.push({grp:g,wL,wR,fly:0,vx:0,vz:0,hx:s.x,hz:s.z}); }
 // 🚗 AUTOS ABANDONADOS en las calles (algunos con puertas abiertas, uno volcado)
 const carCols=[0x5a1e1e,0x1e3a5a,0x4a4a42,0x2a4a2a,0x5a5240];
 for(let i=0;i<6;i++){ const s=freeSpot(9,ARENA-6,3.4); const rot=Math.random()*6.28; const col=carCols[i%carCols.length];
@@ -680,6 +689,16 @@ function update(dt){
     // 🏮 faroles: se encienden al anochecer (algunos titilan)
     for(const sl of streetLamps){ const base=(1-dayF)*1.4; sl.l.intensity=base*(Math.random()<0.06?0.2:1); sl.b.material.color.setHex(dayF>0.6?0x555550:0xffd890); }
     lastDayF=dayF;
+  }
+  // 🐦‍⬛ cuervos: si te acercas a <6m LEVANTAN VUELO graznando y luego vuelven a posarse lejos
+  if(level==="surface") for(const cr of crows){
+    if(cr.fly<=0){ const cd2=Math.hypot(P.x-cr.grp.position.x,P.z-cr.grp.position.z);
+      if(cd2<6){ cr.fly=4; const aw=Math.atan2(cr.grp.position.z-P.z,cr.grp.position.x-P.x); cr.vx=Math.cos(aw)*7+(Math.random()-0.5)*3; cr.vz=Math.sin(aw)*7+(Math.random()-0.5)*3;
+        snd(700+Math.random()*300,"sawtooth",0.18,0.06); setTimeout(()=>snd(650+Math.random()*300,"sawtooth",0.15,0.05),160); } }
+    else { cr.fly-=dt; cr.grp.position.x+=cr.vx*dt; cr.grp.position.z+=cr.vz*dt;
+      cr.grp.position.y=Math.min(9,cr.grp.position.y+ (cr.fly>2?5:-4)*dt); if(cr.grp.position.y<0) cr.grp.position.y=0;
+      const fl2=Math.sin(now*22)*0.9; cr.wL.rotation.z=fl2; cr.wR.rotation.z=-fl2; cr.grp.rotation.y=Math.atan2(cr.vx,cr.vz);
+      if(cr.fly<=0){ cr.grp.position.y=0; cr.wL.rotation.z=0; cr.wR.rotation.z=0; } }
   }
   // zombies: ¡un toque = muerte! (solo en la SUPERFICIE; el drenaje es refugio)
   let danger=false, fear=0;
