@@ -184,6 +184,12 @@ const ocean=new THREE.Mesh(new THREE.CircleGeometry(560,48),new THREE.MeshStanda
 const ground=new THREE.Mesh(new THREE.CircleGeometry(ISLR,64),new THREE.MeshStandardMaterial({map:grassTex,roughness:1})); ground.rotation.x=-Math.PI/2; ground.position.y=0; scene.add(ground);
 const beach=new THREE.Mesh(new THREE.RingGeometry(ISLR-8,ISLR,64),new THREE.MeshStandardMaterial({map:sandTex,roughness:1})); beach.rotation.x=-Math.PI/2; beach.position.y=0.02; scene.add(beach);
 // LAGO (con Mosasaurus)
+// ⭐ ESTRELLAS (solo se ven de noche)
+const starGeo=new THREE.BufferGeometry(), starV=[];
+for(let i=0;i<420;i++){ const a=Math.random()*6.283, e=Math.random()*1.35+0.12, r=480; starV.push(Math.cos(a)*Math.cos(e)*r, Math.sin(e)*r, Math.sin(a)*Math.cos(e)*r); }
+starGeo.setAttribute("position",new THREE.Float32BufferAttribute(starV,3));
+const starMat=new THREE.PointsMaterial({color:0xdfe8ff,size:1.6,transparent:true,opacity:0,sizeAttenuation:false});
+scene.add(new THREE.Points(starGeo,starMat));
 const LAKE={x:70,z:-40,r:34};
 const lake=new THREE.Mesh(new THREE.CircleGeometry(LAKE.r,40),new THREE.MeshStandardMaterial({color:0x1d6f8a,roughness:.35,metalness:.2,transparent:true,opacity:.92,emissive:0x0a4a5a,emissiveIntensity:.3})); lake.rotation.x=-Math.PI/2; lake.position.set(LAKE.x,0.05,LAKE.z); scene.add(lake);
 
@@ -436,6 +442,7 @@ function update(dt){
   // 🌊 agua animada: leve oleaje (sube y baja) + brillo que ondula
   lake.position.y=0.05+Math.sin(elapsed*1.3)*0.06; lake.material.emissiveIntensity=0.2+Math.abs(Math.sin(elapsed*1.7))*0.4;
   ocean.position.y=-0.6+Math.sin(elapsed*0.8)*0.08; ocean.material.emissiveIntensity=0.15+Math.abs(Math.sin(elapsed*1.1))*0.25;
+  starMat.opacity=(1-lightF)*0.9;   // ⭐ estrellas: aparecen al oscurecer, se van de día
   // 🔥 fogata que parpadea y "baila"
   if(fireLight){ fireLight.intensity=1.3+Math.random()*0.7; fireCone.scale.y=0.85+Math.random()*0.35; fireCone.rotation.y+=dt*2; }
   // 🔦 batería de la linterna: se gasta cuando alumbra fuerte (de noche); si se agota, casi no ilumina
