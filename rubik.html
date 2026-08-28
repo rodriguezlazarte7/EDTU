@@ -147,15 +147,20 @@ function updAIBar(){ const done=aiTotal?(aiTotal-aiQueue.length)/aiTotal:0; cons
   if(done>=0.5&&!aiT50&&state==="race"&&!ended){ aiT50=true; aiSay("¡Ya voy por la mitad!"); }
   if(done>=0.9&&!aiT90&&state==="race"&&!ended){ aiT90=true; aiSay("¡Casi termino! ¡Apúrate!"); } }
 function startRace(){
+  if(state==="count") return;   // ya hay una cuenta corriendo
   document.getElementById("intro").classList.add("hide");
-  ended=false; state="race"; moveCount=0; document.getElementById("mvs").textContent="🔄 0";
-  newScramble();
-  raceStart=performance.now();
-  showMsg("");
-  // IA resuelve deshaciendo el revuelto (en vivo)
-  aiQueue=scramble.slice().reverse().map(m=>({face:m.face,dir:-m.dir}));
-  aiTotal=aiQueue.length; aiT50=false; aiT90=false; updAIBar(); undoStack.length=0;
-  clearTimeout(aiTimer); aiStep();
+  clearTimeout(aiTimer); ended=false; state="count"; moveCount=0; document.getElementById("mvs").textContent="🔄 0";
+  undoStack.length=0; document.getElementById("timer").textContent="0.0s";
+  // ⏱️ CUENTA REGRESIVA estilo F1: 3.. 2.. 1.. ¡YA! y recién ahí se revuelve y parte la IA
+  let n=3; showMsg("3","#ffd12e"); snd(440,"square",0.12,0.06);
+  const step=()=>{ n--;
+    if(n>0){ showMsg(String(n),"#ffd12e"); snd(440,"square",0.12,0.06); setTimeout(step,700); }
+    else { showMsg("¡YA!","#39ff14"); snd(880,"square",0.3,0.08); setTimeout(()=>{ if(state==="race") showMsg(""); },500);
+      state="race"; newScramble(); raceStart=performance.now();
+      // IA resuelve deshaciendo el revuelto (en vivo)
+      aiQueue=scramble.slice().reverse().map(m=>({face:m.face,dir:-m.dir}));
+      aiTotal=aiQueue.length; aiT50=false; aiT90=false; updAIBar(); aiStep(); } };
+  setTimeout(step,700);
 }
 function aiStep(){
   if(ended) return;
