@@ -5784,6 +5784,11 @@ const F1={
     });
     // TU auto (cámara detrás): se inclina al doblar
     const px=W/2 + this.steer*14, py=H*0.86;
+    // 💨 HUMO de derrape: nubes grises tras las ruedas cuando chirrían
+    this._smoke=this._smoke||[];
+    if((this._skidT||0)>0.08){ for(const s of [-1,1]) this._smoke.push({x:px+s*W*0.085,y:py+H*0.025,r:6+Math.random()*8,a:0.4}); }
+    for(let i=this._smoke.length-1;i>=0;i--){ const p=this._smoke[i]; p.r+=1.6; p.y+=1.2; p.a-=0.018; if(p.a<=0){ this._smoke.splice(i,1); continue; }
+      c.fillStyle="rgba(190,190,200,"+p.a.toFixed(3)+")"; c.beginPath(); c.arc(p.x,p.y,p.r,0,6.28); c.fill(); }
     c.save(); c.translate(px,py); c.rotate(this.steer*0.06); c.translate(-px,-py);
     this.drawCarBack(c,px,py,W*0.24,["#1e2f66","#c8102e"],true);
     c.restore();
