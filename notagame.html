@@ -263,9 +263,23 @@ let wallyNSeen=false, wNBalR=null, wNBalB=null;
 // 🤖💬 hablar con WALLY (E cerca de él): escanea y te dice hacia dónde queda la PISTA más cercana
 let wallyNTalkCd=0;
 const WQUIPS_N=["¡Beep-boop! Detective WALLY al servicio 🕵️","Los zombies no muerden metal... creo","Acaricia al perro de mi parte 🐕","Modo sigilo activado (brillo mucho, no funciona)","Mis balizas asustan a los zombies... a veces","Una vez gané una carrera de mBots, ¿te conté? 🏁","Este caso lo resolvemos juntos, agente","Escaneé la luna... hoy se ve sospechosa"];
+// 🏆 ¿los 21 logros EDTU completos? (mismo cálculo que el menú)
+function edtuLegend(){ try{ const g=k=>localStorage.getItem(k)==="1"; let n=0;
+  ["facil","normal","pesadilla","infierno"].forEach(k=>{ if(g("scream_win_"+k)) n++; });
+  ["facil","normal","dificil","extincion"].forEach(k=>{ if(g("jurassic_win_"+k)) n++; });
+  [25,50,100,200].forEach(k=>{ if(g("nag_kills_"+k)) n++; });
+  [1000,3000,5000,10000].forEach(k=>{ if(g("edtu_f1_km_"+k)) n++; });
+  ["wally_jurassic","wally_notagame","wally_scream","wally_f1"].forEach(k=>{ if(g(k)) n++; });
+  if(g("jurassic_egg")) n++;
+  return n>=21; }catch(e){ return false; } }
+let legendSaid=false;
+function wallyLegend(){ if(legendSaid||!edtuLegend()) return false; legendSaid=true;
+  try{ if(window.speechSynthesis){ const u=new SpeechSynthesisUtterance("¡Veintiuno de veintiuno! ¡Eres leyenda de EDTU, agente!"); u.lang="es-ES"; u.pitch=1.6; u.rate=1.1; u.volume=0.9; speechSynthesis.speak(u); } }catch(e){}
+  return true; }
 function talkWallyN(){ if(wallyNTalkCd>0||!running||gameOver||level!=="surface") return;
   if(Math.hypot(P.x-wallyN.position.x,P.z-wallyN.position.z)>3) return;
   wallyNTalkCd=5; [880,1175,1320].forEach((fq,k)=>setTimeout(()=>snd(fq,"square",0.07,0.06),k*100));
+  if(wallyLegend()){ showStory("🤖 WALLY: «¡21/21! Eres LEYENDA de EDTU, agente 👑»"); return; }
   const q=WQUIPS_N[Math.floor(Math.random()*WQUIPS_N.length)];
   let best=null,bd=1e9; drawers.forEach(d=>{ if(d.open)return; const d2=Math.hypot(P.x-d.cx,P.z-d.cz); if(d2<bd){ bd=d2; best=d; } });
   if(!best){ showStory("🤖 WALLY: «"+q+"» · ya tienes TODAS las pistas. ¡Resuelve el caso!"); return; }
@@ -809,6 +823,7 @@ function startGame(){
   sirenOn=0; sirenDone=false; scene.fog.color.setHex(0x050308);   // 🚨 reset modo sirena
   catAlly=0; catScare=0; cat.visible=false; catT=20+Math.random()*30;   // 🐈‍⬛ reset gato
   nRainOn=false; nRainF=0; setNRainSnd(false); nRain.visible=false;   // 🌧️ reset lluvia
+  legendSaid=false;   // 👑 WALLY puede volver a celebrar el 21/21 una vez por partida
   nPaused=false; const po4=document.getElementById("nPauseOv"); if(po4) po4.style.display="none";   // ⏸ reset pausa
   try{ nTutOn=!localStorage.getItem("nag_tut1"); }catch(e){ nTutOn=false; }  nTutStep=0; nTutT=5;   // 🎓 tutorial solo la primera vez
   bloodMoon=false; lastDayF=0; dawnFog=0;   // 🐛FIX ronda2: la luna de sangre y la niebla se filtraban a la partida nueva

@@ -579,9 +579,23 @@ function genBar(p){ let el=document.getElementById("genbar");
     const i2=document.createElement("i"); i2.style.cssText="display:block;height:100%;width:0;background:#ffd15a"; el.appendChild(i2); document.body.appendChild(el); }
   el.style.display=(p>=0&&p<1)?"block":"none"; el.firstElementChild.style.width=Math.max(0,Math.min(100,p*100))+"%"; }
 const WQUIPS_S=["¡Beep-boop! Qué oscuro está todo...","Mis sensores tiemblan... ¿o soy yo?","Si ves a la araña CORRE, yo solo ruedo","Una vez gané una carrera de mBots 🏁","Mi linterna nunca se queda sin pilas 😎","Cálculo: 87% de probabilidad de que ganes","Dejé las balizas prendidas para que me encuentres","Tú salva el edificio, yo vigilo este piso"];
+// 🏆 ¿los 21 logros EDTU completos? (mismo cálculo que el menú)
+function edtuLegend(){ try{ const g=k=>localStorage.getItem(k)==="1"; let n=0;
+  ["facil","normal","pesadilla","infierno"].forEach(k=>{ if(g("scream_win_"+k)) n++; });
+  ["facil","normal","dificil","extincion"].forEach(k=>{ if(g("jurassic_win_"+k)) n++; });
+  [25,50,100,200].forEach(k=>{ if(g("nag_kills_"+k)) n++; });
+  [1000,3000,5000,10000].forEach(k=>{ if(g("edtu_f1_km_"+k)) n++; });
+  ["wally_jurassic","wally_notagame","wally_scream","wally_f1"].forEach(k=>{ if(g(k)) n++; });
+  if(g("jurassic_egg")) n++;
+  return n>=21; }catch(e){ return false; } }
+let legendSaid=false;
+function wallyLegend(){ if(legendSaid||!edtuLegend()) return false; legendSaid=true;
+  try{ if(window.speechSynthesis){ const u=new SpeechSynthesisUtterance("¡Veintiuno de veintiuno! ¡Eres leyenda de EDTU, agente!"); u.lang="es-ES"; u.pitch=1.6; u.rate=1.1; u.volume=0.9; speechSynthesis.speak(u); } }catch(e){}
+  return true; }
 function talkWally(){ if(wallyTalkCd>0||!running||gameOver) return;
   if(wallySF!==curFloor || Math.hypot(P.x-wallyS.position.x,P.z-wallyS.position.z)>3) return;
   wallyTalkCd=5; [880,1175,1320].forEach((fq,k)=>setTimeout(()=>snd(fq,"square",0.07,0.06),k*100));
+  if(wallyLegend()){ showStory("🤖 WALLY: «¡21/21! Eres LEYENDA de EDTU, agente 👑»"); vib(80); return; }
   const v=valves.filter(x=>!x.got&&x.f===curFloor).length, s2=samples.filter(x=>!x.got&&x.f===curFloor).length,
         c3=clocks.filter(x=>!x.got&&x.f===curFloor).length, m2=medkits.filter(x=>!x.got&&x.f===curFloor).length;
   const parts=[]; if(v)parts.push(v+" válvula"+(v>1?"s":"")); if(s2)parts.push(s2+" muestra"+(s2>1?"s":"")); if(c3)parts.push(c3+" reloj"+(c3>1?"es":"")); if(m2)parts.push(m2+" botiquín"+(m2>1?"es":""));
@@ -758,6 +772,7 @@ function start(){ $("start").classList.add("hide"); $("end").classList.add("hide
   manqF=Math.floor(Math.random()*FLOORS); placeManq(false); manqT=6; manqMoveT=25; manqSting=false;   // 🧍 maniquí nuevo
   genF=Math.floor(Math.random()*FLOORS); { const gs=randSpotOnFloor(genF); genM.position.set(gs.x,genF*FLOOR_H,gs.z); }   // ⚡ generador nuevo
   genUsed=false; genOn=0; genCharge=0; genBar(-1); ambient.intensity=0.05; ambient.color.setHex(0x241018);
+  legendSaid=false;   // 👑 WALLY puede volver a celebrar el 21/21 una vez por partida
   phoneActive=false; phoneT=35+Math.random()*35; placePhone();   // 📞 teléfono nuevo
   placeWallyS();   // 🤖 WALLY en otro piso
   hp=hpMax; stam=100; hurtCd=0; safeTime=0; sprintHeld=false; visorBatt=100; updHP(); $("crack").style.opacity="0"; $("fade").style.background="#000"; $("fade").style.opacity="0";

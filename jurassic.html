@@ -417,9 +417,23 @@ let turtA=Math.random()*6.28, turtHide=0, turtSeen=false;
 let petBCd=0, petBTaught=false;
 // 🤖💬 hablar con WALLY (E cerca de él): escanea la isla y te apunta a la BATERÍA más cercana
 const WQUIPS_J=["¡Beep! Los dinos no comen robots 😎","Un raptor me olfateó y no le gusté","Yo también fui una cría... de fábrica","En la carrera de mBots nadie me alcanzó 🏁","La lluvia me hace cosquillas en los circuitos","87% de batería y 100% de ganas","El T-Rex y yo tenemos un acuerdo: ni él ni yo","Si escuchas pasos GRANDES... yo no fui"];
+// 🏆 ¿los 21 logros EDTU completos? (mismo cálculo que el menú)
+function edtuLegend(){ try{ const g=k=>localStorage.getItem(k)==="1"; let n=0;
+  ["facil","normal","pesadilla","infierno"].forEach(k=>{ if(g("scream_win_"+k)) n++; });
+  ["facil","normal","dificil","extincion"].forEach(k=>{ if(g("jurassic_win_"+k)) n++; });
+  [25,50,100,200].forEach(k=>{ if(g("nag_kills_"+k)) n++; });
+  [1000,3000,5000,10000].forEach(k=>{ if(g("edtu_f1_km_"+k)) n++; });
+  ["wally_jurassic","wally_notagame","wally_scream","wally_f1"].forEach(k=>{ if(g(k)) n++; });
+  if(g("jurassic_egg")) n++;
+  return n>=21; }catch(e){ return false; } }
+let legendSaid=false;
+function wallyLegend(){ if(legendSaid||!edtuLegend()) return false; legendSaid=true;
+  try{ if(window.speechSynthesis){ const u=new SpeechSynthesisUtterance("¡Veintiuno de veintiuno! ¡Eres leyenda de EDTU, agente!"); u.lang="es-ES"; u.pitch=1.6; u.rate=1.1; u.volume=0.9; speechSynthesis.speak(u); } }catch(e){}
+  return true; }
 function talkWallyJ(){ if(petBCd>0) return false;
   if(Math.hypot(P.x-wally.position.x,P.z-wally.position.z)>3) return false;
   petBCd=5; [880,1175,1320].forEach((fq,k)=>setTimeout(()=>snd(fq,"square",0.07,0.06),k*100));
+  if(wallyLegend()){ toast2("🤖 WALLY: «¡21/21! Eres LEYENDA de EDTU, agente 👑»"); return true; }
   const q=WQUIPS_J[Math.floor(Math.random()*WQUIPS_J.length)];
   if(inv.batt>=3){ toast2("🤖 WALLY: «"+q+"» · ¡ya tienes las 3 baterías, a la torre de radio!"); return true; }
   let best=null, bd=1e9;
@@ -768,6 +782,7 @@ function start(){ $("start").classList.add("hide"); $("end").classList.add("hide
   fireT=0; fireCd=0; campfire.visible=false; { const iF=safeZones.findIndex(s2=>s2.fire); if(iF>=0) safeZones.splice(iF,1); }   // 🔥 fogata desde cero
   ptState="circle"; ptT=45; ptA=Math.random()*6.28; ptero.position.set(85,26,0);   // 🦅 pterodáctilo desde cero
   eggPlace();   // 🥚 huevo dorado en un escondite nuevo
+  legendSaid=false;   // 👑 WALLY puede volver a celebrar el 21/21 una vez por partida
   pickups.forEach(p=>scene.remove(p.mesh)); pickups.length=0; seedPickups();
   dinos.forEach(d=>scene.remove(d.grp)); dinos.length=0; dinoBabies.forEach(b=>scene.remove(b.grp)); dinoBabies.length=0; if(mosa){scene.remove(mosa.grp);mosa=null;} spawnDinos();
   nests.forEach(ns=>{ ns.hatched=false; ns.eggs.forEach(e=>e.visible=true); ns.chick.visible=false; });   // 🐣 nidos como nuevos
