@@ -417,6 +417,11 @@ function makeSpider(){
 }
 for(let f=0;f<FLOORS;f++) buildFloor(f);
 spider=makeSpider();
+// 🕷️ CRÍAS DE ARAÑA: pequeñas, SIEMPRE visibles, sin teleport; rondan y muerden (1 corazón)
+const babies=[];
+for(let i=0;i<3;i++){ const b=makeSpider(); b.grp.scale.setScalar(0.22);
+  b.bodyMats.forEach(m=>{ m.opacity=0.92; });   // sin camuflaje: se ven siempre
+  babies.push({grp:b.grp,legs:b.legs,f:0,wdir:Math.random()*6.28,sp:2.3,hitCd:0}); }
 
 // ---------- jugador / input ----------
 const P={x:0,z:HH-7,y:1.7};
@@ -517,6 +522,7 @@ function start(){ $("start").classList.add("hide"); $("end").classList.add("hide
   samples.forEach(v=>{ v.got=false; v.grp.visible=true; if(v.light) v.light.userData.fl=v.f; });
   notes.forEach(v=>{ v.got=false; v.grp.visible=true; if(v.light) v.light.userData.fl=v.f; }); notesGot=0; $("note").classList.remove("on");
   reposition(valves,1); reposition(samples,1); reposition(notes,1.2);   // 🎲 ítems en lugares distintos cada partida
+  babies.forEach(b=>{ b.f=Math.floor(Math.random()*FLOORS); const bs=randSpotOnFloor(b.f); b.grp.position.set(bs.x,b.f*FLOOR_H,bs.z); b.grp.visible=true; b.hitCd=0; });
   spiderFloor=Math.floor(Math.random()*FLOORS); const ss=randSpotOnFloor(spiderFloor);
   if(spider){ spider.grp.visible=true; spider.grp.rotation.set(0,0,0); spider.grp.scale.setScalar(SPIDER_SC); spider.grp.position.set(ss.x,spiderFloor*FLOOR_H,ss.z); spider.camo=0.12; spider.ambushT=8; spider.invPhase=false; spider.invT=invDur; spider.climb=0; spider.pingT=0; spider.bodyMats.forEach(m=>m.opacity=0.12); spider.eyes.forEach(e=>e.visible=true); if(spider.eyeGlow) spider.eyeGlow.visible=true; }
   $("invtag").style.display="none";
@@ -649,6 +655,22 @@ function update(dt){
       if(!collide(kx,P.z,curFloor)) P.x=kx; if(!collide(P.x,kz,curFloor)) P.z=kz;
       if(hp<=0) endGame(false,"🕷️ La araña te dio el golpe final en la oscuridad. Vuelve a intentarlo."); else showStory("💔 ¡Te hirió! Corre a la ZONA SEGURA a recuperarte"); }
   } else { $("invtag").style.display="none"; }
+  // 🕷️ crías: rondan su piso, te persiguen de cerca y muerden (1 corazón)
+  for(const b of babies){ b.grp.visible=(b.f===curFloor);
+    if(b.f!==curFloor) continue;
+    const bx=P.x-b.grp.position.x, bz=P.z-b.grp.position.z, bd=Math.hypot(bx,bz);
+    let dirx,dirz,bspd;
+    if(bd<20 && !inSafe(P.x,P.z,curFloor)){ dirx=bx/(bd||1); dirz=bz/(bd||1); bspd=b.sp; }
+    else { dirx=Math.cos(b.wdir); dirz=Math.sin(b.wdir); bspd=b.sp*0.5; if(Math.random()<dt*0.5) b.wdir=Math.random()*6.28; }
+    let nbx=b.grp.position.x+dirx*bspd*dt, nbz=b.grp.position.z+dirz*bspd*dt;
+    nbx=Math.max(-HH+2,Math.min(HH-2,nbx)); nbz=Math.max(-HH+2,Math.min(HH-2,nbz));
+    if(!collide(nbx,b.grp.position.z,curFloor)&&!inSafe(nbx,b.grp.position.z,curFloor)) b.grp.position.x=nbx; else b.wdir=Math.random()*6.28;
+    if(!collide(b.grp.position.x,nbz,curFloor)&&!inSafe(b.grp.position.x,nbz,curFloor)) b.grp.position.z=nbz; else b.wdir=Math.random()*6.28;
+    b.grp.position.y=b.f*FLOOR_H; b.grp.rotation.y=Math.atan2(bx,bz);
+    b.legs.forEach((lg,i)=>{ lg.rotation.x=Math.sin(now*14+i*1.7)*0.45; });
+    if(bd<6 && Math.random()<dt*0.6) snd(220+Math.random()*120,"sawtooth",0.06,0.025);   // patitas
+    if(bd<0.9 && hurtCd<=0 && !gameOver && !inSafe(P.x,P.z,curFloor)){ hp--; hurtCd=1.5; updHP(); vib(120); snd(120,"sawtooth",0.3,0.12); doCrack();
+      if(hp<=0) endGame(false,"🕷️ Las CRÍAS de la araña te devoraron."); else showStory("💔 ¡Una CRÍA te mordió!"); } }
 
   // 📡 RADAR intermitente de la araña
   const rc=$("radar"); if(rc){ const rg=rc.getContext("2d"); rg.clearRect(0,0,92,92);
