@@ -7099,6 +7099,22 @@ function buildTrophies(){ try{
   h+=["facil","medio","dificil","imposible"].map(k=>{ const t2=parseFloat(g("rubik_bt_"+k)||"0"); return t2?("⏱"+k[0].toUpperCase()+":"+t2.toFixed(1)+"s"):"▫️"+k[0].toUpperCase(); }).join("  ")+"<br>";
   // WALLY
   h+="<div style='color:#8fd0ff'><b>🤖 CACERÍA DE WALLY</b></div>"+["wally_jurassic","wally_notagame","wally_scream","wally_f1"].map((k,i)=>(g(k)==="1"?"✅":"▫️")+["🦖","🧟","🕷️","🏎️"][i]).join(" ")+" — "+wallys+"/4 mundos";
+  // 📅 PROGRESO DE LA SEMANA: foto de tus récords al empezar la semana y cuánto mejoraste desde entonces
+  try{
+    const nowD=new Date(); const jan1=new Date(nowD.getFullYear(),0,1);
+    const wk=nowD.getFullYear()+"-"+Math.floor(((nowD-jan1)/86400000+jan1.getDay())/7);
+    const snapNow={ sb:parseFloat(g("scream_best"))||0, jb:parseFloat(g("jurassic_best"))||0, nk:parseInt(g("nag_best_kills")||"0",10)||0, fb:parseFloat(g("edtu_f1_best"))||0, rw:parseInt(g("rubik_wins")||"0",10)||0 };
+    let wkData=null; try{ wkData=JSON.parse(localStorage.getItem("edtu_week")||"null"); }catch(e){}
+    if(!wkData||wkData.weekKey!==wk){ wkData={weekKey:wk,snapshot:snapNow}; try{ localStorage.setItem("edtu_week",JSON.stringify(wkData)); }catch(e){} }
+    const s0=wkData.snapshot||{};
+    const wkParts=[];
+    if(snapNow.sb&&(!s0.sb||snapNow.sb<s0.sb)) wkParts.push("🕷️ escape "+(s0.sb?(s0.sb-snapNow.sb).toFixed(0)+"s más rápido":"¡tu primer escape!"));
+    if(snapNow.jb>(s0.jb||0)) wkParts.push("🦖 +"+(snapNow.jb-(s0.jb||0)).toFixed(1)+" días");
+    if(snapNow.nk>(s0.nk||0)) wkParts.push("🧟 +"+(snapNow.nk-(s0.nk||0))+" kills");
+    if(snapNow.fb>(s0.fb||0)) wkParts.push("🏎️ +"+((snapNow.fb-(s0.fb||0))/1000).toFixed(1)+" km");
+    if(snapNow.rw>(s0.rw||0)) wkParts.push("🧩 +"+(snapNow.rw-(s0.rw||0))+" victorias");
+    h+="<div style='margin-top:8px;color:#7dffb0'><b>📅 ESTA SEMANA</b></div>"+(wkParts.length?wkParts.join(" · "):"— aún sin mejoras esta semana... ¡a jugar!");
+  }catch(e){}
   $("trophyBody").innerHTML=h;
   // 🤖 WALLY saluda (con corona si lo encontraste en los 4 mundos)
   { const wb=document.getElementById("wallyBot"), ws=document.getElementById("wallySpeech");
