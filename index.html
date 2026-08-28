@@ -5668,12 +5668,12 @@ const F1={
       mb.style.display=unlocked?"inline-block":"none";
       this._mirror=unlocked&&localStorage.getItem("edtu_f1_mirror")==="1"; this._mir=this._mirror?-1:1;
       mb.textContent="🪞 ESPEJO: "+(this._mirror?"SÍ ✔":"NO"); } }catch(e){}
-    $("f1Result").innerHTML="Vista Need for Speed · ←→ o A/D conducir · 🔥 NITRO: espacio / Y / RT / botón · franjas verdes = DRS<br>⏸ <b>P</b> pausa · ↵ <b>Enter</b> correr otra vez · 📯 <b>H</b> claxon (¡los rivales se apartan!) · ¡Cuidado con las CURVAS ⚠️, el pasto y las 🏍️ motos!<br>🌧️ lluvia · 🌙 día y noche · 🚇 túneles · 🛸 zepelín · 🤖 WALLY cada 1500 m · ⚡ combo de adelantamientos · ⏱️ sectores de 2000 m (🟢 = récord) · 🦅 KÓNDOR te reta a los 1500 m · 🔧 PIT STOP cada 3000 m (pégate a la derecha: 2s lento, sales con nitro lleno y +5%)<br>🏆 Récord: <b>"+Math.round(this.best)+"</b> m<br>🎖️ "+this.medals()+(function(){ try{ return localStorage.getItem("edtu_f1_ghost")?"<br>👻 el FANTASMA de tu récord te espera en la pista... ¡véncelo!":""; }catch(e){ return ""; } })()+(function(){ try{ const w=parseInt(localStorage.getItem("edtu_f1_kondor_w")||"0",10)||0, l=parseInt(localStorage.getItem("edtu_f1_kondor_l")||"0",10)||0; return (w||l)?"<br>⚔️ vs 🦅 KÓNDOR: <b>"+w+"-"+l+"</b>":""; }catch(e){ return ""; } })()+(function(){ try{ const bs=parseFloat(localStorage.getItem("edtu_f1_sector")||"0")||0; return bs>0?" · ⏱️ mejor sector: <b>"+bs.toFixed(1)+"s</b>":""; }catch(e){ return ""; } })();
+    $("f1Result").innerHTML="Vista Need for Speed · ←→ o A/D conducir · 🔥 NITRO: espacio / Y / RT / botón · franjas verdes = DRS<br>⏸ <b>P</b> pausa · ↵ <b>Enter</b> correr otra vez · 📯 <b>H</b> claxon (¡los rivales se apartan!) · ¡Cuidado con las CURVAS ⚠️, el pasto y las 🏍️ motos!<br>🌧️ lluvia · 🌙 día y noche · 🚇 túneles · 🛸 zepelín · 🤖 WALLY cada 1500 m · ⚡ combo de adelantamientos · ⏱️ sectores de 2000 m (🟢 = récord) · 🦅 KÓNDOR te reta a los 1500 m · 🔧 PIT STOP cada 3000 m (pégate a la derecha: 2s lento, sales con nitro lleno y +5%)<br>🏆 Récord: <b>"+Math.round(this.best)+"</b> m<br>🎖️ "+this.medals()+(function(){ try{ return localStorage.getItem("edtu_f1_ghost")?"<br>👻 el FANTASMA de tu récord te espera en la pista... ¡véncelo!":""; }catch(e){ return ""; } })()+(function(){ try{ const w=parseInt(localStorage.getItem("edtu_f1_kondor_w")||"0",10)||0, l=parseInt(localStorage.getItem("edtu_f1_kondor_l")||"0",10)||0; return (w||l)?"<br>⚔️ vs 🦅 KÓNDOR: <b>"+w+"-"+l+"</b>":""; }catch(e){ return ""; } })()+(function(){ try{ const bs=parseFloat(localStorage.getItem("edtu_f1_sector")||"0")||0; return bs>0?" · ⏱️ mejor sector: <b>"+bs.toFixed(1)+"s</b>":""; }catch(e){ return ""; } })()+(function(){ try{ const pw=parseFloat(localStorage.getItem("edtu_f1_week_"+F1.wkKey())||"0")||0; return pw>0?"<br>📅 mejor de esta semana: <b>"+Math.round(pw)+" m</b>":""; }catch(e){ return ""; } })();
     this.draw();
   },
   close(){
     // 🐛FIX auditoría: salir con ✕/Escape en plena carrera perdía récord, históricos y medallas aunque ya los habías superado
-    try{ if(this.running && this.dist>0 && !this._mirror){ const m=Math.round(this.dist);
+    try{ if(this.running && this.dist>0 && !this._mirror){ const m=Math.round(this.dist); this.saveWeek(m);
       if(m>this.best){ this.best=m; localStorage.setItem("edtu_f1_best",String(m)); }
       const pms=+(localStorage.getItem("edtu_f1_maxspd")||0); if(Math.round(this.maxSpd||0)>pms) localStorage.setItem("edtu_f1_maxspd",String(Math.round(this.maxSpd||0)));
       const pov=+(localStorage.getItem("edtu_f1_overt")||0); if(this.overt>pov) localStorage.setItem("edtu_f1_overt",String(this.overt));
@@ -5695,6 +5695,7 @@ const F1={
     this._falseStart=false; this._lcDone=false; this._lcWin=0; this._lcMsg=""; this._lcMsgT=0; this._lcGood=false;   // 🚦 launch control
     this._crashSlow=0; this._crashSlowDone=false;   // 🎬 cámara lenta del choque
     this._pitOn=0; this._pitBoostT=0; this._pitDoneZ=-1; this._pitMsg=""; this._pitMsgT=0; this._pitTick=0; this._pitZ=2500;   // 🔧 pit stop
+    this._wkBeat=false; try{ this._wkBest=parseFloat(localStorage.getItem("edtu_f1_week_"+this.wkKey())||"0")||0; }catch(e){ this._wkBest=0; }   // 📅 mejor de la semana
     this.paused=false;   // ⏸
     this._recPassed=false;   // 🏆 marcador de récord en la pista
     this._nearN=0; this._nearT=0;   // 😅 casi-choques
@@ -5795,6 +5796,10 @@ const F1={
     this._wRain+=((this._wRainOn?1:0)-this._wRain)*Math.min(1,dt*0.8);
     this.rainSndUpd();   // 🌧️ sonido de lluvia sigue la intensidad
     if(this._hornCd>0) this._hornCd-=dt;   // 📯
+    // 📅 ¡MEJOR DE LA SEMANA! (solo si aún no es récord absoluto, que ya tiene su propio anuncio)
+    if(!this._wkBeat && !this._mirror && this._wkBest>0 && this.dist>this._wkBest && this._wkBest<this.best){ this._wkBeat=true;
+      this._lcMsg="📅 ¡MEJOR DE LA SEMANA!"; this._lcMsgT=2.6; this._lcGood=true;
+      try{ const a=this.actx(); if(a){ [784,988].forEach((fq,i)=>{ const o=a.createOscillator(),g=a.createGain(); o.type="triangle"; o.frequency.value=fq; g.gain.value=0.08; o.connect(g); g.connect(a.destination); o.start(a.currentTime+i*0.1); o.stop(a.currentTime+i*0.1+0.14); }); } }catch(e){} }
     // 🦅 KÓNDOR: el rival con nombre — aparece UNA vez por carrera a los 1500 m, 200 m por delante
     if(!this._kSpawned && this.dist>=1500 && !this._mirror){ this._kSpawned=true;   // 🪞 KÓNDOR no corre en espejo
       this.cars.push({ x:[-0.66,-0.22,0.22,0.66][Math.floor(Math.random()*4)], z:this.dist+200, v:Math.max(22,this.speed/3.6-1.2), col:["#0d0d12","#ffd12e"], moto:false, kondor:true });
@@ -5930,6 +5935,7 @@ const F1={
     this.crashSound(); this.engineOff(); this.rainSndOff(); this.running=false;
     if(navigator.vibrate){ try{ navigator.vibrate([120,60,180]); }catch(e){} }
     const m=Math.round(this.dist), rec=!this._mirror && m>this.best;   // 🪞 en espejo no hay récords
+    this.saveWeek(m);   // 📅 mejor de la semana
     if(rec){ this.best=m; localStorage.setItem("edtu_f1_best",String(m));
       try{ if(this._ghRec&&this._ghRec.length>1) localStorage.setItem("edtu_f1_ghost",JSON.stringify(this._ghRec)); }catch(e){}   // 👻 guarda la trayectoria récord
       // 🎙️ LOCUTOR de carreras eufórico
@@ -5973,6 +5979,9 @@ const F1={
       if(gap>3 && gap<60 && Math.abs(car.x-px)<0.3){
         car.x=Math.max(-0.8,Math.min(0.8,car.x+(car.x>=px?0.22:-0.22))); moved++; } });
     if(moved){ setTimeout(()=>{ try{ const a2=this.actx(); if(a2&&Math.random()<0.6){ const o2=a2.createOscillator(),g2=a2.createGain(); o2.type="square"; o2.frequency.value=330; g2.gain.value=0.05; o2.connect(g2); g2.connect(a2.destination); o2.start(); o2.stop(a2.currentTime+0.18); } }catch(e){} },420); } },
+  // 📅 clave de la semana actual (misma fórmula que el progreso semanal del menú)
+  wkKey(){ const d=new Date(), j=new Date(d.getFullYear(),0,1); return d.getFullYear()+"-"+Math.floor(((d-j)/86400000+j.getDay())/7); },
+  saveWeek(m){ if(this._mirror) return; try{ const k="edtu_f1_week_"+this.wkKey(); const pw=parseFloat(localStorage.getItem(k)||"0")||0; if(m>pw) localStorage.setItem(k,String(m)); }catch(e){} },
   // 🎖️ medallas por distancia en UNA carrera (1/3/5/10 km, permanentes)
   medals(){ let s=""; [1000,3000,5000,10000].forEach(t2=>{ let got=false; try{ got=localStorage.getItem("edtu_f1_km_"+t2)==="1"; }catch(e){}
     s+=(got?"🏅":"▫️")+(t2/1000)+"km "; }); return s.trim(); },
