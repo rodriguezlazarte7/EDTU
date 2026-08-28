@@ -167,6 +167,7 @@ const wallTex=tex(x=>{ x.fillStyle="#8a8f86"; x.fillRect(0,0,256,256); x.strokeS
 const ambient=new THREE.AmbientLight(0x9fb0c0,0.55); scene.add(ambient);
 const hemi=new THREE.HemisphereLight(0xbfe0ff,0x3a5a2a,0.6); scene.add(hemi);
 const sun=new THREE.DirectionalLight(0xffe6b0,1.0); sun.position.set(40,80,20); scene.add(sun);
+const sunNoon=new THREE.Color(0xffe6b0), sunDawn=new THREE.Color(0xff6a1e);   // 🌅 sol naranja al amanecer/atardecer
 const bgDay=new THREE.Color(0x87b6d6), bgNight=new THREE.Color(0x060a14);
 const flash=new THREE.SpotLight(0xfff4d6,3,70,0.8,0.35,0.9); flash.position.set(0,0,0.3); camera.add(flash);
 const ft=new THREE.Object3D(); ft.position.set(0,-0.1,-1); camera.add(ft); flash.target=ft;
@@ -417,6 +418,9 @@ function update(dt){
   const isNight = df>0.5;
   const lightF = df<0.5 ? Math.min(1,df/0.12) : Math.max(0,1-(df-0.5)/0.12);  // sube al amanecer, baja al anochecer
   ambient.intensity=0.12+lightF*0.7; sun.intensity=lightF*1.1;
+  // 🌅 el sol se pone NARANJA en las transiciones (amanecer/atardecer) y blanco-cálido a pleno día
+  const dawn=Math.max(0,Math.min(1,lightF*(1-lightF)*4)); sun.color.copy(sunNoon).lerp(sunDawn,dawn);
+  sun.position.set(40*Math.cos(df*6.283), 30+60*Math.max(0.1,lightF), 20+50*Math.sin(df*6.283));   // el sol se mueve por el cielo
   scene.fog.density=0.02-lightF*0.009; scene.background.copy(bgNight).lerp(bgDay,lightF);
   // 🌊 agua animada: leve oleaje (sube y baja) + brillo que ondula
   lake.position.y=0.05+Math.sin(elapsed*1.3)*0.06; lake.material.emissiveIntensity=0.2+Math.abs(Math.sin(elapsed*1.7))*0.4;
