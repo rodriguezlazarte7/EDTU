@@ -1573,6 +1573,7 @@
     <div id="f1Msg">🏎️ F1 RB RUSH</div>
     <div id="f1Result" style="font-size:15px"></div>
     <button class="btn btn-primary" id="f1Start" style="font-size:17px;padding:12px 28px">▶ CORRER</button>
+    <button class="btn btn-ghost" id="f1Mirror" title="Curvas invertidas · récords desactivados" style="display:none;margin-top:8px">🪞 ESPEJO: NO</button>
   </div>
 </div>
 
@@ -5644,19 +5645,24 @@ const F1={
   TRACK:[{l:900,c:0},{l:600,c:1.1},{l:500,c:0},{l:700,c:-1.3},{l:400,c:0},{l:600,c:.7},{l:500,c:-.7},{l:800,c:0},{l:500,c:1.6},{l:600,c:-1}],
   trackLen:6100,
   curveAt(d){ let s=((d%this.trackLen)+this.trackLen)%this.trackLen;
-    for(const t of this.TRACK){ if(s<t.l){ const e=Math.min(1,Math.min(s,t.l-s)/130); return t.c*e; } s-=t.l; } return 0; },
+    for(const t of this.TRACK){ if(s<t.l){ const e=Math.min(1,Math.min(s,t.l-s)/130); return t.c*e*(this._mir||1); } s-=t.l; } return 0; },   // 🪞 en ESPEJO las curvas se invierten
   open(){
     $("f1Fs").classList.add("open");
     if(('ontouchstart' in window)||navigator.maxTouchPoints>0) $("f1Fs").classList.add("touch");
     this.resize(); window.addEventListener("resize",this._rs=()=>this.resize());
     this.best=+(localStorage.getItem("edtu_f1_best")||0);
     $("f1Overlay").style.display="flex"; $("f1Msg").textContent="🏎️ F1 RB RUSH";
+    // 🪞 MODO ESPEJO: se desbloquea con la medalla de 10 km
+    try{ const mb=$("f1Mirror"); if(mb){ const unlocked=localStorage.getItem("edtu_f1_km_10000")==="1";
+      mb.style.display=unlocked?"inline-block":"none";
+      this._mirror=unlocked&&localStorage.getItem("edtu_f1_mirror")==="1"; this._mir=this._mirror?-1:1;
+      mb.textContent="🪞 ESPEJO: "+(this._mirror?"SÍ ✔":"NO"); } }catch(e){}
     $("f1Result").innerHTML="Vista Need for Speed · ←→ o A/D conducir · 🔥 NITRO: espacio / Y / RT / botón · franjas verdes = DRS<br>⏸ <b>P</b> pausa · ↵ <b>Enter</b> correr otra vez · 📯 <b>H</b> claxon (¡los rivales se apartan!) · ¡Cuidado con las CURVAS ⚠️, el pasto y las 🏍️ motos!<br>🌧️ lluvia · 🌙 día y noche · 🚇 túneles · 🛸 zepelín · 🤖 WALLY cada 1500 m · ⚡ combo de adelantamientos · ⏱️ sectores de 2000 m (🟢 = récord) · 🦅 KÓNDOR te reta a los 1500 m<br>🏆 Récord: <b>"+Math.round(this.best)+"</b> m<br>🎖️ "+this.medals()+(function(){ try{ return localStorage.getItem("edtu_f1_ghost")?"<br>👻 el FANTASMA de tu récord te espera en la pista... ¡véncelo!":""; }catch(e){ return ""; } })()+(function(){ try{ const w=parseInt(localStorage.getItem("edtu_f1_kondor_w")||"0",10)||0, l=parseInt(localStorage.getItem("edtu_f1_kondor_l")||"0",10)||0; return (w||l)?"<br>⚔️ vs 🦅 KÓNDOR: <b>"+w+"-"+l+"</b>":""; }catch(e){ return ""; } })();
     this.draw();
   },
   close(){
     // 🐛FIX auditoría: salir con ✕/Escape en plena carrera perdía récord, históricos y medallas aunque ya los habías superado
-    try{ if(this.running && this.dist>0){ const m=Math.round(this.dist);
+    try{ if(this.running && this.dist>0 && !this._mirror){ const m=Math.round(this.dist);
       if(m>this.best){ this.best=m; localStorage.setItem("edtu_f1_best",String(m)); }
       const pms=+(localStorage.getItem("edtu_f1_maxspd")||0); if(Math.round(this.maxSpd||0)>pms) localStorage.setItem("edtu_f1_maxspd",String(Math.round(this.maxSpd||0)));
       const pov=+(localStorage.getItem("edtu_f1_overt")||0); if(this.overt>pov) localStorage.setItem("edtu_f1_overt",String(this.overt));
@@ -5761,7 +5767,7 @@ const F1={
     this.rainSndUpd();   // 🌧️ sonido de lluvia sigue la intensidad
     if(this._hornCd>0) this._hornCd-=dt;   // 📯
     // 🦅 KÓNDOR: el rival con nombre — aparece UNA vez por carrera a los 1500 m, 200 m por delante
-    if(!this._kSpawned && this.dist>=1500){ this._kSpawned=true;
+    if(!this._kSpawned && this.dist>=1500 && !this._mirror){ this._kSpawned=true;   // 🪞 KÓNDOR no corre en espejo
       this.cars.push({ x:[-0.66,-0.22,0.22,0.66][Math.floor(Math.random()*4)], z:this.dist+200, v:Math.max(22,this.speed/3.6-1.2), col:["#0d0d12","#ffd12e"], moto:false, kondor:true });
       this._kBanTxt="🦅 ¡KÓNDOR EN PISTA! 200 m adelante — ¡atrápalo!"; this._kBanT=3;
       try{ const a=this.actx(); if(a){ [220,330,220].forEach((fq,i)=>{ const o=a.createOscillator(),g=a.createGain(); o.type="sawtooth"; o.frequency.value=fq; g.gain.value=0.07; o.connect(g); g.connect(a.destination); o.start(a.currentTime+i*0.14); o.stop(a.currentTime+i*0.14+0.16); }); } }catch(e){} }
@@ -5769,14 +5775,14 @@ const F1={
     if(this.cdT<=0 && !this.paused) this._raceT+=dt;
     if(this.dist>=this._nextSec){ const st=this._raceT-this._secStart; this._secStart=this._raceT; this._nextSec+=2000;
       let bsec=0; try{ bsec=parseFloat(localStorage.getItem("edtu_f1_sector")||"0")||0; }catch(e){}
-      if(!bsec || st<bsec){ try{ localStorage.setItem("edtu_f1_sector",st.toFixed(1)); }catch(e){}
+      if((!bsec || st<bsec) && !this._mirror){ try{ localStorage.setItem("edtu_f1_sector",st.toFixed(1)); }catch(e){}
         this._secMsg="🟢 ¡SECTOR VERDE! "+st.toFixed(1)+"s"; this._secMsgT=3; this._secGreen=true;
         try{ const a=this.actx(); if(a){ [880,1175].forEach((fq,i)=>{ const o=a.createOscillator(),g=a.createGain(); o.type="triangle"; o.frequency.value=fq; g.gain.value=0.09; o.connect(g); g.connect(a.destination); o.start(a.currentTime+i*0.1); o.stop(a.currentTime+i*0.1+0.14); }); } }catch(e){} }
       else { this._secMsg="⏱ sector: "+st.toFixed(1)+"s · récord "+bsec.toFixed(1)+"s"; this._secMsgT=2.4; this._secGreen=false; } }
     // 👻 grabar el fantasma: muestra [dist, x] cada 20 m (cap 800 = 16 km)
-    if(this._ghRec && this.dist>=this._ghNext && this._ghRec.length<800){ this._ghRec.push([Math.round(this.dist),Math.round(this.x*1000)/1000]); this._ghNext=this.dist+20; }
+    if(this._ghRec && !this._mirror && this.dist>=this._ghNext && this._ghRec.length<800){ this._ghRec.push([Math.round(this.dist),Math.round(this.x*1000)/1000]); this._ghNext=this.dist+20; }
     // 👻⚔️ DUELO: al pasar la última huella del fantasma en plena carrera, anuncio único
-    if(this._ghost && !this._ghBeat && this._ghost.length>1 && this.dist>this._ghost[this._ghost.length-1][0]){ this._ghBeat=true;
+    if(this._ghost && !this._mirror && !this._ghBeat && this._ghost.length>1 && this.dist>this._ghost[this._ghost.length-1][0]){ this._ghBeat=true;
       try{ if(window.speechSynthesis){ const u=new SpeechSynthesisUtterance("¡Superaste a tu fantasma! ¡Nuevo récord en camino!"); u.lang="es-ES"; u.pitch=1.35; u.rate=1.12; u.volume=0.95; speechSynthesis.cancel(); speechSynthesis.speak(u); } }catch(e){}
       try{ const a=this.actx(); if(a){ [660,880,1175].forEach((fq,i)=>{ const o=a.createOscillator(),g=a.createGain(); o.type="triangle"; o.frequency.value=fq; g.gain.value=0.12; o.connect(g); g.connect(a.destination); o.start(a.currentTime+i*0.12); o.stop(a.currentTime+i*0.12+0.15); }); } }catch(e){}
       try{ if(navigator.vibrate) navigator.vibrate([0,50,40,50,40,140]); }catch(e){} }
@@ -5872,14 +5878,14 @@ const F1={
     if(this.shake>0) this.shake=Math.max(0,this.shake-dt*22);
     if(this._ovT>0){ this._ovT-=dt; if(this._ovT<=0) this._ovCombo=0; }   // 🔥 la racha expira
     this.draw();
-    $("f1Hud").textContent="⚡ "+Math.round(this.speed)+" km/h · 📏 "+(this.dist>=1000?(this.dist/1000).toFixed(2)+" km":Math.round(this.dist)+" m")+" · 🏁 "+this.overt+(this.drs?" · 🟢 DRS":"")+(this._wRain>0.4?" · 🌧️ LLUVIA":"")+(this._inTun?" · 🚇 TÚNEL":(this._nightF>0.5?" · 🌙 NOCHE":""))+(this._ghBeat?" · 👻 ¡SUPERADO!":"");
+    $("f1Hud").textContent="⚡ "+Math.round(this.speed)+" km/h · 📏 "+(this.dist>=1000?(this.dist/1000).toFixed(2)+" km":Math.round(this.dist)+" m")+" · 🏁 "+this.overt+(this.drs?" · 🟢 DRS":"")+(this._wRain>0.4?" · 🌧️ LLUVIA":"")+(this._inTun?" · 🚇 TÚNEL":(this._nightF>0.5?" · 🌙 NOCHE":""))+(this._ghBeat?" · 👻 ¡SUPERADO!":"")+(this._mirror?" · 🪞 ESPEJO":"");
   },
   crash(){
     try{ if(navigator.vibrate) navigator.vibrate([0,120,60,180]); }catch(e){}   // 📳 golpe de choque
     if(this._kSpawned && !this._kDone){ this._kDone=true; try{ localStorage.setItem("edtu_f1_kondor_l",String((parseInt(localStorage.getItem("edtu_f1_kondor_l")||"0",10)||0)+1)); }catch(e){} }   // 🦅 chocaste sin pasarlo: punto para KÓNDOR
     this.crashSound(); this.engineOff(); this.rainSndOff(); this.running=false;
     if(navigator.vibrate){ try{ navigator.vibrate([120,60,180]); }catch(e){} }
-    const m=Math.round(this.dist), rec=m>this.best;
+    const m=Math.round(this.dist), rec=!this._mirror && m>this.best;   // 🪞 en espejo no hay récords
     if(rec){ this.best=m; localStorage.setItem("edtu_f1_best",String(m));
       try{ if(this._ghRec&&this._ghRec.length>1) localStorage.setItem("edtu_f1_ghost",JSON.stringify(this._ghRec)); }catch(e){}   // 👻 guarda la trayectoria récord
       // 🎙️ LOCUTOR de carreras eufórico
@@ -5889,13 +5895,13 @@ const F1={
     // 📈 récords históricos de velocidad y adelantamientos
     let histTxt="";
     try{ const pms=+(localStorage.getItem("edtu_f1_maxspd")||0), pov=+(localStorage.getItem("edtu_f1_overt")||0);
-      const isMS=Math.round(this.maxSpd||0)>pms, isOV=this.overt>pov;
+      const isMS=!this._mirror&&Math.round(this.maxSpd||0)>pms, isOV=!this._mirror&&this.overt>pov;
       if(isMS) localStorage.setItem("edtu_f1_maxspd",String(Math.round(this.maxSpd||0)));
       if(isOV) localStorage.setItem("edtu_f1_overt",String(this.overt));
       histTxt="<br>📈 Históricos: ⚡ <b>"+Math.max(pms,Math.round(this.maxSpd||0))+"</b> km/h"+(isMS?" 🆕":"")+" · 🏁 <b>"+Math.max(pov,this.overt)+"</b> adelantados"+(isOV?" 🆕":""); }catch(e){}
-    this.markMedals(); histTxt+="<br>🎖️ "+this.medals();
+    if(!this._mirror) this.markMedals(); histTxt+="<br>🎖️ "+this.medals()+(this._mirror?"<br>🪞 carrera en ESPEJO — récords desactivados":"");
     // 🔥 racha máxima de adelantamientos (de la carrera + histórica)
-    try{ const pom=+(localStorage.getItem("edtu_f1_ovmax")||0); const isOM=(this._ovMax||0)>pom;
+    try{ const pom=+(localStorage.getItem("edtu_f1_ovmax")||0); const isOM=!this._mirror&&(this._ovMax||0)>pom;
       if(isOM) localStorage.setItem("edtu_f1_ovmax",String(this._ovMax));
       if((this._ovMax||0)>=2||pom>=2) histTxt+="<br>🔥 Racha de adelantamientos: <b>x"+(this._ovMax||0)+"</b> · Récord: <b>x"+Math.max(pom,this._ovMax||0)+"</b>"+(isOM?" 🆕":""); }catch(e){}
     $("f1Result").innerHTML=(rec?"🏆 ¡NUEVO RÉCORD!<br>":"")+"Distancia: <b>"+m+"</b> m · Adelantados: <b>"+this.overt+"</b> · 😅 Casi-choques: <b>"+(this._nearN||0)+"</b> · ⚡ Vel. máx: <b>"+Math.round(this.maxSpd||0)+"</b> km/h · Récord: <b>"+Math.round(this.best)+"</b> m"+histTxt;
@@ -6111,7 +6117,7 @@ const F1={
       c.fillStyle="#33bbff"; c.font="900 "+Math.round(ps)+"px system-ui,sans-serif"; c.textAlign="center"; c.fillText("⚡",0,ps*0.36);
       c.restore(); }
     // 👻 FANTASMA de tu mejor carrera: auto celeste transparente que repite la trayectoria del récord
-    if(this._ghost && this._ghost.length>1 && this.cdT<=0 && this.dist>=this._ghost[0][0] && this.dist<=this._ghost[this._ghost.length-1][0]){
+    if(this._ghost && !this._mirror && this._ghost.length>1 && this.cdT<=0 && this.dist>=this._ghost[0][0] && this.dist<=this._ghost[this._ghost.length-1][0]){
       while(this._ghI<this._ghost.length-2 && this._ghost[this._ghI+1][0]<this.dist) this._ghI++;
       const ga=this._ghost[this._ghI], gb=this._ghost[this._ghI+1];
       const gt=Math.max(0,Math.min(1,(this.dist-ga[0])/Math.max(1,gb[0]-ga[0]))), gx=ga[1]+(gb[1]-ga[1])*gt;
@@ -6659,6 +6665,8 @@ gSwipe($("g2048"),d=>{ const m={left:0,right:1,up:2,down:3}; G2048.move(m[d]); }
 $("f1Close").onclick=()=>F1.close();
 $("f1Start").onclick=()=>F1.start();
 $("f1Horn").onclick=()=>F1.horn();   // 📯 claxon táctil
+$("f1Mirror").onclick=()=>{ try{ const on=localStorage.getItem("edtu_f1_mirror")==="1"; localStorage.setItem("edtu_f1_mirror",on?"0":"1");
+  F1._mirror=!on; F1._mir=F1._mirror?-1:1; $("f1Mirror").textContent="🪞 ESPEJO: "+(F1._mirror?"SÍ ✔":"NO"); }catch(e){} };
 (function(){ const b=$("f1Nitro"), on=e=>{ e.preventDefault(); F1._btnNitro=true; }, off=()=>{ F1._btnNitro=false; };
   b.addEventListener("pointerdown",on); b.addEventListener("pointerup",off); b.addEventListener("pointercancel",off); b.addEventListener("pointerleave",off); })();
 $("f1Canvas").addEventListener("pointerdown",e=>{ F1._touchX=e.clientX; try{ e.target.setPointerCapture(e.pointerId); }catch(_){} });   // 🐛FIX ronda2: captura el puntero para no perder el pointerup fuera del canvas
