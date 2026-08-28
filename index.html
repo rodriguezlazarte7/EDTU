@@ -5715,7 +5715,9 @@ const F1={
     this.crashSound(); this.engineOff(); this.running=false;
     if(navigator.vibrate){ try{ navigator.vibrate([120,60,180]); }catch(e){} }
     const m=Math.round(this.dist), rec=m>this.best;
-    if(rec){ this.best=m; localStorage.setItem("edtu_f1_best",String(m)); }
+    if(rec){ this.best=m; localStorage.setItem("edtu_f1_best",String(m));
+      // 🎙️ LOCUTOR de carreras eufórico
+      try{ if(window.speechSynthesis){ const u=new SpeechSynthesisUtterance("¡Nuevo récord! ¡"+m+" metros! ¡Increíble carrera!"); u.lang="es-ES"; u.pitch=1.35; u.rate=1.15; u.volume=0.95; speechSynthesis.cancel(); setTimeout(()=>{ try{ speechSynthesis.speak(u); }catch(e){} },500); } }catch(e){} }
     $("f1Overlay").style.display="flex";
     $("f1Msg").textContent="💥 ¡CHOCASTE!";
     $("f1Result").innerHTML=(rec?"🏆 ¡NUEVO RÉCORD!<br>":"")+"Distancia: <b>"+m+"</b> m · Adelantados: <b>"+this.overt+"</b> · ⚡ Vel. máx: <b>"+Math.round(this.maxSpd||0)+"</b> km/h · Récord: <b>"+Math.round(this.best)+"</b> m";
