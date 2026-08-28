@@ -5635,6 +5635,7 @@ const F1={
   start(){
     this.x=0; this.speed=120; this.dist=0; this.fuel=100; this.cars=[]; this.overt=0; this.shake=0; this.bgShift=0; this.maxSpd=0;
     this._spawnT=0; this._nextDrs=500; this._drsEnd=0; this.running=true; this._tPrev=performance.now();
+    this.cdT=3.4; this._cdStep=4;   // 🚦 cuenta regresiva de largada
     $("f1Overlay").style.display="none";
     this.engineOn();
     if(!this.raf){ const f=t=>{ if(!this.running){ this.raf=null; return; } try{ this.tick(t); }catch(e){} this.raf=requestAnimationFrame(f); }; this.raf=requestAnimationFrame(f); }
@@ -5648,6 +5649,18 @@ const F1={
   crashSound(){ try{ const a=this.actx(); if(!a) return; const n=a.createBufferSource(), buf=a.createBuffer(1,a.sampleRate*0.4,a.sampleRate), d=buf.getChannelData(0);
     for(let i=0;i<d.length;i++) d[i]=(Math.random()*2-1)*(1-i/d.length);
     const g=a.createGain(); g.gain.value=.25; n.buffer=buf; n.connect(g); g.connect(a.destination); n.start(); }catch(e){} },
+  // 🚦 SEMÁFORO de largada estilo F1: luces rojas que se encienden 3..2..1 y verde ¡GO!
+  drawLights(){ const c=this.ctx; if(!c) return; const W=this.W, n=this._cdStep;
+    const cx=W/2, cy=this.H*0.24, r=Math.min(26,W*0.035), bw=r*2*3+80;
+    c.save();
+    c.fillStyle="rgba(0,0,0,0.72)"; c.fillRect(cx-bw/2,cy-r-24,bw,r*2+48);
+    c.strokeStyle="#555"; c.lineWidth=3; c.strokeRect(cx-bw/2,cy-r-24,bw,r*2+48);
+    for(let i=0;i<3;i++){ const x=cx+(i-1)*(r*2+22);
+      const col=n===0?"#39ff14":(i<4-n?"#ff2b2b":"#2a1010");
+      c.beginPath(); c.arc(x,cy,r,0,7); c.fillStyle=col; c.shadowColor=col; c.shadowBlur=col==="#2a1010"?0:24; c.fill(); c.shadowBlur=0; }
+    c.font="900 "+Math.min(54,W*0.09)+"px system-ui,sans-serif"; c.textAlign="center";
+    c.fillStyle=n===0?"#39ff14":"#fff"; c.fillText(n===0?"¡GO!":String(n),cx,cy+r+58);
+    c.restore(); },
   input(dt){
     let dx=0;
     if(this.keys.ArrowLeft||this.keys.a||this.keys.A) dx-=1;
@@ -5667,6 +5680,17 @@ const F1={
   },
   tick(t){
     const dt=Math.min(0.05,(t-this._tPrev)/1000); this._tPrev=t;
+    // 🚦 largada: mientras corre la cuenta el auto está detenido; beep por luz y beep agudo en ¡GO!
+    if(this.cdT>0){ this.cdT-=dt;
+      const step=Math.max(0,Math.ceil(this.cdT-0.4));
+      if(step<this._cdStep){ this._cdStep=step;
+        try{ const a=this.actx(); if(a){ const o=a.createOscillator(),g=a.createGain(); o.type="square"; o.frequency.value=step>0?420:900;
+          g.gain.value=.07; o.connect(g); g.connect(a.destination); o.start(); const du=step>0?0.16:0.5;
+          g.gain.exponentialRampToValueAtTime(0.0001,a.currentTime+du); o.stop(a.currentTime+du); } }catch(e){} }
+      this.speed=0;
+      this.draw(); this.drawLights(); $("f1Hud").textContent="🚦 PREPARADO...";
+      if(this.cdT<=0) this.speed=120;
+      return; }
     this.input(dt);
     const baseMax=290+Math.min(90,this.dist/200);
     let target=baseMax;
