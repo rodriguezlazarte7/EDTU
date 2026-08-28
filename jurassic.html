@@ -634,9 +634,12 @@ function endGame(win,info){ running=false; gameOver=true; try{document.exitPoint
   setRainSnd(false);   // 🐛FIX auditoría: la lluvia seguía sonando en bucle infinito sobre la pantalla de fin
   const days=Math.min(7, elapsed/DAY_LEN); const prev=loadJBest(); const isRec=days>prev; if(isRec) saveJBest(days);
   const t=$("endTitle"); if(win){ t.textContent="✓ RESCATADO"; t.className="big win"; try{ localStorage.setItem("jurassic_win_"+jdiff,"1"); }catch(e){} } else { t.textContent="✕ NO SOBREVIVISTE"; t.className="big lose"; }
-  $("endInfo").innerHTML=info+"<br><br>🗓️ Días: <b>"+days.toFixed(1)+"</b>"+(isRec?" 🏆 ¡RÉCORD!":" · Récord: <b>"+prev.toFixed(1)+"</b>")
+  $("endInfo").innerHTML=info+(win&&jdiff==="extincion"?"<br>☄️ <b>¡SOBREVIVISTE A LA EXTINCIÓN!</b> — depredadores 1.5x más rápidos y daño doble. LEYENDA.":"")+"<br><br>🗓️ Días: <b>"+days.toFixed(1)+"</b>"+(isRec?" 🏆 ¡RÉCORD!":" · Récord: <b>"+prev.toFixed(1)+"</b>")
     +"<div style='margin-top:8px;font-size:13px;color:#bfe3d8;line-height:1.9'>📊 <b>ESTADÍSTICAS</b><br>💉 Dardos disparados: "+jStatDarts+" · 💤 Dinos dormidos: "+jStatSleep+"<br>🪵 Maderas puestas: "+jStatWood+" · 🚶 "+Math.round(jStatDist)+" m recorridos</div>"; snd(win?660:70,win?"triangle":"sawtooth",0.5,0.12);
-  if(win){ $("end").classList.remove("hide"); }
+  if(win){ $("end").classList.remove("hide");
+    // ☄️ homenaje al ser rescatado en EXTINCIÓN (voz encolada, sin cortar nada)
+    if(jdiff==="extincion"){ try{ if(navigator.vibrate) navigator.vibrate([0,80,50,80,50,220]); }catch(e){}
+      setTimeout(()=>{ try{ if(window.speechSynthesis){ const uL=new SpeechSynthesisUtterance("Sobreviviste a la extinción. Ni los depredadores más letales pudieron contigo. Eres una leyenda."); uL.lang="es-ES"; uL.pitch=0.6; uL.rate=0.85; uL.volume=0.95; speechSynthesis.speak(uL); } }catch(e){} },2500); } }
   else { // 💥 muerte con FUNDIDO ROJO sangre antes de la pantalla de fin
     snd(35,"sawtooth",1.2,0.14); const fd=$("fade");
     if(fd){ fd.style.background="#4a0006"; fd.style.opacity="1"; setTimeout(()=>{ $("end").classList.remove("hide"); fd.style.opacity="0"; setTimeout(()=>{ fd.style.background="#000"; },400); },750); }
