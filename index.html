@@ -5640,6 +5640,7 @@ const F1={
     this._wRain=0; this._wRainOn=false; this._wRainT=30+Math.random()*40;   // 🌧️ clima
     this.pickups=[]; this._nextPick=400;   // ⚡ recargas de nitro en pista
     this._ovCombo=0; this._ovT=0; this._ovMsgT=0;   // 🔥 combo de adelantamientos
+    this.paused=false;   // ⏸
     this._recPassed=false;   // 🏆 marcador de récord en la pista
     this._nearN=0; this._nearT=0;   // 😅 casi-choques
     $("f1Overlay").style.display="none";
@@ -5686,6 +5687,11 @@ const F1={
   },
   tick(t){
     const dt=Math.min(0.05,(t-this._tPrev)/1000); this._tPrev=t;
+    // ⏸ PAUSA: se dibuja la escena congelada con el cartel encima
+    if(this.paused){ this.draw(); const c=this.ctx; if(c){ c.save(); c.fillStyle="rgba(0,0,12,.55)"; c.fillRect(0,0,this.W,this.H);
+      c.fillStyle="#c8d8ff"; c.font="900 40px system-ui,sans-serif"; c.textAlign="center"; c.fillText("⏸ PAUSA",this.W/2,this.H*0.45);
+      c.font="700 16px system-ui,sans-serif"; c.fillStyle="#7a86b8"; c.fillText("pulsa P para seguir",this.W/2,this.H*0.45+34); c.restore(); }
+      $("f1Hud").textContent="⏸ PAUSA"; return; }
     // 🚦 largada: mientras corre la cuenta el auto está detenido; beep por luz y beep agudo en ¡GO!
     if(this.cdT>0){ this.cdT-=dt;
       const step=Math.max(0,Math.ceil(this.cdT-0.4));
@@ -6539,7 +6545,9 @@ $("f1Start").onclick=()=>F1.start();
 $("f1Canvas").addEventListener("pointerdown",e=>{ F1._touchX=e.clientX; });
 $("f1Canvas").addEventListener("pointermove",e=>{ if(e.buttons||e.pressure>0) F1._touchX=e.clientX; });
 $("f1Canvas").addEventListener("pointerup",()=>{ F1._touchX=null; });
-document.addEventListener("keydown",e=>{ if(!$("f1Fs").classList.contains("open")) return; F1.keys[e.key]=true; if(e.key===" ") e.preventDefault(); if(e.key==="Escape") F1.close(); });
+document.addEventListener("keydown",e=>{ if(!$("f1Fs").classList.contains("open")) return; F1.keys[e.key]=true; if(e.key===" ") e.preventDefault(); if(e.key==="Escape") F1.close();
+  // ⏸ pausa de carrera con P (motor incluido)
+  if((e.key==="p"||e.key==="P") && F1.running && F1.cdT<=0){ F1.paused=!F1.paused; if(F1.paused) F1.engineOff(); else F1.engineOn(); } });
 document.addEventListener("keyup",e=>{ F1.keys[e.key]=false; });
 
 /* ============ 🌦️ ESTACIÓN METEOROLÓGICA (Open-Meteo, gratis y sin clave) ============ */
