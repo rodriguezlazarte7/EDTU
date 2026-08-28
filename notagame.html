@@ -107,6 +107,7 @@
     🗺️ <b>M</b> mapa · <b>P</b> pausa · <b>Enter</b> reintentar · 📡 radar arriba a la derecha<br>
     ⚠️ Ojo con: 👹 <b>GIGANTE</b> cada 25 kills · 🌕 <b>LUNA DE SANGRE</b> · 🚨 <b>HORDAS</b> · 🏃 corredores (40+) · 🟣 <b>ESCUPIDORES</b> de ácido (80+, ¡esquiva!)<br>
     🚨 A los 60 kills: <b>NIEBLA ROJA</b> 30s — zombies al doble pero ¡kills x2! · 🌧️ algunas noches LLUEVE y los zombies patinan<br>
+    🔋 De NOCHE la linterna gasta batería (parpadea al 25%) — busca <b>PILAS verdes</b> · de día se recarga sola · si el radar parpadea ROJO: ¡pilas ya!<br>
     🎁 Botín: 🛡️ escudo (aguanta 1 golpe) · ⚡ disparo rápido · 🏅 medallas a 25/50/100/200 kills · ⏱️ récord de caso más rápido
   </div>
   <button class="btn" id="play">▶ INVESTIGAR</button>
@@ -702,7 +703,10 @@ const shieldDrops=[];   // 🛡️ escudos que sueltan los zombies
 // 📡 RADAR: zombies rojos, GIGANTE naranja, escudos celestes, rayos amarillos (adelante = arriba)
 function drawNRadar(){ const cv=document.getElementById("nradar"); if(!cv) return; const g=cv.getContext("2d");
   g.clearRect(0,0,104,104); g.fillStyle="rgba(8,12,20,.55)"; g.beginPath(); g.arc(52,52,50,0,6.28); g.fill();
-  g.strokeStyle="rgba(120,200,255,.3)"; g.beginPath(); g.arc(52,52,50,0,6.28); g.stroke();
+  const lowB=fBatt<25&&Math.sin(performance.now()*0.012)>0;   // 🔋 batería crítica: borde ROJO parpadeante
+  g.strokeStyle=lowB?"rgba(255,60,60,.85)":"rgba(120,200,255,.3)"; g.lineWidth=lowB?2.5:1;
+  g.beginPath(); g.arc(52,52,50,0,6.28); g.stroke();
+  g.strokeStyle="rgba(120,200,255,.3)"; g.lineWidth=1;
   g.beginPath(); g.arc(52,52,25,0,6.28); g.stroke();
   const R=42, s2=Math.sin(yaw), c2=Math.cos(yaw);
   const put=(x,z,color,r2)=>{ const dx=x-P.x, dz=z-P.z; const rgt=dx*c2-dz*s2, fw=-dx*s2-dz*c2;
