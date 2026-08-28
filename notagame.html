@@ -489,7 +489,7 @@ scene.add(tracer); let tracerT=0;
 
 // ---------- jugador ----------
 const P={x:0,z:ARENA-5,y:1.7,vy:0,onGround:true,speed:6.5,hp:100};
-let yaw=0, pitch=0, running=false, gameOver=false, tPrev=0, cluesGot=0, kills=0, muzzle=0, shootCd=0, startT=0, level="surface", heliMode=false, stepT=0, rotorT=0, ambT=10, lastDayF=0, zMul=1, comboN=0, comboT=0, comboPop=0, shield=false;
+let yaw=0, pitch=0, running=false, gameOver=false, tPrev=0, cluesGot=0, kills=0, muzzle=0, shootCd=0, startT=0, level="surface", heliMode=false, stepT=0, rotorT=0, ambT=10, lastDayF=0, zMul=1, comboN=0, comboT=0, comboPop=0, shield=false, bloodMoon=false;
 const shieldDrops=[];   // 🛡️ escudos que sueltan los zombies
 function updShieldHUD(){ const w=document.getElementById("hpwrap"); if(!w) return;
   if(shield){ w.textContent="🛡️ ESCUDO: aguantas UN toque"; w.style.color="#3fd0ff"; w.style.textShadow="0 0 12px #3fd0ff"; }
@@ -561,7 +561,7 @@ function shoot(){
   if(best){ best.hp--; snd(400,"square",0.06,0.06);
     if(best.hp<=0){ kills++; document.getElementById("kills").textContent=kills; snd(70,"sawtooth",0.4,0.12);
       // 🛡️ 10%: el zombie suelta un ESCUDO brillante donde cayó
-      if(Math.random()<0.10){ const sm=new THREE.Mesh(new THREE.OctahedronGeometry(0.42),new THREE.MeshBasicMaterial({color:0x3fd0ff}));
+      if(Math.random()<(bloodMoon?0.25:0.10)){ const sm=new THREE.Mesh(new THREE.OctahedronGeometry(0.42),new THREE.MeshBasicMaterial({color:0x3fd0ff}));
         sm.position.set(best.grp.position.x,0.9,best.grp.position.z); scene.add(sm); shieldDrops.push({m:sm}); }
       respawnZombie(best);
       // 🔥 RACHA: kills seguidos en menos de 4s suman combo; el tono sube con cada uno
@@ -699,7 +699,7 @@ function update(dt){
     scene.background.copy(bgNight).lerp(bgDay,dayF);
     moonMesh.material.opacity=(1-dayF)*0.95; moonHalo.material.opacity=(1-dayF)*0.18;   // 🌕 la luna se ve de noche
     // 🌃 de noche: sirena lejana o aullido de perro cada tanto
-    if(dayF<0.4){ ambT-=dt; if(ambT<=0){ ambT=18+Math.random()*22; if(Math.random()<0.5) sirenSnd(); else howlSnd(); } }
+    if(dayF<0.4){ ambT-=dt; if(ambT<=0){ ambT=(bloodMoon?8:18)+Math.random()*22; if(Math.random()<0.5) sirenSnd(); else howlSnd(); } }
     // 🔥 la racha expira si pasan 4s sin matar; el cartel se desvanece solo
     if(comboT>0){ comboT-=dt; if(comboT<=0) comboN=0; }
     if(comboPop>0){ comboPop-=dt; if(comboPop<=0) document.getElementById("combo").style.opacity="0"; }
@@ -710,9 +710,16 @@ function update(dt){
         [392,523,659].forEach((f2,j)=>setTimeout(()=>snd(f2,"triangle",0.18,0.07),j*90)); } }
     if(heliLamp){ heliLamp.intensity=0.4+(1-dayF)*2.2; heliLamp.target.position.x=heliSpot.x+Math.sin(now*0.5)*8; heliLamp.target.position.z=heliSpot.z+6+Math.cos(now*0.5)*5; }   // 🔦 foco del heli barre el suelo
     if(casa13Sign){ const on=Math.random()<0.94; casa13Sign.material.opacity=on?1:0.15; if(casa13Light) casa13Light.intensity=(on?0.9:0.1)+(1-dayF)*0.6; }   // 🏚️ neón "13" fallando
-    if(dn) dn.textContent = dayF>0.5 ? "☀️ DÍA" : "🌙 NOCHE";
+    if(dn) dn.textContent = dayF>0.5 ? "☀️ DÍA" : (bloodMoon?"🔴 LUNA DE SANGRE":"🌙 NOCHE");
     // 🏮 faroles: se encienden al anochecer (algunos titilan)
     for(const sl of streetLamps){ const base=(1-dayF)*1.4; sl.l.intensity=base*(Math.random()<0.06?0.2:1); sl.b.material.color.setHex(dayF>0.6?0x555550:0xffd890); }
+    // 🔴 LUNA DE SANGRE: algunas noches (35%) la luna se tiñe de rojo — zombies enloquecidos pero sueltan MÁS escudos
+    if(lastDayF>=0.42 && dayF<0.42){ bloodMoon=Math.random()<0.35;
+      if(bloodMoon){ narrate("Luna de sangre, agente. Los zombies enloquecen esta noche."); howlSnd();
+        const c2=document.getElementById("combo"); if(c2){ c2.textContent="🔴 LUNA DE SANGRE"; c2.style.opacity="1"; c2.style.transform="translate(-50%,-50%) scale(1.2)"; comboPop=3; } } }
+    if(dayF>0.5 && bloodMoon) bloodMoon=false;
+    moonMesh.material.color.setHex(bloodMoon?0xff5040:0xe8ecff); moonHalo.material.color.setHex(bloodMoon?0xff2a1a:0x9fb0ff);
+    if(bloodMoon) moonHalo.material.opacity=(1-dayF)*0.3;
     lastDayF=dayF;
   }
   // 🐦‍⬛ cuervos: si te acercas a <6m LEVANTAN VUELO graznando y luego vuelven a posarse lejos
@@ -728,7 +735,7 @@ function update(dt){
   // zombies: ¡un toque = muerte! (solo en la SUPERFICIE; el drenaje es refugio)
   let danger=false, fear=0;
   // ⚖️ balance día/noche: lentos de día (0.8x), RÁPIDOS de noche (1.25x)
-  zMul = 0.8 + (1-lastDayF)*0.45;
+  zMul = 0.8 + (1-lastDayF)*0.45; if(bloodMoon) zMul*=1.35;   // 🔴 en luna de sangre corren mucho más
   // 🎵 zumbido ominoso en el hospital
   if(level==="hospital"){ droneT-=dt; if(droneT<=0){ droneT=2.5+Math.random()*2.5; snd(38+Math.random()*8,"sawtooth",1.1,0.035); } }
   if(level==="surface") zombies.forEach(z=>{ if(z.dead)return;
