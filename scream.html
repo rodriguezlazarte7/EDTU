@@ -539,6 +539,10 @@ let hp=3, hpMax=3, hurtCd=0, stam=100, sprintHeld=false, safeTime=0, visorBatt=1
 let mbT=0, mbI=0; const MB_NOTES=[659,622,659,622,659,494,587,523,440,0,262,330,440,494,0,330,415,494,523,0,0];
 // 🚪 portazos fantasma
 let bangT=50+Math.random()*40, flickT=0;
+// 🕷️⬇️ ATAQUE DESDE EL TECHO
+let ceilT=40+Math.random()*40; const ceilAtk={phase:0,t:0,x:0,z:0,f:0};
+const atkRing=new THREE.Mesh(new THREE.RingGeometry(0.6,1.6,24),new THREE.MeshBasicMaterial({color:0xff2020,transparent:true,opacity:0,side:THREE.DoubleSide}));
+atkRing.rotation.x=-Math.PI/2; scene.add(atkRing);
 // 🤖 EASTER EGG: WALLY también entró al hospital (balizas alternando en la oscuridad)
 const wallyS=new THREE.Group(); let wallySF=0, wallySSeen=false, wSBalR=null, wSBalB=null;
 (function makeWallyS(){ const bodyM2=new THREE.MeshStandardMaterial({color:0x3468d0,metalness:.5,roughness:.4});
@@ -959,8 +963,28 @@ function update(dt){
     if(flickT>0){ flickT-=dt; if(flashOn && Math.random()<0.5) flash.intensity*=0.2; }
     if(sd<11){ const k=(11-sd)*0.018; camera.position.x+=(Math.random()-0.5)*k; camera.position.y+=(Math.random()-0.5)*k; }
     if(sd<8) danger=true;
+    // 🕷️⬇️ ATAQUE DESDE EL TECHO: sube, marca un CÍRCULO ROJO pulsante donde estabas y CAE en picada
+    ceilT-=dt;
+    if(ceilAtk.phase===0 && ceilT<=0 && sd>10 && !inSafe(P.x,P.z,curFloor)){
+      ceilT=45+Math.random()*40; ceilAtk.phase=1; ceilAtk.t=1.1; ceilAtk.x=P.x; ceilAtk.z=P.z; ceilAtk.f=curFloor;
+      screech(); snd(1500,"square",0.2,0.07); }
+    if(ceilAtk.phase>0){
+      if(ceilAtk.f!==curFloor){ ceilAtk.phase=0; atkRing.material.opacity=0; }
+      else { atkRing.position.set(ceilAtk.x,curFloor*FLOOR_H+0.07,ceilAtk.z);
+        if(ceilAtk.phase===1){ ceilAtk.t-=dt; atkRing.material.opacity=0.35+0.4*Math.abs(Math.sin(now*14));
+          spider.grp.position.set(ceilAtk.x,curFloor*FLOOR_H+FLOOR_H-2.2,ceilAtk.z); spider.grp.rotation.x=Math.PI*0.9;
+          if(ceilAtk.t<=0){ ceilAtk.phase=2; ceilAtk.t=0.32; snd(90,"sawtooth",0.3,0.12); } }
+        else { ceilAtk.t-=dt; const kf=Math.max(0,ceilAtk.t/0.32);
+          spider.grp.position.set(ceilAtk.x,curFloor*FLOOR_H+(FLOOR_H-2.2)*kf,ceilAtk.z);
+          if(ceilAtk.t<=0){ ceilAtk.phase=0; atkRing.material.opacity=0; spider.grp.rotation.x=0;
+            snd(60,"sawtooth",0.5,0.16); vib([0,60,40,80]);
+            if(Math.hypot(P.x-ceilAtk.x,P.z-ceilAtk.z)<1.9 && hurtCd<=0 && !gameOver && !inSafe(P.x,P.z,curFloor)){
+              hp--; hurtCd=1.5; updHP(); vib(160); snd(1500,"square",0.14,0.1); doCrack();
+              const sf3=$("sflash"); if(sf3){ sf3.style.opacity="0.7"; setTimeout(()=>sf3.style.opacity="0",110); }
+              showStory("🕷️ ¡CAYÓ DEL TECHO SOBRE TI!");
+              if(hp<=0 && !gameOver) endGame(false,"🕷️ Cayó sobre ti desde el TECHO. Nunca la viste venir."); } } } } }
     // 💥 CONTACTO: pierde 1 corazón (no muere de una), con empujón y destello
-    if(sd<1.4 && hurtCd<=0 && !gameOver && !inSafe(P.x,P.z,curFloor)){ hp--; hurtCd=1.5; updHP(); vib(160); snd(90,"sawtooth",0.4,0.14); snd(1500,"square",0.14,0.1);
+    if(sd<1.4 && ceilAtk.phase===0 && hurtCd<=0 && !gameOver && !inSafe(P.x,P.z,curFloor)){ hp--; hurtCd=1.5; updHP(); vib(160); snd(90,"sawtooth",0.4,0.14); snd(1500,"square",0.14,0.1);
       const sf=$("sflash"); if(sf){ sf.style.opacity="0.7"; setTimeout(()=>sf.style.opacity="0",110); } doCrack();
       const kx=Math.max(-HH+1,Math.min(HH-1,P.x+sx/(sd||1)*2.6)), kz=Math.max(-HH+1,Math.min(HH-1,P.z+sz/(sd||1)*2.6));
       if(!collide(kx,P.z,curFloor)) P.x=kx; if(!collide(P.x,kz,curFloor)) P.z=kz;
