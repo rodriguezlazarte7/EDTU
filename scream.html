@@ -416,6 +416,16 @@ function makeSpider(){
   return {grp:g,sp:3.2,legs,bodyMats,eyes,eyeGlow,camo:0.14,ambushT:8,wdir:0,invPhase:false,invT:30,climb:0,pingT:0,blink:0};
 }
 for(let f=0;f<FLOORS;f++) buildFloor(f);
+// 🐀 RATAS decorativas que corretean por los pisos (con chillidos)
+const rats=[];
+(function makeRats(){ const rm=new THREE.MeshStandardMaterial({color:0x24201e,roughness:.95});
+  for(let i=0;i<8;i++){ const fl=i%FLOORS; const g=new THREE.Group();
+    const body=new THREE.Mesh(new THREE.SphereGeometry(0.16,8,7),rm); body.scale.set(1,0.75,1.5); body.position.y=0.12; g.add(body);
+    const head=new THREE.Mesh(new THREE.SphereGeometry(0.09,7,6),rm); head.position.set(0,0.12,0.24); g.add(head);
+    const tail=new THREE.Mesh(new THREE.CylinderGeometry(0.014,0.028,0.4,5),rm); tail.rotation.x=Math.PI/2; tail.position.set(0,0.1,-0.4); g.add(tail);
+    g.position.set((Math.random()*2-1)*(HH-10), fl*FLOOR_H, (Math.random()*2-1)*(HH-10));
+    (floorGroups[fl]||scene).add(g);
+    rats.push({grp:g,f:fl,dir:Math.random()*6.28,st:0}); } })();
 spider=makeSpider();
 // 🕷️ CRÍAS DE ARAÑA: pequeñas, SIEMPRE visibles, sin teleport; rondan y muerden (1 corazón)
 const babies=[];
@@ -677,6 +687,12 @@ function update(dt){
     if(bd<0.9 && hurtCd<=0 && !gameOver && !inSafe(P.x,P.z,curFloor)){ hp--; hurtCd=1.5; updHP(); vib(120); snd(120,"sawtooth",0.3,0.12); doCrack();
       if(hp<=0) endGame(false,"🕷️ Las CRÍAS de la araña te devoraron."); else showStory("💔 ¡Una CRÍA te mordió!"); } }
 
+  // 🐀 ratas: arrancan en carreritas cortas y chillan si pasan cerca
+  for(const rt of rats){ if(rt.f!==curFloor) continue; rt.st-=dt;
+    if(rt.st<=0){ rt.mv=!rt.mv; rt.st=rt.mv?(0.4+Math.random()*0.7):(0.8+Math.random()*2.2); if(rt.mv) rt.dir=Math.random()*6.28; }
+    if(rt.mv){ const rx=rt.grp.position.x+Math.cos(rt.dir)*5.2*dt, rz=rt.grp.position.z+Math.sin(rt.dir)*5.2*dt;
+      if(Math.abs(rx)<HH-2 && Math.abs(rz)<HH-2 && !collide(rx,rz,curFloor)){ rt.grp.position.x=rx; rt.grp.position.z=rz; rt.grp.rotation.y=-rt.dir+Math.PI/2; } else rt.dir=Math.random()*6.28;
+      if(Math.hypot(P.x-rt.grp.position.x,P.z-rt.grp.position.z)<5 && Math.random()<dt*1.2) snd(1100+Math.random()*500,"square",0.05,0.025); } }
   // 📡 RADAR intermitente de la araña
   const rc=$("radar"); if(rc){ const rg=rc.getContext("2d"); rg.clearRect(0,0,92,92);
     rg.strokeStyle="rgba(90,255,150,0.4)"; rg.lineWidth=1; rg.beginPath(); rg.arc(46,46,44,0,6.28); rg.stroke(); rg.beginPath(); rg.arc(46,46,22,0,6.28); rg.stroke();
