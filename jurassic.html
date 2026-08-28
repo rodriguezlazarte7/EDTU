@@ -839,8 +839,10 @@ function update(dt){
   $("clock").textContent="DÍA "+Math.min(day,7)+" — "+String(hh).padStart(2,"0")+":"+String(mm).padStart(2,"0")+(isNight?" 🌙":" ☀️");
   // radio intermitente (una vez por día aprox)
   if(day!==lastRadio){ lastRadio=day; if(day>1){ const msg=radioMsgs[(day-2)%radioMsgs.length]; showStory("📻 "+msg); radioSay(msg); }
-    const dtl=$("dayTitle"); if(dtl && day<=7){ dtl.textContent="DÍA "+day; dtl.classList.add("on"); clearTimeout(dtl._t); dtl._t=setTimeout(()=>dtl.classList.remove("on"),1400);
-      [392,523,659].forEach((fq,k)=>setTimeout(()=>snd(fq,"triangle",0.25,0.06),k*160)); } }   // 🌅 título fantasma del día + campanitas
+    const dtl=$("dayTitle"); if(dtl && day<=7){ dtl.textContent=day===7?"⚠ DÍA 7 — ÚLTIMO DÍA":"DÍA "+day; dtl.classList.add("on"); clearTimeout(dtl._t); dtl._t=setTimeout(()=>dtl.classList.remove("on"),day===7?2600:1400);
+      if(day===7){ [523,494,466,440].forEach((fq,k)=>setTimeout(()=>snd(fq,"sawtooth",0.3,0.08),k*220));   // ⚠ tensión descendente
+        setTimeout(()=>radioSay("Último día. El equipo de rescate está en camino. Resiste hasta el final."),1800); }
+      else [392,523,659].forEach((fq,k)=>setTimeout(()=>snd(fq,"triangle",0.25,0.06),k*160)); } }   // 🌅 título fantasma del día + campanitas
 
   // hambre / sed bajan (más rápido de noche); si están en 0, baja la vida
   hunger=Math.max(0,hunger-dt*0.22); thirst=Math.max(0,thirst-dt*0.3);   // bajan MUCHO más lento
