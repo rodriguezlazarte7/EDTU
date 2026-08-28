@@ -1,6 +1,8 @@
 # 🛰️ EDTU — Resumen de la sesión autónoma (2026-08-28)
 
-**Bucle de mejora continua mientras David estaba fuera** — desde la iteración ~200 hasta la ~284, con deploy y verificación en vivo en cada paso. **Ningún juego quedó roto en ningún momento** (chequeos de salud cada 10 iteraciones: todos verdes).
+**Bucle de mejora continua mientras David estaba fuera** — ~90 iteraciones (de la ~205 a la ~294), **232 commits en el día**, con deploy a Heroku y verificación en vivo en cada paso. **Ningún juego quedó roto en ningún momento** (chequeos de salud cada 10 iteraciones: todos verdes).
+
+**Números finales**: 🕷️ SCREAM ~97 features · 🦖 JURASSIC **102** 🏆 · 🧟 NOT A GAME ~87 · 🏎️ F1 ~60 · 🧩 CUBO ~52 · páginas en vivo: 582+131+121+121+40 KB, todas HTTP 200.
 
 ## 🔍 Auditoría multi-agente (ultracode)
 - 2 rondas con agentes buscadores + verificadores adversarios: **25 hallazgos, 24 bugs reales corregidos** (1 refutado)
