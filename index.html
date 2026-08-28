@@ -7040,6 +7040,35 @@ function buildTrophies(){ try{
 $("pickTrophies").onclick=()=>{ buildTrophies(); $("trophyFs").style.display="flex"; };
 $("trophyClose").onclick=()=>{ $("trophyFs").style.display="none"; };
 $("trophyFs").addEventListener("click",e=>{ if(e.target===$("trophyFs")) $("trophyFs").style.display="none"; });
+// 🤖🌧️ HUEVO SORPRESA DEL LOGO: 5 clics rápidos (<3s) en "EDTU" → ¡LLUVIA DE WALLYs!
+(function(){ const logo=document.querySelector("h1.glow"); if(!logo) return;
+  let clicks=0, t0=0, raining=false;
+  logo.style.cursor="pointer"; logo.style.userSelect="none";
+  function wallyRain(done){
+    const wrap=document.createElement("div"); wrap.style.cssText="position:fixed;inset:0;z-index:400;pointer-events:none;overflow:hidden";
+    document.body.appendChild(wrap);
+    const els=[];
+    for(let i=0;i<40;i++){ const d=document.createElement("div"); d.textContent="🤖";
+      d.style.cssText="position:absolute;font-size:"+(20+Math.random()*22)+"px;left:"+(Math.random()*100)+"vw;top:0;will-change:transform";
+      wrap.appendChild(d); els.push({d,y:-60-Math.random()*400,v:120+Math.random()*220,r:Math.random()*360,vr:(Math.random()-0.5)*240}); }
+    let tp=performance.now();
+    const anim=t=>{ const dt2=Math.min(0.05,(t-tp)/1000); tp=t; let alive=false;
+      for(const e2 of els){ e2.y+=e2.v*dt2; e2.r+=e2.vr*dt2;
+        if(e2.y<innerHeight+60) alive=true;
+        e2.d.style.transform="translateY("+e2.y+"px) rotate("+e2.r+"deg)"; }
+      if(alive) requestAnimationFrame(anim); else { wrap.remove(); if(done) done(); } };
+    requestAnimationFrame(anim); }
+  logo.addEventListener("click",()=>{ const now2=performance.now();
+    if(now2-t0>3000){ clicks=0; t0=now2; }
+    clicks++;
+    if(clicks>=5 && !raining){ clicks=0; raining=true; wallyRain(()=>{ raining=false; });
+      try{ const AC2=new (window.AudioContext||window.webkitAudioContext)(); [880,1175,880,1320].forEach((fq,i)=>{ const o=AC2.createOscillator(),g=AC2.createGain(); o.type="square"; o.frequency.value=fq; g.gain.value=0.05; o.connect(g); g.connect(AC2.destination); o.start(AC2.currentTime+i*0.12); o.stop(AC2.currentTime+i*0.12+0.1); }); }catch(e){}
+      try{ if(navigator.vibrate) navigator.vibrate([0,40,30,40,30,100]); }catch(e){}
+      let first=false; try{ first=!localStorage.getItem("edtu_logo_egg"); localStorage.setItem("edtu_logo_egg","1"); }catch(e){}
+      if(first){ const m=document.createElement("div"); m.textContent="🎉 ¡Encontraste el SECRETO del logo!";
+        m.style.cssText="position:fixed;top:18%;left:50%;transform:translateX(-50%);z-index:401;background:rgba(10,20,12,.92);border:1px solid #19ff85;border-radius:12px;padding:10px 18px;color:#8fffc5;font:800 15px Consolas,monospace";
+        document.body.appendChild(m); setTimeout(()=>m.remove(),3200); } } });
+})();
 
 /* ============ ACCESO SECRETO: "hola" -> hackeo -> bóveda -> biometría ============ */
 const Secret={
