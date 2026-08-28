@@ -5657,7 +5657,7 @@ const F1={
     this._lastKm=0;   // 🏁 arcos de km
     this._wRain=0; this._wRainOn=false; this._wRainT=30+Math.random()*40;   // 🌧️ clima
     this.pickups=[]; this._nextPick=400;   // ⚡ recargas de nitro en pista
-    this._ovCombo=0; this._ovT=0; this._ovMsgT=0;   // 🔥 combo de adelantamientos
+    this._ovCombo=0; this._ovT=0; this._ovMsgT=0; this._ovMax=0;   // 🔥 combo de adelantamientos
     this.paused=false;   // ⏸
     this._recPassed=false;   // 🏆 marcador de récord en la pista
     this._nearN=0; this._nearT=0;   // 😅 casi-choques
@@ -5800,7 +5800,7 @@ const F1={
             n.buffer=buf; n.connect(fl2); fl2.connect(g2); g2.connect(a.destination); n.start(); } }catch(e){} } }
       if(c.z<this.dist-12){ this.cars.splice(i,1); this.overt++;
         // 🔥 racha de adelantamientos: varios en <5s arman combo con tono ascendente
-        this._ovCombo=(this._ovT>0)?this._ovCombo+1:1; this._ovT=5;
+        this._ovCombo=(this._ovT>0)?this._ovCombo+1:1; this._ovT=5; if(this._ovCombo>(this._ovMax||0)) this._ovMax=this._ovCombo;
         if(this._ovCombo>=2){ this._ovMsgT=1;
           try{ const a=this.actx(); if(a){ const o=a.createOscillator(),g=a.createGain(); o.type="square"; o.frequency.value=300+Math.min(this._ovCombo,10)*80;
             o.connect(g); g.connect(a.destination); o.start(); g.gain.setValueAtTime(.06,a.currentTime);
@@ -5832,6 +5832,10 @@ const F1={
       if(isOV) localStorage.setItem("edtu_f1_overt",String(this.overt));
       histTxt="<br>📈 Históricos: ⚡ <b>"+Math.max(pms,Math.round(this.maxSpd||0))+"</b> km/h"+(isMS?" 🆕":"")+" · 🏁 <b>"+Math.max(pov,this.overt)+"</b> adelantados"+(isOV?" 🆕":""); }catch(e){}
     this.markMedals(); histTxt+="<br>🎖️ "+this.medals();
+    // 🔥 racha máxima de adelantamientos (de la carrera + histórica)
+    try{ const pom=+(localStorage.getItem("edtu_f1_ovmax")||0); const isOM=(this._ovMax||0)>pom;
+      if(isOM) localStorage.setItem("edtu_f1_ovmax",String(this._ovMax));
+      if((this._ovMax||0)>=2||pom>=2) histTxt+="<br>🔥 Racha de adelantamientos: <b>x"+(this._ovMax||0)+"</b> · Récord: <b>x"+Math.max(pom,this._ovMax||0)+"</b>"+(isOM?" 🆕":""); }catch(e){}
     $("f1Result").innerHTML=(rec?"🏆 ¡NUEVO RÉCORD!<br>":"")+"Distancia: <b>"+m+"</b> m · Adelantados: <b>"+this.overt+"</b> · 😅 Casi-choques: <b>"+(this._nearN||0)+"</b> · ⚡ Vel. máx: <b>"+Math.round(this.maxSpd||0)+"</b> km/h · Récord: <b>"+Math.round(this.best)+"</b> m"+histTxt;
     $("f1Start").textContent="▶ CORRER OTRA VEZ";
     if(this.raf){ cancelAnimationFrame(this.raf); this.raf=null; }
