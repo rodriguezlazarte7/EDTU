@@ -260,6 +260,8 @@ const safeZone={x:-HH+16,z:HH-16,r:9,f:0}; const MACHINE={x:-HH+16,z:HH-16};
 const flick=[];                                    // luces que parpadean
 const webTraps=[];                                 // telarañas del piso que frenan
 const lootCorpses=[];                              // cadáveres con bengala para registrar
+const mists=[];                                    // niebla baja que flota
+const mistTex=tex(x=>{ x.clearRect(0,0,256,256); const g2=x.createRadialGradient(128,128,10,128,128,120); g2.addColorStop(0,"rgba(200,210,220,0.5)"); g2.addColorStop(0.6,"rgba(180,190,205,0.22)"); g2.addColorStop(1,"rgba(160,170,190,0)"); x.fillStyle=g2; x.fillRect(0,0,256,256); });
 const floorLights=[];                              // luces que SOLO se encienden en su piso
 function flight(l,fl){ l.userData.fl=fl; CURP.add(l); floorLights.push(l); return l; }
 
@@ -309,6 +311,11 @@ function buildFloor(fl){
   for(const cx of [-HH+6,HH-6])for(const cz of [-HH+6,HH-6]){ const web=new THREE.Mesh(new THREE.PlaneGeometry(12,12),webMat); web.position.set(cx,by+HHY-1.5,cz); web.lookAt(0,by+2,0); CURP.add(web); }
   // hilos colgantes del techo
   for(let i=0;i<18;i++){ const a=Math.random()*6.28,r=Math.random()*(HH-6),len=2+Math.random()*4; const st=new THREE.Mesh(new THREE.CylinderGeometry(0.02,0.02,len,4),strandMat); st.position.set(Math.cos(a)*r,by+HHY-len/2,Math.sin(a)*r); CURP.add(st); }
+  // 🌫️ NIEBLA BAJA: mantos translúcidos que flotan a la altura de las rodillas
+  const mistMat=new THREE.MeshBasicMaterial({map:mistTex,transparent:true,opacity:0.5,depthWrite:false});
+  for(let i=0;i<4;i++){ const a=Math.random()*6.28,r=Math.random()*(HH-14); const mp=new THREE.Mesh(new THREE.PlaneGeometry(22+Math.random()*14,22+Math.random()*14),mistMat);
+    mp.rotation.x=-Math.PI/2; mp.rotation.z=Math.random()*6.28; mp.position.set(Math.cos(a)*r,by+0.55+Math.random()*0.4,Math.sin(a)*r); CURP.add(mp);
+    mists.push({m:mp,f:fl,bx:mp.position.x,bz:mp.position.z,ph:Math.random()*6.28}); }
   // 🕸️ TELARAÑAS PEGAJOSAS en el piso (te FRENAN al pasar por encima)
   for(let i=0;i<6;i++){ let wx,wz,tw=0; do{ const a=Math.random()*6.28,r=8+Math.random()*(HH-14); wx=Math.cos(a)*r; wz=Math.sin(a)*r; tw++; }while((collide(wx,wz,fl)||inSafe(wx,wz,fl)||Math.hypot(wx-STAIRX,wz-STAIRZ)<8)&&tw<20);
     const wp=new THREE.Mesh(new THREE.PlaneGeometry(5,5),webMat); wp.rotation.x=-Math.PI/2; wp.rotation.z=Math.random()*6.28; wp.position.set(wx,by+0.06,wz); CURP.add(wp);
@@ -717,6 +724,8 @@ function update(dt){
     if(bd<0.9 && hurtCd<=0 && !gameOver && !inSafe(P.x,P.z,curFloor)){ hp--; hurtCd=1.5; updHP(); vib(120); snd(120,"sawtooth",0.3,0.12); doCrack();
       if(hp<=0) endGame(false,"🕷️ Las CRÍAS de la araña te devoraron."); else showStory("💔 ¡Una CRÍA te mordió!"); } }
 
+  // 🌫️ la niebla baja deriva lento
+  for(const ms of mists){ if(ms.f!==curFloor) continue; ms.m.position.x=ms.bx+Math.sin(now*0.14+ms.ph)*3.5; ms.m.position.z=ms.bz+Math.cos(now*0.11+ms.ph)*3.5; ms.m.rotation.z+=dt*0.02; }
   // 🧨 registrar cadáveres con bengala
   for(const lc of lootCorpses){ if(lc.looted||lc.f!==curFloor) continue;
     if(Math.hypot(P.x-lc.x,P.z-lc.z)<1.6){ lc.looted=true; lc.item.visible=false; flares++; updFlareHUD(); snd(640,"triangle",0.18,0.08); showStory("🧨 Registraste el cadáver: +1 bengala"); } }
