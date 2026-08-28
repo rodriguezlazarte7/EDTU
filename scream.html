@@ -179,6 +179,8 @@ const camera=new THREE.PerspectiveCamera(78,1,0.1,300); camera.rotation.order="Y
 function resize(){ renderer.setSize(innerWidth,innerHeight); camera.aspect=innerWidth/innerHeight; camera.updateProjectionMatrix(); }
 addEventListener("resize",resize); resize();
 function snd(f,t,d,v){ try{ const a=snd.ctx||(snd.ctx=new (AudioContext||webkitAudioContext)()); const o=a.createOscillator(),g=a.createGain(); o.type=t||"sine"; o.frequency.value=f; o.connect(g); g.connect(a.destination); g.gain.value=v||0.1; o.start(); g.gain.exponentialRampToValueAtTime(0.0001,a.currentTime+(d||0.2)); o.stop(a.currentTime+(d||0.2)); }catch(e){} }
+// 😨 SUSURROS ininteligibles (blips agudos apagados en ráfaga, como voces lejanas)
+function whisper(){ for(let i=0;i<6;i++){ setTimeout(()=>{ snd(500+Math.random()*700,"sine",0.05+Math.random()*0.06,0.012+Math.random()*0.018); }, i*90+Math.random()*60); } }
 // 🗣️ voz robótica de la MÁQUINA (speechSynthesis, grave y lenta)
 function machineSay(txt){ try{ if(!window.speechSynthesis) return; const u=new SpeechSynthesisUtterance(txt);
   u.lang="es-ES"; u.pitch=0.35; u.rate=0.85; u.volume=0.9; speechSynthesis.cancel(); speechSynthesis.speak(u); }catch(e){} }
@@ -718,6 +720,7 @@ function update(dt){
     const showEyes = !invHidden && !(spider.blink>0); spider.eyes.forEach(e=>e.visible=showEyes); if(spider.eyeGlow) spider.eyeGlow.visible=showEyes;
     const skit=sd<7?18:10; spider.legs.forEach((lg,i)=>{ lg.rotation.x=lg.userData.base+Math.sin(now*skit+i*1.7)*0.4; });
     if(sd<18 && Math.random()<dt*(0.3+(18-sd)/18*1.4)) snd(55+Math.random()*70,"sawtooth",0.12,0.03+(18-sd)/18*0.09);   // patas: mas fuerte/seguido al acercarse
+    if(invHidden && sd<20 && Math.random()<dt*0.12) whisper();   // 😨 susurros: está INVISIBLE y cerca...
     if(sd<34){ hbT-=dt; if(hbT<=0){ hbT=Math.max(0.3,Math.min(1.3,sd/24)); snd(48,"sine",0.14,0.09); } fear=Math.max(0,1-sd/18); }
     if(sd<16 && flashOn && Math.random()<0.16) flash.intensity*=0.28;
     if(sd<11){ const k=(11-sd)*0.018; camera.position.x+=(Math.random()-0.5)*k; camera.position.y+=(Math.random()-0.5)*k; }
