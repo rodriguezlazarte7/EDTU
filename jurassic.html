@@ -612,10 +612,14 @@ function start(){ $("start").classList.add("hide"); $("end").classList.add("hide
 }
 function loadJBest(){ try{ return parseFloat(localStorage.getItem("jurassic_best")||"0")||0; }catch(e){ return 0; } }
 function saveJBest(v){ try{ localStorage.setItem("jurassic_best",String(v)); }catch(e){} }
-function updJBest(){ const b=loadJBest(), el=$("jbest"); if(el) el.textContent = b>0?("🏆 Récord: "+b.toFixed(1)+" días sobrevividos"):"🏆 Aún sin récord — ¡sobrevive!"; }
+function updJBest(){ const b=loadJBest(), el=$("jbest"); if(!el) return;
+  // 🏅 medallas de RESCATE: una por dificultad en la que lograste que te rescaten
+  const med=["facil","normal","dificil","extincion"].map(k=>{ let got=false; try{ got=localStorage.getItem("jurassic_win_"+k)==="1"; }catch(e){}
+    return JDIFFS[k].lbl.split(" ")[0]+(got?"✔":"–"); }).join(" ");
+  el.textContent = (b>0?("🏆 Récord: "+b.toFixed(1)+" días sobrevividos"):"🏆 Aún sin récord — ¡sobrevive!") + "  ·  🏅 "+med; }
 function endGame(win,info){ running=false; gameOver=true; try{document.exitPointerLock();}catch(e){} $("touch").classList.remove("on"); $("fire").classList.add("hide"); $("jump").classList.add("hide"); $("jhelp").classList.add("hide"); jhelpOpen=false; $("jhelpS").classList.remove("on");
   const days=Math.min(7, elapsed/DAY_LEN); const prev=loadJBest(); const isRec=days>prev; if(isRec) saveJBest(days);
-  const t=$("endTitle"); if(win){ t.textContent="✓ RESCATADO"; t.className="big win"; } else { t.textContent="✕ NO SOBREVIVISTE"; t.className="big lose"; }
+  const t=$("endTitle"); if(win){ t.textContent="✓ RESCATADO"; t.className="big win"; try{ localStorage.setItem("jurassic_win_"+jdiff,"1"); }catch(e){} } else { t.textContent="✕ NO SOBREVIVISTE"; t.className="big lose"; }
   $("endInfo").innerHTML=info+"<br><br>🗓️ Días: <b>"+days.toFixed(1)+"</b>"+(isRec?" 🏆 ¡RÉCORD!":" · Récord: <b>"+prev.toFixed(1)+"</b>")
     +"<div style='margin-top:8px;font-size:13px;color:#bfe3d8;line-height:1.9'>📊 <b>ESTADÍSTICAS</b><br>💉 Dardos disparados: "+jStatDarts+" · 💤 Dinos dormidos: "+jStatSleep+"<br>🪵 Maderas puestas: "+jStatWood+" · 🚶 "+Math.round(jStatDist)+" m recorridos</div>"; snd(win?660:70,win?"triangle":"sawtooth",0.5,0.12);
   if(win){ $("end").classList.remove("hide"); }
