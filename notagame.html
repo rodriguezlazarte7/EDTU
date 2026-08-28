@@ -137,7 +137,7 @@ const floor=new THREE.Mesh(new THREE.PlaneGeometry(ARENA*2,ARENA*2),
 floor.rotation.x=-Math.PI/2; scene.add(floor);
 const grid=new THREE.GridHelper(ARENA*2,30,0x2c5c22,0x24491c); scene.add(grid);   // líneas de pasto
 // ---- muros con colisión por cajas (AABB) ----
-const walls=[];
+const walls=[]; let casa13Sign=null, casa13Light=null;
 function addWall(x0,x1,z0,z1){ const w={x0:Math.min(x0,x1),x1:Math.max(x0,x1),z0:Math.min(z0,z1),z1:Math.max(z0,z1)}; walls.push(w); return w; }
 function box(x,z,w,h,d,mat){ const m=new THREE.Mesh(new THREE.BoxGeometry(w,h,d),mat); m.position.set(x,h/2,z); scene.add(m); return m; }
 const cityMat=new THREE.MeshStandardMaterial({color:0x0d0d15,emissive:0x05040a,metalness:.3,roughness:.85});
@@ -179,7 +179,12 @@ function buildHouse(cx,cz,S,label){
   const bulb=new THREE.Mesh(new THREE.SphereGeometry(0.16,8,8),new THREE.MeshBasicMaterial({color:0xffe6b0})); bulb.position.set(cx,H-0.4,cz); scene.add(bulb);
   box(cx-S/4,cz-S/4,1.6,0.8,1.0,furnMat); addWall(cx-S/4-0.8,cx-S/4+0.8,cz-S/4-0.5,cz-S/4+0.5);          // mueble
   box(cx+S/4,cz+S/5,1.2,0.6,2.0,furnMat); addWall(cx+S/4-0.6,cx+S/4+0.6,cz+S/5-1.0,cz+S/5+1.0);          // cama
-  if(label){ const sg=new THREE.Mesh(new THREE.PlaneGeometry(1.3,1.3),new THREE.MeshBasicMaterial({color:0xff3b5b})); sg.position.set(cx,H*0.65,cz+S/2+0.03); scene.add(sg); }
+  if(label){ // 🏚️ letrero NEÓN "13" que titila como foco fallando
+    const c13=document.createElement("canvas"); c13.width=c13.height=128; const x13=c13.getContext("2d");
+    x13.fillStyle="#1a0004"; x13.fillRect(0,0,128,128); x13.font="900 84px Consolas,monospace"; x13.textAlign="center"; x13.textBaseline="middle";
+    x13.shadowColor="#ff2040"; x13.shadowBlur=18; x13.fillStyle="#ff3b5b"; x13.fillText("13",64,70);
+    casa13Sign=new THREE.Mesh(new THREE.PlaneGeometry(1.6,1.6),new THREE.MeshBasicMaterial({map:new THREE.CanvasTexture(c13),transparent:true})); casa13Sign.position.set(cx,H*0.65,cz+S/2+0.03); scene.add(casa13Sign);
+    casa13Light=new THREE.PointLight(0xff2040,1.2,10); casa13Light.position.set(cx,H*0.65,cz+S/2+0.8); scene.add(casa13Light); }
   houseCenters.push({x:cx,z:cz,r:S/2+1.8}); houses.push({x:cx,z:cz,S});
 }
 houseCenters.push({x:12,z:-14,r:6}); houseCenters.push({x:0,z:ARENA-5,r:5});   // reserva ascensor e inicio
@@ -648,6 +653,7 @@ function update(dt){
     // 🌃 de noche: sirena lejana o aullido de perro cada tanto
     if(dayF<0.4){ ambT-=dt; if(ambT<=0){ ambT=18+Math.random()*22; if(Math.random()<0.5) sirenSnd(); else howlSnd(); } }
     if(heliLamp){ heliLamp.intensity=0.4+(1-dayF)*2.2; heliLamp.target.position.x=heliSpot.x+Math.sin(now*0.5)*8; heliLamp.target.position.z=heliSpot.z+6+Math.cos(now*0.5)*5; }   // 🔦 foco del heli barre el suelo
+    if(casa13Sign){ const on=Math.random()<0.94; casa13Sign.material.opacity=on?1:0.15; if(casa13Light) casa13Light.intensity=(on?0.9:0.1)+(1-dayF)*0.6; }   // 🏚️ neón "13" fallando
     if(dn) dn.textContent = dayF>0.5 ? "☀️ DÍA" : "🌙 NOCHE";
   }
   // zombies: ¡un toque = muerte! (solo en la SUPERFICIE; el drenaje es refugio)
