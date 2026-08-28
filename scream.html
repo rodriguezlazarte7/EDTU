@@ -1095,10 +1095,11 @@ function update(dt){
     if(craftT>=8){ won=true; running=false; const elapsed=gameTime+clockBonus-timeLeft; let best=loadBest(); const isNew=(best==null||elapsed<best); if(isNew){ best=elapsed; saveBest(best); } addWin();
       const bd=loadBestD(diff), isNewD=(bd==null||elapsed<bd); if(isNewD) saveBestD(diff,elapsed); buildDiffs();   // 🏆 récord de esta dificultad
       try{ localStorage.setItem("scream_win_"+diff,"1"); }catch(e){}   // 🏅 medalla de esta dificultad
-      const winMsg="🧪 ¡Fabricaste el ANTÍDOTO y escapaste del hospital de 7 pisos! ✅<br><br>⏱ Tu tiempo: <b>"+fmtT(elapsed)+"</b>"+(isNew?"<br>🏆 ¡NUEVO RÉCORD!":"<br>🏆 Mejor: <b>"+fmtT(best)+"</b>")+(isNewD?"<br>⭐ ¡MEJOR TIEMPO en "+DIFFS[diff].lbl+"!":"<br>⭐ Mejor en "+DIFFS[diff].lbl+": <b>"+fmtT(bd)+"</b>")+"<br>🚁 Escapes totales: <b>"+loadWins()+"</b>";
+      const winMsg="🧪 ¡Fabricaste el ANTÍDOTO y escapaste del hospital de 7 pisos! ✅"+(diff==="infierno"?"<br>🔥 <b>¡VENCISTE AL INFIERNO!</b> — con 1 corazón y 10 minutos. LEYENDA ABSOLUTA.":"")+"<br><br>⏱ Tu tiempo: <b>"+fmtT(elapsed)+"</b>"+(isNew?"<br>🏆 ¡NUEVO RÉCORD!":"<br>🏆 Mejor: <b>"+fmtT(best)+"</b>")+(isNewD?"<br>⭐ ¡MEJOR TIEMPO en "+DIFFS[diff].lbl+"!":"<br>⭐ Mejor en "+DIFFS[diff].lbl+": <b>"+fmtT(bd)+"</b>")+"<br>🚁 Escapes totales: <b>"+loadWins()+"</b>";
       // 🎬 cinemática de ESCAPE: fundido a blanco + radio de rescate
       cbar.style.display="none"; const fd=$("fade"); if(fd){ fd.style.background="#e2fff7"; fd.style.opacity="0.94"; }
       machineSay("Antídoto completado. Evacuación autorizada. Buena suerte.");   // 🗣️ voz de la máquina
+      if(diff==="infierno"){ vib([0,80,50,80,50,220]); setTimeout(()=>{ try{ if(window.speechSynthesis){ const uL=new SpeechSynthesisUtterance("Sobreviviste al infierno con un solo corazón. Eres una leyenda."); uL.lang="es-ES"; uL.pitch=0.6; uL.rate=0.85; uL.volume=0.95; speechSynthesis.speak(uL); } }catch(e){} },4200); }   // 🔥 homenaje al vencer INFIERNO (encolado, sin cortar a la máquina)
       snd(400,"triangle",0.3,0.1); showStory("📻 «¡Equipo de rescate! Te tenemos... sal de ahí!»");
       setTimeout(()=>snd(600,"triangle",0.4,0.1),600); setTimeout(()=>snd(780,"triangle",0.5,0.12),1150);
       setTimeout(()=>{ if(fd) fd.style.opacity="0"; endGame(true,winMsg); if(fd) setTimeout(()=>{ fd.style.background="#000"; },400); },2400); } }
