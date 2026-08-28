@@ -309,6 +309,14 @@
   #scrCloseBtn{position:fixed;top:8px;right:12px;z-index:201;background:rgba(0,0,0,.6);color:#fff;border:1px solid #ff2b3a;
     border-radius:8px;padding:7px 13px;font-family:"Consolas",monospace;font-weight:700;cursor:pointer}
   /* ---------- JUEGO: F1 RB RUSH ---------- */
+  /* 🤖 WALLY presentador de la Sala de Trofeos */
+  @keyframes wallySway{0%,100%{transform:rotate(-7deg)}50%{transform:rotate(7deg)}}
+  @keyframes balR{0%,45%{opacity:1}50%,95%{opacity:.12}100%{opacity:1}}
+  @keyframes balB{0%,45%{opacity:.12}50%,95%{opacity:1}100%{opacity:.12}}
+  #wallyPresenter{text-align:center;margin-bottom:6px}
+  #wallyPresenter .bot{display:inline-block;font-size:46px;animation:wallySway 2.6s ease-in-out infinite;filter:drop-shadow(0 0 10px rgba(56,182,255,.55))}
+  #wallyPresenter .bzr{font-size:13px;vertical-align:top;animation:balR 1s steps(1) infinite}
+  #wallyPresenter .bzb{font-size:13px;vertical-align:top;animation:balB 1s steps(1) infinite}
   #f1Fs{position:fixed;inset:0;z-index:120;display:none;background:#000}
   #f1Fs.open{display:block}
   #f1Canvas{width:100%;height:100%;display:block}
@@ -1458,6 +1466,7 @@
 </div>
 <div id="trophyFs" style="position:fixed;inset:0;z-index:130;background:rgba(0,0,0,.9);display:none;align-items:center;justify-content:center;backdrop-filter:blur(3px)">
   <div style="background:#0d0f16;border:1px solid rgba(255,209,46,.5);border-radius:16px;padding:22px 20px;min-width:min(360px,94vw);max-width:min(480px,94vw);max-height:88vh;overflow-y:auto;box-shadow:0 0 40px rgba(255,209,46,.18);font-family:Consolas,monospace">
+    <div id="wallyPresenter"><span class="bzr">🔴</span><span class="bot" id="wallyBot">🤖</span><span class="bzb">🔵</span><div id="wallySpeech" style="font:700 12px Consolas,monospace;color:#8fd0ff;margin-top:2px"></div></div>
     <h2 style="margin:0 0 6px;text-align:center;color:#ffd12e;letter-spacing:.1em">🏆 SALA DE TROFEOS</h2>
     <div id="trophyBody" style="font-size:13px;line-height:2;color:#cfe0ff"></div>
     <button class="btn btn-ghost btn-sm" id="trophyClose" style="margin-top:12px;width:100%">Cerrar</button>
@@ -6974,6 +6983,10 @@ function buildTrophies(){ try{
   // WALLY
   h+="<div style='color:#8fd0ff'><b>🤖 CACERÍA DE WALLY</b></div>"+["wally_jurassic","wally_notagame","wally_scream","wally_f1"].map((k,i)=>(g(k)==="1"?"✅":"▫️")+["🦖","🧟","🕷️","🏎️"][i]).join(" ")+" — "+wallys+"/4 mundos";
   $("trophyBody").innerHTML=h;
+  // 🤖 WALLY saluda (con corona si lo encontraste en los 4 mundos)
+  { const wb=document.getElementById("wallyBot"), ws=document.getElementById("wallySpeech");
+    if(wb) wb.textContent = wallys>=4 ? "👑🤖" : "🤖";
+    if(ws) ws.textContent = wallys>=4 ? "«¡Encontraste TODOS mis escondites! Esta sala brilla gracias a ti»" : "«Bienvenido a tu sala, agente. Yo cuido tus trofeos»"; }
 }catch(e){ $("trophyBody").textContent="(error cargando trofeos)"; } }
 $("pickTrophies").onclick=()=>{ buildTrophies(); $("trophyFs").style.display="flex"; };
 $("trophyClose").onclick=()=>{ $("trophyFs").style.display="none"; };
