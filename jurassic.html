@@ -361,6 +361,11 @@ for(let i=0;i<6;i++){ const sm=new THREE.Mesh(new THREE.SphereGeometry(3+Math.ra
 const vbombs=[]; const vbombM=new THREE.MeshBasicMaterial({color:0xff3a10,fog:false});
 for(let i=0;i<8;i++){ const b=new THREE.Mesh(new THREE.SphereGeometry(0.9,7,6),vbombM); b.visible=false; volc.add(b); vbombs.push({m:b,vx:0,vy:0,vz:0,on:false}); }
 let erupIn=90+Math.random()*120, erupT=0, rumbleT=0;
+// 🐬 DELFINES: saltan en arco por el mar alrededor de la isla
+const dolphins=[];
+for(let i=0;i<3;i++){ const m=new THREE.Mesh(new THREE.SphereGeometry(0.5,10,8),new THREE.MeshStandardMaterial({color:0x7d8ea0,roughness:.4}));
+  m.scale.set(0.5,0.42,1.6); m.visible=false; scene.add(m);
+  dolphins.push({m,wait:3+Math.random()*8,t:0,x0:0,z0:0,dx:0,dz:0}); }
 // ---------- ZONAS SEGURAS (los dinos NO entran) ----------
 const safeZones=[{x:SH.x,z:SH.z,r:7}];   // la cabaña
 function addSafeZone(x,z,r){ safeZones.push({x,z,r});
@@ -669,6 +674,17 @@ function update(dt){
     for(const vb of vbombs){ if(!vb.on) continue; vb.vy-=22*dt; vb.m.position.x+=vb.vx*dt; vb.m.position.y+=vb.vy*dt; vb.m.position.z+=vb.vz*dt;
       if(vb.m.position.y<2){ const va=Math.random()*6.28; vb.m.position.set(0,48,0); vb.vx=Math.cos(va)*(4+Math.random()*7); vb.vz=Math.sin(va)*(4+Math.random()*7); vb.vy=16+Math.random()*12; } }
     if(erupT<=0){ vbombs.forEach(vb=>{ vb.on=false; vb.m.visible=false; }); crater.material.opacity=0.55; } }
+  // 🐬 delfines: esperan bajo el agua y saltan en un arco de 1.5s; si estás en la playa oyes el chapuzón
+  for(const dp2 of dolphins){
+    if(!dp2.m.visible){ dp2.wait-=dt;
+      if(dp2.wait<=0){ const a=Math.random()*6.28, r=ISLR+8+Math.random()*20;
+        dp2.x0=Math.cos(a)*r; dp2.z0=Math.sin(a)*r;
+        dp2.dx=Math.cos(a+Math.PI/2)*6; dp2.dz=Math.sin(a+Math.PI/2)*6; dp2.t=0; dp2.m.visible=true; } }
+    else { dp2.t+=dt; const k=dp2.t/1.5;
+      if(k>=1){ dp2.m.visible=false; dp2.wait=4+Math.random()*9;
+        if(Math.hypot(P.x-dp2.x0,P.z-dp2.z0)<70) snd(300,"sine",0.12,0.03); continue; }
+      dp2.m.position.set(dp2.x0+dp2.dx*k, -0.4+Math.sin(k*Math.PI)*3.2, dp2.z0+dp2.dz*k);
+      dp2.m.rotation.y=Math.atan2(dp2.dx,dp2.dz); dp2.m.rotation.x=-(k-0.5)*1.6; } }
   // 🦗🐦 SONIDOS DE LA NATURALEZA: grillos cri-cri de noche y coro de pájaros al amanecer (callan si llueve)
   natT-=dt; if(natT<=0){
     if(lightF<0.15 && rainF<0.5){ natT=0.35+Math.random()*0.5;
