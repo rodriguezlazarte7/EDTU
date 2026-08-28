@@ -188,6 +188,7 @@ function updAIBar(){ const done=aiTotal?(aiTotal-aiQueue.length)/aiTotal:0; cons
   if(f) f.style.width=Math.round(done*100)+"%"; if(p) p.textContent="🧩 "+Math.round(done*100)+"%";
   if(done>=0.5&&!aiT50&&state==="race"&&!ended){ aiT50=true; aiSay("¡Ya voy por la mitad!"); }
   if(done>=0.9&&!aiT90&&state==="race"&&!ended){ aiT90=true; aiSay("¡Casi termino! ¡Apúrate!"); } }
+let rMemSaid=false;   // 🤖🧠 la IA ya te provocó con tu bitácora en esta visita
 function startRace(){
   if(state==="count") return;   // ya hay una cuenta corriendo
   if(dailyMode) scrRng=mulberry32(dailyKey());   // 📅 revoltura fija del día
@@ -196,6 +197,12 @@ function startRace(){
   aiWinT=0; camA.position.set(1000+5,5,7); camA.lookAt(1000,0,0);   // 🐛FIX ronda2: la vuelta de la victoria de la IA invadía la cuenta regresiva de la revancha
   clearTimeout(aiTimer); ended=false; state="count"; practiceLast=false; moveCount=0; document.getElementById("mvs").textContent="🔄 0";
   undoStack.length=0; document.getElementById("timer").textContent="0.0s";
+  // 🤖🧠 la IA RECUERDA tu bitácora: 1 de cada 2 carreras (y solo una vez por visita) te provoca según la última (voz + texto durante la cuenta)
+  if(!rMemSaid && Math.random()<0.5){ try{ const a=JSON.parse(localStorage.getItem("rubik_diary")||"[]"); if(a.length){ rMemSaid=true; const e=a[0];
+    const tt=e.win?("la última vez me ganaste en "+e.t+" segundos... hoy no será tan fácil"):("la última vez te gané en "+e.t+" segundos... ¿revancha?");
+    const tt2=tt+(e.hints?" ¿Y esta vez sin pistas, eh?":"");
+    const ss0=document.getElementById("scramShow"); if(ss0) ss0.innerHTML="🤖 <b style='color:#ff7ba3'>IA:</b> «"+tt2+"»";
+    if(window.speechSynthesis){ const u0=new SpeechSynthesisUtterance(tt2); u0.lang="es-ES"; u0.pitch=1.6; u0.rate=1.15; u0.volume=0.8; speechSynthesis.speak(u0); } } }catch(e){} }
   // ⏱️ CUENTA REGRESIVA estilo F1: 3.. 2.. 1.. ¡YA! y recién ahí se revuelve y parte la IA
   let n=3; showMsg("3","#ffd12e"); snd(440,"square",0.12,0.06);
   const step=()=>{ n--;
