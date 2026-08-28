@@ -583,8 +583,13 @@ function start(){ $("start").classList.add("hide"); $("end").classList.add("hide
   $("floor").textContent=FLOORNAME[0]; updObj(); showStory("7 pisos a oscuras. Tienes 20 min: reúne 4 válvulas + 3 muestras y fabrica el antídoto en tu zona segura.");
 }
 function endGame(win,info){ running=false; gameOver=true; sprintHeld=false; $("lowhp").classList.remove("on"); try{document.exitPointerLock();}catch(e){} $("touch").classList.remove("on"); $("tflash").classList.add("hide"); $("tnv").classList.add("hide"); $("sprint").classList.add("hide"); $("tmap").classList.add("hide"); $("tflare").classList.add("hide"); $("thelp").classList.add("hide"); mapOpen=false; $("map").classList.remove("on"); helpOpen=false; $("help").classList.remove("on");
-  $("end").classList.remove("hide"); const t=$("endTitle"); if(win){ t.textContent="✓ SOBREVIVISTE"; t.className="big win"; } else { t.textContent="✕ TE ATRAPÓ"; t.className="big lose"; }
+  const t=$("endTitle"); if(win){ t.textContent="✓ SOBREVIVISTE"; t.className="big win"; } else { t.textContent="✕ TE ATRAPÓ"; t.className="big lose"; }
   $("endInfo").innerHTML=info; snd(win?660:60,win?"triangle":"sawtooth",0.6,0.13);
+  if(win){ $("end").classList.remove("hide"); }
+  else { // 💥 muerte con FUNDIDO ROJO sangre antes de la pantalla de fin
+    snd(35,"sawtooth",1.2,0.14); const fd=$("fade");
+    if(fd){ fd.style.background="#4a0006"; fd.style.opacity="1"; setTimeout(()=>{ $("end").classList.remove("hide"); fd.style.opacity="0"; setTimeout(()=>{ fd.style.background="#000"; },400); },750); }
+    else $("end").classList.remove("hide"); }
 }
 $("startBtn").onclick=start; $("againBtn").onclick=start; updBest(); buildDiffs();
 
