@@ -1103,6 +1103,16 @@ function update(dt){
     for(const b of babies){ if(b.f!==curFloor) continue; const ox=b.grp.position.x-P.x, oz=b.grp.position.z-P.z; const scl=44/34;
       let bx2=46+(ox*cos-oz*sin)*scl, by2=46-(-ox*sin-oz*cos)*scl; const dr2=Math.hypot(bx2-46,by2-46); if(dr2>42) continue;
       rg.fillStyle="#ff8a2a"; rg.beginPath(); rg.arc(bx2,by2,2.6,0,6.28); rg.fill(); }
+    // 🎯 objetos de TU piso: válvula 🟩 cuadrado · muestra 🟪 rombo · reloj 🟡 · botiquín ✚ · ☎ cian parpadea · WALLY 🔵 parpadea · maniquí ⚪
+    { const blip=(wx,wz,fn)=>{ const ox=wx-P.x, oz=wz-P.z, sc2=44/34; const bx3=46+(ox*cos-oz*sin)*sc2, by3=46-(-ox*sin-oz*cos)*sc2; if(Math.hypot(bx3-46,by3-46)<=42) fn(bx3,by3); };
+      const blink=(performance.now()%800)<440;
+      for(const v of valves) if(!v.got&&v.f===curFloor) blip(v.x,v.z,(x,y)=>{ rg.fillStyle="#39ff5a"; rg.fillRect(x-2.4,y-2.4,4.8,4.8); });
+      for(const sm of samples) if(!sm.got&&sm.f===curFloor) blip(sm.x,sm.z,(x,y)=>{ rg.fillStyle="#c05aff"; rg.save(); rg.translate(x,y); rg.rotate(Math.PI/4); rg.fillRect(-2.4,-2.4,4.8,4.8); rg.restore(); });
+      for(const ck of clocks) if(!ck.got&&ck.f===curFloor) blip(ck.x,ck.z,(x,y)=>{ rg.fillStyle="#ffd12e"; rg.beginPath(); rg.arc(x,y,2.5,0,6.28); rg.fill(); });
+      for(const mk of medkits) if(!mk.got&&mk.f===curFloor) blip(mk.x,mk.z,(x,y)=>{ rg.fillStyle="#5aff9a"; rg.fillRect(x-3,y-1,6,2); rg.fillRect(x-1,y-3,2,6); });
+      if(phoneActive&&phoneF===curFloor&&blink) blip(phone.position.x,phone.position.z,(x,y)=>{ rg.fillStyle="#3af0ff"; rg.beginPath(); rg.arc(x,y,3,0,6.28); rg.fill(); });
+      if(wallySF===curFloor&&blink) blip(wallyS.position.x,wallyS.position.z,(x,y)=>{ rg.fillStyle="#38b6ff"; rg.beginPath(); rg.arc(x,y,3,0,6.28); rg.fill(); });
+      if(manqF===curFloor) blip(manq.position.x,manq.position.z,(x,y)=>{ rg.fillStyle="#cfc8bf"; rg.beginPath(); rg.arc(x,y,2.4,0,6.28); rg.fill(); }); }
   }
 
   // 🧪 FABRICAR el antídoto en la MÁQUINA (zona segura, planta baja)
