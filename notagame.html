@@ -297,6 +297,13 @@ const cat=new THREE.Group(); const catM=new THREE.MeshStandardMaterial({color:0x
   const tail=new THREE.Mesh(new THREE.CylinderGeometry(0.025,0.04,0.5,6),catM); tail.position.set(0,0.42,-0.35); tail.rotation.x=0.9; cat.add(tail); }
 cat.visible=false; scene.add(cat);
 let catT=20+Math.random()*30, catRun=0, catDx=0, catDz=0;
+let catAlly=0, catScare=0;   // 🐈‍⬛ aliado: si lo acaricias (E) te sigue 60s y su aura espanta zombies
+function petCat(){ if(level!=="surface"||!cat.visible||catAlly>0||!running||nPaused) return;
+  if(Math.hypot(P.x-cat.position.x,P.z-cat.position.z)>2.5) return;
+  catAlly=60; catRun=0;
+  snd(880,"sine",0.16,0.07); setTimeout(()=>snd(1040,"sine",0.2,0.06),150);   // miau feliz
+  try{ if(navigator.vibrate) navigator.vibrate([0,30,30,60]); }catch(e){}
+  showStory("🐈‍⬛ ¡El gato negro te ADOPTÓ 60s! Su aura espanta a los zombies cercanos"); }
 // 🐦‍⬛ CUERVOS posados que LEVANTAN VUELO si te acercas (con graznido)
 const crows=[]; const crowM=new THREE.MeshStandardMaterial({color:0x0a0a10,roughness:.9});
 for(let i=0;i<6;i++){ const s=freeSpot(8,ARENA-4,1.5); const g=new THREE.Group();
@@ -634,7 +641,7 @@ function updShieldHUD(){ const w=document.getElementById("hpwrap"); if(!w) retur
 
 // ---------- input ----------
 const keys={};
-addEventListener("keydown",e=>{ keys[e.code]=true; if(e.code==="Space"&&P.onGround&&running&&!nPaused){P.vy=6.2;P.onGround=false;} if(e.code==="KeyE"&&running&&!nPaused){ tryDrawer(); petDog(); talkWallyN(); }   // 🐛FIX ronda2: en pausa no se salta ni se abren cajones
+addEventListener("keydown",e=>{ keys[e.code]=true; if(e.code==="Space"&&P.onGround&&running&&!nPaused){P.vy=6.2;P.onGround=false;} if(e.code==="KeyE"&&running&&!nPaused){ tryDrawer(); petDog(); petCat(); talkWallyN(); }   // 🐛FIX ronda2: en pausa no se salta ni se abren cajones
   if(e.code==="KeyM") toggleNMap();
   if(e.code==="KeyP") togglePauseN();
   if(e.code==="F2"){ e.preventDefault(); togglePhotoN(); }   // 📸 modo foto
@@ -778,6 +785,7 @@ function startGame(){
   rapidT=0; tracer.material.color.setHex(0xffe066); rapidDrops.forEach(r2=>scene.remove(r2.m)); rapidDrops.length=0;   // ⚡ reset
   hordeT=90+Math.random()*70; hordeOn=0;   // 🚨 reset horda
   sirenOn=0; sirenDone=false; scene.fog.color.setHex(0x050308);   // 🚨 reset modo sirena
+  catAlly=0; catScare=0; cat.visible=false; catT=20+Math.random()*30;   // 🐈‍⬛ reset gato
   nPaused=false; const po4=document.getElementById("nPauseOv"); if(po4) po4.style.display="none";   // ⏸ reset pausa
   try{ nTutOn=!localStorage.getItem("nag_tut1"); }catch(e){ nTutOn=false; }  nTutStep=0; nTutT=5;   // 🎓 tutorial solo la primera vez
   bloodMoon=false; lastDayF=0; dawnFog=0;   // 🐛FIX ronda2: la luna de sangre y la niebla se filtraban a la partida nueva
@@ -1029,9 +1037,21 @@ function update(dt){
     if(dogBarkCd<=0){ let zn=1e9; zombies.forEach(z=>{ if(z.dead)return; const zd=Math.hypot(dog.position.x-z.grp.position.x,dog.position.z-z.grp.position.z); if(zd<zn)zn=zd; });
       if(boss){ const bd2=Math.hypot(dog.position.x-boss.grp.position.x,dog.position.z-boss.grp.position.z); if(bd2<zn)zn=bd2; }
       if(zn<13){ dogBarkCd=3.5; snd(520,"square",0.09,0.09); setTimeout(()=>snd(480,"square",0.11,0.09),170); dog.rotation.y+=0.4; } } }
-  // 🐈‍⬛ gato negro: aparece a un costado, cruza corriendo delante tuyo maullando y desaparece
+  // 🐈‍⬛ gato negro: cruza la calle... y si lo acaricias (E) se vuelve tu ALIADO 60s
   if(level==="surface"){
-    if(!cat.visible){ catT-=dt;
+    if(catAlly>0){ catAlly-=dt;
+      const fx2=-Math.sin(yaw), fz2=-Math.cos(yaw);
+      const tx2=P.x-fz2*2.2-fx2*0.6, tz2=P.z+fx2*2.2-fz2*0.6;   // al costado IZQ (el perro va al DER)
+      cat.position.x+=(tx2-cat.position.x)*Math.min(1,dt*4);
+      cat.position.z+=(tz2-cat.position.z)*Math.min(1,dt*4);
+      cat.position.y=Math.abs(Math.sin(now*10))*0.06; cat.rotation.y=yaw; cat.visible=true;
+      catScare-=dt;
+      if(catScare<=0){ catScare=0.5; let sc2=0;
+        zombies.forEach(z=>{ if(z.dead||(z.scared||0)>0) return; const zd2=Math.hypot(cat.position.x-z.grp.position.x,cat.position.z-z.grp.position.z);
+          if(zd2<10){ z.scared=3; sc2++; } });
+        if(sc2){ snd(1180,"sine",0.12,0.05); } }   // bufido 😾
+      if(catAlly<=0){ cat.visible=false; catT=30+Math.random()*30; showStory("🐈‍⬛ el gato se fue a sus asuntos... volverá a cruzar"); } }
+    else if(!cat.visible){ catT-=dt;
       if(catT<=0){ catT=25+Math.random()*35; catRun=0;
         const fx=-Math.sin(yaw), fz=-Math.cos(yaw);
         cat.position.set(P.x+fx*10+fz*11, 0, P.z+fz*10-fx*11);
@@ -1069,10 +1089,11 @@ function update(dt){
   if(level==="hospital"){ droneT-=dt; if(droneT<=0){ droneT=2.5+Math.random()*2.5; snd(38+Math.random()*8,"sawtooth",1.1,0.035); } }
   if(level==="surface") zombies.forEach(z=>{ if(z.dead)return;
     const dxz=P.x-z.grp.position.x, dzz=P.z-z.grp.position.z, d=Math.hypot(dxz,dzz);
-    if(d>0.9){ const nx=z.grp.position.x+dxz/d*z.sp*zMul*dt, nz=z.grp.position.z+dzz/d*z.sp*zMul*dt;   // chocan con paredes (velocidad según día/noche)
+    const flee=(z.scared||0)>0?-1:1; if(flee<0) z.scared-=dt;   // 😾 espantado por el gato: huye
+    if(d>0.9||flee<0){ const nx=z.grp.position.x+dxz/d*z.sp*zMul*dt*flee, nz=z.grp.position.z+dzz/d*z.sp*zMul*dt*flee;   // chocan con paredes (velocidad según día/noche)
       if(!collide(nx,z.grp.position.z)) z.grp.position.x=nx;
       if(!collide(z.grp.position.x,nz)) z.grp.position.z=nz; }
-    z.grp.rotation.y=Math.atan2(dxz,dzz);
+    z.grp.rotation.y=Math.atan2(dxz*flee,dzz*flee);
     z.grp.position.y=Math.abs(Math.sin(now*4+z.ph))*0.08;
     if(d<16 && Math.random()<dt*(0.15+(16-d)/16*0.5)){ const gf=(z.runner?290:55)+Math.random()*45; snd(gf,"sawtooth",0.5+Math.random()*0.4,0.02+(16-d)/16*0.05); snd(gf*1.5,"triangle",0.3,0.015); }   // 🧟 GEMIDO (los CORREDORES chillan agudo)
     if(d<3.5) danger=true;
