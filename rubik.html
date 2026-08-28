@@ -60,6 +60,7 @@
   <p style="color:#8fb3ff;font-size:12px;max-width:460px;line-height:1.7;font-family:Consolas,monospace">📖 Notación: <b style="color:#fff">U</b>=arriba · <b style="color:#fff">D</b>=abajo · <b style="color:#fff">L</b>=izquierda · <b style="color:#fff">R</b>=derecha · <b style="color:#fff">F</b>=frente · <b style="color:#fff">B</b>=atrás — con <b style="color:#ffd12e">'</b> gira al revés (ej: U' = arriba anti-horario)<br>⌨️ <b style="color:#39ff14">SPEEDCUBING</b>: pulsa la LETRA para girar · <b style="color:#ffd12e">Shift+letra</b> = inverso · <b style="color:#ffd12e">Z</b> = deshacer · <b style="color:#ffd12e">T</b> = 💡 pista (máx 3) · <b style="color:#ffd12e">Enter</b> = revancha</p>
   <p id="rwins" style="color:#ffd12e;font-weight:800;font-size:13px;margin-bottom:8px"></p>
   <button class="btn go" id="introStart">▶ EMPEZAR</button>
+  <button class="btn" id="introPractice" style="border-color:rgba(143,208,255,.6);color:#8fd0ff">🎓 PRÁCTICA LIBRE</button>
 </div>
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
@@ -174,7 +175,7 @@ function startRace(){
   document.getElementById("intro").classList.add("hide");
   aiGen++;   // 🐛FIX: invalida cualquier cadena aiStep en vuelo de la carrera anterior
   aiWinT=0; camA.position.set(1000+5,5,7); camA.lookAt(1000,0,0);   // 🐛FIX ronda2: la vuelta de la victoria de la IA invadía la cuenta regresiva de la revancha
-  clearTimeout(aiTimer); ended=false; state="count"; moveCount=0; document.getElementById("mvs").textContent="🔄 0";
+  clearTimeout(aiTimer); ended=false; state="count"; practiceLast=false; moveCount=0; document.getElementById("mvs").textContent="🔄 0";
   undoStack.length=0; document.getElementById("timer").textContent="0.0s";
   // ⏱️ CUENTA REGRESIVA estilo F1: 3.. 2.. 1.. ¡YA! y recién ahí se revuelve y parte la IA
   let n=3; showMsg("3","#ffd12e"); snd(440,"square",0.12,0.06);
@@ -193,6 +194,25 @@ function startRace(){
       aiTotal=aiQueue.length; aiT50=false; aiT90=false; updAIBar(); aiStep(aiGen); } };
   setTimeout(step,700);
 }
+// 🎓 PRÁCTICA LIBRE: sin IA, sin reloj, sin récords — pistas infinitas para aprender
+let practiceLast=false;
+function startPractice(){
+  document.getElementById("intro").classList.add("hide");
+  aiGen++; clearTimeout(aiTimer); aiWinT=0; camA.position.set(1000+5,5,7); camA.lookAt(1000,0,0);
+  ended=false; state="practice"; practiceLast=true; moveCount=0; document.getElementById("mvs").textContent="🔄 0";
+  undoStack.length=0; document.getElementById("timer").textContent="🎓";
+  newScramble();
+  histSolve.length=0; scramble.forEach(m=>histSolve.push({face:m.face,dir:m.dir})); hintsLeft=Infinity;
+  { const hb=document.getElementById("hintBtn"); if(hb) hb.textContent="💡 PISTA ∞"; }
+  { const af=document.getElementById("aifill"); if(af) af.style.width="0%"; const ap=document.getElementById("aipct"); if(ap) ap.textContent="🎓"; }
+  setTimeout(()=>{ drawNet(); updFaces(); },120);
+  const ss=document.getElementById("scramShow");
+  if(ss) ss.innerHTML="🎓 PRÁCTICA LIBRE — sin IA, sin reloj<br><span style='color:#6a86b8'>pistas infinitas con T · Enter = revolver otra vez</span>";
+  showMsg("🎓 PRÁCTICA\nresuelve a tu ritmo","#8fd0ff"); setTimeout(()=>{ if(state==="practice") showMsg(""); },2000); }
+function practiceDone(){ state="done"; confetti();
+  showMsg("✅ ¡RESUELTO!\n🎓 práctica completada · 🔄 "+moveCount+" movs\n↩ Enter = otra práctica","#39ff14");
+  [523,659,784,1047].forEach((f,i)=>setTimeout(()=>snd(f,"triangle",0.22,0.08),i*120));
+  try{ if(navigator.vibrate) navigator.vibrate([0,50,40,50,40,140]); }catch(e){} }
 // 🎉 CONFETI de victoria: lluvia de papelitos de colores sobre toda la pantalla (~4s)
 function confetti(){ try{
   let cv=document.getElementById("confCv");
@@ -214,14 +234,14 @@ function aiStep(gen){
   const pace=DIFF[diff].pace, dur=Math.min(pace*0.6,260);
   move(ai,m.face,m.dir,Math.min(pace*600,260),()=>{ if(!ended&&gen===aiGen) aiTimer=setTimeout(()=>aiStep(gen), Math.max(40,pace*1000-260)); });
 }
-function playerMove(face,dir){ if(state!=="race"||player.busy) return;
+function playerMove(face,dir){ if((state!=="race"&&state!=="practice")||player.busy) return;
   try{ if(navigator.vibrate) navigator.vibrate(12); }catch(e){}   // 📳 tick háptico por giro
   const FN=FACE_NOTES[face]||440; snd(dir<0?FN*0.94:FN,"triangle",0.14,0.06); snd(FN/2,"sine",0.08,0.02);   // 🎵 nota de la cara (los ' suenan un pelín más graves)
   moveCount++; document.getElementById("mvs").textContent="🔄 "+moveCount;   // contador de movimientos
   undoStack.push({face,dir});   // ↩ para poder deshacer
   { const hT=histSolve[histSolve.length-1]; if(hT&&hT.face===face&&hT.dir===-dir) histSolve.pop(); else histSolve.push({face,dir}); }   // 💡 seguir el camino a resuelto
   showMv("lastMvP",face,dir);   // 🔤 notación en grande
-  move(player,face,dir,150,()=>{ drawNet(); updFaces(); if(!ended && isSolved(player)) finish("player");
+  move(player,face,dir,150,()=>{ drawNet(); updFaces(); if(!ended && isSolved(player)){ if(state==="practice") practiceDone(); else finish("player"); }
     else if(ended && state==="race" && isSolved(player)){ state="done"; showMsg("✅ ¡Lo terminaste igual! (modo práctica)\n🔄 "+moveCount+" movs","#8fd0ff"); [523,659,784].forEach((f,i)=>setTimeout(()=>snd(f,"triangle",0.2,0.07),i*120)); } }); }
 // 🗺️ MAPA 2D del cubo (red desplegada en cruz): ves TODAS tus caras sin girar la cámara
 function drawNet(){ const cv=document.getElementById("net"); if(!cv) return; const g=cv.getContext("2d");
@@ -245,18 +265,19 @@ function showMv(id,face,dir){ const el=document.getElementById(id); if(!el) retu
 const undoStack=[];
 // 💡 PISTAS: pila con los giros que separan tu cubo de estar resuelto (se actualiza con cada giro tuyo)
 const histSolve=[]; let hintsLeft=3;
-function hint(){ if(state!=="race"||ended) return;
+function hint(){ if((state!=="race"&&state!=="practice")||ended) return;
   if(hintsLeft<=0){ showMsg("💡 ya usaste tus 3 pistas","#ff7ba3"); setTimeout(()=>{ if(state==="race") showMsg(""); },1600); return; }
   if(!histSolve.length) return;
-  hintsLeft--; const top=histSolve[histSolve.length-1], nd=-top.dir;
-  { const hb=document.getElementById("hintBtn"); if(hb) hb.textContent="💡 PISTA x"+hintsLeft; }
-  showMsg("💡 PISTA: gira "+top.face+(nd<0?"'":"")+"\n(te quedan "+hintsLeft+")","#ffd12e");
+  if(state!=="practice") hintsLeft--;   // 🎓 en práctica son infinitas
+  const top=histSolve[histSolve.length-1], nd=-top.dir;
+  { const hb=document.getElementById("hintBtn"); if(hb) hb.textContent="💡 PISTA "+(state==="practice"?"∞":"x"+hintsLeft); }
+  showMsg("💡 PISTA: gira "+top.face+(nd<0?"'":"")+"\n("+(state==="practice"?"infinitas en práctica":"te quedan "+hintsLeft)+")","#ffd12e");
   snd(1175,"triangle",0.15,0.06);
-  setTimeout(()=>{ if(state==="race") showMsg(""); },2400); }
-function undoMove(){ if(state!=="race"||player.busy||!undoStack.length) return; const m=undoStack.pop();
+  setTimeout(()=>{ if(state==="race"||state==="practice") showMsg(""); },2400); }
+function undoMove(){ if((state!=="race"&&state!=="practice")||player.busy||!undoStack.length) return; const m=undoStack.pop();
   { const hU=histSolve[histSolve.length-1]; if(hU&&hU.face===m.face&&hU.dir===m.dir) histSolve.pop(); else histSolve.push({face:m.face,dir:-m.dir}); }   // 💡 el deshacer también cuenta
   moveCount++; document.getElementById("mvs").textContent="🔄 "+moveCount; snd(240,"square",0.06,0.05);
-  move(player,m.face,-m.dir,150,()=>{ drawNet(); updFaces(); if(!ended && isSolved(player)) finish("player");
+  move(player,m.face,-m.dir,150,()=>{ drawNet(); updFaces(); if(!ended && isSolved(player)){ if(state==="practice") practiceDone(); else finish("player"); }
     else if(ended && state==="race" && isSolved(player)){ state="done"; showMsg("✅ ¡Lo terminaste igual! (modo práctica)\n🔄 "+moveCount+" movs","#8fd0ff"); [523,659,784].forEach((f,i)=>setTimeout(()=>snd(f,"triangle",0.2,0.07),i*120)); } }); }   // 🐛FIX ronda2: resolver con DESHACER en modo práctica quedaba mudo
 
 // 🏆 victorias contra la IA (localStorage)
@@ -336,11 +357,11 @@ document.getElementById("undoBtn").onclick=undoMove;
 document.getElementById("hintBtn").onclick=hint;   // 💡 pista también táctil (en celu no hay tecla T)
 // ⌨️ MODO SPEEDCUBING: teclas U D L R F B giran su cara; con SHIFT el giro es inverso ('); Z = deshacer
 addEventListener("keydown",e=>{ const k=e.key.toUpperCase();
-  if(e.key==="Enter" && state!=="race" && state!=="count"){ startRace(); return; }   // ↩ REVANCHA instantánea
+  if(e.key==="Enter" && state!=="race" && state!=="count"){ if(state==="practice"||practiceLast) startPractice(); else startRace(); return; }   // ↩ REVANCHA (o nueva práctica)
   if(k==="Z"){ undoMove(); return; }
   if(k==="T"){ hint(); return; }   // 💡 pista
   if(FACES[k] && !e.repeat) playerMove(k, e.shiftKey?-1:1); });
-document.getElementById("introStart").onclick=startRace; updRW();
+document.getElementById("introStart").onclick=startRace; document.getElementById("introPractice").onclick=startPractice; updRW();
 // selector de dificultad (arriba y en el intro)
 function buildDiffs(container){ container.innerHTML=""; [["facil","🟢 Fácil"],["medio","🟡 Medio"],["dificil","🔴 Difícil"],["imposible","💀 Imposible"]].forEach(([k,lbl])=>{ const b=document.createElement("button"); b.className="diff"+(diff===k?" sel":""); const bt=loadBT(k); b.textContent=lbl+(bt?" ⏱️"+bt.toFixed(1)+"s":""); b.onclick=()=>{ if(state==="race"||state==="count") return; diff=k; try{ localStorage.setItem("rubik_diff",k); }catch(e){} buildDiffs(document.getElementById("diffs")); buildDiffs(document.getElementById("introDiffs")); }; container.appendChild(b); }); }   // 🐛FIX ronda2: cambiar dificultad EN PLENA carrera alteraba la IA y guardaba récords falsos
 buildDiffs(document.getElementById("diffs")); buildDiffs(document.getElementById("introDiffs"));
