@@ -99,6 +99,7 @@
   <div id="obj">🧪 ANTÍDOTO — válvulas 0/4 · muestras 0/3</div>
   <div id="floor">PLANTA BAJA</div>
   <div id="timer">⏱ 20:00</div>
+  <div id="floorInd" style="position:absolute;top:38px;left:14px;font-size:14px;font-weight:900;color:#9fc8d8;text-shadow:0 0 8px #000">🏢 PISO 1/7</div>
   <canvas id="radar" width="92" height="92"></canvas>
   <div id="hp">❤️❤️❤️</div>
   <div id="toMachine"><span class="arw">▲</span> <span id="tmLbl">MÁQUINA</span></div>
@@ -702,6 +703,8 @@ function update(dt){
   // ⏱ contador de 20 minutos
   timeLeft-=dt; if(timeLeft<0) timeLeft=0;
   const mm=Math.floor(timeLeft/60), ss=Math.floor(timeLeft%60); const tel=$("timer"); if(tel){ tel.textContent="⏱ "+mm+":"+String(ss).padStart(2,"0"); tel.classList.toggle("warn",timeLeft<120); }
+  // 🏢 indicador de piso fijo (clave para seguir las pistas del teléfono)
+  const fInd=$("floorInd"); if(fInd) fInd.textContent="🏢 PISO "+(curFloor+1)+"/7";
   // 📊 pisos visitados y metros recorridos
   statFloors.add(curFloor);
   if(lastPX!==null) statDist+=Math.hypot(P.x-lastPX,P.z-lastPZ);
