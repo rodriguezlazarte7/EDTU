@@ -5690,6 +5690,7 @@ const F1={
     this._raceT=0; this._secStart=0; this._nextSec=2000; this._secMsg=""; this._secMsgT=0; this._secGreen=false;   // ⏱️ sectores de 2000 m
     this._kSpawned=false; this._kDone=false; this._kBeat=false; this._kBanT=0; this._kBanTxt="";   // 🦅 rival KÓNDOR
     this._meteors=[]; this._metT=2;   // ☄️ meteoros nocturnos
+    this._sparks=[]; this._drsSpark=0; this._drsWas=false;   // ✨ chispas DRS
     this.paused=false;   // ⏸
     this._recPassed=false;   // 🏆 marcador de récord en la pista
     this._nearN=0; this._nearT=0;   // 😅 casi-choques
@@ -5804,6 +5805,9 @@ const F1={
     if(this.nitroOn){ target*=1.35; this.fuel=Math.max(0,this.fuel-26*dt); }
     else this.fuel=Math.min(100,this.fuel+9*dt);
     this.drs = this.dist<this._drsEnd;
+    if(this.drs && !this._drsWas){ this._drsSpark=14;   // ✨ ¡DRS activado! chispas + doble beep
+      try{ const a=this.actx(); if(a){ [1175,1568].forEach((fq,i)=>{ const o=a.createOscillator(),g=a.createGain(); o.type="triangle"; o.frequency.value=fq; g.gain.value=0.08; o.connect(g); g.connect(a.destination); o.start(a.currentTime+i*0.09); o.stop(a.currentTime+i*0.09+0.11); }); } }catch(e){} }
+    this._drsWas=this.drs;
     if(this.drs) target*=1.15;
     // la CURVA te empuja hacia afuera (¡como en NFS!)
     const curve=this.curveAt(this.dist+8);
@@ -6183,6 +6187,15 @@ const F1={
       if(p.a<=0){ this._smoke.splice(i,1); continue; }
       c.fillStyle = p.fire ? "rgba("+(255)+","+((120+Math.random()*100)|0)+",20,"+p.a.toFixed(3)+")" : "rgba(190,190,200,"+p.a.toFixed(3)+")";
       c.beginPath(); c.arc(p.x,p.y,p.r,0,6.28); c.fill(); }
+    // ✨ CHISPAS DRS doradas saltando desde las ruedas
+    if(this._drsSpark>0){ this._sparks=this._sparks||[];
+      for(let i2=0;i2<3&&this._drsSpark>0;i2++,this._drsSpark--){
+        this._sparks.push({x:px+(Math.random()<0.5?-1:1)*W*0.09,y:py+6,vx:(Math.random()-0.5)*7,vy:-(2+Math.random()*4),a:1}); } }
+    if(this._sparks&&this._sparks.length){
+      for(let i2=this._sparks.length-1;i2>=0;i2--){ const sk=this._sparks[i2];
+        sk.x+=sk.vx; sk.y+=sk.vy; sk.vy+=0.5; sk.a-=0.05;
+        if(sk.a<=0){ this._sparks.splice(i2,1); continue; }
+        c.fillStyle="rgba(255,209,46,"+Math.max(0,sk.a).toFixed(2)+")"; c.fillRect(sk.x,sk.y,3,3); } }
     c.save(); c.translate(px,py); c.rotate(this.steer*0.06); c.translate(-px,-py);
     this.drawCarBack(c,px,py,W*0.24,this._carCol||["#1e2f66","#c8102e"],true);   // 🎨 tu color del garaje
     c.restore();
