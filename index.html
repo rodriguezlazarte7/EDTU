@@ -5693,6 +5693,7 @@ const F1={
     this._meteors=[]; this._metT=2;   // ☄️ meteoros nocturnos
     this._sparks=[]; this._drsSpark=0; this._drsWas=false;   // ✨ chispas DRS
     this._falseStart=false; this._lcDone=false; this._lcWin=0; this._lcMsg=""; this._lcMsgT=0; this._lcGood=false;   // 🚦 launch control
+    this._crashSlow=0; this._crashSlowDone=false;   // 🎬 cámara lenta del choque
     this.paused=false;   // ⏸
     this._recPassed=false;   // 🏆 marcador de récord en la pista
     this._nearN=0; this._nearT=0;   // 😅 casi-choques
@@ -5755,7 +5756,10 @@ const F1={
     this.nitroOn = nitro && this.fuel>1;
   },
   tick(t){
-    const dt=Math.min(0.05,(t-this._tPrev)/1000); this._tPrev=t;
+    let dt=Math.min(0.05,(t-this._tPrev)/1000); this._tPrev=t;
+    // 🎬 CÁMARA LENTA del choque: 0.6s reales a un cuarto de velocidad, y recién entonces el choque de verdad
+    if(this._crashSlow>0 && !this.paused){ this._crashSlow-=dt; dt*=0.25; this.shake=Math.max(this.shake,4);
+      if(this._crashSlow<=0){ this._crashSlow=0; return this.crash(); } }
     // ⏸ PAUSA: se dibuja la escena congelada con el cartel encima
     if(this.paused){ this.draw(); const c=this.ctx; if(c){ c.save(); c.fillStyle="rgba(0,0,12,.55)"; c.fillRect(0,0,this.W,this.H);
       c.fillStyle="#c8d8ff"; c.font="900 40px system-ui,sans-serif"; c.textAlign="center"; c.fillText("⏸ PAUSA",this.W/2,this.H*0.45);
@@ -5900,7 +5904,9 @@ const F1={
         if(c.kondor && !this._kDone){ this._kDone=true; this._kBanTxt="🦅 KÓNDOR se escapó... revancha en la próxima"; this._kBanT=3;
           try{ localStorage.setItem("edtu_f1_kondor_l",String((parseInt(localStorage.getItem("edtu_f1_kondor_l")||"0",10)||0)+1)); }catch(e){} }
         this.cars.splice(i,1); continue; }
-      if(Math.abs(c.z-this.dist)<4.4 && Math.abs(c.x-this.x)<(c.moto?0.24:0.36)) return this.crash();
+      if(Math.abs(c.z-this.dist)<4.4 && Math.abs(c.x-this.x)<(c.moto?0.24:0.36) && !this._crashSlowDone){ this._crashSlowDone=true; this._crashSlow=0.6;   // 🎬 arranca la cámara lenta
+        try{ const a=this.actx(); if(a){ const o=a.createOscillator(),g=a.createGain(); o.type="sawtooth"; o.frequency.setValueAtTime(140,a.currentTime); o.frequency.exponentialRampToValueAtTime(35,a.currentTime+0.6); g.gain.value=0.12; o.connect(g); g.connect(a.destination); o.start(); o.stop(a.currentTime+0.65); } }catch(e){}
+        try{ if(navigator.vibrate) navigator.vibrate(60); }catch(e){} }
     }
     if(this.shake>0) this.shake=Math.max(0,this.shake-dt*22);
     if(this._ovT>0){ this._ovT-=dt; if(this._ovT<=0) this._ovCombo=0; }   // 🔥 la racha expira
@@ -6234,6 +6240,10 @@ const F1={
     // 🦅 cartel de KÓNDOR (dorado)
     if(this._kBanT>0){ this._kBanT-=0.016; c.fillStyle="rgba(255,209,46,"+Math.min(1,this._kBanT*1.4).toFixed(2)+")";
       c.font="900 "+Math.min(28,W*0.046)+"px system-ui,sans-serif"; c.textAlign="center"; c.fillText(this._kBanTxt,W/2,H*0.44); }
+    // 🎬 vignette roja creciente durante la cámara lenta del choque
+    if(this._crashSlow>0){ const pv=1-this._crashSlow/0.6; const vg=c.createRadialGradient(W/2,H/2,H*0.2,W/2,H/2,H*0.85);
+      vg.addColorStop(0,"rgba(120,0,0,0)"); vg.addColorStop(1,"rgba(120,0,0,"+(pv*0.75).toFixed(2)+")"); c.fillStyle=vg; c.fillRect(0,0,W,H);
+      c.fillStyle="rgba(255,255,255,"+(0.5+pv*0.5).toFixed(2)+")"; c.font="900 "+Math.min(30,W*0.05)+"px system-ui,sans-serif"; c.textAlign="center"; c.fillText("💥",W/2,H*0.5); }
     // 🌙 de NOCHE todo se oscurece y tus FAROS iluminan la pista adelante
     if(nightF>0.05){ c.fillStyle="rgba(4,8,20,"+(nightF*0.38).toFixed(3)+")"; c.fillRect(-8,hor,W+16,H-hor+8);
       const hg=c.createRadialGradient(W/2,H*0.62,20,W/2,H*0.62,W*0.45);
