@@ -96,6 +96,14 @@ function makeCube(ox){
 }
 const player=makeCube(0), ai=makeCube(1000);
 camA.position.set(1000+5,5,7); camA.lookAt(1000,0,0);
+// ✨ FONDO ESTRELLADO: una esfera de estrellitas gira lento alrededor de cada cubo
+const starFields=[];
+[0,1000].forEach(cx=>{ const g=new THREE.BufferGeometry(), v=[];
+  for(let i=0;i<120;i++){ const a=Math.random()*6.28, ph2=Math.acos(2*Math.random()-1), r=22+Math.random()*30;
+    v.push(r*Math.sin(ph2)*Math.cos(a), r*Math.cos(ph2), r*Math.sin(ph2)*Math.sin(a)); }
+  g.setAttribute("position",new THREE.Float32BufferAttribute(v,3));
+  const pts=new THREE.Points(g,new THREE.PointsMaterial({color:0x8fb3ff,size:0.2,transparent:true,opacity:0.7}));
+  pts.position.x=cx; scene.add(pts); starFields.push(pts); });
 
 // ---- girar una capa (con animación) ----
 function rotateLayer(cube,axis,layer,dir,dur,onDone){
@@ -263,6 +271,7 @@ function loop(){
     if(aiTotal){ const done=(aiTotal-aiQueue.length)/aiTotal;
       if(done>=0.75){ const iv=1000-((done-0.75)/0.25)*650;
         if(performance.now()-lastTick>iv){ lastTick=performance.now(); snd(1150,"square",0.03,0.035); } } } }
+  starFields.forEach((p2,i2)=>{ p2.rotation.y+=0.0006*(i2?1:-1); p2.rotation.x+=0.0002; });   // ✨ giro lento del cielo
   if(aiWinT>0){ aiWinT-=0.016; const an=performance.now()*0.0022;   // 🤖 la cámara da la vuelta de la victoria alrededor de su cubo
     camA.position.set(1000+Math.sin(an)*8.6,5,Math.cos(an)*8.6); camA.lookAt(1000,0,0);
     if(aiWinT<=0){ camA.position.set(1000+5,5,7); camA.lookAt(1000,0,0); } }
