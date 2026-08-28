@@ -7090,7 +7090,7 @@ function buildTrophies(){ try{
   h+="<div style='text-align:center;font-size:18px;color:#ffd12e;margin-bottom:8px'>"+(tot>=21?"🏆 21/21 — ¡ERES LEYENDA DE EDTU!":"🏅 "+tot+"/21 logros")+"</div>";
   // SCREAM
   const sb=parseFloat(g("scream_best")), sw=parseInt(g("scream_wins")||"0",10)||0;
-  h+="<div style='color:#ff6a7a'><b>🕷️ SCREAM</b></div>"+(isNaN(sb)?"— sin escape aún":"⏱ Mejor escape: <b>"+fmtMS(sb)+"</b> · 🚁 x"+sw)+"<br>";
+  h+="<div style='color:#ff6a7a'><b>🕷️ SCREAM"+(g("scream_win_pesadillaplus")==="1"?" 👑":"")+"</b></div>"+(isNaN(sb)?"— sin escape aún":"⏱ Mejor escape: <b>"+fmtMS(sb)+"</b> · 🚁 x"+sw)+"<br>";
   h+=["facil","normal","pesadilla","infierno"].map(k=>med(g("scream_win_"+k)==="1")).join(" ")+" <small>(🟢🟡🔴🔥)</small><br>";
   // JURASSIC
   const jb=parseFloat(g("jurassic_best"));
@@ -7223,6 +7223,7 @@ $("posterFs").addEventListener("click",e=>{ if(e.target===$("posterFs")) $("post
     if(/navidad|viejito pascuero/.test(q)) return "🎅 en diciembre me pongo el gorrito... ¡WALLY-noel reparte beeps de regalo!";
     if(/fr[íi]o|invierno/.test(q)) return "🧣 brrr, el invierno chileno congela mis circuitos... por suerte en JURASSIC hay fogata 🔥";
     if(/chile|fiestas patrias|dieciocho|cueca/.test(q)) return "🇨🇱 ¡viva Chile! en septiembre bailo cueca-robot 🕺 beep-beep";
+    if(/secreto|escondido|huevo|misterio/.test(q)) return "🤫 solo diré esto: hay un huevo que BRILLA en la isla... una dificultad que solo los valientes ven... y el logo esconde algo si lo tocas mucho...";
     return pick(["beep-boop... no entendí 🤔 pregúntame por chistes, juegos, récords o trucos","mis circuitos no procesaron eso... ¡prueba con 'chiste'!","*gira la cabeza confundido* ¿me hablas de juegos, récords o chistes?"]); }
   catch(e){ return "beep... error de circuitos jaja"; } }
   function sendWally(){ const q=inp.value.trim(); if(!q) return; inp.value=""; wallyType(wallyReply(q)); }
