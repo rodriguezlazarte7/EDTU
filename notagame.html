@@ -281,6 +281,13 @@ function makeZombie(){
 }
 const zombies=[];
 function zPos(){ const a=Math.random()*Math.PI*2, r=16+Math.random()*(ARENA-17); return {x:Math.cos(a)*r,z:Math.sin(a)*r}; }
+// 👹 ZOMBIE GIGANTE (mini-jefe): aparece cada 25 kills, aguanta 8 balazos, vale x5
+let boss=null, bossAt=25;
+function spawnBoss(){ const g=makeZombie(); g.scale.setScalar(2.3); const p=zPos(); g.position.set(p.x,0,p.z);
+  const gl=new THREE.PointLight(0xff2020,1.4,16); gl.position.set(0,1.5,0.3); g.add(gl); scene.add(g);
+  boss={grp:g,hp:8,dead:false,sp:1.15,ph:Math.random()*6,isBoss:true};
+  narrate("¡Cuidado, agente! Un zombie gigante apareció."); snd(45,"sawtooth",1.4,0.18);
+  try{ if(navigator.vibrate) navigator.vibrate([80,60,160]); }catch(e){} }
 function spawnZombies(n){
   for(let i=0;i<n;i++){ const p=zPos(); const g=makeZombie(); g.position.set(p.x,0,p.z); scene.add(g);
     if(i<3){ const gl=new THREE.PointLight(0xff2020,0.55,7); gl.position.set(0,1.45,0.3); g.add(gl); }   // 👹 3 "líderes" con resplandor rojo en los ojos
@@ -554,22 +561,34 @@ function shoot(){
     const to=new THREE.Vector3(z.grp.position.x-origin.x,(z.grp.position.y+0.9)-origin.y,z.grp.position.z-origin.z);
     const dist=to.length(); if(dist>90) continue; to.normalize();      // dispara LEJOS (todo el mapa)
     if(to.dot(fwd)>(heliMode?0.96:0.975) && dist<bestD){ bestD=dist; best=z; } }   // mira más ancha en el heli
+  // 👹 el gigante también recibe balazos (blanco más grande = mira más generosa)
+  if(boss){ const to=new THREE.Vector3(boss.grp.position.x-origin.x,(boss.grp.position.y+1.8)-origin.y,boss.grp.position.z-origin.z);
+    const dist=to.length(); if(dist<=90){ to.normalize(); if(to.dot(fwd)>(heliMode?0.95:0.962) && dist<bestD){ bestD=dist; best=boss; } } }
   // láser visible hasta el impacto (o lejos si fallas)
   const end = best ? new THREE.Vector3(best.grp.position.x,best.grp.position.y+0.9,best.grp.position.z)
                    : origin.clone().add(fwd.clone().multiplyScalar(90));
   tracer.geometry.setFromPoints([origin,end]); tracer.material.opacity=0.9; tracerT=0.06;
   if(best){ best.hp--; snd(400,"square",0.06,0.06);
-    if(best.hp<=0){ kills++; document.getElementById("kills").textContent=kills; snd(70,"sawtooth",0.4,0.12);
-      // 🛡️ 10%: el zombie suelta un ESCUDO brillante donde cayó
-      if(Math.random()<(bloodMoon?0.25:0.10)){ const sm=new THREE.Mesh(new THREE.OctahedronGeometry(0.42),new THREE.MeshBasicMaterial({color:0x3fd0ff}));
+    if(best.hp<=0){
+      if(best.isBoss){   // 👹 cae el gigante: vale 5 kills y SIEMPRE suelta escudo
+        kills+=5; document.getElementById("kills").textContent=kills; scene.remove(best.grp); boss=null;
+        snd(50,"sawtooth",0.9,0.16); snd(35,"sine",1.2,0.14); narrate("Derribaste al gigante. Vale por cinco.");
+        const sm=new THREE.Mesh(new THREE.OctahedronGeometry(0.42),new THREE.MeshBasicMaterial({color:0x3fd0ff}));
         sm.position.set(best.grp.position.x,0.9,best.grp.position.z); scene.add(sm); shieldDrops.push({m:sm}); }
-      respawnZombie(best);
+      else {
+        kills++; document.getElementById("kills").textContent=kills; snd(70,"sawtooth",0.4,0.12);
+        // 🛡️ 10%: el zombie suelta un ESCUDO brillante donde cayó
+        if(Math.random()<(bloodMoon?0.25:0.10)){ const sm=new THREE.Mesh(new THREE.OctahedronGeometry(0.42),new THREE.MeshBasicMaterial({color:0x3fd0ff}));
+          sm.position.set(best.grp.position.x,0.9,best.grp.position.z); scene.add(sm); shieldDrops.push({m:sm}); }
+        respawnZombie(best); }   // ∞: reaparece otro
       // 🔥 RACHA: kills seguidos en menos de 4s suman combo; el tono sube con cada uno
       comboN=(comboT>0)?comboN+1:1; comboT=4;
       if(comboN>=2){ const cb=document.getElementById("combo"); cb.textContent="🔥 RACHA x"+comboN;
         cb.style.opacity="1"; cb.style.transform="translate(-50%,-50%) scale("+Math.min(1.9,1+comboN*0.09).toFixed(2)+")"; comboPop=1.2;
         snd(240+Math.min(comboN,12)*70,"square",0.12,0.055);
-        if(comboN===5) narrate("Racha de cinco, agente. Sigue así."); else if(comboN===10) narrate("Diez seguidos. Eres imparable."); } }   // ∞: reaparece otro
+        if(comboN===5) narrate("Racha de cinco, agente. Sigue así."); else if(comboN===10) narrate("Diez seguidos. Eres imparable."); }
+      if(kills>=bossAt && !boss && level==="surface"){ spawnBoss(); bossAt+=25; }   // 👹 próximo jefe
+    }
   }
 }
 function showStory(txt){ const s=document.getElementById("story"); s.textContent=txt; s.style.display="block"; clearTimeout(s._t); s._t=setTimeout(()=>s.style.display="none",3400); }
@@ -583,6 +602,7 @@ function startGame(){
   zombies.forEach(z=>scene.remove(z.grp)); zombies.length=0; spawnZombies(12); kills=0; heliMode=false;
   comboN=0; comboT=0; comboPop=0; document.getElementById("combo").style.opacity="0";
   shield=false; updShieldHUD(); shieldDrops.forEach(s2=>scene.remove(s2.m)); shieldDrops.length=0;
+  if(boss){ scene.remove(boss.grp); boss=null; } bossAt=25;
   document.getElementById("kills").textContent="0"; document.getElementById("clues").textContent="0";
   drawers.forEach(d=>{ d.open=false; d.mesh.position.z=d.closedZ; }); elev.t=0; level="surface";
   hospitalVisited=false; spiderDead=false; gasOn=false; gasT=0; doorClosed=false; doorTimer=0; boarded=false; boardCd=0;
@@ -754,6 +774,19 @@ function update(dt){
         const h=document.getElementById("hurt"); if(h){ h.style.opacity="0.6"; setTimeout(()=>h.style.opacity="0",180); } }
       else endGame(false); }
   });
+  // 👹 el GIGANTE persigue lento pero imparable: gruñe grave, retumba y su toque también mata (o rompe escudo)
+  if(level==="surface" && boss){ const dxb=P.x-boss.grp.position.x, dzb=P.z-boss.grp.position.z, db=Math.hypot(dxb,dzb);
+    if(db>1.6){ const nx=boss.grp.position.x+dxb/db*boss.sp*zMul*dt, nz=boss.grp.position.z+dzb/db*boss.sp*zMul*dt;
+      if(!collide(nx,boss.grp.position.z)) boss.grp.position.x=nx;
+      if(!collide(boss.grp.position.x,nz)) boss.grp.position.z=nz; }
+    boss.grp.rotation.y=Math.atan2(dxb,dzb); boss.grp.position.y=Math.abs(Math.sin(now*2.2))*0.12;
+    if(db<22 && Math.random()<dt*0.5) snd(36+Math.random()*12,"sawtooth",0.7,0.07);
+    if(db<14 && Math.random()<dt*1.3) snd(26,"sine",0.22,0.09);   // pisadas que retumban
+    if(db<3.5) danger=true;
+    if(db<1.9 && !gameOver && foot<1.5){
+      if(shield){ shield=false; updShieldHUD(); const pb=zPos(); boss.grp.position.set(pb.x,0,pb.z); snd(180,"square",0.25,0.1);
+        const h=document.getElementById("hurt"); if(h){ h.style.opacity="0.6"; setTimeout(()=>h.style.opacity="0",180); } }
+      else endGame(false); } }
   // 🕷️ HOSPITAL: la araña persigue; la trampa de gas la mata
   if(level==="hospital" && spider){
     const sx=P.x-spider.grp.position.x, sz=P.z-spider.grp.position.z, sd=Math.hypot(sx,sz);
