@@ -296,10 +296,21 @@ const dog=new THREE.Group(); const dogM=new THREE.MeshStandardMaterial({color:0x
 let dogTail=null, dogBarkCd=0, petCd=0, dogHappy=0, petTaught=false;
 // ❤️ acariciar al perro (E cerca de él): se alegra, cola a mil, ladrido feliz y corazón
 const DOG_QUIPS=["guau guau (traducción: eres el MEJOR agente)","¡guau! (huele a zombie... y a galletas 🍪)","grrr... (yo vigilo, tú dispara)","¡guau guau guau! (¡pocas pistas más y ganamos!)","(mueve la cola a mil por hora)","guau... (extraño los tiempos sin zombies)","¡GUAU! (¡cuidado a tu espalda!... es broma 😜)","(te mira con ojitos de buen chico 🥺)"];
+// 🧠 el PERRO RECUERDA tu último caso (nag_diary[0]) la primera vez que lo acaricias en cada partida
+let nMemSaid=false;
+function dogMem(){ if(nMemSaid) return null; nMemSaid=true; try{ const a=JSON.parse(localStorage.getItem("nag_diary")||"[]"); if(!a.length) return null; const e=a[0]; const opts=[];
+  opts.push("¡guau! (la última vez eliminaste "+e.kills+" zombies... ¿hoy más? 🧟)");
+  if(e.nights>=1) opts.push("guau guau (la última vez sobreviviste "+e.nights+(e.nights>1?" noches":" noche")+", ¡qué valiente! 🌙)");
+  if(e.drvz) opts.push("¡GUAU! (la última vez atrapaste al Dr. VZ... ¡qué olfato! 🧪)");
+  if(e.cat) opts.push("grrr... (el gato te ayudó la última vez... ¡yo también puedo! 🐱)");
+  if(e.heli) opts.push("guau... (la última vez subiste al helicóptero "+e.heli+(e.heli>1?" veces":" vez")+" y me dejaste abajo 🚁)");
+  if(e.tunnel) opts.push("(olfatea) guau (la última vez bajaste al túnel... huele raro ahí 🕳️)");
+  if(e.win) opts.push("¡guau guau guau! (la última vez resolviste el caso: "+e.clues+"/7 pistas 📜 ¡hoy de nuevo!)"); else opts.push("(te lame la mano) guau (la última vez llegaste a "+e.clues+"/7 pistas... ¡hoy las 7!)");
+  return opts[Math.floor(Math.random()*opts.length)]; }catch(err){ return null; } }
 function petDog(){ if(petCd>0||level!=="surface"||!dog.visible) return;
   if(Math.hypot(P.x-dog.position.x,P.z-dog.position.z)>2.4) return;
   petCd=3; dogHappy=2.2; plusOne("❤️","#ff6a8a");
-  showStory("🐕 "+DOG_QUIPS[Math.floor(Math.random()*DOG_QUIPS.length)]);
+  { const mem=dogMem(); showStory("🐕 "+(mem||DOG_QUIPS[Math.floor(Math.random()*DOG_QUIPS.length)])); }
   snd(720,"square",0.08,0.08); setTimeout(()=>snd(820,"square",0.07,0.07),140); setTimeout(()=>snd(760,"square",0.09,0.07),300);
   try{ if(navigator.vibrate) navigator.vibrate(30); }catch(e){} }
 // 🐕🎉 si el perro está cerca cuando matas un zombie, salta FELIZ y a veces ladra doble
@@ -913,7 +924,7 @@ function collide(nx,nz){ const pr=0.35; for(const w of walls){ if(nx>w.x0-pr&&nx
 
 function startGame(){
   P.x=0;P.z=ARENA-5;P.y=1.7;P.vy=0;P.onGround=true;P.hp=100; yaw=0;pitch=0;
-  cluesGot=0; gameOver=false; muzzle=0; shootCd=0; radioT=45; radioClueN=0; nDiaryReset();   // 📻 radio y 📁 expediente desde cero
+  cluesGot=0; gameOver=false; muzzle=0; shootCd=0; radioT=45; radioClueN=0; nDiaryReset(); nMemSaid=false;   // 📻 radio, 📁 expediente y 🐕 memoria del perro desde cero
   startT=performance.now()/1000;   // reinicia el ciclo día/noche (empieza de noche)
   zombies.forEach(z=>scene.remove(z.grp)); zombies.length=0; spawnZombies(12); kills=0; heliMode=false;
   comboN=0; comboT=0; comboPop=0; maxCombo=0; document.getElementById("combo").style.opacity="0";

@@ -5693,6 +5693,7 @@ const F1={
     this._meteors=[]; this._metT=2;   // ☄️ meteoros nocturnos
     this._sparks=[]; this._drsSpark=0; this._drsWas=false;   // ✨ chispas DRS
     this._falseStart=false; this._lcDone=false; this._lcWin=0; this._lcMsg=""; this._lcMsgT=0; this._lcGood=false;   // 🚦 launch control
+    this._memMsg=""; this._memMsgT=0; try{ const a=JSON.parse(localStorage.getItem("edtu_f1_diary")||"[]"); if(a.length){ const e=a[0]; this._memMsg="🏁 la última vez: "+e.m+" m"+(e.kondor==="L"?" · KÓNDOR te espera 🦅":"")+" — ¡a superarlo!"; this._memMsgT=3.2; } }catch(e){}   // 🧠 el locutor recuerda tu última carrera durante la cuenta regresiva
     this._crashSlow=0; this._crashSlowDone=false;   // 🎬 cámara lenta del choque
     this._pitOn=0; this._pitBoostT=0; this._pitDoneZ=-1; this._pitMsg=""; this._pitMsgT=0; this._pitTick=0; this._pitZ=2500; this._pitN=0; this._drsN=0;   // 🔧 pit stop (+ contadores del 🏁 diario de carrera)
     this._wkBeat=false; try{ this._wkBest=parseFloat(localStorage.getItem("edtu_f1_week_"+this.wkKey())||"0")||0; }catch(e){ this._wkBest=0; }   // 📅 mejor de la semana
@@ -6272,6 +6273,7 @@ const F1={
     if(this._lcMsgT>0){ this._lcMsgT-=0.016; const lA=Math.min(1,this._lcMsgT*1.4).toFixed(2);
       c.fillStyle=this._lcGood?("rgba(57,255,20,"+lA+")"):("rgba(255,60,60,"+lA+")");
       c.font="900 "+Math.min(28,W*0.046)+"px system-ui,sans-serif"; c.textAlign="center"; c.fillText(this._lcMsg,W/2,H*0.38); }
+    if(this._memMsgT>0){ this._memMsgT-=0.016; c.fillStyle="rgba(143,208,255,"+Math.min(1,this._memMsgT*1.4).toFixed(2)+")"; c.font="800 "+Math.min(20,W*0.034)+"px system-ui,sans-serif"; c.textAlign="center"; c.fillText(this._memMsg,W/2,H*0.30); }   // 🧠 recuerdo de la última carrera
     // 🦅 cartel de KÓNDOR (dorado)
     if(this._kBanT>0){ this._kBanT-=0.016; c.fillStyle="rgba(255,209,46,"+Math.min(1,this._kBanT*1.4).toFixed(2)+")";
       c.font="900 "+Math.min(28,W*0.046)+"px system-ui,sans-serif"; c.textAlign="center"; c.fillText(this._kBanTxt,W/2,H*0.44); }
