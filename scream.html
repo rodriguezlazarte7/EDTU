@@ -28,6 +28,8 @@
   #stam>i{display:block;height:100%;width:100%;background:linear-gradient(90deg,#2ea6ff,#9fe0ff)}
   #sprint{right:14px;bottom:158px;background:rgba(120,180,255,.2);border:3px solid rgba(150,200,255,.6)}
   #invtag{position:absolute;top:64px;left:0;right:0;text-align:center;font-size:13px;font-weight:800;color:#b14bff;text-shadow:0 0 8px #000;display:none}
+  #floorTitle{position:absolute;top:34%;left:0;right:0;text-align:center;font-family:"Consolas",monospace;font-size:clamp(30px,7vw,58px);font-weight:900;letter-spacing:.25em;color:rgba(255,235,235,.0);text-shadow:0 0 22px rgba(255,60,70,.7);pointer-events:none;transition:color 1.4s}
+  #floorTitle.on{color:rgba(255,235,235,.85);transition:color .18s}
   #craft{position:absolute;bottom:120px;left:50%;transform:translateX(-50%);width:60%;max-width:340px;height:16px;background:rgba(0,0,0,.5);border:1px solid #39ff8a;border-radius:9px;overflow:hidden;display:none}
   #craft>i{display:block;height:100%;width:0;background:linear-gradient(90deg,#39ff8a,#bfffcf)}
   #hint{position:absolute;bottom:92px;left:0;right:0;text-align:center;font-size:14px;color:#ffd0d0;text-shadow:0 0 8px #000}
@@ -103,6 +105,7 @@
   <div id="visorB">🥽 VISOR<div><i></i></div></div>
   <div id="flareC">🧨 x3</div>
   <div id="invtag">🕷️ LA ARAÑA SE VOLVIÓ INVISIBLE — usa el VISOR 🥽</div>
+  <div id="floorTitle"></div>
   <div id="hint"></div>
   <div id="stam"><i></i></div>
   <div id="craft"><i></i></div>
@@ -549,7 +552,10 @@ function doCrack(){ const c=$("crack"); if(!c) return; c.style.transition="none"
   requestAnimationFrame(()=>{ c.style.transition="opacity 0.8s"; c.style.opacity="0"; }); }
 function updObj(){ const done=valvesGot>=4&&samplesGot>=3; $("obj").textContent = done ? "🧪 ¡Todo listo! Ve a la MÁQUINA en tu ZONA SEGURA (planta baja) y fabrica el antídoto" : ("🧪 ANTÍDOTO — válvulas "+valvesGot+"/4 · muestras "+samplesGot+"/3 (en los 7 pisos)"); }
 function fade(fn){ const f=$("fade"); f.style.opacity="1"; setTimeout(()=>{ fn&&fn(); f.style.opacity="0"; },250); }
-function goFloor(nf){ if(nf<0||nf>=FLOORS) return; fade(()=>{ curFloor=nf; floorCd=1.2; const sp=safeSpotF(STAIRX-5,STAIRZ,nf); P.x=sp.x; P.z=sp.z; $("floor").textContent=FLOORNAME[nf]; snd(200,"sine",0.2,0.07); showStory("Subiste a "+FLOORNAME[nf]); }); }
+function goFloor(nf){ if(nf<0||nf>=FLOORS) return;
+  [0,140,290,450].forEach((ms,k)=>setTimeout(()=>snd(90+k*8,"triangle",0.09,0.05),ms));   // 🪜 eco metálico de escalones
+  fade(()=>{ curFloor=nf; floorCd=1.2; const sp=safeSpotF(STAIRX-5,STAIRZ,nf); P.x=sp.x; P.z=sp.z; $("floor").textContent=FLOORNAME[nf]; showStory("Subiste a "+FLOORNAME[nf]);
+    const ft2=$("floorTitle"); if(ft2){ ft2.textContent=FLOORNAME[nf]; ft2.classList.add("on"); clearTimeout(ft2._t); ft2._t=setTimeout(()=>ft2.classList.remove("on"),1100); } }); }   // 👻 título fantasma
 
 // 🎲 posiciones aleatorias (evita paredes, zona segura y la escalera)
 function randSpotOnFloor(fl){ let x,z,t=0; do{ x=(Math.random()*2-1)*(HH-7); z=(Math.random()*2-1)*(HH-7); t++; }while((collide(x,z,fl)||inSafe(x,z,fl)||Math.hypot(x-STAIRX,z-STAIRZ)<7)&&t<50); return {x,z}; }
