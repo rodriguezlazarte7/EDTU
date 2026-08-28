@@ -1469,7 +1469,8 @@
 </div>
 <div id="trophyFs" style="position:fixed;inset:0;z-index:130;background:rgba(0,0,0,.9);display:none;align-items:center;justify-content:center;backdrop-filter:blur(3px)">
   <div style="background:#0d0f16;border:1px solid rgba(255,209,46,.5);border-radius:16px;padding:22px 20px;min-width:min(360px,94vw);max-width:min(480px,94vw);max-height:88vh;overflow-y:auto;box-shadow:0 0 40px rgba(255,209,46,.18);font-family:Consolas,monospace">
-    <div id="wallyPresenter"><span class="bzr">🔴</span><span class="bot" id="wallyBot">🤖</span><span class="bzb">🔵</span><div id="wallySpeech" style="font:700 12px Consolas,monospace;color:#8fd0ff;margin-top:2px"></div></div>
+    <div id="wallyPresenter"><span class="bzr">🔴</span><span class="bot" id="wallyBot">🤖</span><span class="bzb">🔵</span><div id="wallySpeech" style="font:700 12px Consolas,monospace;color:#8fd0ff;margin-top:2px;min-height:16px"></div></div>
+    <div style="display:flex;gap:6px;margin-bottom:8px"><input id="wallyIn" placeholder="háblale a WALLY... (chiste, juego, récords)" maxlength="60" style="flex:1;background:#0a1420;border:1px solid rgba(56,182,255,.4);border-radius:8px;padding:6px 10px;color:#cfe0ff;font:700 12px Consolas,monospace"><button class="btn btn-sm" id="wallySend" style="border-color:rgba(56,182,255,.5);color:#8fd0ff">➤</button></div>
     <h2 style="margin:0 0 6px;text-align:center;color:#ffd12e;letter-spacing:.1em">🏆 SALA DE TROFEOS</h2>
     <div id="trophyBody" style="font-size:13px;line-height:2;color:#cfe0ff"></div>
     <button class="btn btn-primary btn-sm" id="trophyPoster" style="margin-top:12px;width:100%">📸 PÓSTER DE RÉCORDS</button>
@@ -7165,6 +7166,43 @@ function buildPoster(){ try{
 $("trophyPoster").onclick=buildPoster;
 $("posterClose").onclick=()=>{ $("posterFs").style.display="none"; };
 $("posterFs").addEventListener("click",e=>{ if(e.target===$("posterFs")) $("posterFs").style.display="none"; });
+// 🤖💬 CHAT CON WALLY: respuestas pre-escritas por palabra clave con efecto de tecleo (sin red, sin IA)
+(function(){ const inp=$("wallyIn"), sbtn=$("wallySend"); if(!inp||!sbtn) return;
+  let typing=null;
+  function wallyType(txt){ const ws=$("wallySpeech"); if(!ws) return;
+    if(typing) clearInterval(typing); let i=0; ws.textContent="";
+    try{ const A3=new (window.AudioContext||window.webkitAudioContext)(); const o=A3.createOscillator(),g3=A3.createGain(); o.type="square"; o.frequency.value=1046; g3.gain.value=0.04; o.connect(g3); g3.connect(A3.destination); o.start(); o.stop(A3.currentTime+0.08); }catch(e){}
+    typing=setInterval(()=>{ i++; if(i>=txt.length){ ws.textContent="«"+txt+"»"; clearInterval(typing); typing=null; } else ws.textContent="«"+txt.slice(0,i)+"▌"; },26); }
+  function wallyReply(q){ try{ q=(q||"").toLowerCase();
+    const g=k=>{ try{ return localStorage.getItem(k); }catch(e){ return null; } };
+    const pick=a=>a[Math.floor(Math.random()*a.length)];
+    if(/chiste|broma|r[íi]e/.test(q)) return pick(["¿por qué el robot fue al médico? ¡porque tenía un virus! jaja beep","¿qué le dice un robot a otro? ¡me tienes hasta los circuitos!","mi chiste favorito es binario: 01101... jaja ¿lo pillas?","¿cómo se despide un robot? ¡hasta la vista, batería!"]);
+    if(/carrera|mbot|cole/.test(q)) return "¡esa carrera fue ÉPICA! los mBots no vieron ni mi polvo 🏁 modo carrera con L3 y ¡fiuuum!";
+    if(/david/.test(q)) return "David es mi creador y el mejor agente de EDTU. ¡Me construyó con sus propias manos! 🔧❤️";
+    if(/juego|jugar|aburrid/.test(q)){
+      if(!g("scream_best")) return "te recomiendo SCREAM 🕷️ ¡aún no logras escapar del edificio!";
+      if(!(parseFloat(g("jurassic_best"))>0)) return "te recomiendo JURASSIC 🦖 ¡la isla te espera!";
+      if((parseInt(g("nag_best_kills")||"0",10)||0)<50) return "te recomiendo NOT A GAME 🧟 ¡a subir ese récord de kills!";
+      if((parseFloat(g("edtu_f1_best"))||0)<3000) return "te recomiendo F1 🏎️ ¡KÓNDOR te está esperando!";
+      return "¡prueba el CUBO DE ORO 🧩! o ve por PESADILLA+ en SCREAM 👑"; }
+    if(/r[ée]cord|trofeo|logro/.test(q)){
+      let n=0; try{ const KEYS=[["scream_win_",["facil","normal","pesadilla","infierno"]],["jurassic_win_",["facil","normal","dificil","extincion"]],["nag_kills_",[25,50,100,200]],["edtu_f1_km_",[1000,3000,5000,10000]]];
+        KEYS.forEach(([p,arr])=>arr.forEach(k=>{ if(g(p+k)==="1") n++; }));
+        ["wally_jurassic","wally_notagame","wally_scream","wally_f1"].forEach(k=>{ if(g(k)==="1") n++; });
+        if(g("jurassic_egg")==="1") n++; }catch(e){}
+      return n>=21?"¡21 de 21! eres LEYENDA de EDTU, no me canso de decirlo 👑":"llevas "+n+" de 21 logros. ¡mira las tarjetas de abajo y a por el resto! 🏅"; }
+    if(/hola|buenas|hey|qu[ée] tal/.test(q)) return pick(["¡beep-boop! hola agente 👋","¡hola! ¿jugamos algo?","¡saludos desde el cuartel EDTU! 🫡"]);
+    if(/gracias/.test(q)) return pick(["¡de nada, agente! para eso estoy","beep-boop 😊 ¡un gusto!"]);
+    if(/ara[ñn]a|miedo|scream/.test(q)) return "truco: la araña solo se teletransporta con tu linterna PRENDIDA 🔦 y la vitrola la hipnotiza 🎵";
+    if(/dino|jurassic|isla/.test(q)) return "truco: la fogata 🔥 espanta dinos y cura... y en la orilla del lago se puede PESCAR 🎣";
+    if(/zombie|zombi/.test(q)) return "truco: con 5 pistas se activa la TORRETA del helipuerto 🤖🔫 ¡y el gato espanta zombies!";
+    if(/k[óo]ndor|auto|f1/.test(q)) return "KÓNDOR aparece a los 1500m... tócale la bocina con H 📯 jaja";
+    return pick(["beep-boop... no entendí 🤔 pregúntame por chistes, juegos, récords o trucos","mis circuitos no procesaron eso... ¡prueba con 'chiste'!","*gira la cabeza confundido* ¿me hablas de juegos, récords o chistes?"]); }
+  catch(e){ return "beep... error de circuitos jaja"; } }
+  function sendWally(){ const q=inp.value.trim(); if(!q) return; inp.value=""; wallyType(wallyReply(q)); }
+  sbtn.onclick=sendWally;
+  inp.addEventListener("keydown",e=>{ if(e.key==="Enter"){ e.preventDefault(); e.stopPropagation(); sendWally(); } });
+})();
 // 🤖🥚 huevo de pascua: ESCRIBE "wally" en cualquier parte del menú y WALLY cruza la pantalla saludando
 (function(){ let wBuf="", crossing=false;
   const W_PHRASES=["¡beep-boop! ¿me llamaste?","¡voy pasando, no me detengas!","EDTU es el mejor cuartel del mundo","David me construyó con sus propias manos 🔧","¡nos vemos dentro de los juegos!","una vez gané una carrera de mBots 🏁"];
