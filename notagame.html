@@ -245,6 +245,17 @@ let wallyNSeen=false, wNBalR=null, wNBalB=null;
   wNBalB=new THREE.Mesh(new THREE.SphereGeometry(0.09,7,6),new THREE.MeshBasicMaterial({color:0x2060ff})); wNBalB.position.set(0.18,1.1,-0.35); wallyN.add(wNBalB);
   addWall(wSpot.x-0.6,wSpot.x+0.6,wSpot.z-0.7,wSpot.z+0.7);
 })();
+// 🐕 PERRO CALLEJERO: te sigue fiel por la superficie y LADRA cuando un zombie se acerca (alerta temprana)
+const dog=new THREE.Group(); const dogM=new THREE.MeshStandardMaterial({color:0x8a6a42,roughness:.85});
+let dogTail=null, dogBarkCd=0;
+(function makeDog(){ const body=new THREE.Mesh(new THREE.BoxGeometry(0.32,0.3,0.62),dogM); body.position.y=0.42; dog.add(body);
+  const head=new THREE.Mesh(new THREE.BoxGeometry(0.24,0.24,0.26),dogM); head.position.set(0,0.62,0.4); dog.add(head);
+  const hocico=new THREE.Mesh(new THREE.BoxGeometry(0.12,0.1,0.12),new THREE.MeshStandardMaterial({color:0x4a3520,roughness:.9})); hocico.position.set(0,0.58,0.56); dog.add(hocico);
+  for(const ex of [-0.07,0.07]){ const oreja=new THREE.Mesh(new THREE.ConeGeometry(0.05,0.1,5),dogM); oreja.position.set(ex,0.78,0.38); dog.add(oreja); }
+  for(const [lx,lz] of [[-0.12,-0.2],[0.12,-0.2],[-0.12,0.2],[0.12,0.2]]){ const leg=new THREE.Mesh(new THREE.BoxGeometry(0.08,0.3,0.08),dogM); leg.position.set(lx,0.15,lz); dog.add(leg); }
+  dogTail=new THREE.Mesh(new THREE.BoxGeometry(0.06,0.06,0.3),dogM); dogTail.position.set(0,0.5,-0.42); dog.add(dogTail);
+  dog.position.set(3,0,ARENA-8); scene.add(dog);
+})();
 // 🐈‍⬛ GATO NEGRO: cada tanto cruza la calle corriendo delante tuyo, maúlla y sus ojos brillan verdes
 const cat=new THREE.Group(); const catM=new THREE.MeshStandardMaterial({color:0x0c0c12,roughness:.85});
 { const cb=new THREE.Mesh(new THREE.SphereGeometry(0.22,9,7),catM); cb.scale.set(1,0.8,1.7); cb.position.y=0.26; cat.add(cb);
@@ -875,6 +886,18 @@ function update(dt){
     if(bloodMoon) moonHalo.material.opacity=(1-dayF)*0.3;
     lastDayF=dayF;
   }
+  // 🐕 el perro: trota detrás tuyo (a 2.5m), mueve la cola, y LADRA fuerte si un zombie anda a <13m
+  dog.visible = level==="surface" && !heliMode;
+  if(dog.visible){
+    const ddx=P.x-dog.position.x, ddz=P.z-dog.position.z, dd2=Math.hypot(ddx,ddz);
+    if(dd2>2.5){ const sp3=Math.min(7,dd2*1.4); dog.position.x+=ddx/dd2*sp3*dt; dog.position.z+=ddz/dd2*sp3*dt;
+      dog.rotation.y=Math.atan2(ddx,ddz); dog.position.y=Math.abs(Math.sin(now*10))*0.06; }
+    else dog.position.y*=0.9;
+    if(dogTail) dogTail.rotation.y=Math.sin(now*9)*0.5;
+    dogBarkCd-=dt;
+    if(dogBarkCd<=0){ let zn=1e9; zombies.forEach(z=>{ if(z.dead)return; const zd=Math.hypot(dog.position.x-z.grp.position.x,dog.position.z-z.grp.position.z); if(zd<zn)zn=zd; });
+      if(boss){ const bd2=Math.hypot(dog.position.x-boss.grp.position.x,dog.position.z-boss.grp.position.z); if(bd2<zn)zn=bd2; }
+      if(zn<13){ dogBarkCd=3.5; snd(520,"square",0.09,0.09); setTimeout(()=>snd(480,"square",0.11,0.09),170); dog.rotation.y+=0.4; } } }
   // 🐈‍⬛ gato negro: aparece a un costado, cruza corriendo delante tuyo maullando y desaparece
   if(level==="surface"){
     if(!cat.visible){ catT-=dt;
