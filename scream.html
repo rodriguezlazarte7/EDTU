@@ -390,7 +390,7 @@ function makeSpider(){
     for(let k=0;k<3;k++){ const spk=new THREE.Mesh(new THREE.ConeGeometry(0.09,0.55,5),dark); spk.position.set(side*(1.2+k*0.75),1.4+k*0.35,0); spk.rotation.z=side*(-1.3); leg.add(spk); }   // púas tipo cuchilla
     leg.rotation.y=side*(0.55-i*0.34); leg.userData.base=0; g.add(leg); legs.push(leg); }
   CURP.add(g);
-  return {grp:g,sp:3.2,legs,bodyMats,eyes,eyeGlow,camo:0.14,ambushT:8,wdir:0,invPhase:false,invT:30,climb:0,pingT:0};
+  return {grp:g,sp:3.2,legs,bodyMats,eyes,eyeGlow,camo:0.14,ambushT:8,wdir:0,invPhase:false,invT:30,climb:0,pingT:0,blink:0};
 }
 for(let f=0;f<FLOORS;f++) buildFloor(f);
 spider=makeSpider();
@@ -609,7 +609,8 @@ function update(dt){
     else if(revealed || (sd<5 && !spider.invPhase)) targetC=1;
     else targetC=(!spider.invPhase && flashOn && sd<15)?0.4:0.05;
     spider.camo+=(targetC-spider.camo)*Math.min(1,dt*6); spider.bodyMats.forEach(m=>{ m.opacity=spider.camo; m.emissiveIntensity=nvOn?0.9:0.18; });
-    const showEyes = !invHidden; spider.eyes.forEach(e=>e.visible=showEyes); if(spider.eyeGlow) spider.eyeGlow.visible=showEyes;
+    if(spider.blink>0) spider.blink-=dt; else if(Math.random()<dt*0.4) spider.blink=0.11;   // 👁️ parpadeo de los ojos
+    const showEyes = !invHidden && !(spider.blink>0); spider.eyes.forEach(e=>e.visible=showEyes); if(spider.eyeGlow) spider.eyeGlow.visible=showEyes;
     const skit=sd<7?18:10; spider.legs.forEach((lg,i)=>{ lg.rotation.x=lg.userData.base+Math.sin(now*skit+i*1.7)*0.4; });
     if(sd<18 && Math.random()<dt*(0.3+(18-sd)/18*1.4)) snd(55+Math.random()*70,"sawtooth",0.12,0.03+(18-sd)/18*0.09);   // patas: mas fuerte/seguido al acercarse
     if(sd<34){ hbT-=dt; if(hbT<=0){ hbT=Math.max(0.3,Math.min(1.3,sd/24)); snd(48,"sine",0.14,0.09); } fear=Math.max(0,1-sd/18); }
