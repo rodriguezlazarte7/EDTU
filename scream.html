@@ -521,6 +521,12 @@ for(let i=0;i<24;i++){ const m=new THREE.Mesh(new THREE.PlaneGeometry(0.5,0.7),n
 let hp=3, hpMax=3, hurtCd=0, stam=100, sprintHeld=false, safeTime=0, visorBatt=100, stepT=0, breathT=0.3;
 // 🎵 cajita musical de la zona segura (melodía antigua, dulce y siniestra)
 let mbT=0, mbI=0; const MB_NOTES=[659,622,659,622,659,494,587,523,440,0,262,330,440,494,0,330,415,494,523,0,0];
+// 🦋 POLILLAS: bichos oscuros que revolotean atraídos por el haz de tu linterna
+const moths=[]; const mothM=new THREE.MeshBasicMaterial({color:0x2a2622,side:THREE.DoubleSide,transparent:true,opacity:0.85});
+for(let i=0;i<5;i++){ const g=new THREE.Group();
+  const wL=new THREE.Mesh(new THREE.PlaneGeometry(0.09,0.12),mothM); wL.position.x=-0.045; g.add(wL);
+  const wR=new THREE.Mesh(new THREE.PlaneGeometry(0.09,0.12),mothM); wR.position.x=0.045; g.add(wR);
+  g.visible=false; scene.add(g); moths.push({g,ph:Math.random()*6.28,r:0.5+Math.random()*1.2,sp2:2+Math.random()*3,h:Math.random()}); }
 function vib(p){ try{ if(navigator.vibrate) navigator.vibrate(p); }catch(e){} }
 let diff="normal", invDur=30, ambushInt=10, gameTime=1200;
 const DIFFS={facil:{sp:3.6,inv:20,time:1500,hp:4,amb:14,lbl:"🟢 FÁCIL"},normal:{sp:4.4,inv:30,time:1200,hp:3,amb:10,lbl:"🟡 NORMAL"},pesadilla:{sp:5.4,inv:40,time:900,hp:2,amb:8,lbl:"🔴 PESADILLA"}};
@@ -726,6 +732,14 @@ function update(dt){
     if(Math.hypot(P.x-v.x,P.z-v.z)<1.9){ v.got=true; v.grp.visible=false; if(v.light){ v.light.visible=false; v.light.userData.fl=-1; } valvesGot++; [392,494,587].forEach((fq,k)=>setTimeout(()=>snd(fq,"triangle",0.18,0.08),k*90)); showStory("🔧 Válvula "+valvesGot+"/4"); updObj(); } }   // 🎵 arpegio metálico
   for(const v of samples){ if(v.got||v.f!==curFloor) continue; v.grp.rotation.y+=dt*1.8; v.grp.position.y=curFloor*FLOOR_H+1+Math.sin(now*3)*0.15;
     if(Math.hypot(P.x-v.x,P.z-v.z)<1.9){ v.got=true; v.grp.visible=false; if(v.light){ v.light.visible=false; v.light.userData.fl=-1; } samplesGot++; [523,659,880].forEach((fq,k)=>setTimeout(()=>snd(fq,"sine",0.2,0.08),k*90)); showStory("🧪 Muestra de antídoto "+samplesGot+"/3"); updObj(); } }   // 🎵 arpegio cristalino
+  // 🦋 polillas: bailan alrededor del haz de la linterna (con la luz apagada se van)
+  { const mfx=-Math.sin(yaw), mfz=-Math.cos(yaw);
+    for(const mo of moths){ mo.g.visible=flashOn && !nvOn;
+      if(!mo.g.visible) continue;
+      const aa2=now*mo.sp2+mo.ph;
+      mo.g.position.set(P.x+mfx*3.2+Math.cos(aa2)*mo.r, curFloor*FLOOR_H+1.5+Math.sin(aa2*1.7)*0.5+mo.h, P.z+mfz*3.2+Math.sin(aa2)*mo.r);
+      const fl3=Math.sin(now*26+mo.ph); mo.g.children[0].rotation.y=fl3; mo.g.children[1].rotation.y=-fl3;
+      mo.g.rotation.y=yaw; } }
   // 👣 rastro: brilla verde fosforescente SOLO con el visor y en tu piso; se desvanece en 8s
   for(const tr of spTrail){ if(tr.life>0){ tr.life-=dt; tr.m.material.opacity=(nvOn && tr.f===curFloor)?Math.min(0.55,tr.life*0.1):0;
     if(nvOn && !trailHint && tr.f===curFloor && tr.life>0){ trailHint=true; showStory("👣 Tu visor detecta el RASTRO de la araña..."); } } }
