@@ -71,6 +71,7 @@
 </div>
 <canvas id="nradar" width="104" height="104" style="position:fixed;top:118px;right:12px;opacity:.92;z-index:5;pointer-events:none"></canvas>
 <div id="toPad" style="position:fixed;top:64px;left:0;right:0;text-align:center;display:none;z-index:5;color:#33bbff;font:800 13px Consolas,monospace;text-shadow:0 0 8px #000;pointer-events:none"><span class="arw" style="display:inline-block;font-size:20px;vertical-align:middle">▲</span> HELICÓPTERO</div>
+<div id="nPauseOv" style="position:fixed;inset:0;z-index:60;display:none;background:rgba(5,0,10,.8);color:#c8d8ff;font:900 36px system-ui,sans-serif;align-items:center;justify-content:center;text-align:center;flex-direction:column">⏸ PAUSA<div style="font-size:16px;margin-top:10px;color:#7a86b8">pulsa P para seguir · los zombies también descansan</div></div>
 <div id="story"></div>
 <div id="touch"><div id="stick"><div id="nub"></div></div><button id="fire">🔫<br>FUEGO</button></div>
 <div class="hint" id="hint"></div>
@@ -610,7 +611,8 @@ function updShieldHUD(){ const w=document.getElementById("hpwrap"); if(!w) retur
 
 // ---------- input ----------
 const keys={};
-addEventListener("keydown",e=>{ keys[e.code]=true; if(e.code==="Space"&&P.onGround&&running){P.vy=6.2;P.onGround=false;} if(e.code==="KeyE"&&running){ tryDrawer(); petDog(); talkWallyN(); } });
+addEventListener("keydown",e=>{ keys[e.code]=true; if(e.code==="Space"&&P.onGround&&running){P.vy=6.2;P.onGround=false;} if(e.code==="KeyE"&&running){ tryDrawer(); petDog(); talkWallyN(); }
+  if(e.code==="KeyP"&&running&&!gameOver){ nPaused=!nPaused; const po=document.getElementById("nPauseOv"); if(po) po.style.display=nPaused?"flex":"none"; snd(nPaused?300:600,"square",0.08,0.06); } });
 addEventListener("keyup",e=>{ keys[e.code]=false; });
 document.addEventListener("pointerlockchange",()=>{
   if(running && !isTouch && document.pointerLockElement!==canvas){ document.getElementById("hint").textContent="clic para volver a mirar"; }
@@ -719,6 +721,7 @@ function startGame(){
   nStatDist=0; nLastX=null; nStatShields=0; nStatBoss=0;   // 📊 estadísticas desde cero
   rapidT=0; tracer.material.color.setHex(0xffe066); rapidDrops.forEach(r2=>scene.remove(r2.m)); rapidDrops.length=0;   // ⚡ reset
   hordeT=90+Math.random()*70; hordeOn=0;   // 🚨 reset horda
+  nPaused=false; const po4=document.getElementById("nPauseOv"); if(po4) po4.style.display="none";   // ⏸ reset pausa
   shield=false; updShieldHUD(); shieldDrops.forEach(s2=>scene.remove(s2.m)); shieldDrops.length=0;
   if(boss){ scene.remove(boss.grp); boss=null; } bossAt=25;
   document.getElementById("kills").textContent="0"; document.getElementById("clues").textContent="0";
@@ -749,6 +752,8 @@ let rapidT=0; const rapidDrops=[];
 let hordeT=90+Math.random()*70, hordeOn=0;
 // 🌫️ niebla del amanecer
 let dawnFog=0;
+// ⏸ pausa con P
+let nPaused=false;
 // 🗣️ voz de narrador (grave, para el final del caso)
 function narrate(txt){ try{ if(!window.speechSynthesis) return; const u=new SpeechSynthesisUtterance(txt); u.lang="es-ES"; u.pitch=0.5; u.rate=0.9; u.volume=0.85; speechSynthesis.cancel(); speechSynthesis.speak(u); }catch(e){} }
 function endGame(win,customInfo){
@@ -781,6 +786,7 @@ function goDrain(){ if(level!=="surface")return; level="drain"; fadeDo(()=>{ con
 function goSurface(){ if(level!=="drain")return; level="surface"; fadeDo(()=>{ const sp=safeSpot(0,ARENA-6); P.x=sp.x; P.z=sp.z; P.y=1.7; P.vy=0; yaw=0; showStory("De vuelta en la superficie."); }); }
 
 function update(dt){
+  if(nPaused) return;   // ⏸ pausa: todo congelado, zombies incluidos
   // 📊 metros recorridos
   if(nLastX!==null) nStatDist+=Math.hypot(P.x-nLastX,P.z-nLastZ);
   nLastX=P.x; nLastZ=P.z;
