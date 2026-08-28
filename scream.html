@@ -460,6 +460,7 @@ function drawMap(){ const c=$("mapC"); if(!c) return; const g=c.getContext("2d")
   for(const v of samples){ if(v.f!==curFloor||v.got) continue; const p=w2m(v.x,v.z); g.fillStyle="#b14bff"; g.beginPath(); g.arc(p[0],p[1],4,0,6.28); g.fill(); }
   for(const v of notes){ if(v.f!==curFloor||v.got) continue; const p=w2m(v.x,v.z); g.fillStyle="#efe0a0"; g.fillRect(p[0]-3,p[1]-4,6,8); }
   if(spiderFloor===curFloor && !spiderDead){ const p=w2m(spider.grp.position.x,spider.grp.position.z); g.fillStyle="#ff2a2a"; g.shadowColor="#f00"; g.shadowBlur=8; g.beginPath(); g.arc(p[0],p[1],5,0,6.28); g.fill(); g.shadowBlur=0; }
+  for(const b of babies){ if(b.f!==curFloor) continue; const p=w2m(b.grp.position.x,b.grp.position.z); g.fillStyle="#ff8a2a"; g.beginPath(); g.arc(p[0],p[1],3,0,6.28); g.fill(); }   // 🕷️ crías (naranjo)
   const pp=w2m(P.x,P.z), fx=-Math.sin(yaw), fz=-Math.cos(yaw); g.fillStyle="#ffd12e"; g.beginPath(); g.moveTo(pp[0]+fx*8,pp[1]+fz*8); g.lineTo(pp[0]-fz*5-fx*4,pp[1]+fx*5-fz*4); g.lineTo(pp[0]+fz*5-fx*4,pp[1]-fx*5-fz*4); g.closePath(); g.fill(); }
 addEventListener("keydown",e=>{ keys[e.code]=true; if(e.code==="KeyF") toggleFlash(); if(e.code==="KeyM") toggleMap(); if(e.code==="KeyG") throwFlare(); if(e.code==="KeyH") toggleHelp(); if(e.code==="ShiftLeft"||e.code==="ShiftRight") sprintHeld=true; },true);
 addEventListener("keyup",e=>{ keys[e.code]=false; if(e.code==="ShiftLeft"||e.code==="ShiftRight") sprintHeld=false; },true);
@@ -683,6 +684,10 @@ function update(dt){
         let bx=46+(ox*cos-oz*sin)*scl, byy=46-(-ox*sin-oz*cos)*scl; const dr=Math.hypot(bx-46,byy-46); if(dr>42){ bx=46+(bx-46)/dr*42; byy=46+(byy-46)/dr*42; }
         rg.fillStyle="#ff2a2a"; rg.shadowColor="#ff0000"; rg.shadowBlur=9; rg.beginPath(); rg.arc(bx,byy,4.5,0,6.28); rg.fill(); rg.shadowBlur=0;
       } else { rg.fillStyle="#ff8a2a"; rg.font="bold 22px Consolas"; rg.textAlign="center"; rg.fillText(spiderFloor>curFloor?"▲":"▼",46,53); } }
+    // 🕷️ crías del piso: puntitos naranjos fijos
+    for(const b of babies){ if(b.f!==curFloor) continue; const ox=b.grp.position.x-P.x, oz=b.grp.position.z-P.z; const scl=44/34;
+      let bx2=46+(ox*cos-oz*sin)*scl, by2=46-(-ox*sin-oz*cos)*scl; const dr2=Math.hypot(bx2-46,by2-46); if(dr2>42) continue;
+      rg.fillStyle="#ff8a2a"; rg.beginPath(); rg.arc(bx2,by2,2.6,0,6.28); rg.fill(); }
   }
 
   // 🧪 FABRICAR el antídoto en la MÁQUINA (zona segura, planta baja)
