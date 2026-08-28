@@ -13,6 +13,8 @@
   /* HUD */
   #hud{position:fixed;inset:0;z-index:5;pointer-events:none;font-family:"Consolas",monospace}
   #clock{position:absolute;top:10px;left:0;right:0;text-align:center;font-size:22px;font-weight:900;color:#ffe08a;text-shadow:0 0 10px rgba(0,0,0,.8)}
+  #dayTitle{position:absolute;top:34%;left:0;right:0;text-align:center;font-family:"Consolas",monospace;font-size:clamp(30px,7vw,58px);font-weight:900;letter-spacing:.25em;color:rgba(255,240,200,0);text-shadow:0 0 24px rgba(255,180,60,.8);pointer-events:none;transition:color 1.6s}
+  #dayTitle.on{color:rgba(255,240,200,.9);transition:color .2s}
   #obj{position:absolute;top:40px;left:0;right:0;text-align:center;font-size:12px;color:#bfe6a8;text-shadow:0 0 8px #000}
   #bars{position:absolute;top:10px;left:12px;width:190px;display:flex;flex-direction:column;gap:5px}
   .bar{height:14px;background:rgba(0,0,0,.45);border:1px solid rgba(255,255,255,.25);border-radius:8px;overflow:hidden;position:relative}
@@ -68,6 +70,7 @@
 
 <div id="hud" class="hide">
   <div id="clock">DÍA 1 — 00:00</div>
+  <div id="dayTitle"></div>
   <div id="obj">Sobrevive 7 días · enciende la radio para pedir rescate</div>
   <div id="bars">
     <div class="bar"><i id="hpF"></i><span>❤ VIDA</span></div>
@@ -503,7 +506,9 @@ function update(dt){
   $("flF").style.width=flashBatt+"%"; $("flTxt").textContent="🔦 LINTERNA "+Math.round(flashBatt)+"%";
   $("clock").textContent="DÍA "+Math.min(day,7)+" — "+String(hh).padStart(2,"0")+":"+String(mm).padStart(2,"0")+(isNight?" 🌙":" ☀️");
   // radio intermitente (una vez por día aprox)
-  if(day!==lastRadio){ lastRadio=day; if(day>1) showStory("📻 "+radioMsgs[(day-2)%radioMsgs.length]); }
+  if(day!==lastRadio){ lastRadio=day; if(day>1) showStory("📻 "+radioMsgs[(day-2)%radioMsgs.length]);
+    const dtl=$("dayTitle"); if(dtl && day<=7){ dtl.textContent="DÍA "+day; dtl.classList.add("on"); clearTimeout(dtl._t); dtl._t=setTimeout(()=>dtl.classList.remove("on"),1400);
+      [392,523,659].forEach((fq,k)=>setTimeout(()=>snd(fq,"triangle",0.25,0.06),k*160)); } }   // 🌅 título fantasma del día + campanitas
 
   // hambre / sed bajan (más rápido de noche); si están en 0, baja la vida
   hunger=Math.max(0,hunger-dt*0.22); thirst=Math.max(0,thirst-dt*0.3);   // bajan MUCHO más lento
