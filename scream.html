@@ -578,9 +578,9 @@ for(let i=0;i<5;i++){ const g=new THREE.Group();
   g.visible=false; scene.add(g); moths.push({g,ph:Math.random()*6.28,r:0.5+Math.random()*1.2,sp2:2+Math.random()*3,h:Math.random()}); }
 function vib(p){ try{ if(navigator.vibrate) navigator.vibrate(p); }catch(e){} }
 let diff="normal", invDur=30, ambushInt=10, gameTime=1200;
-const DIFFS={facil:{sp:3.6,inv:20,time:1500,hp:4,amb:14,lbl:"🟢 FÁCIL"},normal:{sp:4.4,inv:30,time:1200,hp:3,amb:10,lbl:"🟡 NORMAL"},pesadilla:{sp:5.4,inv:40,time:900,hp:2,amb:8,lbl:"🔴 PESADILLA"}};
+const DIFFS={facil:{sp:3.6,inv:20,time:1500,hp:4,amb:14,lbl:"🟢 FÁCIL"},normal:{sp:4.4,inv:30,time:1200,hp:3,amb:10,lbl:"🟡 NORMAL"},pesadilla:{sp:5.4,inv:40,time:900,hp:2,amb:8,lbl:"🔴 PESADILLA"},infierno:{sp:6.2,inv:45,time:600,hp:1,amb:6,lbl:"🔥 INFIERNO"}};
 const SPIDER_SC=0.62;   // araña más chica
-function buildDiffs(){ const c=$("diffs"); if(!c) return; c.innerHTML=""; for(const k of ["facil","normal","pesadilla"]){ const b=document.createElement("button"); b.className="diffbtn"+(diff===k?" sel":""); const bd=loadBestD(k); b.textContent=DIFFS[k].lbl+(bd!=null?" ⏱"+fmtT(bd):""); b.onclick=()=>{ diff=k; buildDiffs(); }; c.appendChild(b); } }
+function buildDiffs(){ const c=$("diffs"); if(!c) return; c.innerHTML=""; for(const k of ["facil","normal","pesadilla","infierno"]){ const b=document.createElement("button"); b.className="diffbtn"+(diff===k?" sel":""); const bd=loadBestD(k); b.textContent=DIFFS[k].lbl+(bd!=null?" ⏱"+fmtT(bd):""); b.onclick=()=>{ diff=k; buildDiffs(); }; c.appendChild(b); } }
 const keys={}, moveV={x:0,y:0};
 function updHP(){ let s=""; for(let i=0;i<hpMax;i++) s+= (i<hp?"❤️":"🖤"); $("hp").textContent=s;
   const lw=$("lowhp"); if(lw) lw.classList.toggle("on", hp===1 && !gameOver);   // 💔 alerta pulsante con 1 corazón
