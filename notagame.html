@@ -1031,6 +1031,8 @@ function endGame(win,customInfo){
     try{ const gr=JSON.parse(localStorage.getItem("nag_graves")||"[]");   // 🪦 nueva lápida con esta caída
       gr.unshift({k:kills,c:cluesGot,d:new Date().toLocaleDateString("es-CL")});
       localStorage.setItem("nag_graves",JSON.stringify(gr.slice(0,3))); }catch(e){}
+    { const MOTIV=["La próxima lo logras, agente 💪","WALLY cree en ti 🤖","El perro te esperará en la próxima 🐕","Cada caída es una lápida... y una lección","El caso sigue abierto: vuelve por él"];
+      inf.innerHTML+="<br><span style='color:#8fb6d8'>💙 "+MOTIV[Math.floor(Math.random()*MOTIV.length)]+"</span>"; }
     try{ if(navigator.vibrate) navigator.vibrate([0,200,80,250]); }catch(e){}   // 📳 te atraparon
     narrate("Te infectaron, agente. El caso queda abierto.");
     // 💥 muerte impactante: FUNDIDO ROJO sangre y recién ahí la pantalla de fin

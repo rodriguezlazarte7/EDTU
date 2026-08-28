@@ -942,7 +942,9 @@ function endGame(win,info){ running=false; gameOver=true; try{document.exitPoint
   { const fb2=$("freeBtn"); if(fb2) fb2.style.display=win?"inline-block":"none"; }   // 🏝️ solo tras GANAR
   setRainSnd(false);   // 🐛FIX auditoría: la lluvia seguía sonando en bucle infinito sobre la pantalla de fin
   const days=Math.min(7, elapsed/DAY_LEN); const prev=loadJBest(); const isRec=days>prev; if(isRec) saveJBest(days);
-  const t=$("endTitle"); if(win){ t.textContent="✓ RESCATADO"; t.className="big win"; try{ localStorage.setItem("jurassic_win_"+jdiff,"1"); }catch(e){} } else { t.textContent="✕ NO SOBREVIVISTE"; t.className="big lose"; }
+  const t=$("endTitle"); if(win){ t.textContent="✓ RESCATADO"; t.className="big win"; try{ localStorage.setItem("jurassic_win_"+jdiff,"1"); }catch(e){} } else { t.textContent="✕ NO SOBREVIVISTE"; t.className="big lose";
+    const MOTIV=["La próxima lo logras, agente 💪","WALLY cree en ti 🤖","La isla respeta a quien vuelve a intentarlo","Cada día sobrevivido cuenta","Hasta los T-Rex fallan a veces"];
+    info+="<br><span style='color:#8fd0a8'>💙 "+MOTIV[Math.floor(Math.random()*MOTIV.length)]+"</span>"; }
   $("endInfo").innerHTML=info+(win&&jdiff==="extincion"?"<br>☄️ <b>¡SOBREVIVISTE A LA EXTINCIÓN!</b> — depredadores 1.5x más rápidos y daño doble. LEYENDA.":"")+"<br><br>🗓️ Días: <b>"+days.toFixed(1)+"</b>"+(isRec?" 🏆 ¡RÉCORD!":" · Récord: <b>"+prev.toFixed(1)+"</b>")
     +"<div style='margin-top:8px;font-size:13px;color:#bfe3d8;line-height:1.9'>📊 <b>ESTADÍSTICAS</b><br>💉 Dardos disparados: "+jStatDarts+" · 💤 Dinos dormidos: "+jStatSleep+"<br>🪵 Maderas puestas: "+jStatWood+" · 🚶 "+Math.round(jStatDist)+" m recorridos</div>"; snd(win?660:70,win?"triangle":"sawtooth",0.5,0.12);
   if(win){ $("end").classList.remove("hide");
