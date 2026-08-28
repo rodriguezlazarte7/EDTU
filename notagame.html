@@ -547,6 +547,19 @@ const turret=new THREE.Group();
 turret.position.set(heliPad.x+2.5,0,heliPad.z+2.5); scene.add(turret);
 const tTracer=new THREE.Line(new THREE.BufferGeometry().setFromPoints([new THREE.Vector3(),new THREE.Vector3()]),new THREE.LineBasicMaterial({color:0x8fd0ff,transparent:true,opacity:0})); scene.add(tTracer);
 let turCd=0, turWas=false, tTracerT=0;
+// 🪦 CEMENTERIO: 3 lápidas cerca del inicio con tus últimas 3 partidas caídas (nag_graves)
+const graves=[]; const graveM=new THREE.MeshStandardMaterial({color:0x6a6f78,roughness:.9});
+[[-5,ARENA-10],[-7.5,ARENA-9],[-10,ARENA-10]].forEach(gp=>{ const g=new THREE.Group();
+  const st=new THREE.Mesh(new THREE.BoxGeometry(0.8,1.0,0.18),graveM); st.position.y=0.5; g.add(st);
+  const top=new THREE.Mesh(new THREE.CylinderGeometry(0.4,0.4,0.18,12),graveM); top.rotation.x=Math.PI/2; top.position.y=1.0; g.add(top);
+  const insc=new THREE.Mesh(new THREE.BoxGeometry(0.5,0.3,0.02),new THREE.MeshStandardMaterial({color:0x3a3f48,roughness:.95})); insc.position.set(0,0.62,0.1); g.add(insc);
+  g.position.set(gp[0],0,gp[1]); g.rotation.y=(Math.random()-0.5)*0.3; scene.add(g);
+  graves.push({x:gp[0],z:gp[1],cd:0,txt:"🪦 ...lápida reservada..."}); });
+function loadGraves(){ try{ const gr=JSON.parse(localStorage.getItem("nag_graves")||"[]");
+  graves.forEach((gv,i)=>{ const d2=gr[i]; gv.txt=d2?("🪦 Aquí cayó el agente: "+d2.k+" kills, "+d2.c+" pistas ("+d2.d+")"):"🪦 ...lápida reservada..."; gv.cd=0; }); }catch(e){} }
+function gravesTick(dt){ if(level!=="surface") return;
+  graves.forEach(gv=>{ if(gv.cd>0){ gv.cd-=dt; return; }
+    if(Math.hypot(P.x-gv.x,P.z-gv.z)<3){ gv.cd=20; showStory(gv.txt); snd(90,"sine",0.4,0.05); } }); }
 function turretTick(dt){ if(level!=="surface"||gameOver) return;
   const turOn=cluesGot>=5;
   turret.userData.lamp.material.color.setHex(turOn?0x39ff5a:0xff3030);
@@ -914,6 +927,7 @@ function startGame(){
   if(drVZ){ scene.remove(drVZ.grp); drVZ=null; } drVZDone=false; drVZT=0;   // 🧪 doctor desde cero
   fBatt=100; battWarned=false; battPicks.forEach(bp=>{ bp.t=0; bp.m.visible=true; });   // 🔋 batería llena
   turCd=0; turWas=false; tTracerT=0; tTracer.material.opacity=0;   // 🤖🔫 torreta en reposo
+  loadGraves();   // 🪦 inscripciones al día
   nPaused=false; const po4=document.getElementById("nPauseOv"); if(po4) po4.style.display="none";   // ⏸ reset pausa
   try{ nTutOn=!localStorage.getItem("nag_tut1"); }catch(e){ nTutOn=false; }  nTutStep=0; nTutT=5;   // 🎓 tutorial solo la primera vez
   bloodMoon=false; lastDayF=0; dawnFog=0;   // 🐛FIX ronda2: la luna de sangre y la niebla se filtraban a la partida nueva
@@ -1013,6 +1027,9 @@ function endGame(win,customInfo){
     narrate("Caso resuelto, agente. La ciudad está a salvo.");
     document.getElementById("end").classList.remove("hide"); }
   else { t.textContent="✕ FIN"; t.className="big lose"; inf.innerHTML=(customInfo||("Los zombies te alcanzaron en la oscuridad.<br>Pistas: <b>"+cluesGot+"/7</b>"))+recTxt; snd(60,"sawtooth",0.6,0.12); snd(35,"sawtooth",1.2,0.14);
+    try{ const gr=JSON.parse(localStorage.getItem("nag_graves")||"[]");   // 🪦 nueva lápida con esta caída
+      gr.unshift({k:kills,c:cluesGot,d:new Date().toLocaleDateString("es-CL")});
+      localStorage.setItem("nag_graves",JSON.stringify(gr.slice(0,3))); }catch(e){}
     try{ if(navigator.vibrate) navigator.vibrate([0,200,80,250]); }catch(e){}   // 📳 te atraparon
     narrate("Te infectaron, agente. El caso queda abierto.");
     // 💥 muerte impactante: FUNDIDO ROJO sangre y recién ahí la pantalla de fin
@@ -1217,6 +1234,7 @@ function update(dt){
       if(zn<13){ dogBarkCd=3.5; snd(520,"square",0.09,0.09); setTimeout(()=>snd(480,"square",0.11,0.09),170); dog.rotation.y+=0.4; } } }
   if(!nPaused) drVZTick(dt);   // 🧪 el doctor huye
   if(!nPaused) turretTick(dt); // 🤖🔫 torreta del helipuerto
+  if(!nPaused) gravesTick(dt); // 🪦 inscripciones al acercarte
   // 🐈‍⬛ gato negro: cruza la calle... y si lo acaricias (E) se vuelve tu ALIADO 60s
   if(level==="surface"){
     if(catAlly>0){ catAlly-=dt;
