@@ -7233,12 +7233,12 @@ $("posterFs").addEventListener("click",e=>{ if(e.target===$("posterFs")) $("post
 // 🤖🥚 huevo de pascua: ESCRIBE "wally" en cualquier parte del menú y WALLY cruza la pantalla saludando
 (function(){ let wBuf="", crossing=false;
   const W_PHRASES=["¡beep-boop! ¿me llamaste?","¡voy pasando, no me detengas!","EDTU es el mejor cuartel del mundo","David me construyó con sus propias manos 🔧","¡nos vemos dentro de los juegos!","una vez gané una carrera de mBots 🏁"];
-  function wallyCross(){ if(crossing) return; crossing=true;
+  function wallyCross(customTxt){ if(crossing) return; crossing=true;
     const d=document.createElement("div");
     d.innerHTML='<span style="font-size:12px;vertical-align:top;animation:balR 1s steps(1) infinite">🔴</span><span style="font-size:52px;display:inline-block;animation:wallySway 1.2s ease-in-out infinite">🤖</span><span style="font-size:12px;vertical-align:top;animation:balB 1s steps(1) infinite">🔵</span><div style="font:800 13px Consolas,monospace;color:#8fffc5;background:rgba(8,18,10,.88);border:1px solid #19ff85;border-radius:10px;padding:4px 10px;margin-top:2px" id="wcSay"></div>';
     d.style.cssText="position:fixed;bottom:12vh;left:-160px;z-index:402;pointer-events:none;text-align:center;transition:left 6s linear";
     document.body.appendChild(d);
-    d.querySelector("#wcSay").textContent="«"+W_PHRASES[Math.floor(Math.random()*W_PHRASES.length)]+"»";
+    d.querySelector("#wcSay").textContent="«"+(customTxt||W_PHRASES[Math.floor(Math.random()*W_PHRASES.length)])+"»";
     try{ const A2=new (window.AudioContext||window.webkitAudioContext)(); [880,1175,988].forEach((fq,i)=>{ const o=A2.createOscillator(),g=A2.createGain(); o.type="square"; o.frequency.value=fq; g.gain.value=0.05; o.connect(g); g.connect(A2.destination); o.start(A2.currentTime+i*0.12); o.stop(A2.currentTime+i*0.12+0.1); }); }catch(e){}
     requestAnimationFrame(()=>{ requestAnimationFrame(()=>{ d.style.left="105vw"; }); });
     setTimeout(()=>{ d.remove(); crossing=false; },6500); }
@@ -7246,7 +7246,12 @@ $("posterFs").addEventListener("click",e=>{ if(e.target===$("posterFs")) $("post
     if(e.target&&(e.target.tagName==="INPUT"||e.target.tagName==="TEXTAREA"||e.target.isContentEditable)) return;
     wBuf=(wBuf+e.key.toLowerCase()).slice(-5);
     if(wBuf==="wally"){ wBuf=""; wallyCross(); } });
+  window._wallyCross=wallyCross;
 })();
+// 🎁 BIENVENIDA DE REGRESO: si vuelves tras más de 4 horas fuera, WALLY cruza a recibirte
+try{ const lv=parseInt(localStorage.getItem("edtu_last_visit")||"0",10)||0;
+  if(lv && Date.now()-lv>4*3600*1000){ setTimeout(()=>{ try{ if(window._wallyCross) window._wallyCross("¡VOLVISTE! te tengo MUCHAS sorpresas nuevas 🎁"); }catch(e){} },1500); }
+  localStorage.setItem("edtu_last_visit",String(Date.now())); }catch(e){}
 // 🤖🌧️ HUEVO SORPRESA DEL LOGO: 5 clics rápidos (<3s) en "EDTU" → ¡LLUVIA DE WALLYs!
 (function(){ const logo=document.querySelector("h1.glow"); if(!logo) return;
   let clicks=0, t0=0, raining=false;
