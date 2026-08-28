@@ -67,6 +67,7 @@
   <button class="btn" id="introDaily" title="La misma revoltura para todos durante el día: compara tu tiempo con tus amigos" style="border-color:rgba(255,216,138,.7);color:#ffd88a">📅 DESAFÍO DEL DÍA</button>
   <button class="btn" id="introPractice" title="Resuelve a tu ritmo: sin IA, sin reloj, con pistas infinitas" style="border-color:rgba(143,208,255,.6);color:#8fd0ff">🎓 PRÁCTICA LIBRE</button>
   <button class="btn" id="introSym" title="Cada color lleva su figura: ideal si no distingues colores" style="border-color:rgba(255,209,46,.5);color:#ffd88a;font-size:12px">🎨 MODO SÍMBOLOS: NO</button>
+  <button class="btn" id="rshare" title="Copia la revoltura de hoy y tu tiempo para retar a tus amigos" style="border-color:rgba(57,255,20,.5);color:#9fffa0;font-size:12px">📤 COMPARTIR REVOLTURA DEL DÍA</button>
   <button class="btn" id="introGold" title="Skin metálica exclusiva de los 21 logros EDTU" style="display:none;border-color:rgba(255,215,0,.7);color:#ffd700;font-size:12px">👑 CUBO DE ORO: NO</button>
 </div>
 
@@ -165,6 +166,14 @@ function dailyPreview(){ try{ const rng=mulberry32(dailyKey()); const n=DIFF[dif
   return seq.join(" "); }catch(e){ return ""; } }
 function updDaily(){ updRDiary(); const el=document.getElementById("rdaily"); if(!el) return; const v=loadDaily(); const pv=dailyPreview();
   el.textContent=(v>0?("📅 Tu mejor de HOY: "+v.toFixed(1)+"s — ¡compáralo con tus amigos!"):"📅 Desafío del día: la misma revoltura para todos hoy — ¿quién la arma más rápido?")+(pv?"  ·  revoltura de hoy: "+pv:""); }
+// 📤 COMPARTIR la revoltura del día (+ tu tiempo): share nativo en móvil; si no, portapapeles (con fallback a textarea)
+async function shareText(txt,btn,lbl){ const done=()=>{ btn.textContent="✅ COPIADO — ¡a retar amigos!"; setTimeout(()=>{ btn.textContent=lbl; },2200); [660,880].forEach((f,i)=>setTimeout(()=>snd(f,"triangle",0.12,0.06),i*110)); };
+  try{ if(navigator.share){ await navigator.share({text:txt}); done(); return; } }catch(e){ if(e&&e.name==="AbortError") return; }
+  try{ await navigator.clipboard.writeText(txt); done(); return; }catch(e){}
+  try{ const ta=document.createElement("textarea"); ta.value=txt; ta.style.position="fixed"; ta.style.opacity="0"; document.body.appendChild(ta); ta.select(); document.execCommand("copy"); document.body.removeChild(ta); done(); }catch(e){ btn.textContent="❌ no se pudo copiar"; setTimeout(()=>{ btn.textContent=lbl; },2000); } }
+{ const rb=document.getElementById("rshare"); if(rb){ const lbl=rb.textContent; rb.onclick=()=>{ const d=new Date(); const pv=dailyPreview(); const v=loadDaily();
+    const txt="📅 Revoltura EDTU del "+d.getDate()+"/"+(d.getMonth()+1)+" ("+diff+"): "+(pv||"—")+" — "+(v>0?"mi tiempo: "+v.toFixed(1)+"s":"aún sin tiempo")+" · ¿me ganas? 👉 www.edtu.cl/rubik.html (📅 DESAFÍO DEL DÍA)";
+    shareText(txt,rb,lbl); }; } }
 function randMove(){ const r1=scrRng?scrRng():Math.random(), r2=scrRng?scrRng():Math.random(); return {face:FACE_LIST[(r1*6)|0], dir:r2<0.5?1:-1}; }
 
 function newScramble(){
