@@ -664,6 +664,54 @@ function fireTick(dt){
   if(fireT<=0){ campfire.visible=false; fireCd=20;
     const iF=safeZones.findIndex(s2=>s2.fire); if(iF>=0) safeZones.splice(iF,1);
     toast2("🔥 la fogata se apagó (brasas: 20s para otra)"); } }
+// 🦅 PTERODÁCTILO: circula alto de día, a veces ataca en picada (chillido de aviso 1.5s antes, esquivable); de noche duerme en la torre de radio
+const ptero=new THREE.Group();
+{ const bM=new THREE.MeshStandardMaterial({color:0x8a5a3a,roughness:.85});
+  const wM=new THREE.MeshStandardMaterial({color:0xa5714a,roughness:.9,side:THREE.DoubleSide});
+  const body=new THREE.Mesh(new THREE.ConeGeometry(0.45,2.6,6),bM); body.rotation.x=Math.PI/2; ptero.add(body);
+  const head=new THREE.Mesh(new THREE.ConeGeometry(0.2,1.3,5),bM); head.rotation.x=Math.PI/2; head.position.z=1.9; ptero.add(head);
+  const crest=new THREE.Mesh(new THREE.ConeGeometry(0.12,0.8,4),bM); crest.rotation.x=-Math.PI/2; crest.position.set(0,0.25,1.5); ptero.add(crest);
+  const wL=new THREE.Group(), wR=new THREE.Group();
+  const wmL=new THREE.Mesh(new THREE.PlaneGeometry(2.9,1.1),wM); wmL.rotation.x=-Math.PI/2; wmL.position.x=-1.45; wL.add(wmL);
+  const wmR=new THREE.Mesh(new THREE.PlaneGeometry(2.9,1.1),wM); wmR.rotation.x=-Math.PI/2; wmR.position.x=1.45; wR.add(wmR);
+  ptero.add(wL); ptero.add(wR); ptero.userData={wL,wR}; }
+ptero.position.set(85,26,0); scene.add(ptero);
+let ptState="circle", ptA=Math.random()*6.28, ptT=45, ptWarnT=0, ptTarget=null, ptFlap=0;
+function pteroTick(dt,night){
+  ptFlap+=dt*(ptState==="dive"?2:9);
+  const flap=Math.sin(ptFlap)*(ptState==="dive"?0.15:0.6);
+  ptero.userData.wL.rotation.z=flap; ptero.userData.wR.rotation.z=-flap;
+  if(night){ ptState="sleep";   // 💤 aterriza en la torre de radio
+    ptero.position.x+=(RADIO.x-ptero.position.x)*Math.min(1,dt*0.8);
+    ptero.position.y+=(13-ptero.position.y)*Math.min(1,dt*0.8);
+    ptero.position.z+=(RADIO.z-ptero.position.z)*Math.min(1,dt*0.8);
+    return; }
+  if(ptState==="sleep"){ ptState="circle"; ptT=25+Math.random()*20; }
+  if(ptState==="circle"){
+    ptA+=dt*0.14; ptT-=dt;
+    const cx=Math.cos(ptA)*85, cz=Math.sin(ptA)*85, cy=26+Math.sin(ptA*2.3)*3;
+    ptero.position.x+=(cx-ptero.position.x)*Math.min(1,dt*1.2);
+    ptero.position.y+=(cy-ptero.position.y)*Math.min(1,dt*1.2);
+    ptero.position.z+=(cz-ptero.position.z)*Math.min(1,dt*1.2);
+    ptero.rotation.y=-ptA;
+    if(Math.random()<dt*0.02) snd(1600+Math.random()*300,"sawtooth",0.25,0.03);   // graznido lejano
+    if(ptT<=0){ if(!jTutOn && !inSafe(P.x,P.z)){ ptState="warn"; ptWarnT=1.5;
+        snd(2100,"sawtooth",0.5,0.09); snd(1500,"sawtooth",0.55,0.07);
+        showStory("🦅 ¡CHILLIDO ARRIBA! ¡Viene en PICADA — corre o refúgiate!"); }
+      else ptT=12; } }
+  else if(ptState==="warn"){ ptWarnT-=dt;
+    if(ptWarnT<=0){ ptState="dive"; ptTarget={x:P.x,z:P.z}; snd(1900,"sawtooth",0.6,0.08); } }
+  else if(ptState==="dive"){
+    const dx=ptTarget.x-ptero.position.x, dy=1.1-ptero.position.y, dz=ptTarget.z-ptero.position.z;
+    const L=Math.hypot(dx,dy,dz);
+    ptero.rotation.y=Math.atan2(dx,dz);
+    if(L<2.2 || ptero.position.y<1.3){
+      if(Math.hypot(P.x-ptero.position.x,P.z-ptero.position.z)<2.4 && !inSafe(P.x,P.z)) hurt(34,"el PTERODÁCTILO");
+      ptState="climb"; }
+    else { const v=30*dt/L; ptero.position.x+=dx*v; ptero.position.y+=dy*v; ptero.position.z+=dz*v; } }
+  else if(ptState==="climb"){
+    ptero.position.y+=dt*12;
+    if(ptero.position.y>=25){ ptState="circle"; ptT=28+Math.random()*22; } } }
 $("sWater").onclick=useWater; $("sFood").onclick=useFood; $("sBatt").onclick=chargeFlash; $("sWood").onclick=placeWood; $("sFire").onclick=buildFire;
 $("jpauseBtn").onclick=togglePauseJ; $("jPauseOv").addEventListener("click",()=>{ if(jPaused) togglePauseJ(); });
 $("jmapBtn").onclick=toggleJMap; $("jmap").addEventListener("click",()=>{ if(jMapOpen) toggleJMap(); });
@@ -694,6 +742,7 @@ function start(){ $("start").classList.add("hide"); $("end").classList.add("hide
   try{ jTutOn=!localStorage.getItem("jur_tut1"); }catch(e){ jTutOn=false; }  jTutStep=0; jTutT=5;   // 🎓 tutorial solo la primera vez
   rainOn=false; setRainSnd(false); rainF=0; rain.visible=false; rainT=80+Math.random()*100;   // 🌧️ clima desde cero
   fireT=0; fireCd=0; campfire.visible=false; { const iF=safeZones.findIndex(s2=>s2.fire); if(iF>=0) safeZones.splice(iF,1); }   // 🔥 fogata desde cero
+  ptState="circle"; ptT=45; ptA=Math.random()*6.28; ptero.position.set(85,26,0);   // 🦅 pterodáctilo desde cero
   pickups.forEach(p=>scene.remove(p.mesh)); pickups.length=0; seedPickups();
   dinos.forEach(d=>scene.remove(d.grp)); dinos.length=0; dinoBabies.forEach(b=>scene.remove(b.grp)); dinoBabies.length=0; if(mosa){scene.remove(mosa.grp);mosa=null;} spawnDinos();
   nests.forEach(ns=>{ ns.hatched=false; ns.eggs.forEach(e=>e.visible=true); ns.chick.visible=false; });   // 🐣 nidos como nuevos
@@ -784,6 +833,7 @@ function update(dt){
   fireTick(dt);   // 🔥 fogata (llama, luz, cura, apagado)
   const hh=Math.floor(df*24), mm=Math.floor((df*24*60)%60);
   const isNight = df>0.5;
+  if(!jPaused) pteroTick(dt,isNight);   // 🦅 pterodáctilo
   const lightF = df<0.5 ? Math.min(1,df/0.12) : Math.max(0,1-(df-0.5)/0.12);  // sube al amanecer, baja al anochecer
   ambient.intensity=0.12+lightF*0.7; sun.intensity=lightF*1.1;
   // 🌅 el sol se pone NARANJA en las transiciones (amanecer/atardecer) y blanco-cálido a pleno día
