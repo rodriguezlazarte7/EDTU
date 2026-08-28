@@ -5666,12 +5666,25 @@ const F1={
     this.engineOn();
     if(!this.raf){ const f=t=>{ if(!this.running){ this.raf=null; return; } try{ this.tick(t); }catch(e){} this.raf=requestAnimationFrame(f); }; this.raf=requestAnimationFrame(f); }
   },
-  stop(){ this.running=false; if(this.raf){ cancelAnimationFrame(this.raf); this.raf=null; } this.engineOff(); },
+  stop(){ this.running=false; if(this.raf){ cancelAnimationFrame(this.raf); this.raf=null; } this.engineOff(); this.rainSndOff(); },
   actx(){ const AC=window.AudioContext||window.webkitAudioContext; if(!AC) return null; if(!this._ac) this._ac=new AC(); if(this._ac.state==="suspended") this._ac.resume(); return this._ac; },
   engineOn(){ try{ const a=this.actx(); if(!a) return; this._eng=a.createOscillator(); this._engG=a.createGain();
     this._eng.type="sawtooth"; this._eng.frequency.value=80; this._engG.gain.value=.035;
     this._eng.connect(this._engG); this._engG.connect(a.destination); this._eng.start(); }catch(e){} },
   engineOff(){ try{ if(this._eng){ this._eng.stop(); this._eng=null; } }catch(e){} },
+  // 🌧️ lluvia sonora: loop de ruido filtrado cuyo volumen sigue la intensidad _wRain
+  rainSndUpd(){ try{ const a=this.actx(); if(!a) return; const v=this._wRain||0;
+    if(v>0.02 && this.running && !this.paused){
+      if(!this._rn){ const buf=a.createBuffer(1,a.sampleRate*1.5,a.sampleRate), d=buf.getChannelData(0);
+        for(let i=0;i<d.length;i++) d[i]=Math.random()*2-1;
+        this._rn=a.createBufferSource(); this._rn.buffer=buf; this._rn.loop=true;
+        this._rnF=a.createBiquadFilter(); this._rnF.type="lowpass"; this._rnF.frequency.value=1400;
+        this._rnG=a.createGain(); this._rnG.gain.value=0;
+        this._rn.connect(this._rnF); this._rnF.connect(this._rnG); this._rnG.connect(a.destination); this._rn.start(); }
+      this._rnG.gain.value=v*0.05*(this._inTun?0.35:1);   // 🚇 dentro del túnel se amortigua
+    } else if(this._rn){ this._rn.stop(); this._rn=null; }
+  }catch(e){ this._rn=null; } },
+  rainSndOff(){ try{ if(this._rn){ this._rn.stop(); this._rn=null; } }catch(e){ this._rn=null; } },
   crashSound(){ try{ const a=this.actx(); if(!a) return; const n=a.createBufferSource(), buf=a.createBuffer(1,a.sampleRate*0.4,a.sampleRate), d=buf.getChannelData(0);
     for(let i=0;i<d.length;i++) d[i]=(Math.random()*2-1)*(1-i/d.length);
     const g=a.createGain(); g.gain.value=.25; n.buffer=buf; n.connect(g); g.connect(a.destination); n.start(); }catch(e){} },
@@ -5728,6 +5741,7 @@ const F1={
     if(this._wRainT<=0){ this._wRainOn=!this._wRainOn; this._wRainT=this._wRainOn?(15+Math.random()*12):(45+Math.random()*45);
       if(this._wRainOn){ try{ if(window.speechSynthesis){ const u=new SpeechSynthesisUtterance("¡Está lloviendo! Cuidado en las curvas."); u.lang="es-ES"; u.pitch=1.3; u.rate=1.1; speechSynthesis.cancel(); speechSynthesis.speak(u); } }catch(e){} } }
     this._wRain+=((this._wRainOn?1:0)-this._wRain)*Math.min(1,dt*0.8);
+    this.rainSndUpd();   // 🌧️ sonido de lluvia sigue la intensidad
     if(this._wRain>0.02&&Math.random()<dt*0.05){ try{ const a=this.actx(); if(a){ const o=a.createOscillator(),g=a.createGain(); o.type="sawtooth"; o.frequency.value=48;
       o.connect(g); g.connect(a.destination); o.start(); g.gain.setValueAtTime(.12,a.currentTime); g.gain.exponentialRampToValueAtTime(0.0001,a.currentTime+1.1); o.stop(a.currentTime+1.1); } }catch(e){} }
     const baseMax=290+Math.min(90,this.dist/200);
@@ -5816,7 +5830,7 @@ const F1={
   },
   crash(){
     try{ if(navigator.vibrate) navigator.vibrate([0,120,60,180]); }catch(e){}   // 📳 golpe de choque
-    this.crashSound(); this.engineOff(); this.running=false;
+    this.crashSound(); this.engineOff(); this.rainSndOff(); this.running=false;
     if(navigator.vibrate){ try{ navigator.vibrate([120,60,180]); }catch(e){} }
     const m=Math.round(this.dist), rec=m>this.best;
     if(rec){ this.best=m; localStorage.setItem("edtu_f1_best",String(m));
@@ -5851,7 +5865,7 @@ const F1={
     return { y, pers, roadX, rw:pers*this.W*0.62 };
   },
   // ⏸ pausa compartida (tecla P y botón táctil): sin efecto durante el semáforo
-  togglePause(){ if(!this.running || this.cdT>0) return; this.paused=!this.paused; if(this.paused) this.engineOff(); else this.engineOn(); },
+  togglePause(){ if(!this.running || this.cdT>0) return; this.paused=!this.paused; if(this.paused){ this.engineOff(); this.rainSndOff(); } else this.engineOn(); },
   // 🎖️ medallas por distancia en UNA carrera (1/3/5/10 km, permanentes)
   medals(){ let s=""; [1000,3000,5000,10000].forEach(t2=>{ let got=false; try{ got=localStorage.getItem("edtu_f1_km_"+t2)==="1"; }catch(e){}
     s+=(got?"🏅":"▫️")+(t2/1000)+"km "; }); return s.trim(); },
