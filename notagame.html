@@ -647,6 +647,7 @@ function update(dt){
       if(!collide(z.grp.position.x,nz)) z.grp.position.z=nz; }
     z.grp.rotation.y=Math.atan2(dxz,dzz);
     z.grp.position.y=Math.abs(Math.sin(now*4+z.ph))*0.08;
+    if(d<16 && Math.random()<dt*(0.15+(16-d)/16*0.5)){ const gf=55+Math.random()*45; snd(gf,"sawtooth",0.5+Math.random()*0.4,0.02+(16-d)/16*0.05); snd(gf*1.5,"triangle",0.3,0.015); }   // 🧟 GEMIDO (más fuerte/seguido de cerca)
     if(d<3.5) danger=true;
     if(d<1.15 && !gameOver && foot<1.5){ endGame(false); }
   });
