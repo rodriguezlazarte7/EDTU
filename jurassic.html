@@ -303,6 +303,16 @@ let fireflies=null, fireflyMat=null;
   fireflyMat=new THREE.PointsMaterial({color:0xd8ff5a,size:0.14,transparent:true,opacity:0});
   fireflies=new THREE.Points(g,fireflyMat); scene.add(fireflies);
 })();
+// 🦋 MARIPOSAS de colores que revolotean de día (el gemelo diurno de las luciérnagas)
+const butterflies=[];
+(function makeButterflies(){ const bCols=[0xff7bd5,0xffd12e,0x7bd5ff,0xff8844,0xc07bff];
+  for(let i=0;i<10;i++){ const g=new THREE.Group(); const mt=new THREE.MeshBasicMaterial({color:bCols[i%5],side:THREE.DoubleSide,transparent:true,opacity:0.95});
+    const wL=new THREE.Mesh(new THREE.PlaneGeometry(0.22,0.3),mt); wL.position.x=-0.11; g.add(wL);
+    const wR=new THREE.Mesh(new THREE.PlaneGeometry(0.22,0.3),mt); wR.position.x=0.11; g.add(wR);
+    const a=Math.random()*6.28, r=10+Math.random()*60;
+    g.position.set(Math.cos(a)*r,1+Math.random()*1.5,Math.sin(a)*r); scene.add(g);
+    butterflies.push({g,wL,wR,mt,ph:Math.random()*6.28,vx:0,vz:0,turnT:0}); }
+})();
 // ---------- ZONAS SEGURAS (los dinos NO entran) ----------
 const safeZones=[{x:SH.x,z:SH.z,r:7}];   // la cabaña
 function addSafeZone(x,z,r){ safeZones.push({x,z,r});
@@ -560,6 +570,14 @@ function update(dt){
     const k=1+(0.9-sp2.life)*6; sp2.m.scale.set(k,k,k); sp2.m.material.opacity=sp2.life*0.9; }
   // ✨ luciérnagas: brillan de noche, titilan y "flotan" girando lento
   if(fireflies){ fireflyMat.opacity=(1-lightF)*(0.55+0.35*Math.abs(Math.sin(elapsed*2.2))); fireflies.position.y=Math.sin(elapsed*0.9)*0.35; fireflies.position.x=Math.sin(elapsed*0.5)*0.4; }
+  // 🦋 mariposas: aletean, dan vueltas al azar y solo se ven con luz de día
+  for(const bf of butterflies){ bf.mt.opacity=lightF*0.95; bf.g.visible=lightF>0.05; if(!bf.g.visible) continue;
+    const fw=Math.sin(elapsed*14+bf.ph)*0.9; bf.wL.rotation.y=fw; bf.wR.rotation.y=-fw;
+    bf.turnT-=dt; if(bf.turnT<=0){ bf.turnT=1+Math.random()*2; const an=Math.random()*6.28; bf.vx=Math.cos(an)*0.8; bf.vz=Math.sin(an)*0.8; }
+    bf.g.position.x+=bf.vx*dt; bf.g.position.z+=bf.vz*dt;
+    if(Math.hypot(bf.g.position.x,bf.g.position.z)>90){ bf.vx*=-1; bf.vz*=-1; }
+    bf.g.position.y=1+Math.sin(elapsed*2.2+bf.ph)*0.5+Math.sin(elapsed*9+bf.ph)*0.08;
+    bf.g.rotation.y=Math.atan2(bf.vx,bf.vz); }
   // 🦅 pterodáctilos: círculos en el cielo, alas que aletean, graznido lejano — y PASADAS RASANTES
   for(const pt of pteros){ const a=elapsed*pt.sp+pt.ph;
     // pasada rasante: de vez en cuando baja en picada hacia donde estás y vuelve a subir
