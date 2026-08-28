@@ -175,10 +175,12 @@ function startRace(){
 function aiStep(){
   if(ended) return;
   if(aiQueue.length===0){ if(isSolved(ai)) finish("ai"); return; }
-  const m=aiQueue.shift(); updAIBar(); showMv("lastMvA",m.face,m.dir); const pace=DIFF[diff].pace, dur=Math.min(pace*0.6,260);
+  const m=aiQueue.shift(); updAIBar(); showMv("lastMvA",m.face,m.dir); snd((FACE_NOTES[m.face]||440)*0.5,"sine",0.09,0.014);   // 🎵 la IA suena suavecito
+  const pace=DIFF[diff].pace, dur=Math.min(pace*0.6,260);
   move(ai,m.face,m.dir,Math.min(pace*600,260),()=>{ if(!ended) aiTimer=setTimeout(aiStep, Math.max(40,pace*1000-260)); });
 }
-function playerMove(face,dir){ if(state!=="race"||player.busy) return; snd(340+Math.random()*60,"square",0.06,0.05); snd(180,"triangle",0.04,0.03);   // 🔊 clic de giro
+function playerMove(face,dir){ if(state!=="race"||player.busy) return;
+  const FN=FACE_NOTES[face]||440; snd(dir<0?FN*0.94:FN,"triangle",0.14,0.06); snd(FN/2,"sine",0.08,0.02);   // 🎵 nota de la cara (los ' suenan un pelín más graves)
   moveCount++; document.getElementById("mvs").textContent="🔄 "+moveCount;   // contador de movimientos
   undoStack.push({face,dir});   // ↩ para poder deshacer
   showMv("lastMvP",face,dir);   // 🔤 notación en grande
@@ -250,6 +252,8 @@ function showMsg(txt,color){ const m=document.getElementById("msg"); if(!txt){ m
 const movesDiv=document.getElementById("moves");
 // 🎨 cada botón lleva el COLOR real de su cara en el cubo (U blanco, D amarillo, R rojo, L naranja, F verde, B azul)
 const FACE_COLORS={U:"#f6f6f6",D:"#ffe100",R:"#d11e1e",L:"#ff8000",F:"#1ea81e",B:"#1e5ad1"};
+// 🎵 cada cara tiene su NOTA (Do-Re-Mi-Fa-Sol-La): el cubo suena como un instrumento
+const FACE_NOTES={U:523,D:587,R:659,L:698,F:784,B:880};
 FACE_LIST.forEach(face=>{
   [["",1],["'",-1]].forEach(([suf,dir])=>{ const b=document.createElement("button"); b.className="mv"; b.textContent=face+suf;
     b.style.borderColor=FACE_COLORS[face]; b.style.boxShadow="inset 0 -3px 0 "+FACE_COLORS[face];
