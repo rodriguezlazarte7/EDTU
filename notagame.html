@@ -214,6 +214,15 @@ const balBm=new THREE.Mesh(new THREE.SphereGeometry(0.14,8,7),new THREE.MeshBasi
 const balR=new THREE.PointLight(0xff2020,0,15); balR.position.set(-0.45,2.6,0.4); amb.add(balR);
 const balB=new THREE.PointLight(0x2060ff,0,15); balB.position.set(0.45,2.6,0.4); amb.add(balB);
 addWall(ambS.x-1.4,ambS.x+1.4,ambS.z-2.5,ambS.z+2.5);
+// 🐈‍⬛ GATO NEGRO: cada tanto cruza la calle corriendo delante tuyo, maúlla y sus ojos brillan verdes
+const cat=new THREE.Group(); const catM=new THREE.MeshStandardMaterial({color:0x0c0c12,roughness:.85});
+{ const cb=new THREE.Mesh(new THREE.SphereGeometry(0.22,9,7),catM); cb.scale.set(1,0.8,1.7); cb.position.y=0.26; cat.add(cb);
+  const chd=new THREE.Mesh(new THREE.SphereGeometry(0.14,8,6),catM); chd.position.set(0,0.42,0.32); cat.add(chd);
+  for(const ex of [-0.05,0.05]){ const ey=new THREE.Mesh(new THREE.SphereGeometry(0.02,6,5),new THREE.MeshBasicMaterial({color:0x39ff5a})); ey.position.set(ex,0.45,0.44); cat.add(ey); }
+  for(const exr of [[-0.05,0.55],[0.05,0.55]]){ const oreja=new THREE.Mesh(new THREE.ConeGeometry(0.045,0.09,5),catM); oreja.position.set(exr[0],exr[1],0.3); cat.add(oreja); }
+  const tail=new THREE.Mesh(new THREE.CylinderGeometry(0.025,0.04,0.5,6),catM); tail.position.set(0,0.42,-0.35); tail.rotation.x=0.9; cat.add(tail); }
+cat.visible=false; scene.add(cat);
+let catT=20+Math.random()*30, catRun=0, catDx=0, catDz=0;
 // 🐦‍⬛ CUERVOS posados que LEVANTAN VUELO si te acercas (con graznido)
 const crows=[]; const crowM=new THREE.MeshStandardMaterial({color:0x0a0a10,roughness:.9});
 for(let i=0;i<6;i++){ const s=freeSpot(8,ARENA-4,1.5); const g=new THREE.Group();
@@ -767,6 +776,18 @@ function update(dt){
     if(bloodMoon) moonHalo.material.opacity=(1-dayF)*0.3;
     lastDayF=dayF;
   }
+  // 🐈‍⬛ gato negro: aparece a un costado, cruza corriendo delante tuyo maullando y desaparece
+  if(level==="surface"){
+    if(!cat.visible){ catT-=dt;
+      if(catT<=0){ catT=25+Math.random()*35; catRun=0;
+        const fx=-Math.sin(yaw), fz=-Math.cos(yaw);
+        cat.position.set(P.x+fx*10+fz*11, 0, P.z+fz*10-fx*11);
+        catDx=-fz; catDz=fx; cat.visible=true; cat.rotation.y=Math.atan2(catDx,catDz);
+        snd(760,"sine",0.18,0.06); setTimeout(()=>snd(560,"sine",0.22,0.05),160); } }   // miau-miau
+    else { catRun+=dt; const cs=7.5;
+      cat.position.x+=catDx*cs*dt; cat.position.z+=catDz*cs*dt;
+      cat.position.y=Math.abs(Math.sin(now*14))*0.09;   // galope
+      if(catRun>3) cat.visible=false; } }
   // 🐦‍⬛ cuervos: si te acercas a <6m LEVANTAN VUELO graznando y luego vuelven a posarse lejos
   if(level==="surface") for(const cr of crows){
     if(cr.fly<=0){ const cd2=Math.hypot(P.x-cr.grp.position.x,P.z-cr.grp.position.z);
