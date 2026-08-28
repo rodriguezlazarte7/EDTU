@@ -7211,7 +7211,15 @@ function buildTrophies(){ try{
       else if(mo===9){ seas="🎃"; seasMsg="mes de sustos... como SCREAM jeje"; }
       else if(mo===2||mo===3){ seas="🍂"; seasMsg="hojitas de otoño chileno... ¡me encanta pisarlas! crunch-beep"; } }catch(e){}
     if(wb) wb.textContent=(wallys>=4?"👑":"")+seas+"🤖";
-    if(ws) ws.textContent = wallys>=4 ? "«¡Encontraste TODOS mis escondites! Esta sala brilla gracias a ti»" : (seasMsg?"«"+seasMsg+"»":"«Bienvenido a tu sala, agente. Yo cuido tus trofeos»"); }
+    // 🧠 1 de cada 2 veces WALLY saluda con un dato de tu diario más reciente (cualquiera de los 5 juegos)
+    let memMsg=""; try{ const rd2=k=>{ try{ const a=JSON.parse(g(k)||"[]"); return a.length?a[0]:null; }catch(e){ return null; } }; const dn=new Date(), today=dn.getDate()+"/"+(dn.getMonth()+1); const when=e=>e.date===today?"hoy":"el "+e.date; const cand=[];
+      const jd2=rd2("jurassic_diary"); if(jd2) cand.push("vi que "+when(jd2)+" sobreviviste "+jd2.days+" días en la isla 🦖"+(jd2.win?" y te rescataron":"... ¡hoy más!"));
+      const sd2=rd2("scream_diary"); if(sd2) cand.push(when(sd2)+" la araña te apareció "+sd2.spot+" veces 🕷️"+(sd2.win?" ¡y escapaste igual!":"... ¡hoy la burlas!"));
+      const nd2=rd2("nag_diary"); if(nd2) cand.push("tu último caso: "+nd2.kills+" zombies eliminados 🧟"+(nd2.win?" y caso resuelto":"... la ciudad te necesita"));
+      const fd2=rd2("edtu_f1_diary"); if(fd2) cand.push(when(fd2)+" corriste "+fd2.m+" m 🏎️"+(fd2.kondor==="W"?" y venciste a KÓNDOR":""));
+      const cd2=rd2("rubik_diary"); if(cd2) cand.push(when(cd2)+" armaste el cubo en "+cd2.t+"s 🧩"+(cd2.win?" ganándole a la IA":""));
+      if(cand.length && Math.random()<0.5) memMsg=cand[Math.floor(Math.random()*cand.length)]; }catch(e){}
+    if(ws) ws.textContent = memMsg ? "«"+memMsg+"»" : wallys>=4 ? "«¡Encontraste TODOS mis escondites! Esta sala brilla gracias a ti»" : (seasMsg?"«"+seasMsg+"»":"«Bienvenido a tu sala, agente. Yo cuido tus trofeos»"); }
 }catch(e){ $("trophyBody").textContent="(error cargando trofeos)"; } }
 $("pickTrophies").onclick=()=>{ buildTrophies(); $("trophyFs").style.display="flex"; };
 $("trophyClose").onclick=()=>{ $("trophyFs").style.display="none"; };
@@ -7302,6 +7310,7 @@ $("posterFs").addEventListener("click",e=>{ if(e.target===$("posterFs")) $("post
     if(/ptero|p[áa]jaro|volador/.test(q)) return "🐣 si te rescataron alguna vez, un PTERO BEBÉ te acompaña en la isla... y chilla antes de que ataque el grande";
     if(/oro|dorado/.test(q)) return "👑 el CUBO DE ORO existe... pero solo para quien tenga los 21 logros. beep-brillante";
     if(/perro|gato|mascota/.test(q)) return "🐕 el perro de NOT A GAME ladra cuando viene peligro y 🐈‍⬛ el gato (si lo acaricias con E) espanta zombies 60s. ¡Acarícialos de mi parte!";
+    if(/iteraci|mejoras|cambios de hoy|cu[áa]ntos cambios/.test(q)) return "🚀 ¡llevamos más de 350 mejoras en esta gran sesión y seguimos sin parar! David dijo «sigue» y aquí estoy, beep-beep";
     if(/aventura|últim|ultim|diario|expediente/.test(q)){ try{ const rd=k=>{ const a=JSON.parse(g(k)||"[]"); return a.length?a[0]:null; }; const jd=rd("jurassic_diary"), sd=rd("scream_diary"), nd=rd("nag_diary"); const pa=[];
       if(jd) pa.push("🦖 "+jd.days+" días en la isla"+(jd.win?" y te rescataron":"")); if(sd) pa.push("🕷️ "+Math.floor(sd.t/60)+":"+String(sd.t%60).padStart(2,"0")+" en el edificio con "+sd.spot+" sustos"+(sd.win?" y escapaste":"")); if(nd) pa.push("🧟 "+nd.kills+" zombies y "+nd.clues+"/7 pistas"+(nd.win?" — caso resuelto":"")); const fd=rd("edtu_f1_diary"); if(fd) pa.push("🏎️ "+fd.m+" metros con "+fd.pit+" pit stop"+(fd.kondor==="W"?" y venciste a KÓNDOR":"")); const cd=rd("rubik_diary"); if(cd) pa.push("🧩 cubo "+cd.diff+" en "+cd.t+"s"+(cd.win?" ganándole a la IA":" (la IA ganó esa)"));
       return pa.length?"📖 tus últimas aventuras: "+pa.join("; ")+". ¡Sigue escribiendo tu leyenda!":"📖 aún no hay diarios... ¡juega una partida y te la cuento!"; }catch(e){ return "📖 beep... el diario se mojó"; } }
