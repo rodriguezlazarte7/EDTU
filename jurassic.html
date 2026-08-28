@@ -386,6 +386,18 @@ let wallySeen=false, wBalR=null, wBalB=null;
   wBalR=new THREE.Mesh(new THREE.SphereGeometry(0.09,7,6),new THREE.MeshBasicMaterial({color:0xff2020})); wBalR.position.set(-0.18,1.1,-0.35); wally.add(wBalR);
   wBalB=new THREE.Mesh(new THREE.SphereGeometry(0.09,7,6),new THREE.MeshBasicMaterial({color:0x2060ff})); wBalB.position.set(0.18,1.1,-0.35); wally.add(wBalB);
 })();
+// 🐢 TORTUGA GIGANTE: recorre la playa lentísimo dando la vuelta a la isla
+const turtle=new THREE.Group(); scene.add(turtle);
+const turtHead=new THREE.Mesh(new THREE.SphereGeometry(0.35,9,7),new THREE.MeshStandardMaterial({color:0x6a8a55,roughness:.8}));
+const turtFlips=[];
+(function makeTurtle(){ const shellM=new THREE.MeshStandardMaterial({color:0x3d5c33,roughness:.75});
+  const shell=new THREE.Mesh(new THREE.SphereGeometry(1.1,12,9),shellM); shell.scale.set(1,0.55,1.3); shell.position.y=0.7; turtle.add(shell);
+  turtHead.position.set(0,0.55,1.5); turtle.add(turtHead);
+  const flipM=new THREE.MeshStandardMaterial({color:0x6a8a55,roughness:.8,side:THREE.DoubleSide});
+  for(const [fx2,fz2] of [[-1,0.7],[1,0.7],[-0.9,-0.9],[0.9,-0.9]]){ const fp=new THREE.Mesh(new THREE.PlaneGeometry(0.7,0.4),flipM);
+    fp.rotation.x=-Math.PI/2; fp.position.set(fx2,0.3,fz2); turtle.add(fp); turtFlips.push(fp); }
+})();
+let turtA=Math.random()*6.28, turtHide=0, turtSeen=false;
 // 🦇 MURCIÉLAGOS: bandada que cruza el cielo al caer la noche
 const bats=new THREE.Group(); const batM=new THREE.MeshBasicMaterial({color:0x0a0a10,side:THREE.DoubleSide});
 for(let i=0;i<12;i++){ const b=new THREE.Group();
@@ -722,6 +734,13 @@ function update(dt){
   if(!skelSeen && Math.hypot(P.x-skel.position.x,P.z-skel.position.z)<10){ skelSeen=true;
     [330,262,196].forEach((fq,k)=>setTimeout(()=>snd(fq,"triangle",0.35,0.07),k*160));
     toast2("🦴 Restos de un dinosaurio COLOSAL... ¿qué pudo matarlo?"); }
+  // 🐢 la tortuga avanza por la orilla; aletas remando; si te acercas ESCONDE la cabeza 4s
+  turtA+=dt*0.012; const tR2=ISLR-6;
+  turtle.position.set(Math.cos(turtA)*tR2,0,Math.sin(turtA)*tR2); turtle.rotation.y=-turtA;
+  turtFlips.forEach((fp,i)=>{ fp.rotation.z=Math.sin(elapsed*2+i*1.6)*0.35; });
+  if(Math.hypot(P.x-turtle.position.x,P.z-turtle.position.z)<4 && turtHide<=0){ turtHide=4; snd(200,"sine",0.15,0.05);
+    if(!turtSeen){ turtSeen=true; toast2("🐢 ¡Una tortuga gigante! Se asustó y escondió la cabeza"); } }
+  if(turtHide>0){ turtHide-=dt; turtHead.visible=false; } else turtHead.visible=true;
   // 🦇 al caer la noche una BANDADA de murciélagos cruza chillando sobre ti (una vez por atardecer)
   if(lightF>0.5) duskDone=false;
   if(!duskDone && lightF<0.3 && !bats.visible){ duskDone=true; batT=9;
