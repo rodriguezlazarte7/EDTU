@@ -429,8 +429,13 @@ function saveJBest(v){ try{ localStorage.setItem("jurassic_best",String(v)); }ca
 function updJBest(){ const b=loadJBest(), el=$("jbest"); if(el) el.textContent = b>0?("🏆 Récord: "+b.toFixed(1)+" días sobrevividos"):"🏆 Aún sin récord — ¡sobrevive!"; }
 function endGame(win,info){ running=false; gameOver=true; try{document.exitPointerLock();}catch(e){} $("touch").classList.remove("on"); $("fire").classList.add("hide"); $("jump").classList.add("hide"); $("jhelp").classList.add("hide"); jhelpOpen=false; $("jhelpS").classList.remove("on");
   const days=Math.min(7, elapsed/DAY_LEN); const prev=loadJBest(); const isRec=days>prev; if(isRec) saveJBest(days);
-  $("end").classList.remove("hide"); const t=$("endTitle"); if(win){ t.textContent="✓ RESCATADO"; t.className="big win"; } else { t.textContent="✕ NO SOBREVIVISTE"; t.className="big lose"; }
+  const t=$("endTitle"); if(win){ t.textContent="✓ RESCATADO"; t.className="big win"; } else { t.textContent="✕ NO SOBREVIVISTE"; t.className="big lose"; }
   $("endInfo").innerHTML=info+"<br><br>🗓️ Días: <b>"+days.toFixed(1)+"</b>"+(isRec?" 🏆 ¡RÉCORD!":" · Récord: <b>"+prev.toFixed(1)+"</b>"); snd(win?660:70,win?"triangle":"sawtooth",0.5,0.12);
+  if(win){ $("end").classList.remove("hide"); }
+  else { // 💥 muerte con FUNDIDO ROJO sangre antes de la pantalla de fin
+    snd(35,"sawtooth",1.2,0.14); const fd=$("fade");
+    if(fd){ fd.style.background="#4a0006"; fd.style.opacity="1"; setTimeout(()=>{ $("end").classList.remove("hide"); fd.style.opacity="0"; setTimeout(()=>{ fd.style.background="#000"; },400); },750); }
+    else $("end").classList.remove("hide"); }
 }
 $("startBtn").onclick=start; $("againBtn").onclick=start; updJBest(); buildJDiffs();
 
