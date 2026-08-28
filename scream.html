@@ -572,7 +572,7 @@ let wallyTalkCd=0;
 const genM=new THREE.Group();
 { const bx2=new THREE.Mesh(new THREE.BoxGeometry(0.9,0.7,0.6),new THREE.MeshStandardMaterial({color:0x7a1f1f,roughness:.6,metalness:.3})); bx2.position.y=0.35; genM.add(bx2);
   const pipe=new THREE.Mesh(new THREE.CylinderGeometry(0.05,0.05,0.5,6),new THREE.MeshStandardMaterial({color:0x222222,roughness:.5})); pipe.position.set(0.3,0.85,0); genM.add(pipe);
-  const bulb=new THREE.Mesh(new THREE.SphereGeometry(0.08,8,6),new THREE.MeshBasicMaterial({color:0xffd15a})); bulb.position.set(-0.25,0.8,0); genM.add(bulb); }
+  const bulb=new THREE.Mesh(new THREE.SphereGeometry(0.08,8,6),new THREE.MeshBasicMaterial({color:0xffd15a})); bulb.position.set(-0.25,0.8,0); genM.add(bulb); genM.userData.bulb=bulb; }
 scene.add(genM);
 let genF=0, genUsed=false, genOn=0, genCharge=0;
 function genBar(p){ let el=document.getElementById("genbar");
@@ -811,6 +811,7 @@ function start(){ $("start").classList.add("hide"); $("end").classList.add("hide
   manqF=Math.floor(Math.random()*FLOORS); placeManq(false); manqT=6; manqMoveT=25; manqSting=false;   // 🧍 maniquí nuevo
   genF=Math.floor(Math.random()*FLOORS); { const gs=randSpotOnFloor(genF); genM.position.set(gs.x,genF*FLOOR_H,gs.z); }   // ⚡ generador nuevo
   genUsed=false; genOn=0; genCharge=0; genBar(-1); ambient.intensity=0.05; ambient.color.setHex(0x241018);
+  if(genM.userData.bulb) genM.userData.bulb.material.color.setHex(0xffd15a);   // 💡 bombilla nueva
   legendSaid=false;   // 👑 WALLY puede volver a celebrar el 21/21 una vez por partida
   vitF=Math.floor(Math.random()*FLOORS); { const vs=randSpotOnFloor(vitF); vit.position.set(vs.x,vitF*FLOOR_H,vs.z); } vitUsed=false; vitOn=0;   // 🎵 vitrola nueva
   ascWait=0; ascDing=0;   // 🛗 ascensor libre
@@ -855,7 +856,7 @@ function update(dt){
   timeLeft-=dt; if(timeLeft<0) timeLeft=0;
   const mm=Math.floor(timeLeft/60), ss=Math.floor(timeLeft%60); const tel=$("timer"); if(tel){ tel.textContent="⏱ "+mm+":"+String(ss).padStart(2,"0"); tel.classList.toggle("warn",timeLeft<120); }
   // 🏢 indicador de piso fijo (clave para seguir las pistas del teléfono)
-  const fInd=$("floorInd"); if(fInd) fInd.textContent="🏢 PISO "+(curFloor+1)+"/7";
+  const fInd=$("floorInd"); if(fInd) fInd.textContent=ascWait>0?("🛗 llega en "+Math.ceil(ascWait)+"s..."):("🏢 PISO "+(curFloor+1)+"/7");
   // 🎓 mini-tutorial de primera vez: 4 consejos espaciados en los primeros ~40s, luego nunca más
   if(tutOn && running && !gameOver && !paused){ tutT-=dt;
     if(tutT<=0){ const TUT=[
@@ -875,7 +876,8 @@ function update(dt){
   // ⚡ GENERADOR DE EMERGENCIA: cargar 3s a su lado → LUZ TOTAL 20s y araña congelada
   if(genOn>0){ genOn-=dt; ambient.intensity=0.9; ambient.color.setHex(0x8a7a58);
     if(Math.random()<dt*8) snd(120+Math.random()*40,"sawtooth",0.06,0.03);   // runrún del motor
-    if(genOn<=0){ ambient.intensity=0.05; ambient.color.setHex(0x241018); showStory("⚡ el generador se apagó... vuelve la oscuridad"); snd(90,"sawtooth",0.8,0.1); } }
+    if(genOn<=0){ ambient.intensity=0.05; ambient.color.setHex(0x241018); showStory("⚡ el generador se apagó... vuelve la oscuridad"); snd(90,"sawtooth",0.8,0.1);
+      if(genM.userData.bulb) genM.userData.bulb.material.color.setHex(0x555555); } }   // 💡 bombilla apagada = gastado
   else if(!genUsed && genF===curFloor && running && !gameOver){
     const gd=Math.hypot(P.x-genM.position.x,P.z-genM.position.z);
     if(gd<2.6){ genCharge+=dt; genBar(genCharge/3); if(Math.random()<dt*6) snd(200+genCharge*160,"square",0.05,0.04);
@@ -1222,7 +1224,8 @@ function update(dt){
       if(wallySF===curFloor&&blink) blip(wallyS.position.x,wallyS.position.z,(x,y)=>{ rg.fillStyle="#38b6ff"; rg.beginPath(); rg.arc(x,y,3,0,6.28); rg.fill(); });
       if(manqF===curFloor) blip(manq.position.x,manq.position.z,(x,y)=>{ rg.fillStyle="#cfc8bf"; rg.beginPath(); rg.arc(x,y,2.4,0,6.28); rg.fill(); });
       if(!genUsed&&genF===curFloor) blip(genM.position.x,genM.position.z,(x,y)=>{ rg.fillStyle="#ffd15a"; rg.fillRect(x-1.6,y-3,3.2,6); });
-      if(!vitUsed&&vitF===curFloor) blip(vit.position.x,vit.position.z,(x,y)=>{ rg.fillStyle="#d05aff"; rg.beginPath(); rg.arc(x-1.2,y+2,2,0,6.28); rg.fill(); rg.fillRect(x,y-4,1.4,6); }); }
+      if(!vitUsed&&vitF===curFloor) blip(vit.position.x,vit.position.z,(x,y)=>{ rg.fillStyle="#d05aff"; rg.beginPath(); rg.arc(x-1.2,y+2,2,0,6.28); rg.fill(); rg.fillRect(x,y-4,1.4,6); });
+      blip(ASC.x,ASC.z,(x,y)=>{ rg.strokeStyle="#ffb020"; rg.lineWidth=1.4; rg.strokeRect(x-3,y-3,6,6); rg.lineWidth=1; }); }
   }
 
   // 🧪 FABRICAR el antídoto en la MÁQUINA (zona segura, planta baja)
