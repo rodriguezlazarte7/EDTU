@@ -189,7 +189,8 @@ function playerMove(face,dir){ if(state!=="race"||player.busy) return;
   moveCount++; document.getElementById("mvs").textContent="🔄 "+moveCount;   // contador de movimientos
   undoStack.push({face,dir});   // ↩ para poder deshacer
   showMv("lastMvP",face,dir);   // 🔤 notación en grande
-  move(player,face,dir,150,()=>{ drawNet(); if(!ended && isSolved(player)) finish("player"); }); }
+  move(player,face,dir,150,()=>{ drawNet(); if(!ended && isSolved(player)) finish("player");
+    else if(ended && state==="race" && isSolved(player)){ state="done"; showMsg("✅ ¡Lo terminaste igual! (modo práctica)\n🔄 "+moveCount+" movs","#8fd0ff"); [523,659,784].forEach((f,i)=>setTimeout(()=>snd(f,"triangle",0.2,0.07),i*120)); } }); }
 // 🗺️ MAPA 2D del cubo (red desplegada en cruz): ves TODAS tus caras sin girar la cámara
 function drawNet(){ const cv=document.getElementById("net"); if(!cv) return; const g=cv.getContext("2d");
   g.clearRect(0,0,cv.width,cv.height);
@@ -257,7 +258,8 @@ function finish(who){
     startConfetti();   // 🎊
     try{ if(window.speechSynthesis){ const u=new SpeechSynthesisUtterance("¡Le ganaste a la inteligencia artificial en "+t+" segundos! ¡Eres un crack del cubo!"); u.lang="es-ES"; u.pitch=1.25; u.rate=1.1; u.volume=0.9; speechSynthesis.cancel(); setTimeout(()=>{ try{ speechSynthesis.speak(u); }catch(e){} },700); } }catch(e){} }   // 🗣️ celebración
   else { const hadStk=loadStreak(); saveStreak(0);   // 👑 se corta la racha
-    showMsg("🤖 Ganó la IA"+(hadStk>=2?"\n👑 Adiós a tu racha de "+hadStk+"...":"")+"\nTu tiempo corre aún...","#ff7ba3"); [400,300,220].forEach((f,i)=>setTimeout(()=>snd(f,"sawtooth",0.3,0.07),i*180));
+    state="race";   // 🧩 puedes SEGUIR resolviendo de práctica aunque la IA haya ganado
+    showMsg("🤖 Ganó la IA"+(hadStk>=2?"\n👑 Adiós a tu racha de "+hadStk+"...":"")+"\nPuedes seguir resolviendo de práctica","#ff7ba3"); [400,300,220].forEach((f,i)=>setTimeout(()=>snd(f,"sawtooth",0.3,0.07),i*180));
     aiWinT=4.5; setTimeout(()=>aiSay("¡Gané! Inténtalo otra vez, humano."),700); }   // 🤖 vuelta de la victoria + burla
   updRW();
 }
