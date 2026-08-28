@@ -7224,6 +7224,9 @@ $("posterFs").addEventListener("click",e=>{ if(e.target===$("posterFs")) $("post
     if(/fr[íi]o|invierno/.test(q)) return "🧣 brrr, el invierno chileno congela mis circuitos... por suerte en JURASSIC hay fogata 🔥";
     if(/chile|fiestas patrias|dieciocho|cueca/.test(q)) return "🇨🇱 ¡viva Chile! en septiembre bailo cueca-robot 🕺 beep-beep";
     if(/secreto|escondido|huevo|misterio/.test(q)) return "🤫 solo diré esto: hay un huevo que BRILLA en la isla... una dificultad que solo los valientes ven... y el logo esconde algo si lo tocas mucho...";
+    if(/edtu|cuartel|agencia/.test(q)) return "🛰️ EDTU: Espías De Tecnología Universal — el cuartel que David construyó desde cero. ¡Y tiene dominio propio: www.edtu.cl!";
+    if(/ptero|p[áa]jaro|volador/.test(q)) return "🐣 si te rescataron alguna vez, un PTERO BEBÉ te acompaña en la isla... y chilla antes de que ataque el grande";
+    if(/oro|dorado/.test(q)) return "👑 el CUBO DE ORO existe... pero solo para quien tenga los 21 logros. beep-brillante";
     return pick(["beep-boop... no entendí 🤔 pregúntame por chistes, juegos, récords o trucos","mis circuitos no procesaron eso... ¡prueba con 'chiste'!","*gira la cabeza confundido* ¿me hablas de juegos, récords o chistes?"]); }
   catch(e){ return "beep... error de circuitos jaja"; } }
   function sendWally(){ const q=inp.value.trim(); if(!q) return; inp.value=""; wallyType(wallyReply(q)); }
