@@ -193,6 +193,13 @@ houseCenters.push({x:14,z:16,r:9});                                             
 buildHouse(0,-ARENA+11,14,true);                                                 // CASA 13 (más grande)
 for(let i=0;i<10;i++){ const s=freeSpot(11,ARENA-9,8); buildHouse(s.x,s.z,10+Math.random()*5,false); }  // casas grandes, bien separadas
 for(let i=0;i<28;i++){ const s=freeSpot(6,ARENA-2,2.5); makeTree(s.x,s.z); }                            // más árboles
+// 🏮 FAROLES de calle que se encienden de noche
+const streetLamps=[];
+for(let i=0;i<5;i++){ const s=freeSpot(10,ARENA-6,3);
+  const pole=box(s.x,s.z,0.18,4.6,0.18,new THREE.MeshStandardMaterial({color:0x2a2f36,metalness:.6,roughness:.5})); pole.position.y=2.3;
+  const head=new THREE.Mesh(new THREE.SphereGeometry(0.28,10,8),new THREE.MeshBasicMaterial({color:0xffd890})); head.position.set(s.x,4.7,s.z); scene.add(head);
+  const ll=new THREE.PointLight(0xffc46a,0,13); ll.position.set(s.x,4.4,s.z); scene.add(ll);
+  streetLamps.push({l:ll,b:head}); addWall(s.x-0.2,s.x+0.2,s.z-0.2,s.z+0.2); }
 
 // ---------- DRENAJE: túnel de LADRILLO con bóveda (alcantarilla) ----------
 const DRAINX=0, DRAINZ=200, DW=11, DL=64;   // ancho (colisión) y largo del túnel (a lo largo de z)
@@ -655,6 +662,8 @@ function update(dt){
     if(heliLamp){ heliLamp.intensity=0.4+(1-dayF)*2.2; heliLamp.target.position.x=heliSpot.x+Math.sin(now*0.5)*8; heliLamp.target.position.z=heliSpot.z+6+Math.cos(now*0.5)*5; }   // 🔦 foco del heli barre el suelo
     if(casa13Sign){ const on=Math.random()<0.94; casa13Sign.material.opacity=on?1:0.15; if(casa13Light) casa13Light.intensity=(on?0.9:0.1)+(1-dayF)*0.6; }   // 🏚️ neón "13" fallando
     if(dn) dn.textContent = dayF>0.5 ? "☀️ DÍA" : "🌙 NOCHE";
+    // 🏮 faroles: se encienden al anochecer (algunos titilan)
+    for(const sl of streetLamps){ const base=(1-dayF)*1.4; sl.l.intensity=base*(Math.random()<0.06?0.2:1); sl.b.material.color.setHex(dayF>0.6?0x555550:0xffd890); }
     lastDayF=dayF;
   }
   // zombies: ¡un toque = muerte! (solo en la SUPERFICIE; el drenaje es refugio)
