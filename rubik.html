@@ -178,8 +178,12 @@ function showMsg(txt,color){ const m=document.getElementById("msg"); if(!txt){ m
 
 // ---- botones de movimiento ----
 const movesDiv=document.getElementById("moves");
+// 🎨 cada botón lleva el COLOR real de su cara en el cubo (U blanco, D amarillo, R rojo, L naranja, F verde, B azul)
+const FACE_COLORS={U:"#f6f6f6",D:"#ffe100",R:"#d11e1e",L:"#ff8000",F:"#1ea81e",B:"#1e5ad1"};
 FACE_LIST.forEach(face=>{
-  [["",1],["'",-1]].forEach(([suf,dir])=>{ const b=document.createElement("button"); b.className="mv"; b.textContent=face+suf; b.onclick=()=>playerMove(face,dir); movesDiv.appendChild(b); });
+  [["",1],["'",-1]].forEach(([suf,dir])=>{ const b=document.createElement("button"); b.className="mv"; b.textContent=face+suf;
+    b.style.borderColor=FACE_COLORS[face]; b.style.boxShadow="inset 0 -3px 0 "+FACE_COLORS[face];
+    b.onclick=()=>playerMove(face,dir); movesDiv.appendChild(b); });
 });
 document.getElementById("startBtn").onclick=startRace;
 document.getElementById("listoBtn").onclick=tryListo;
