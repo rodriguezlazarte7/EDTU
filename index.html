@@ -324,6 +324,9 @@
   #f1Fs.touch #f1Nitro{display:block}
   #f1Pause{position:absolute;left:14px;bottom:max(18px,env(safe-area-inset-bottom));z-index:6;display:none;width:58px;height:58px;border-radius:50%;background:rgba(120,120,120,.3);border:3px solid rgba(210,210,210,.5);color:#fff;font-size:22px}
   #f1Fs.touch #f1Pause{display:block}
+  #f1Horn{position:absolute;left:82px;bottom:max(18px,env(safe-area-inset-bottom));z-index:6;display:none;width:58px;height:58px;border-radius:50%;background:rgba(255,200,80,.22);border:3px solid rgba(255,220,120,.55);color:#fff;font-size:22px}
+  #f1Fs.touch #f1Horn{display:block}
+  #f1Horn:active{transform:scale(.9)}
   .lockcard{
     position:relative;width:min(420px,92vw);padding:38px 34px;border-radius:18px;
     background:var(--panel);backdrop-filter:blur(14px);
@@ -1565,6 +1568,7 @@
   </div>
   <button class="foot-touch" id="f1Nitro">🔥<br><span>NITRO</span></button>
   <button id="f1Pause">⏸</button>
+  <button id="f1Horn">📯</button>
   <div id="f1Overlay" class="game-overlay">
     <div id="f1Msg">🏎️ F1 RB RUSH</div>
     <div id="f1Result" style="font-size:15px"></div>
@@ -5647,7 +5651,7 @@ const F1={
     this.resize(); window.addEventListener("resize",this._rs=()=>this.resize());
     this.best=+(localStorage.getItem("edtu_f1_best")||0);
     $("f1Overlay").style.display="flex"; $("f1Msg").textContent="🏎️ F1 RB RUSH";
-    $("f1Result").innerHTML="Vista Need for Speed · ←→ o A/D conducir · 🔥 NITRO: espacio / Y / RT / botón · franjas verdes = DRS<br>⏸ <b>P</b> pausa · ↵ <b>Enter</b> correr otra vez · ¡Cuidado con las CURVAS ⚠️, el pasto y las 🏍️ motos!<br>🌧️ lluvia · 🌙 día y noche · 🚇 túneles · 🛸 zepelín · 🤖 WALLY saluda cada 1500 m · ⚡ combo de adelantamientos<br>🏆 Récord: <b>"+Math.round(this.best)+"</b> m<br>🎖️ "+this.medals()+(function(){ try{ return localStorage.getItem("edtu_f1_ghost")?"<br>👻 el FANTASMA de tu récord te espera en la pista... ¡véncelo!":""; }catch(e){ return ""; } })();
+    $("f1Result").innerHTML="Vista Need for Speed · ←→ o A/D conducir · 🔥 NITRO: espacio / Y / RT / botón · franjas verdes = DRS<br>⏸ <b>P</b> pausa · ↵ <b>Enter</b> correr otra vez · 📯 <b>H</b> claxon (¡los rivales se apartan!) · ¡Cuidado con las CURVAS ⚠️, el pasto y las 🏍️ motos!<br>🌧️ lluvia · 🌙 día y noche · 🚇 túneles · 🛸 zepelín · 🤖 WALLY saluda cada 1500 m · ⚡ combo de adelantamientos<br>🏆 Récord: <b>"+Math.round(this.best)+"</b> m<br>🎖️ "+this.medals()+(function(){ try{ return localStorage.getItem("edtu_f1_ghost")?"<br>👻 el FANTASMA de tu récord te espera en la pista... ¡véncelo!":""; }catch(e){ return ""; } })();
     this.draw();
   },
   close(){
@@ -5753,6 +5757,7 @@ const F1={
       if(this._wRainOn){ try{ if(window.speechSynthesis){ const u=new SpeechSynthesisUtterance("¡Está lloviendo! Cuidado en las curvas."); u.lang="es-ES"; u.pitch=1.3; u.rate=1.1; speechSynthesis.cancel(); speechSynthesis.speak(u); } }catch(e){} } }
     this._wRain+=((this._wRainOn?1:0)-this._wRain)*Math.min(1,dt*0.8);
     this.rainSndUpd();   // 🌧️ sonido de lluvia sigue la intensidad
+    if(this._hornCd>0) this._hornCd-=dt;   // 📯
     // 👻 grabar el fantasma: muestra [dist, x] cada 20 m (cap 800 = 16 km)
     if(this._ghRec && this.dist>=this._ghNext && this._ghRec.length<800){ this._ghRec.push([Math.round(this.dist),Math.round(this.x*1000)/1000]); this._ghNext=this.dist+20; }
     // 👻⚔️ DUELO: al pasar la última huella del fantasma en plena carrera, anuncio único
@@ -5885,6 +5890,15 @@ const F1={
   },
   // ⏸ pausa compartida (tecla P y botón táctil): sin efecto durante el semáforo
   togglePause(){ if(!this.running || this.cdT>0) return; this.paused=!this.paused; if(this.paused){ this.engineOff(); this.rainSndOff(); } else this.engineOn(); },
+  // 📯 CLAXON (H o botón): bocina de 2 tonos y los rivales cercanos por delante se APARTAN un poco
+  horn(){ if(!this.running||this.paused||this.cdT>0||(this._hornCd||0)>0) return; this._hornCd=0.6;
+    try{ const a=this.actx(); if(a){ [493,392].forEach((fq,i)=>{ const o=a.createOscillator(),g=a.createGain(); o.type="square"; o.frequency.value=fq; g.gain.value=0.085; o.connect(g); g.connect(a.destination); o.start(a.currentTime+i*0.15); o.stop(a.currentTime+i*0.15+0.22); }); } }catch(e){}
+    try{ if(navigator.vibrate) navigator.vibrate(15); }catch(e){}
+    let moved=0; const px=this.x*0.8;
+    this.cars.forEach(car=>{ const gap=car.z-this.dist;
+      if(gap>3 && gap<60 && Math.abs(car.x-px)<0.3){
+        car.x=Math.max(-0.8,Math.min(0.8,car.x+(car.x>=px?0.22:-0.22))); moved++; } });
+    if(moved){ setTimeout(()=>{ try{ const a2=this.actx(); if(a2&&Math.random()<0.6){ const o2=a2.createOscillator(),g2=a2.createGain(); o2.type="square"; o2.frequency.value=330; g2.gain.value=0.05; o2.connect(g2); g2.connect(a2.destination); o2.start(); o2.stop(a2.currentTime+0.18); } }catch(e){} },420); } },
   // 🎖️ medallas por distancia en UNA carrera (1/3/5/10 km, permanentes)
   medals(){ let s=""; [1000,3000,5000,10000].forEach(t2=>{ let got=false; try{ got=localStorage.getItem("edtu_f1_km_"+t2)==="1"; }catch(e){}
     s+=(got?"🏅":"▫️")+(t2/1000)+"km "; }); return s.trim(); },
@@ -6612,13 +6626,14 @@ gSwipe($("snakeCv"),d=>{ if(d==="up")Snake.turn(0,-1);else if(d==="down")Snake.t
 gSwipe($("g2048"),d=>{ const m={left:0,right:1,up:2,down:3}; G2048.move(m[d]); });
 $("f1Close").onclick=()=>F1.close();
 $("f1Start").onclick=()=>F1.start();
+$("f1Horn").onclick=()=>F1.horn();   // 📯 claxon táctil
 (function(){ const b=$("f1Nitro"), on=e=>{ e.preventDefault(); F1._btnNitro=true; }, off=()=>{ F1._btnNitro=false; };
   b.addEventListener("pointerdown",on); b.addEventListener("pointerup",off); b.addEventListener("pointercancel",off); b.addEventListener("pointerleave",off); })();
 $("f1Canvas").addEventListener("pointerdown",e=>{ F1._touchX=e.clientX; try{ e.target.setPointerCapture(e.pointerId); }catch(_){} });   // 🐛FIX ronda2: captura el puntero para no perder el pointerup fuera del canvas
 $("f1Canvas").addEventListener("pointermove",e=>{ if(e.buttons||e.pressure>0) F1._touchX=e.clientX; });
 $("f1Canvas").addEventListener("pointerup",()=>{ F1._touchX=null; });
 $("f1Canvas").addEventListener("pointercancel",()=>{ F1._touchX=null; });   // 🐛FIX ronda2: un touch cancelado dejaba la dirección "pegada" para siempre
-document.addEventListener("keydown",e=>{ if(!$("f1Fs").classList.contains("open")) return; F1.keys[e.key]=true; if(e.key===" ") e.preventDefault(); if(e.key==="Escape") F1.close();
+document.addEventListener("keydown",e=>{ if(!$("f1Fs").classList.contains("open")) return; F1.keys[e.key]=true; if(e.key===" ") e.preventDefault(); if(e.key==="Escape") F1.close(); if(e.key==="h"||e.key==="H") F1.horn();
   // ⏸ pausa de carrera con P (motor incluido)
   if(e.key==="p"||e.key==="P") F1.togglePause();
   if(e.key==="Enter" && !F1.running) F1.start(); });   // ↩ correr otra vez al instante
