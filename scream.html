@@ -628,10 +628,14 @@ for(let i=0;i<5;i++){ const g=new THREE.Group();
   g.visible=false; scene.add(g); moths.push({g,ph:Math.random()*6.28,r:0.5+Math.random()*1.2,sp2:2+Math.random()*3,h:Math.random()}); }
 function vib(p){ try{ if(navigator.vibrate) navigator.vibrate(p); }catch(e){} }
 let diff="normal", invDur=30, ambushInt=10, gameTime=1200;
-const DIFFS={facil:{sp:3.6,inv:20,time:1500,hp:4,amb:14,lbl:"🟢 FÁCIL"},normal:{sp:4.4,inv:30,time:1200,hp:3,amb:10,lbl:"🟡 NORMAL"},pesadilla:{sp:5.4,inv:40,time:900,hp:2,amb:8,lbl:"🔴 PESADILLA"},infierno:{sp:6.2,inv:45,time:600,hp:1,amb:6,lbl:"🔥 INFIERNO"}};
-try{ const sd0=localStorage.getItem("scream_diff"); if(sd0&&DIFFS[sd0]) diff=sd0; }catch(e){}   // 🧠 recuerda tu dificultad
+const DIFFS={facil:{sp:3.6,inv:20,time:1500,hp:4,amb:14,lbl:"🟢 FÁCIL"},normal:{sp:4.4,inv:30,time:1200,hp:3,amb:10,lbl:"🟡 NORMAL"},pesadilla:{sp:5.4,inv:40,time:900,hp:2,amb:8,lbl:"🔴 PESADILLA"},infierno:{sp:6.2,inv:45,time:600,hp:1,amb:6,lbl:"🔥 INFIERNO"},pesadillaplus:{sp:7,inv:35,time:540,hp:1,amb:5,lbl:"👑 PESADILLA+"}};
+try{ const sd0=localStorage.getItem("scream_diff"); if(sd0&&DIFFS[sd0]){ diff=sd0;
+  if(sd0==="pesadillaplus"&&localStorage.getItem("scream_win_infierno")!=="1") diff="normal"; } }catch(e){}   // 🧠 recuerda tu dificultad (la secreta solo si sigue desbloqueada)
 const SPIDER_SC=0.62;   // araña más chica
-function buildDiffs(){ const c=$("diffs"); if(!c) return; c.innerHTML=""; for(const k of ["facil","normal","pesadilla","infierno"]){ const b=document.createElement("button"); b.className="diffbtn"+(diff===k?" sel":""); const bd=loadBestD(k); b.textContent=DIFFS[k].lbl+(bd!=null?" ⏱"+fmtT(bd):""); b.onclick=()=>{ diff=k; try{ localStorage.setItem("scream_diff",k); }catch(e){} buildDiffs(); }; c.appendChild(b); } }
+function buildDiffs(){ const c=$("diffs"); if(!c) return; c.innerHTML="";
+  const dlist=["facil","normal","pesadilla","infierno"];
+  try{ if(localStorage.getItem("scream_win_infierno")==="1") dlist.push("pesadillaplus"); }catch(e){}   // 👑 la 6ª dificultad SECRETA solo si venciste INFIERNO
+  for(const k of dlist){ const b=document.createElement("button"); b.className="diffbtn"+(diff===k?" sel":""); const bd=loadBestD(k); b.textContent=DIFFS[k].lbl+(bd!=null?" ⏱"+fmtT(bd):""); b.onclick=()=>{ diff=k; try{ localStorage.setItem("scream_diff",k); }catch(e){} buildDiffs(); }; c.appendChild(b); } }
 const keys={}, moveV={x:0,y:0};
 function updHP(){ let s=""; for(let i=0;i<hpMax;i++) s+= (i<hp?"❤️":"🖤"); $("hp").textContent=s;
   const lw=$("lowhp"); if(lw) lw.classList.toggle("on", hp===1 && !gameOver);   // 💔 alerta pulsante con 1 corazón
@@ -709,7 +713,8 @@ function updBest(){ const b=loadBest(), w=loadWins(), el=$("bestT"); if(!el) ret
   // 🏅 medallas: una por cada dificultad vencida
   const med=["facil","normal","pesadilla","infierno"].map(k=>{ let got=false; try{ got=localStorage.getItem("scream_win_"+k)==="1"; }catch(e){}
     return DIFFS[k].lbl.split(" ")[0]+(got?"✔":"–"); }).join(" ");
-  el.textContent = (b==null?"🏆 Aún sin récord — ¡sé el primero en escapar!":("🏆 Mejor escape: "+fmtT(b))) + (w>0?"  ·  🚁 Escapes: "+w:"") + "  ·  🏅 "+med; }
+  let crown=""; try{ if(localStorage.getItem("scream_win_pesadillaplus")==="1") crown="  ·  👑 PESADILLA+ VENCIDA"; }catch(e){}
+  el.textContent = (b==null?"🏆 Aún sin récord — ¡sé el primero en escapar!":("🏆 Mejor escape: "+fmtT(b))) + (w>0?"  ·  🚁 Escapes: "+w:"") + "  ·  🏅 "+med + crown; }
 // 💥 grietas de vidrio roto para el jumpscare
 function crackSVG(){ let p="";
   for(let i=0;i<12;i++){ const a=i/12*6.283+Math.random()*0.4; let x=200,y=200,d="M200 200"; const steps=6, len=140+Math.random()*200;
@@ -940,7 +945,7 @@ function update(dt){
     manq.position.y=curFloor*FLOOR_H; manq.rotation.y=Math.atan2(mdx,mdz);   // SIEMPRE te mira
     if(looking && md<8 && !manqSting){ manqSting=true; snd(1100,"sawtooth",0.3,0.08); snd(70,"sawtooth",0.5,0.1); vib(60); showStory("🧍 ...¿ese maniquí estaba ahí?"); } }
   else { manq.visible=false; manqMoveT-=dt;
-    if(manqMoveT<=0){ manqMoveT=22+Math.random()*18; manqF=curFloor; placeManq(true); manqT=6; } }
+    if(manqMoveT<=0){ manqMoveT=(diff==="pesadillaplus"?12:22)+Math.random()*18; manqF=curFloor; placeManq(true); manqT=6; } }   // 👑 en PESADILLA+ el maniquí te caza más seguido
   // 🦋 polillas: bailan alrededor del haz de la linterna (con la luz apagada se van)
   { const mfx=-Math.sin(yaw), mfz=-Math.cos(yaw);
     for(const mo of moths){ mo.g.visible=flashOn && !nvOn;
@@ -1189,7 +1194,9 @@ function update(dt){
       // 🎬 cinemática de ESCAPE: fundido a blanco + radio de rescate
       cbar.style.display="none"; const fd=$("fade"); if(fd){ fd.style.background="#e2fff7"; fd.style.opacity="0.94"; }
       machineSay("Antídoto completado. Evacuación autorizada. Buena suerte.");   // 🗣️ voz de la máquina
-      if(diff==="infierno"){ vib([0,80,50,80,50,220]); setTimeout(()=>{ try{ if(window.speechSynthesis){ const uL=new SpeechSynthesisUtterance("Sobreviviste al infierno con un solo corazón. Eres una leyenda."); uL.lang="es-ES"; uL.pitch=0.6; uL.rate=0.85; uL.volume=0.95; speechSynthesis.speak(uL); } }catch(e){} },4200); }   // 🔥 homenaje al vencer INFIERNO (encolado, sin cortar a la máquina)
+      if(diff==="infierno"){ vib([0,80,50,80,50,220]); setTimeout(()=>{ try{ if(window.speechSynthesis){ const uL=new SpeechSynthesisUtterance("Sobreviviste al infierno con un solo corazón. Eres una leyenda."); uL.lang="es-ES"; uL.pitch=0.6; uL.rate=0.85; uL.volume=0.95; speechSynthesis.speak(uL); } }catch(e){} },4200);
+        setTimeout(()=>showStory("👑 DIFICULTAD SECRETA DESBLOQUEADA: PESADILLA+"),6200); }   // 🔥 homenaje al vencer INFIERNO (encolado, sin cortar a la máquina)
+      else if(diff==="pesadillaplus"){ vib([0,90,50,90,50,90,50,300]); setTimeout(()=>{ try{ if(window.speechSynthesis){ const uP=new SpeechSynthesisUtterance("Nadie había sobrevivido a Pesadilla Plus. Eres imparable, agente."); uP.lang="es-ES"; uP.pitch=0.55; uP.rate=0.82; uP.volume=0.95; speechSynthesis.speak(uP); } }catch(e){} },4200); }   // 👑 homenaje supremo
       snd(400,"triangle",0.3,0.1); showStory("📻 «¡Equipo de rescate! Te tenemos... sal de ahí!»");
       setTimeout(()=>snd(600,"triangle",0.4,0.1),600); setTimeout(()=>snd(780,"triangle",0.5,0.12),1150);
       setTimeout(()=>{ if(fd) fd.style.opacity="0"; endGame(true,winMsg); if(fd) setTimeout(()=>{ fd.style.background="#000"; },400); },2400); } }
