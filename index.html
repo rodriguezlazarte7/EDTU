@@ -5873,6 +5873,18 @@ const F1={
       const pl=this.proj(z2); if(pl.y<hor||pl.y>H) continue;
       const lw2=Math.max(2,pl.pers*W*0.05);
       c.fillStyle="rgba(255,190,90,.9)"; c.fillRect(pl.roadX-lw2/2, pl.y-pl.pers*W*0.315, lw2, Math.max(1.5,pl.pers*W*0.012)); } }
+    // 🪧 VALLAS publicitarias al costado: ¡anuncian los otros juegos de EDTU!
+    { const ADS=["EDTU","SCREAM","JURASSIC","NOT A GAME","RUBIK 3x3","F1 RB RUSH"];
+      for(let zB=Math.ceil(this.dist/350)*350; zB<this.dist+540; zB+=350){
+        if(zB>tCand-40 && zB<tCand+300) continue;
+        const pb=this.proj(zB); if(pb.y<hor||pb.y>H+20||pb.pers<0.05) continue;
+        const idx=Math.round(zB/350), side=idx%2===0?1:-1, bx2=pb.roadX+side*pb.rw*1.75;
+        const bw3=pb.pers*W*0.22, bh3=bw3*0.42, py2=pb.y;
+        c.fillStyle="#3a3f4a"; c.fillRect(bx2-bw3*0.03,py2-bh3*1.5,bw3*0.06,bh3*1.5);
+        c.fillStyle="#101828"; c.fillRect(bx2-bw3/2,py2-bh3*2.4,bw3,bh3);
+        c.strokeStyle="#ffd12e"; c.lineWidth=Math.max(1,pb.pers*3); c.strokeRect(bx2-bw3/2,py2-bh3*2.4,bw3,bh3);
+        if(pb.pers>0.1){ c.fillStyle="#ffd12e"; c.font="900 "+Math.max(6,Math.round(bh3*0.42))+"px system-ui,sans-serif"; c.textAlign="center";
+          c.fillText(ADS[idx%ADS.length],bx2,py2-bh3*1.83); } } }
     // 🏁 ARCO DE META cada 1000 m: pilares rojos + banner cuadriculado con el km
     const nextKm=Math.ceil((this.dist+1)/1000)*1000, relKm=nextKm-this.dist;
     if(relKm<560){ const pk=this.proj(nextKm);
