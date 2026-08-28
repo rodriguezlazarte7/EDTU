@@ -429,6 +429,8 @@ function respawnZombie(z){ const p=zPos(); z.grp.position.set(p.x,0,p.z); z.hp=2
     z.spitG.visible=true; snd(520,"sawtooth",0.3,0.05); }
   else if(z.runner){ z.hp=1; z.sp*=2.1; z.grp.scale.set(0.8,1.12,0.8); if(z.spitG) z.spitG.visible=false; snd(880,"sawtooth",0.35,0.05); }
   else { z.grp.scale.set(1,1,1); if(z.spitG) z.spitG.visible=false; } }   // ∞: vuelve más fuerte
+// 🗺️ rastro de tu ruta por la ciudad (un punto cada 3s) para dibujar el caso al ganar
+const nPath=[]; let nPathT=0;
 // 🟣 proyectiles de ácido y aturdimiento
 const spitProj=[]; let acidT=0;
 function acidOverlay(){ let el=document.getElementById("acidFx");
@@ -836,6 +838,7 @@ function startGame(){
   nRainOn=false; nRainF=0; setNRainSnd(false); nRain.visible=false;   // 🌧️ reset lluvia
   legendSaid=false;   // 👑 WALLY puede volver a celebrar el 21/21 una vez por partida
   spitProj.forEach(pr=>scene.remove(pr.m)); spitProj.length=0; acidT=0; canvas.style.filter=""; { const ax=document.getElementById("acidFx"); if(ax) ax.style.opacity="0"; }   // 🟣 reset ácido
+  nPath.length=0; nPathT=0;   // 🗺️ rastro desde cero
   nPaused=false; const po4=document.getElementById("nPauseOv"); if(po4) po4.style.display="none";   // ⏸ reset pausa
   try{ nTutOn=!localStorage.getItem("nag_tut1"); }catch(e){ nTutOn=false; }  nTutStep=0; nTutT=5;   // 🎓 tutorial solo la primera vez
   bloodMoon=false; lastDayF=0; dawnFog=0;   // 🐛FIX ronda2: la luna de sangre y la niebla se filtraban a la partida nueva
@@ -919,6 +922,19 @@ function endGame(win,customInfo){
       if(isCR){ try{ localStorage.setItem("nag_best_case",String(survS)); }catch(e){} }
       caseTxt="<br>⏱ Caso resuelto en <b>"+fmtCase(survS)+"</b>"+(isCR?" 🏆 ¡CASO MÁS RÁPIDO!":" · Récord: <b>"+fmtCase(pc)+"</b>"); }
     inf.innerHTML=(customInfo||"Reuniste las pistas y eliminaste el brote.<br>La ciudad está a salvo. 🏙️")+caseTxt+recTxt; snd(660,"triangle",0.3,0.1);
+    // 🗺️ TU INVESTIGACIÓN DIBUJADA: mini-mapa de la ciudad con la ruta del caso
+    try{ const mp=document.createElement("canvas"); mp.width=300; mp.height=300; mp.style.cssText="display:block;margin:10px auto 0;border:1px solid rgba(120,200,255,.35);border-radius:10px;background:#070510";
+      const g3=mp.getContext("2d"); const K3=140/ARENA, C3=150;
+      const px4=x2=>C3+x2*K3, pz4=z2=>C3+z2*K3;
+      g3.fillStyle="#141126"; g3.beginPath(); g3.arc(C3,C3,ARENA*K3,0,6.28); g3.fill();
+      g3.fillStyle="#3a3550"; for(const w of walls){ if(w.x0>9000) continue; g3.fillRect(px4(w.x0),pz4(w.z0),Math.max(1.5,(w.x1-w.x0)*K3),Math.max(1.5,(w.z1-w.z0)*K3)); }
+      g3.strokeStyle="#ffd12e"; g3.lineWidth=2; g3.beginPath();
+      nPath.forEach((pt,i3)=>{ const X=px4(pt[0]),Y=pz4(pt[1]); if(i3===0) g3.moveTo(X,Y); else g3.lineTo(X,Y); }); g3.stroke();
+      drawers.forEach(d2=>{ if(d2.open){ g3.fillStyle="#7dff5a"; g3.beginPath(); g3.arc(px4(d2.cx),pz4(d2.cz),4,0,6.28); g3.fill(); } });
+      g3.fillStyle="#33bbff"; g3.beginPath(); g3.arc(px4(heliPad.x),pz4(heliPad.z),5,0,6.28); g3.fill();
+      if(nPath.length){ const lp=nPath[nPath.length-1]; g3.fillStyle="#ffd12e"; g3.beginPath(); g3.arc(px4(lp[0]),pz4(lp[1]),4,0,6.28); g3.fill(); }
+      const cap=document.createElement("div"); cap.style.cssText="font-size:12px;color:#8fb6d8;margin-top:4px;text-align:center"; cap.textContent="🗺️ Tu investigación: la ruta del caso por la ciudad";
+      inf.appendChild(mp); inf.appendChild(cap); }catch(e){}
     narrate("Caso resuelto, agente. La ciudad está a salvo.");
     document.getElementById("end").classList.remove("hide"); }
   else { t.textContent="✕ FIN"; t.className="big lose"; inf.innerHTML=(customInfo||("Los zombies te alcanzaron en la oscuridad.<br>Pistas: <b>"+cluesGot+"/7</b>"))+recTxt; snd(60,"sawtooth",0.6,0.12); snd(35,"sawtooth",1.2,0.14);
@@ -941,6 +957,7 @@ function update(dt){
   // 📊 metros recorridos
   if(nLastX!==null) nStatDist+=Math.hypot(P.x-nLastX,P.z-nLastZ);
   nLastX=P.x; nLastZ=P.z;
+  nPathT-=dt; if(nPathT<=0 && running && level==="surface"){ nPathT=3; if(nPath.length<400) nPath.push([Math.round(P.x),Math.round(P.z)]); }   // 🗺️ rastro
   // 🎓 mini-tutorial de primera vez: 4 consejos espaciados, luego nunca más
   if(nTutOn && running && !gameOver && !nPaused){ nTutT-=dt;
     if(nTutT<=0){ const TUT=[
