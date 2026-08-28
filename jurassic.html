@@ -225,6 +225,10 @@ const rainbow=new THREE.Group(); const rbMats=[];
   rbMats.push(mt); rainbow.add(new THREE.Mesh(new THREE.TorusGeometry(85-i*1.7,0.9,6,64,Math.PI),mt)); });
 rainbow.position.set(95,0,-150); rainbow.rotation.y=-0.5; rainbow.visible=false; scene.add(rainbow);
 let rainWas=false, rbT=0, rbF=0;
+// 🌠 ESTRELLAS FUGACES: rayas de luz que cruzan el cielo nocturno cada tanto
+const meteors=[];
+for(let i=0;i<3;i++){ const m=new THREE.Mesh(new THREE.BoxGeometry(6,0.12,0.12),new THREE.MeshBasicMaterial({color:i===0?0xffe9a8:0xffffff,transparent:true,opacity:0,fog:false}));
+  scene.add(m); meteors.push({m,active:false,t:0,vx:0,vz:0,vy:0,wait:5+Math.random()*20}); }
 const LAKE={x:70,z:-40,r:34};
 const lake=new THREE.Mesh(new THREE.CircleGeometry(LAKE.r,40),new THREE.MeshStandardMaterial({color:0x1d6f8a,roughness:.35,metalness:.2,transparent:true,opacity:.92,emissive:0x0a4a5a,emissiveIntensity:.3})); lake.rotation.x=-Math.PI/2; lake.position.set(LAKE.x,0.05,LAKE.z); scene.add(lake);
 
@@ -605,6 +609,16 @@ function update(dt){
     if(Math.hypot(bf.g.position.x,bf.g.position.z)>90){ bf.vx*=-1; bf.vz*=-1; }
     bf.g.position.y=1+Math.sin(elapsed*2.2+bf.ph)*0.5+Math.sin(elapsed*9+bf.ph)*0.08;
     bf.g.rotation.y=Math.atan2(bf.vx,bf.vz); }
+  // 🌠 estrellas fugaces: solo en noche despejada, cruzan el cielo y se apagan
+  for(const mt2 of meteors){
+    if(!mt2.active){ if(lightF<0.3 && rainF<0.2){ mt2.wait-=dt;
+      if(mt2.wait<=0){ mt2.active=true; mt2.t=1.5;
+        mt2.m.position.set((Math.random()*2-1)*160, 70+Math.random()*30, (Math.random()*2-1)*160);
+        const an=Math.random()*6.28; mt2.vx=Math.cos(an)*55; mt2.vz=Math.sin(an)*55; mt2.vy=-26;
+        mt2.m.rotation.y=Math.atan2(-mt2.vz,mt2.vx); } } }
+    else { mt2.t-=dt; mt2.m.position.x+=mt2.vx*dt; mt2.m.position.z+=mt2.vz*dt; mt2.m.position.y+=mt2.vy*dt;
+      mt2.m.material.opacity=Math.min(1,mt2.t*2)*(1-lightF)*0.9;
+      if(mt2.t<=0 || mt2.m.position.y<25){ mt2.active=false; mt2.m.material.opacity=0; mt2.wait=6+Math.random()*25; } } }
   // 🦅 pterodáctilos: círculos en el cielo, alas que aletean, graznido lejano — y PASADAS RASANTES
   for(const pt of pteros){ const a=elapsed*pt.sp+pt.ph;
     // pasada rasante: de vez en cuando baja en picada hacia donde estás y vuelve a subir
