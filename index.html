@@ -7181,6 +7181,10 @@ function buildTrophies(){ try{
     if(snapNow.fb>(s0.fb||0)) wkParts.push("🏎️ +"+((snapNow.fb-(s0.fb||0))/1000).toFixed(1)+" km");
     if(snapNow.rw>(s0.rw||0)) wkParts.push("🧩 +"+(snapNow.rw-(s0.rw||0))+" victorias");
     h+="<div style='margin-top:8px;color:#7dffb0'><b>📅 ESTA SEMANA</b></div>"+(wkParts.length?wkParts.join(" · "):"— aún sin mejoras esta semana... ¡a jugar!");
+    // 📅 récords propios de la semana en cada juego (se renuevan cada lunes)
+    { const wr=[]; const fw=parseFloat(g("edtu_f1_week_"+wk))||0, jw=parseFloat(g("jurassic_week_"+wk))||0, nw=parseInt(g("nag_week_"+wk)||"0",10)||0, sw=parseFloat(g("scream_week_"+wk))||0;
+      if(fw>0) wr.push("🏎️ "+Math.round(fw)+" m"); if(jw>0) wr.push("🦖 "+jw.toFixed(1)+" días"); if(nw>0) wr.push("🧟 "+nw+" kills"); if(sw>0) wr.push("🕷️ "+fmtMS(sw));
+      if(wr.length) h+="<br><span style='color:#9fd8c0'>Récords de la semana: "+wr.join(" · ")+"</span>"; }
   }catch(e){}
   $("trophyBody").innerHTML=h;
   // 🤖 WALLY saluda (con corona si lo encontraste en los 4 mundos)

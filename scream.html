@@ -739,6 +739,9 @@ function showStory(txt){ const s=$("story"); s.textContent=txt; s.style.display=
 // 🏆 mejor tiempo (localStorage, con try/catch)
 function fmtT(s){ s=Math.max(0,Math.floor(s)); return Math.floor(s/60)+":"+String(s%60).padStart(2,"0"); }
 function loadBest(){ try{ const v=localStorage.getItem("scream_best"); return v==null?null:parseFloat(v); }catch(e){ return null; } }
+// 📅 récord SEMANAL de escape (menor tiempo de la semana; misma clave semanal que el menú)
+function weekKey(){ const d=new Date(), j=new Date(d.getFullYear(),0,1); return d.getFullYear()+"-"+Math.floor(((d-j)/86400000+j.getDay())/7); }
+function loadSWeek(){ try{ return parseFloat(localStorage.getItem("scream_week_"+weekKey())||"0")||0; }catch(e){ return 0; } }
 function saveBest(v){ try{ localStorage.setItem("scream_best",String(v)); }catch(e){} }
 function loadWins(){ try{ return parseInt(localStorage.getItem("scream_wins")||"0",10)||0; }catch(e){ return 0; } }
 // 🏆 récord de tiempo POR DIFICULTAD
@@ -750,7 +753,8 @@ function updBest(){ const b=loadBest(), w=loadWins(), el=$("bestT"); if(!el) ret
   const med=["facil","normal","pesadilla","infierno"].map(k=>{ let got=false; try{ got=localStorage.getItem("scream_win_"+k)==="1"; }catch(e){}
     return DIFFS[k].lbl.split(" ")[0]+(got?"✔":"–"); }).join(" ");
   let crown=""; try{ if(localStorage.getItem("scream_win_pesadillaplus")==="1") crown="  ·  👑 PESADILLA+ VENCIDA"; }catch(e){}
-  el.textContent = (b==null?"🏆 Aún sin récord — ¡sé el primero en escapar!":("🏆 Mejor escape: "+fmtT(b))) + (w>0?"  ·  🚁 Escapes: "+w:"") + "  ·  🏅 "+med + crown; }
+  const sw=loadSWeek();
+  el.textContent = (b==null?"🏆 Aún sin récord — ¡sé el primero en escapar!":("🏆 Mejor escape: "+fmtT(b))) + (sw>0?"  ·  📅 esta semana: "+fmtT(sw):"") + (w>0?"  ·  🚁 Escapes: "+w:"") + "  ·  🏅 "+med + crown; }
 // 💥 grietas de vidrio roto para el jumpscare
 function crackSVG(){ let p="";
   for(let i=0;i<12;i++){ const a=i/12*6.283+Math.random()*0.4; let x=200,y=200,d="M200 200"; const steps=6, len=140+Math.random()*200;
@@ -1261,6 +1265,7 @@ function update(dt){
     craftT+=dt; cbar.style.display="block"; cbar.firstElementChild.style.width=Math.min(100,craftT/8*100)+"%";
     if(Math.random()<dt*3) snd(360+Math.random()*300,"square",0.06,0.05);
     if(craftT>=8){ won=true; running=false; const elapsed=gameTime+clockBonus-timeLeft; let best=loadBest(); const isNew=(best==null||elapsed<best); if(isNew){ best=elapsed; saveBest(best); } addWin();
+      try{ const sw=loadSWeek(); if(!sw||elapsed<sw) localStorage.setItem("scream_week_"+weekKey(),String(elapsed)); }catch(e){}   // 📅 mejor escape de la semana
       const bd=loadBestD(diff), isNewD=(bd==null||elapsed<bd); if(isNewD) saveBestD(diff,elapsed); buildDiffs();   // 🏆 récord de esta dificultad
       try{ localStorage.setItem("scream_win_"+diff,"1"); }catch(e){}   // 🏅 medalla de esta dificultad
       const winMsg="🧪 ¡Fabricaste el ANTÍDOTO y escapaste del hospital de 7 pisos! ✅"+(diff==="infierno"?"<br>🔥 <b>¡VENCISTE AL INFIERNO!</b> — con 1 corazón y 10 minutos. LEYENDA ABSOLUTA.":"")+"<br><br>⏱ Tu tiempo: <b>"+fmtT(elapsed)+"</b>"+(isNew?"<br>🏆 ¡NUEVO RÉCORD!":"<br>🏆 Mejor: <b>"+fmtT(best)+"</b>")+(isNewD?"<br>⭐ ¡MEJOR TIEMPO en "+DIFFS[diff].lbl+"!":"<br>⭐ Mejor en "+DIFFS[diff].lbl+": <b>"+fmtT(bd)+"</b>")+"<br>🚁 Escapes totales: <b>"+loadWins()+"</b>";
