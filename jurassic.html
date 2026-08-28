@@ -359,7 +359,7 @@ function spawnDinos(){
 function vibJ(p){ try{ if(navigator.vibrate) navigator.vibrate(p); }catch(e){} }
 const P={x:0,z:22,y:1.7,vy:0,onGround:true,speed:7.2};
 function jump(){ if(running && !gameOver && P.onGround){ P.vy=7.2; P.onGround=false; snd(420,"sine",0.1,0.06); } }
-let yaw=0,pitch=0,running=false,gameOver=false,tPrev=0,elapsed=0,roarT=2,stepT=0;
+let yaw=0,pitch=0,running=false,gameOver=false,tPrev=0,elapsed=0,roarT=2,stepT=0,wasInLake=false,lakeWarnCd=0;
 let jdiff="normal", jdSpeed=1, jdDmg=1, jdDet=1;
 const JDIFFS={facil:{sp:0.8,dmg:0.55,det:0.8,lbl:"🟢 FÁCIL"},normal:{sp:1,dmg:1,det:1,lbl:"🟡 NORMAL"},dificil:{sp:1.25,dmg:1.5,det:1.2,lbl:"🔴 DIFÍCIL"}};
 function buildJDiffs(){ const c=document.getElementById("jdiffs"); if(!c) return; c.innerHTML=""; for(const k of ["facil","normal","dificil"]){ const b=document.createElement("button"); b.className="diffbtn"+(jdiff===k?" sel":""); b.textContent=JDIFFS[k].lbl; b.onclick=()=>{ jdiff=k; buildJDiffs(); }; c.appendChild(b); } }
@@ -517,7 +517,12 @@ function update(dt){
 
   // hambre / sed bajan (más rápido de noche); si están en 0, baja la vida
   hunger=Math.max(0,hunger-dt*0.22); thirst=Math.max(0,thirst-dt*0.3);   // bajan MUCHO más lento
-  if(inLake(P.x,P.z,1)){ thirst=Math.min(100,thirst+dt*8); }   // beber del lago (¡pero cuidado!)
+  const inL=inLake(P.x,P.z,1);
+  if(inL){ thirst=Math.min(100,thirst+dt*8); }   // beber del lago (¡pero cuidado!)
+  // 🌊 aviso escalofriante al ENTRAR al lago (con cooldown)
+  if(lakeWarnCd>0) lakeWarnCd-=dt;
+  if(inL && !wasInLake && lakeWarnCd<=0){ lakeWarnCd=25; showStory("🌊 El agua te quita la sed... pero algo ENORME se mueve bajo la superficie."); snd(45,"sawtooth",1.4,0.08); snd(70,"sine",0.9,0.05); }
+  wasInLake=inL;
   if(hunger<=0||thirst<=0) hp=Math.max(0,hp-dt*4);
   else if(hp<100 && hunger>25 && thirst>25) hp=Math.min(100,hp+dt*1.5);
   if(invT>0) invT-=dt; if(dartCd>0) dartCd-=dt; if(placeCd>0) placeCd-=dt;
