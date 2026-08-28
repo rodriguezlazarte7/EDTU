@@ -7063,7 +7063,17 @@ function updGameRecords(){ try{
     let el2=document.getElementById("edtuLogros");
     if(!el2){ const wl2=document.getElementById("wallyHunt"); if(wl2&&wl2.parentElement){ el2=document.createElement("div"); el2.id="edtuLogros";
       el2.style.cssText="margin-top:4px;font:800 13px Consolas,monospace;color:#ffd15a;text-align:center"; wl2.parentElement.appendChild(el2); } }
-    if(el2) el2.textContent = n>=21 ? "🏆 ¡LOGROS EDTU COMPLETOS! 21/21 — ERES LEYENDA" : "🏅 Logros EDTU: "+n+"/21 (medallas + WALLYs + secretos)"; }
+    if(el2) el2.textContent = n>=21 ? "🏆 ¡LOGROS EDTU COMPLETOS! 21/21 — ERES LEYENDA" : "🏅 Logros EDTU: "+n+"/21 (medallas + WALLYs + secretos)";
+    // 👑 FIESTA ÚNICA al llegar al 21/21: lluvia de WALLYs + cartel dorado + voz + vibración (una sola vez en la vida)
+    if(n>=21){ try{ if(localStorage.getItem("edtu_legend_seen")!=="1"){ localStorage.setItem("edtu_legend_seen","1");
+      setTimeout(()=>{ try{
+        if(window._wallyRain) window._wallyRain();
+        const lm=document.createElement("div"); lm.innerHTML="👑 21/21<br>¡ERES LEYENDA DE EDTU!";
+        lm.style.cssText="position:fixed;top:30%;left:50%;transform:translateX(-50%);z-index:403;background:rgba(20,16,2,.94);border:2px solid #ffd12e;border-radius:16px;padding:18px 30px;color:#ffd12e;font:900 26px Consolas,monospace;text-align:center;box-shadow:0 0 50px rgba(255,209,46,.5)";
+        document.body.appendChild(lm); setTimeout(()=>lm.remove(),6500);
+        if(window.speechSynthesis){ const u=new SpeechSynthesisUtterance("¡Veintiuno de veintiuno! ¡Leyenda de EDTU! ¡Lo lograste, agente!"); u.lang="es-ES"; u.pitch=1.5; u.rate=1.05; u.volume=0.95; speechSynthesis.speak(u); }
+        if(navigator.vibrate) navigator.vibrate([0,100,60,100,60,100,60,400]);
+      }catch(e){} },600); } }catch(e){} } }
 }catch(e){} }
 $("lndPlay").onclick=()=>{ $("landing").classList.add("gaming"); updGameRecords(); $("gamePick").classList.add("open"); };   // PLAY = menú de TODOS los juegos
 // 🏆 SALA DE TROFEOS: todos los récords, medallas y WALLYs de los 5 juegos en un solo panel
@@ -7238,6 +7248,7 @@ $("posterFs").addEventListener("click",e=>{ if(e.target===$("posterFs")) $("post
         e2.d.style.transform="translateY("+e2.y+"px) rotate("+e2.r+"deg)"; }
       if(alive) requestAnimationFrame(anim); else { wrap.remove(); if(done) done(); } };
     requestAnimationFrame(anim); }
+  window._wallyRain=wallyRain;   // 🌧️ reutilizable para la celebración 21/21
   logo.addEventListener("click",()=>{ const now2=performance.now();
     if(now2-t0>3000){ clicks=0; t0=now2; }
     clicks++;
