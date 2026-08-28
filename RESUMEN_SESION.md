@@ -50,5 +50,10 @@
 - 🥚 Huevos de pascua: 5 clics al logo EDTU · escribir "wally" con el teclado
 - 🔊 Tick al pasar por los botones · emojis en los títulos de pestaña 🕷️🦖🧟🏎️🧩
 
+## 🎁 Tramo final de la sesión (iter 285+)
+- 🕷️ SCREAM: **Tu escape dibujado** — el edificio en 7 franjas con tu ruta piso a piso (¡trilogía de mapas de victoria completa!)
+- 🧟 NAG: **Cementerio personal** — 3 lápidas con tus últimas 3 caídas ("Aquí cayó el agente: 47 kills...")
+- 🦖 JURASSIC: **Nubes con forma** (dino/WALLY/corazón, comenta si las miras) · **🏆 FEATURE Nº 100: "La manada te acepta"** (acaricia una cría con su papá cerca → las estampidas te esquivan) · **Cocos traicioneros** 🥥 (quieto bajo un árbol = ¡TOC!... pero son comida)
+
 ## 🤖 WALLY por todos lados
 Frases x8 por juego, celebra el 21/21 con voz, escanea pisos/baterías/cajones, certifica el póster... y presume su carrera de mBots en todas partes 🏁
