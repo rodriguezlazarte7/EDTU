@@ -6569,7 +6569,17 @@ $("funShot").onclick=()=>Fun.photo();
 $("callFx").onclick=()=>Fun.cycle();
 
 // Portada: solo PLAY a la vista — el login está ESCONDIDO (escribe "hola" o toca H-O-L-A)
-$("lndPlay").onclick=()=>{ $("landing").classList.add("gaming"); $("gamePick").classList.add("open"); };   // PLAY = menú de TODOS los juegos
+// 🏆 récords guardados de cada juego (los iframes comparten localStorage del mismo dominio)
+function updGameRecords(){ try{
+  const g=(k)=>{ try{ return localStorage.getItem(k); }catch(e){ return null; } };
+  const tag=(id,txt)=>{ const b=$(id); if(!b) return; let s=b.querySelector("small"); if(!txt){ if(s) s.remove(); return; } if(!s){ s=document.createElement("small"); s.style.cssText="display:block;font-size:10px;opacity:.85;color:#ffd15a;font-weight:700"; b.appendChild(s); } s.textContent=txt; };
+  const sb=parseFloat(g("scream_best")); const sw=parseInt(g("scream_wins")||"0",10)||0;
+  tag("pickScr", isNaN(sb)?"":("🏆 "+Math.floor(sb/60)+":"+String(Math.floor(sb%60)).padStart(2,"0")+(sw?" · 🚁x"+sw:"")));
+  const jb=parseFloat(g("jurassic_best")); tag("pickJp", (jb&&jb>0)?("🏆 "+jb.toFixed(1)+" días"):"");
+  const nk=parseInt(g("nag_best_kills")||"0",10)||0; tag("pickNag", nk>0?("🏆 "+nk+" zombies"):"");
+  const fb=parseFloat(g("edtu_f1_best")); tag("pickF1", (fb&&fb>0)?("🏆 "+Math.round(fb)+" m"):"");
+}catch(e){} }
+$("lndPlay").onclick=()=>{ $("landing").classList.add("gaming"); updGameRecords(); $("gamePick").classList.add("open"); };   // PLAY = menú de TODOS los juegos
 
 /* ============ ACCESO SECRETO: "hola" -> hackeo -> bóveda -> biometría ============ */
 const Secret={
