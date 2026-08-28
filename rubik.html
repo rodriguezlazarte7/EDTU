@@ -48,6 +48,7 @@
     <button class="btn go" id="startBtn">▶ EMPEZAR CARRERA</button>
     <button class="btn done" id="listoBtn">✅ LISTO</button>
     <button class="btn" id="undoBtn" style="border-color:rgba(255,209,46,.6);color:#ffd12e">↩ DESHACER</button>
+    <button class="btn" id="hintBtn" style="border-color:rgba(143,208,255,.6);color:#8fd0ff">💡 PISTA x3</button>
   </div>
 </div>
 
@@ -182,6 +183,7 @@ function startRace(){
     else { showMsg("¡YA!","#39ff14"); snd(880,"square",0.3,0.08); setTimeout(()=>{ if(state==="race") showMsg(""); },500);
       state="race"; newScramble(); raceStart=performance.now(); setTimeout(()=>{ drawNet(); updFaces(); },120);
       histSolve.length=0; scramble.forEach(m=>histSolve.push({face:m.face,dir:m.dir})); hintsLeft=3;   // 💡 pistas listas
+      { const hb0=document.getElementById("hintBtn"); if(hb0) hb0.textContent="💡 PISTA x3"; }
       // 📜 muestra la REVOLTURA exacta: deshacerla al revés (y con giros opuestos) resuelve el cubo
       const ss=document.getElementById("scramShow");
       if(ss) ss.innerHTML="📜 Revoltura:<br>"+scramble.map(m=>m.face+(m.dir<0?"'":"")).join(" ")+"<br><span style='color:#6a86b8'>(deshazla al revés para ganar)</span>";
@@ -247,6 +249,7 @@ function hint(){ if(state!=="race"||ended) return;
   if(hintsLeft<=0){ showMsg("💡 ya usaste tus 3 pistas","#ff7ba3"); setTimeout(()=>{ if(state==="race") showMsg(""); },1600); return; }
   if(!histSolve.length) return;
   hintsLeft--; const top=histSolve[histSolve.length-1], nd=-top.dir;
+  { const hb=document.getElementById("hintBtn"); if(hb) hb.textContent="💡 PISTA x"+hintsLeft; }
   showMsg("💡 PISTA: gira "+top.face+(nd<0?"'":"")+"\n(te quedan "+hintsLeft+")","#ffd12e");
   snd(1175,"triangle",0.15,0.06);
   setTimeout(()=>{ if(state==="race") showMsg(""); },2400); }
@@ -330,6 +333,7 @@ FACE_LIST.forEach(face=>{
 document.getElementById("startBtn").onclick=startRace;
 document.getElementById("listoBtn").onclick=tryListo;
 document.getElementById("undoBtn").onclick=undoMove;
+document.getElementById("hintBtn").onclick=hint;   // 💡 pista también táctil (en celu no hay tecla T)
 // ⌨️ MODO SPEEDCUBING: teclas U D L R F B giran su cara; con SHIFT el giro es inverso ('); Z = deshacer
 addEventListener("keydown",e=>{ const k=e.key.toUpperCase();
   if(e.key==="Enter" && state!=="race" && state!=="count"){ startRace(); return; }   // ↩ REVANCHA instantánea
