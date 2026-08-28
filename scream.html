@@ -37,6 +37,9 @@
   #note.on{opacity:1}
   #note b{display:block;color:#7a1010;letter-spacing:.1em;margin-bottom:6px;font-size:12px}
   #hurt{position:absolute;inset:0;box-shadow:inset 0 0 120px 30px rgba(180,10,20,0);pointer-events:none;transition:box-shadow .1s}
+  #lowhp{position:absolute;inset:0;pointer-events:none;opacity:0;border:6px solid rgba(255,20,30,.55);box-shadow:inset 0 0 90px 18px rgba(255,10,20,.35)}
+  #lowhp.on{animation:lowbeat 1.1s infinite}
+  @keyframes lowbeat{0%,100%{opacity:.15}12%{opacity:.85}24%{opacity:.25}36%{opacity:.7}55%{opacity:.15}}
   #sflash{position:absolute;inset:0;background:#fff;opacity:0;pointer-events:none}
   #crack{position:absolute;inset:0;pointer-events:none;opacity:0;background-size:cover;background-position:center;background-repeat:no-repeat;filter:drop-shadow(0 0 2px rgba(255,255,255,.8))}
   #cross{position:absolute;top:50%;left:50%;width:5px;height:5px;margin:-2.5px;border-radius:50%;background:rgba(255,180,180,.5)}
@@ -105,6 +108,7 @@
   <div id="craft"><i></i></div>
   <div id="story"></div>
   <div id="hurt"></div>
+  <div id="lowhp"></div>
   <div id="sflash"></div>
   <div id="crack"></div>
   <div id="note"></div>
@@ -443,7 +447,9 @@ const DIFFS={facil:{sp:3.6,inv:20,time:1500,hp:4,amb:14,lbl:"🟢 FÁCIL"},norma
 const SPIDER_SC=0.62;   // araña más chica
 function buildDiffs(){ const c=$("diffs"); if(!c) return; c.innerHTML=""; for(const k of ["facil","normal","pesadilla"]){ const b=document.createElement("button"); b.className="diffbtn"+(diff===k?" sel":""); b.textContent=DIFFS[k].lbl; b.onclick=()=>{ diff=k; buildDiffs(); }; c.appendChild(b); } }
 const keys={}, moveV={x:0,y:0};
-function updHP(){ let s=""; for(let i=0;i<hpMax;i++) s+= (i<hp?"❤️":"🖤"); $("hp").textContent=s; }
+function updHP(){ let s=""; for(let i=0;i<hpMax;i++) s+= (i<hp?"❤️":"🖤"); $("hp").textContent=s;
+  const lw=$("lowhp"); if(lw) lw.classList.toggle("on", hp===1 && !gameOver);   // 💔 alerta pulsante con 1 corazón
+}
 let touchUI = window.matchMedia && !matchMedia("(pointer:fine)").matches;
 function toggleFlash(){ if(!running) return; flashOn=!flashOn; snd(flashOn?520:180,"square",0.07,0.06); showStory(flashOn?"🔦 Linterna ENCENDIDA (la araña te ve)":"🌑 Linterna APAGADA (te escondes)"); }
 function toggleNV(){ if(!running) return; if(!nvOn && visorBatt<10){ snd(150,"square",0.15,0.08); showStory("🥽 Visor sin batería — espera a que cargue"); return; } nvOn=!nvOn; snd(nvOn?900:300,"square",0.08,0.06);
@@ -539,7 +545,7 @@ function start(){ $("start").classList.add("hide"); $("end").classList.add("hide
   $("invtag").style.display="none";
   $("floor").textContent=FLOORNAME[0]; updObj(); showStory("7 pisos a oscuras. Tienes 20 min: reúne 4 válvulas + 3 muestras y fabrica el antídoto en tu zona segura.");
 }
-function endGame(win,info){ running=false; gameOver=true; sprintHeld=false; try{document.exitPointerLock();}catch(e){} $("touch").classList.remove("on"); $("tflash").classList.add("hide"); $("tnv").classList.add("hide"); $("sprint").classList.add("hide"); $("tmap").classList.add("hide"); $("tflare").classList.add("hide"); $("thelp").classList.add("hide"); mapOpen=false; $("map").classList.remove("on"); helpOpen=false; $("help").classList.remove("on");
+function endGame(win,info){ running=false; gameOver=true; sprintHeld=false; $("lowhp").classList.remove("on"); try{document.exitPointerLock();}catch(e){} $("touch").classList.remove("on"); $("tflash").classList.add("hide"); $("tnv").classList.add("hide"); $("sprint").classList.add("hide"); $("tmap").classList.add("hide"); $("tflare").classList.add("hide"); $("thelp").classList.add("hide"); mapOpen=false; $("map").classList.remove("on"); helpOpen=false; $("help").classList.remove("on");
   $("end").classList.remove("hide"); const t=$("endTitle"); if(win){ t.textContent="✓ SOBREVIVISTE"; t.className="big win"; } else { t.textContent="✕ TE ATRAPÓ"; t.className="big lose"; }
   $("endInfo").innerHTML=info; snd(win?660:60,win?"triangle":"sawtooth",0.6,0.13);
 }
