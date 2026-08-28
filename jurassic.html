@@ -458,7 +458,9 @@ function update(dt){
   // dinos
   let danger=false, nearRoar=999; const safe=inSafe(P.x,P.z);
   const detMul = isNight?1.4:1;
+  let asleep=0;
   for(const d of dinos){ const dxz=P.x-d.grp.position.x, dzz=P.z-d.grp.position.z, dd=Math.hypot(dxz,dzz);
+    if(d.sleep>0) asleep++;
     if(d.zzz){ d.zzz.visible=d.sleep>0; if(d.sleep>0) d.zzz.position.y=5+Math.sin(elapsed*3)*0.4; }   // ícono de sueño flotante
     if(d.sleep>0){ d.sleep-=dt; d.grp.rotation.z=1.4;   // 💤 dormido por el tranquilizante
       d.grp.children.forEach(ch=>{}); if(d.sleep<=0){ d.grp.rotation.z=0; showStory(d.T.name+" despertó"); } continue; }
@@ -476,6 +478,7 @@ function update(dt){
     if(d.hitCd>0) d.hitCd-=dt;
     if(!d.T.passive && dd<2.6 && d.hitCd<=0 && !safe){ d.hitCd=1.1; hurt(d.T.dmg*jdDmg, d.T.name); }
   }
+  $("ammo").textContent="💉 DARDOS: ∞"+(asleep>0?"  ·  💤 dormidos: "+asleep:"");   // contador de dinos dormidos
   // 🦖 RUGIDOS: más graves/fuertes/seguidos si hay un carnívoro cerca
   roarT-=dt; if(roarT<=0){ if(nearRoar<95){ const prox=Math.max(0,Math.min(1,(95-nearRoar)/95)); roarT=1.4+(1-prox)*4.5+Math.random()*2;
       const base=48-prox*18; snd(base,"sawtooth",0.55+prox*0.5,0.05+prox*0.13); snd(base*1.6,"square",0.25,0.03+prox*0.05); }
