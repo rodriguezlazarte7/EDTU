@@ -451,7 +451,7 @@ scene.add(tracer); let tracerT=0;
 
 // ---------- jugador ----------
 const P={x:0,z:ARENA-5,y:1.7,vy:0,onGround:true,speed:6.5,hp:100};
-let yaw=0, pitch=0, running=false, gameOver=false, tPrev=0, cluesGot=0, kills=0, muzzle=0, shootCd=0, startT=0, level="surface", heliMode=false, stepT=0, rotorT=0;
+let yaw=0, pitch=0, running=false, gameOver=false, tPrev=0, cluesGot=0, kills=0, muzzle=0, shootCd=0, startT=0, level="surface", heliMode=false, stepT=0, rotorT=0, ambT=10;
 
 // ---------- input ----------
 const keys={};
@@ -490,6 +490,17 @@ function snd(freq,type,dur,vol){ try{ AC=AC||new (window.AudioContext||window.we
   const o=AC.createOscillator(),g=AC.createGain(); o.type=type||"square"; o.frequency.value=freq;
   g.gain.setValueAtTime(vol||.08,AC.currentTime); g.gain.exponentialRampToValueAtTime(.001,AC.currentTime+(dur||.15));
   o.connect(g); g.connect(AC.destination); o.start(); o.stop(AC.currentTime+(dur||.15)+.02); }catch(e){} }
+// 🌃 sonidos ambientales nocturnos (lejanos)
+function sirenSnd(){ try{ AC=AC||new (window.AudioContext||window.webkitAudioContext)(); const t0=AC.currentTime;
+  const o=AC.createOscillator(),g=AC.createGain(); o.type="sine";
+  o.frequency.setValueAtTime(520,t0); o.frequency.linearRampToValueAtTime(760,t0+0.9); o.frequency.linearRampToValueAtTime(520,t0+1.8); o.frequency.linearRampToValueAtTime(760,t0+2.7);
+  g.gain.setValueAtTime(0.02,t0); g.gain.linearRampToValueAtTime(0.028,t0+1.4); g.gain.exponentialRampToValueAtTime(0.001,t0+3.2);
+  o.connect(g); g.connect(AC.destination); o.start(t0); o.stop(t0+3.3); }catch(e){} }
+function howlSnd(){ try{ AC=AC||new (window.AudioContext||window.webkitAudioContext)(); const t0=AC.currentTime;
+  const o=AC.createOscillator(),g=AC.createGain(); o.type="sine";
+  o.frequency.setValueAtTime(300,t0); o.frequency.linearRampToValueAtTime(560,t0+0.5); o.frequency.linearRampToValueAtTime(430,t0+1.3);
+  g.gain.setValueAtTime(0.001,t0); g.gain.linearRampToValueAtTime(0.035,t0+0.35); g.gain.exponentialRampToValueAtTime(0.001,t0+1.5);
+  o.connect(g); g.connect(AC.destination); o.start(t0); o.stop(t0+1.6); }catch(e){} }
 
 function shoot(){
   if(!running||gameOver||shootCd>0) return; shootCd=heliMode?0.07:0.18;   // metralla en el helicóptero
@@ -617,6 +628,8 @@ function update(dt){
     scene.fog.density=0.05-dayF*0.038;
     scene.background.copy(bgNight).lerp(bgDay,dayF);
     moonMesh.material.opacity=(1-dayF)*0.95; moonHalo.material.opacity=(1-dayF)*0.18;   // 🌕 la luna se ve de noche
+    // 🌃 de noche: sirena lejana o aullido de perro cada tanto
+    if(dayF<0.4){ ambT-=dt; if(ambT<=0){ ambT=18+Math.random()*22; if(Math.random()<0.5) sirenSnd(); else howlSnd(); } }
     if(dn) dn.textContent = dayF>0.5 ? "☀️ DÍA" : "🌙 NOCHE";
   }
   // zombies: ¡un toque = muerte! (solo en la SUPERFICIE; el drenaje es refugio)
