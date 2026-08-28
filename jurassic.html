@@ -162,6 +162,11 @@ const sandTex=tex(x=>{ x.fillStyle="#cdb684"; x.fillRect(0,0,256,256); for(let i
 const barkTex=tex(x=>{ x.fillStyle="#5a3a1e"; x.fillRect(0,0,256,256); for(let i=0;i<70;i++){ x.strokeStyle=`rgba(${40+Math.random()*40|0},${25+Math.random()*30|0},10,.6)`; x.lineWidth=1+Math.random()*3; x.beginPath(); const gx=Math.random()*256; x.moveTo(gx,0); x.bezierCurveTo(gx+10,80,gx-10,170,gx+5,256); x.stroke(); } },1);
 const rockTex=tex(x=>{ x.fillStyle="#6b6b6b"; x.fillRect(0,0,256,256); for(let i=0;i<2600;i++){ const g=100+Math.random()*90|0; x.fillStyle=`rgba(${g},${g},${g},.4)`; x.fillRect(Math.random()*256,Math.random()*256,2+Math.random()*4,2+Math.random()*4); } },2);
 const wallTex=tex(x=>{ x.fillStyle="#8a8f86"; x.fillRect(0,0,256,256); x.strokeStyle="rgba(60,65,60,.5)"; x.lineWidth=2; for(let y=0;y<256;y+=32){ x.beginPath();x.moveTo(0,y);x.lineTo(256,y);x.stroke(); for(let bx=(y/32)%2?0:32; bx<256; bx+=64){ x.beginPath();x.moveTo(bx,y);x.lineTo(bx,y+32);x.stroke(); } } for(let i=0;i<1400;i++){ x.fillStyle=`rgba(0,0,0,.05)`; x.fillRect(Math.random()*256,Math.random()*256,3,3); } },3);
+// 🦶 huella de dino gigante (planta ovalada + 3 dedos con garra)
+const printTex=tex(x=>{ x.clearRect(0,0,256,256); x.fillStyle="rgba(18,26,12,0.75)";
+  x.beginPath(); x.ellipse(128,168,52,64,0,0,6.28); x.fill();
+  for(const dx of [-52,0,52]){ x.beginPath(); x.ellipse(128+dx,86,20,46,dx*0.004,0,6.28); x.fill();
+    x.beginPath(); x.moveTo(128+dx-10,48); x.lineTo(128+dx,16); x.lineTo(128+dx+10,48); x.closePath(); x.fill(); } });
 
 // ---------- luces ----------
 const ambient=new THREE.AmbientLight(0x9fb0c0,0.55); scene.add(ambient);
@@ -206,6 +211,13 @@ function makeTree(x,z){ const h=5+Math.random()*5;
 function inLake(x,z,m){ return Math.hypot(x-LAKE.x,z-LAKE.z) < LAKE.r+(m||0); }
 for(let i=0;i<160;i++){ const a=Math.random()*6.28, r=Math.random()*(ISLR-14); const x=Math.cos(a)*r, z=Math.sin(a)*r; if(inLake(x,z,6)) continue; if(Math.hypot(x,z)<10) continue; makeTree(x,z); }
 
+// 🦶 RASTROS de huellas gigantes (caminos de pisadas alternadas izq/der)
+(function makeTracks(){ const pm=new THREE.MeshBasicMaterial({map:printTex,transparent:true,opacity:0.8,depthWrite:false});
+  for(let t=0;t<5;t++){ let a=Math.random()*6.28, r=20+Math.random()*(ISLR-40); let x=Math.cos(a)*r, z=Math.sin(a)*r; let dir=Math.random()*6.28;
+    for(let s=0;s<7;s++){ if(inLake(x,z,4)||Math.hypot(x,z)>ISLR-8) break;
+      const side=(s%2?1:-1); const px=x+Math.cos(dir+Math.PI/2)*side*1.4, pz=z+Math.sin(dir+Math.PI/2)*side*1.4;
+      const p=new THREE.Mesh(new THREE.PlaneGeometry(2.6,3.4),pm); p.rotation.x=-Math.PI/2; p.rotation.z=-dir+Math.PI; p.position.set(px,0.03+s*0.001,pz); scene.add(p);
+      x+=Math.cos(dir)*4.6; z+=Math.sin(dir)*4.6; dir+=(Math.random()-0.5)*0.5; } } })();
 // rocas
 for(let i=0;i<30;i++){ const a=Math.random()*6.28, r=Math.random()*(ISLR-14); const x=Math.cos(a)*r, z=Math.sin(a)*r; if(inLake(x,z,4))continue;
   const s=1+Math.random()*2.5; const rk=new THREE.Mesh(new THREE.DodecahedronGeometry(s),new THREE.MeshStandardMaterial({map:rockTex,roughness:1})); rk.position.set(x,s*0.5,z); scene.add(rk); addWall(x-s*0.6,x+s*0.6,z-s*0.6,z+s*0.6); }
