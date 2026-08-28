@@ -247,7 +247,13 @@ let wallyNSeen=false, wNBalR=null, wNBalB=null;
 })();
 // 🐕 PERRO CALLEJERO: te sigue fiel por la superficie y LADRA cuando un zombie se acerca (alerta temprana)
 const dog=new THREE.Group(); const dogM=new THREE.MeshStandardMaterial({color:0x8a6a42,roughness:.85});
-let dogTail=null, dogBarkCd=0;
+let dogTail=null, dogBarkCd=0, petCd=0, dogHappy=0, petTaught=false;
+// ❤️ acariciar al perro (E cerca de él): se alegra, cola a mil, ladrido feliz y corazón
+function petDog(){ if(petCd>0||level!=="surface"||!dog.visible) return;
+  if(Math.hypot(P.x-dog.position.x,P.z-dog.position.z)>2.4) return;
+  petCd=3; dogHappy=2.2; plusOne("❤️","#ff6a8a");
+  snd(720,"square",0.08,0.08); setTimeout(()=>snd(820,"square",0.07,0.07),140); setTimeout(()=>snd(760,"square",0.09,0.07),300);
+  try{ if(navigator.vibrate) navigator.vibrate(30); }catch(e){} }
 (function makeDog(){ const body=new THREE.Mesh(new THREE.BoxGeometry(0.32,0.3,0.62),dogM); body.position.y=0.42; dog.add(body);
   const head=new THREE.Mesh(new THREE.BoxGeometry(0.24,0.24,0.26),dogM); head.position.set(0,0.62,0.4); dog.add(head);
   const hocico=new THREE.Mesh(new THREE.BoxGeometry(0.12,0.1,0.12),new THREE.MeshStandardMaterial({color:0x4a3520,roughness:.9})); hocico.position.set(0,0.58,0.56); dog.add(hocico);
@@ -592,7 +598,7 @@ function updShieldHUD(){ const w=document.getElementById("hpwrap"); if(!w) retur
 
 // ---------- input ----------
 const keys={};
-addEventListener("keydown",e=>{ keys[e.code]=true; if(e.code==="Space"&&P.onGround&&running){P.vy=6.2;P.onGround=false;} if(e.code==="KeyE"&&running) tryDrawer(); });
+addEventListener("keydown",e=>{ keys[e.code]=true; if(e.code==="Space"&&P.onGround&&running){P.vy=6.2;P.onGround=false;} if(e.code==="KeyE"&&running){ tryDrawer(); petDog(); } });
 addEventListener("keyup",e=>{ keys[e.code]=false; });
 document.addEventListener("pointerlockchange",()=>{
   if(running && !isTouch && document.pointerLockElement!==canvas){ document.getElementById("hint").textContent="clic para volver a mirar"; }
@@ -894,6 +900,10 @@ function update(dt){
       dog.rotation.y=Math.atan2(ddx,ddz); dog.position.y=Math.abs(Math.sin(now*10))*0.06; }
     else dog.position.y*=0.9;
     if(dogTail) dogTail.rotation.y=Math.sin(now*9)*0.5;
+    // ❤️ recién acariciado: cola a MIL y saltitos de felicidad; aviso la primera vez que te acercas
+    petCd-=dt;
+    if(!petTaught && Math.hypot(P.x-dog.position.x,P.z-dog.position.z)<2.2){ petTaught=true; showStory("🐕 pulsa [E] para acariciar al perro"); }
+    if(dogHappy>0){ dogHappy-=dt; if(dogTail) dogTail.rotation.y=Math.sin(now*26)*0.9; dog.position.y=Math.abs(Math.sin(now*14))*0.12; }
     dogBarkCd-=dt;
     if(dogBarkCd<=0){ let zn=1e9; zombies.forEach(z=>{ if(z.dead)return; const zd=Math.hypot(dog.position.x-z.grp.position.x,dog.position.z-z.grp.position.z); if(zd<zn)zn=zd; });
       if(boss){ const bd2=Math.hypot(dog.position.x-boss.grp.position.x,dog.position.z-boss.grp.position.z); if(bd2<zn)zn=bd2; }
