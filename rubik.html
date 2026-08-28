@@ -216,8 +216,13 @@ function startPractice(){
   showMsg("🎓 PRÁCTICA\nresuelve a tu ritmo","#8fd0ff"); setTimeout(()=>{ if(state==="practice") showMsg(""); },2000); }
 function practiceDone(){ state="done"; confetti();
   showMsg("✅ ¡RESUELTO!\n🎓 práctica completada · 🔄 "+moveCount+" movs\n↩ Enter = otra práctica","#39ff14");
-  [523,659,784,1047].forEach((f,i)=>setTimeout(()=>snd(f,"triangle",0.22,0.08),i*120));
+  victoryTune(true);   // 🎼 versión corta para práctica
   try{ if(navigator.vibrate) navigator.vibrate([0,50,40,50,40,140]); }catch(e){} }
+// 🎼 MELODÍA DE VICTORIA: la Oda a la Alegría en versión cubo (con bajo suave una octava abajo)
+function victoryTune(short){
+  const M=short?[[659,.22],[784,.22],[1047,.3],[784,.2],[1047,.5]]
+    :[[659,.26],[659,.26],[698,.26],[784,.26],[784,.26],[698,.26],[659,.26],[587,.26],[523,.26],[523,.26],[587,.26],[659,.4],[587,.18],[587,.55]];
+  let tAcc=0; M.forEach(([fq,d3])=>{ setTimeout(()=>{ snd(fq,"triangle",d3*1.05,0.085); snd(fq/2,"sine",d3*1.1,0.03); },tAcc*1000); tAcc+=d3; }); }
 // 🎉 CONFETI de victoria: lluvia de papelitos de colores sobre toda la pantalla (~4s)
 function confetti(){ try{
   let cv=document.getElementById("confCv");
@@ -368,7 +373,7 @@ function finish(who){
     showMsg("🎉 ¡GANASTE!\n"+t+"s · 🔄 "+moveCount+" movs · 🏆 victorias: "+loadRW()+(stk>=2?"\n👑 ¡"+stk+" victorias SEGUIDAS!":"")+(isBT?"\n⏱️ ¡MEJOR TIEMPO en "+diff+"!":"\n⏱️ Tu mejor: "+bt.toFixed(1)+"s")+(isBM?"\n🔄 ¡MENOS MOVIMIENTOS QUE NUNCA!":"\n🔄 Récord movs: "+bm)+"\n🏁 "+podiumTxt(diff)+(podPos===0?" — ¡ORO!":podPos===1?" — ¡PLATA!":podPos===2?" — ¡BRONCE!":"")+(streakPMax>=3?"\n🔥 mejor racha perfecta: x"+streakPMax:""),"#39ff14");
     buildDiffs(document.getElementById("diffs")); buildDiffs(document.getElementById("introDiffs"));
     confetti();   // 🎉 lluvia de papelitos
-    [523,659,784,1047].forEach((f,i)=>setTimeout(()=>snd(f,"triangle",0.25,0.09),i*130));   // 🎺 fanfarria
+    victoryTune(false);   // 🎼 Oda a la Alegría completa
     try{ if(navigator.vibrate) navigator.vibrate([0,60,40,60,40,160]); }catch(e){}   // 📳 vibración de victoria
     startConfetti();   // 🎊
     try{ if(window.speechSynthesis){ const u=new SpeechSynthesisUtterance("¡Le ganaste a la inteligencia artificial en "+t+" segundos! ¡Eres un crack del cubo!"); u.lang="es-ES"; u.pitch=1.25; u.rate=1.1; u.volume=0.9; speechSynthesis.cancel(); setTimeout(()=>{ try{ speechSynthesis.speak(u); }catch(e){} },700); } }catch(e){} }   // 🗣️ celebración
