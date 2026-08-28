@@ -523,9 +523,11 @@ function toggleNV(){ if(!running) return; if(!nvOn && visorBatt<10){ snd(150,"sq
   $("nv").classList.toggle("on",nvOn); $("nvln").classList.toggle("on",nvOn); $("nvui").classList.toggle("on",nvOn);
   camera.fov=nvOn?40:78; camera.updateProjectionMatrix(); }
 let mapOpen=false, noteTimer, flares=3, panicWarned=false, helpOpen=false, webWarned=false; const activeFlares=[];
+// 📊 estadísticas de la partida
+let statFlares=0, statDist=0, lastPX=null, lastPZ=0; const statFloors=new Set();
 function toggleHelp(){ if(!running) return; helpOpen=!helpOpen; $("help").classList.toggle("on",helpOpen); snd(helpOpen?500:300,"square",0.05,0.05); }
 function updFlareHUD(){ const el=$("flareC"); if(el) el.textContent="🧨 x"+flares; }
-function throwFlare(){ if(!running||gameOver||flares<=0) return; flares--; updFlareHUD();
+function throwFlare(){ if(!running||gameOver||flares<=0) return; flares--; statFlares++; updFlareHUD();
   const fx=-Math.sin(yaw), fz=-Math.cos(yaw); let x=P.x+fx*7, z=P.z+fz*7; x=Math.max(-HH+2,Math.min(HH-2,x)); z=Math.max(-HH+2,Math.min(HH-2,z));
   const sp=safeSpotF(x,z,curFloor); const by=curFloor*FLOOR_H, grp=floorGroups[curFloor]||scene;
   const glow=new THREE.Mesh(new THREE.SphereGeometry(0.3,10,8),new THREE.MeshBasicMaterial({color:0xff7a1a})); glow.position.set(sp.x,by+0.3,sp.z); grp.add(glow);
@@ -613,6 +615,7 @@ function start(){ $("start").classList.add("hide"); $("end").classList.add("hide
   if(nvOn) toggleNV();
   const D=DIFFS[diff]; hpMax=D.hp; invDur=D.inv; ambushInt=D.amb; gameTime=D.time;
   spiderDead=false; valvesGot=0; samplesGot=0; craftT=0; timeLeft=gameTime; won=false; hbT=0; spiderFloor=0;
+  statFloors.clear(); statFlares=0; statDist=0; lastPX=null;   // 📊 estadísticas desde cero
   hp=hpMax; stam=100; hurtCd=0; safeTime=0; sprintHeld=false; visorBatt=100; updHP(); $("crack").style.opacity="0"; $("fade").style.background="#000"; $("fade").style.opacity="0";
   activeFlares.forEach(f=>{ if(f.parent){ f.parent.remove(f.glow); f.parent.remove(f.light); } }); activeFlares.length=0; flares=3; updFlareHUD(); panicWarned=false; webWarned=false;
   lootCorpses.forEach(lc=>{ lc.looted=false; lc.item.visible=true; });
@@ -630,7 +633,10 @@ function start(){ $("start").classList.add("hide"); $("end").classList.add("hide
 }
 function endGame(win,info){ running=false; gameOver=true; sprintHeld=false; $("lowhp").classList.remove("on"); try{document.exitPointerLock();}catch(e){} $("touch").classList.remove("on"); $("tflash").classList.add("hide"); $("tnv").classList.add("hide"); $("sprint").classList.add("hide"); $("tmap").classList.add("hide"); $("tflare").classList.add("hide"); $("thelp").classList.add("hide"); mapOpen=false; $("map").classList.remove("on"); helpOpen=false; $("help").classList.remove("on");
   const t=$("endTitle"); if(win){ t.textContent="✓ SOBREVIVISTE"; t.className="big win"; } else { t.textContent="✕ TE ATRAPÓ"; t.className="big lose"; }
-  $("endInfo").innerHTML=info; snd(win?660:60,win?"triangle":"sawtooth",0.6,0.13);
+  // 📊 resumen de la partida
+  const surv=Math.max(0,Math.floor(gameTime-timeLeft)), smm=Math.floor(surv/60), sss=surv%60;
+  $("endInfo").innerHTML=info+"<div style='margin-top:10px;font-size:13px;color:#9fb6c9;line-height:1.9'>📊 <b>ESTADÍSTICAS</b><br>⏱ Aguantaste "+smm+":"+String(sss).padStart(2,"0")+" · 🚶 "+Math.round(statDist)+" m recorridos<br>🔧 Válvulas "+valvesGot+"/4 · 🧪 Muestras "+samplesGot+"/3 · 📄 Notas "+notesGot+"/6<br>🏢 Pisos visitados "+statFloors.size+"/7 · 🧨 Bengalas usadas "+statFlares+" · ⏰ Relojes "+clocks.filter(c2=>c2.got).length+"/2</div>";
+  snd(win?660:60,win?"triangle":"sawtooth",0.6,0.13);
   if(win){ $("end").classList.remove("hide"); }
   else { // 💥 muerte con FUNDIDO ROJO sangre antes de la pantalla de fin
     snd(35,"sawtooth",1.2,0.14); const fd=$("fade");
@@ -645,6 +651,10 @@ function update(dt){
   // ⏱ contador de 20 minutos
   timeLeft-=dt; if(timeLeft<0) timeLeft=0;
   const mm=Math.floor(timeLeft/60), ss=Math.floor(timeLeft%60); const tel=$("timer"); if(tel){ tel.textContent="⏱ "+mm+":"+String(ss).padStart(2,"0"); tel.classList.toggle("warn",timeLeft<120); }
+  // 📊 pisos visitados y metros recorridos
+  statFloors.add(curFloor);
+  if(lastPX!==null) statDist+=Math.hypot(P.x-lastPX,P.z-lastPZ);
+  lastPX=P.x; lastPZ=P.z;
   // 🔥 PÁNICO: en la recta final (último 35% del tiempo) la araña se vuelve frenética
   const panic = timeLeft < gameTime*0.35 ? Math.min(1, 1-(timeLeft/(gameTime*0.35))) : 0;
   if(panic>0.02 && !panicWarned){ panicWarned=true; showStory("🕷️ Se acaba el tiempo... la araña se vuelve FRENÉTICA."); snd(80,"sawtooth",0.6,0.14); }
