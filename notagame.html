@@ -80,6 +80,7 @@
 <div class="screen" id="start">
   <div class="logo">NOT&nbsp;A&nbsp;<b>GAME</b></div>
   <div class="sub">EXPEDIENTE · CASA 13</div>
+  <div id="nagMedals" style="font:800 13px Consolas,monospace;color:#ffd15a;margin:4px 0"></div>
   <div class="case">
     Todo estaba tranquilo, una noche común. Hacía un poco de frío.<br>
     Pero en la <b>CASA 13</b> se oyó un <b>grito</b>. 🩸<br><br>
@@ -732,6 +733,11 @@ function startGame(){
   showStory("Estás en la calle frente a la CASA 13. Investiga...");
 }
 function loadNKills(){ try{ return parseInt(localStorage.getItem("nag_best_kills")||"0",10)||0; }catch(e){ return 0; } }
+// 🎖️ hitos de kills en UNA partida (medallas permanentes)
+const KILL_TH=[25,50,100,200];
+function killMedals(){ let s=""; KILL_TH.forEach(t2=>{ let got=false; try{ got=localStorage.getItem("nag_kills_"+t2)==="1"; }catch(e){} s+=(got?"🏅":"▫️")+t2+"  "; }); return s.trim(); }
+function updNagMedals(){ const el=document.getElementById("nagMedals"); if(el) el.textContent="🎖️ Hitos de una partida: "+killMedals(); }
+updNagMedals();
 // 🔥 récord de mejor RACHA
 function loadNCombo(){ try{ return parseInt(localStorage.getItem("nag_best_combo")||"0",10)||0; }catch(e){ return 0; } }
 let maxCombo=0;
@@ -752,9 +758,10 @@ function endGame(win,customInfo){
   const t=document.getElementById("endTitle"),inf=document.getElementById("endInfo");
   // 🏆 récord de zombies eliminados
   const prevK=loadNKills(); const isRec=kills>prevK; if(isRec){ try{ localStorage.setItem("nag_best_kills",String(kills)); }catch(e){} }
+  KILL_TH.forEach(t2=>{ if(kills>=t2){ try{ localStorage.setItem("nag_kills_"+t2,"1"); }catch(e){} } }); updNagMedals();   // 🎖️ hitos logrados
   const survS=Math.max(0,Math.floor(performance.now()/1000-startT)), svm=Math.floor(survS/60), svs=survS%60;
   const recTxt="<br>🧟 Eliminados: <b>"+kills+"</b>"+(isRec?" 🏆 ¡RÉCORD!":" · Récord: <b>"+prevK+"</b>")+(maxCombo>=2?"<br>🔥 Mejor racha: <b>x"+maxCombo+"</b> · Récord: <b>x"+loadNCombo()+"</b>":"")
-    +"<div style='margin-top:8px;font-size:13px;color:#9fb6c9;line-height:1.9'>📊 <b>ESTADÍSTICAS</b><br>⏱ Jugaste "+svm+":"+String(svs).padStart(2,"0")+" · 🚶 "+Math.round(nStatDist)+" m recorridos<br>🛡️ Escudos recogidos: "+nStatShields+" · 👹 Gigantes derribados: "+nStatBoss+"</div>";
+    +"<div style='margin-top:8px;font-size:13px;color:#9fb6c9;line-height:1.9'>📊 <b>ESTADÍSTICAS</b><br>⏱ Jugaste "+svm+":"+String(svs).padStart(2,"0")+" · 🚶 "+Math.round(nStatDist)+" m recorridos<br>🛡️ Escudos recogidos: "+nStatShields+" · 👹 Gigantes derribados: "+nStatBoss+"<br>🎖️ "+killMedals()+"</div>";
   if(win){ t.textContent="✓ CASO RESUELTO"; t.className="big win"; inf.innerHTML=(customInfo||"Reuniste las pistas y eliminaste el brote.<br>La ciudad está a salvo. 🏙️")+recTxt; snd(660,"triangle",0.3,0.1);
     narrate("Caso resuelto, agente. La ciudad está a salvo.");
     document.getElementById("end").classList.remove("hide"); }
