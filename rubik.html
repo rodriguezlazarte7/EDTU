@@ -62,6 +62,7 @@
   <p id="rwins" style="color:#ffd12e;font-weight:800;font-size:13px;margin-bottom:8px"></p>
   <p id="rpodium" style="color:#8fd0ff;font-weight:800;font-size:12px;margin-bottom:8px"></p>
   <p id="rdaily" style="color:#ffd88a;font-weight:800;font-size:12px;margin-bottom:8px"></p>
+  <p id="rdiary" style="color:#d9c8e8;font-size:12px;margin-bottom:8px"></p>
   <button class="btn go" id="introStart">▶ EMPEZAR</button>
   <button class="btn" id="introDaily" title="La misma revoltura para todos durante el día: compara tu tiempo con tus amigos" style="border-color:rgba(255,216,138,.7);color:#ffd88a">📅 DESAFÍO DEL DÍA</button>
   <button class="btn" id="introPractice" title="Resuelve a tu ritmo: sin IA, sin reloj, con pistas infinitas" style="border-color:rgba(143,208,255,.6);color:#8fd0ff">🎓 PRÁCTICA LIBRE</button>
@@ -162,7 +163,7 @@ function loadDaily(){ try{ return parseFloat(localStorage.getItem("rubik_daily_"
 function dailyPreview(){ try{ const rng=mulberry32(dailyKey()); const n=DIFF[diff].scr; let last=-1; const seq=[];   // misma secuencia que generará newScramble hoy
   for(let i=0;i<n;i++){ let m; do{ const r1=rng(), r2=rng(); m={face:FACE_LIST[(r1*6)|0],dir:r2<0.5?1:-1}; }while(m.face===last); last=m.face; seq.push(m.face+(m.dir<0?"'":"")); }
   return seq.join(" "); }catch(e){ return ""; } }
-function updDaily(){ const el=document.getElementById("rdaily"); if(!el) return; const v=loadDaily(); const pv=dailyPreview();
+function updDaily(){ updRDiary(); const el=document.getElementById("rdaily"); if(!el) return; const v=loadDaily(); const pv=dailyPreview();
   el.textContent=(v>0?("📅 Tu mejor de HOY: "+v.toFixed(1)+"s — ¡compáralo con tus amigos!"):"📅 Desafío del día: la misma revoltura para todos hoy — ¿quién la arma más rápido?")+(pv?"  ·  revoltura de hoy: "+pv:""); }
 function randMove(){ const r1=scrRng?scrRng():Math.random(), r2=scrRng?scrRng():Math.random(); return {face:FACE_LIST[(r1*6)|0], dir:r2<0.5?1:-1}; }
 
@@ -353,6 +354,11 @@ function saveBT(d,t){ try{ localStorage.setItem("rubik_bt_"+d,String(t)); }catch
 // 🏁 PODIO: los 3 mejores tiempos por dificultad
 function loadTop3(d){ try{ const v=JSON.parse(localStorage.getItem("rubik_top3_"+d)||"[]"); return Array.isArray(v)?v.filter(x=>typeof x==="number"):[]; }catch(e){ return []; } }
 function pushTop3(d,t){ const a=loadTop3(d); a.push(t); a.sort((x,y)=>x-y); const b=a.slice(0,3); try{ localStorage.setItem("rubik_top3_"+d,JSON.stringify(b)); }catch(e){} return b.indexOf(t); }
+// 📓 BITÁCORA DE CUBERO: últimas 3 carreras vs IA (dificultad, tiempo, giros, pistas, desafío del día, racha perfecta) en rubik_diary + "Última carrera" en el intro
+function saveRDiary(win,t){ try{ const d=new Date(); const e={date:d.getDate()+"/"+(d.getMonth()+1), diff:diff, t:+t.toFixed(1), win:!!win, moves:moveCount, hints:Math.max(0,3-(isFinite(hintsLeft)?hintsLeft:3)), daily:!!dailyMode, stk:streakPMax};
+  const a=JSON.parse(localStorage.getItem("rubik_diary")||"[]"); a.unshift(e); localStorage.setItem("rubik_diary",JSON.stringify(a.slice(0,3))); }catch(err){} }
+function rDiaryLine(e){ return "🧩 "+e.diff+" · ⏱ "+e.t+"s · 🔄 "+e.moves+" giros"+(e.hints?" · 💡 "+e.hints+(e.hints>1?" pistas":" pista"):" · 💡 sin pistas")+(e.daily?" · 📅 desafío del día":"")+(e.stk>=3?" · 🔥 x"+e.stk:"")+(e.win?" · ✓ ganaste":" · 🤖 ganó la IA"); }
+function updRDiary(){ const el=document.getElementById("rdiary"); if(!el) return; try{ const a=JSON.parse(localStorage.getItem("rubik_diary")||"[]"); if(!a.length){ el.textContent=""; return; } el.textContent="📓 Última carrera ("+a[0].date+"): "+rDiaryLine(a[0]); }catch(err){ el.textContent=""; } }
 function podiumTxt(d){ const a=loadTop3(d); if(!a.length) return ""; return a.map((t,i)=>["🥇","🥈","🥉"][i]+" "+t.toFixed(1)+"s").join("  "); }
 function updPodium(){ const el=document.getElementById("rpodium"); if(!el) return; const p=podiumTxt(diff); el.textContent=p?("🏁 PODIO "+(DIFF[diff]&&DIFF[diff].lbl?DIFF[diff].lbl:diff)+": "+p):""; }
 // 🔄 récord de MENOS movimientos por dificultad
@@ -384,6 +390,7 @@ function finish(who){
     const tf=parseFloat(t), bt=loadBT(diff), isBT=!bt||tf<bt; if(isBT) saveBT(diff,tf);   // ⏱️ ¿nuevo mejor tiempo?
     const bm=loadBM(diff), isBM=!bm||moveCount<bm; if(isBM) saveBM(diff,moveCount);   // 🔄 ¿menos movimientos que nunca?
     const podPos=pushTop3(diff,tf);   // 🏁 ¿entra al podio?
+    saveRDiary(true,tf);   // 📓 bitácora
     let dailyNew=false; if(dailyMode){ try{ const dv=loadDaily(); if(!dv||tf<dv){ localStorage.setItem("rubik_daily_"+dailyKey(),String(tf)); dailyNew=true; } }catch(e){} updDaily(); }   // 📅 mejor del día
     const stk=loadStreak()+1; saveStreak(stk);   // 👑 sigue la racha
     if(diff==="imposible") setTimeout(()=>{ try{ if(window.speechSynthesis){ const u2=new SpeechSynthesisUtterance("¡¿Qué?! ¡Nadie me había ganado en imposible! Eres una leyenda."); u2.lang="es-ES"; u2.pitch=1.6; u2.rate=1.15; u2.volume=0.8; speechSynthesis.speak(u2); } }catch(e){} },1500);   // 💀 shock de la IA (🐛FIX ronda2: sin cancel(), se ENCOLA tras la celebración en vez de cortarla a mitad de frase)
@@ -394,7 +401,7 @@ function finish(who){
     try{ if(navigator.vibrate) navigator.vibrate([0,60,40,60,40,160]); }catch(e){}   // 📳 vibración de victoria
     startConfetti();   // 🎊
     try{ if(window.speechSynthesis){ const u=new SpeechSynthesisUtterance("¡Le ganaste a la inteligencia artificial en "+t+" segundos! ¡Eres un crack del cubo!"); u.lang="es-ES"; u.pitch=1.25; u.rate=1.1; u.volume=0.9; speechSynthesis.cancel(); setTimeout(()=>{ try{ speechSynthesis.speak(u); }catch(e){} },700); } }catch(e){} }   // 🗣️ celebración
-  else { const hadStk=loadStreak(); saveStreak(0); try{ localStorage.setItem("rubik_losses",String(loadRL()+1)); }catch(e){}   // 👑 se corta la racha + 📊 derrota anotada
+  else { const hadStk=loadStreak(); saveStreak(0); saveRDiary(false,parseFloat(t)); try{ localStorage.setItem("rubik_losses",String(loadRL()+1)); }catch(e){}   // 👑 se corta la racha + 📊 derrota anotada
     state="race";   // 🧩 puedes SEGUIR resolviendo de práctica aunque la IA haya ganado
     showMsg("🤖 Ganó la IA"+(hadStk>=2?"\n👑 Adiós a tu racha de "+hadStk+"...":"")+"\nPuedes seguir resolviendo de práctica","#ff7ba3"); [400,300,220].forEach((f,i)=>setTimeout(()=>snd(f,"sawtooth",0.3,0.07),i*180));
     aiWinT=4.5; setTimeout(()=>aiSay("¡Gané! Inténtalo otra vez, humano."),700); }   // 🤖 vuelta de la victoria + burla
