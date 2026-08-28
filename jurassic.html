@@ -590,6 +590,11 @@ function drawJRadar(){ const c=document.getElementById("jradar"); if(!c) return;
   const plot=(wx,wz)=>{ const ox=wx-P.x,oz=wz-P.z, rgt=ox*cos-oz*sin, fwd=-ox*sin-oz*cos; return [cx+rgt*sc, cy-fwd*sc]; };
   function marker(wx,wz,col){ let p=plot(wx,wz); const d=Math.hypot(p[0]-cx,p[1]-cy); if(d>R-3){ const a=Math.atan2(p[1]-cy,p[0]-cx); p=[cx+Math.cos(a)*(R-4),cy+Math.sin(a)*(R-4)]; } g.fillStyle=col; g.beginPath(); g.arc(p[0],p[1],3,0,6.28); g.fill(); }
   marker(SH.x,SH.z,"#4aa8ff"); marker(RADIO.x,RADIO.z,"#ff4ad0");
+  // 🫐🐣🤖 puntos de interés (solo dentro del alcance, sin fijar al borde)
+  const poi=(wx,wz,col,r2)=>{ const p=plot(wx,wz); if(Math.hypot(p[0]-cx,p[1]-cy)>R-3) return; g.fillStyle=col; g.beginPath(); g.arc(p[0],p[1],r2,0,6.28); g.fill(); };
+  for(const bb of berryBushes){ if(bb.ripe) poi(bb.x,bb.z,"#ff5a8a",2.4); }
+  for(const ns of nests){ if(!ns.hatched) poi(ns.x,ns.z,"#ffd12e",2.4); }
+  if(Math.sin(elapsed*6)>0) poi(wally.position.x,wally.position.z,"#4aa8ff",2.8);
   for(const d of dinos){ const p=plot(d.grp.position.x,d.grp.position.z); if(Math.hypot(p[0]-cx,p[1]-cy)>R) continue; if(!d.T.passive){ g.shadowColor="#f00"; g.shadowBlur=6; } g.fillStyle=d.T.passive?"#7dff5a":"#ff3a3a"; g.beginPath(); g.arc(p[0],p[1],3.2,0,6.28); g.fill(); g.shadowBlur=0; }
   const fx=-sin,fz=-cos; g.fillStyle="#ffd12e"; g.beginPath(); g.moveTo(cx+fx*7,cy+fz*7); g.lineTo(cx-fz*5-fx*4,cy+fx*5-fz*4); g.lineTo(cx+fz*5-fx*4,cy-fx*5-fz*4); g.closePath(); g.fill(); }
 function update(dt){
