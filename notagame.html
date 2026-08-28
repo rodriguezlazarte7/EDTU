@@ -1043,6 +1043,15 @@ let nPhoto=false;   // 📸 modo foto (F2)
 function togglePhotoN(){ nPhoto=!nPhoto; document.body.classList.toggle("photo",nPhoto); showStory(nPhoto?"📸 MODO FOTO — HUD oculto · F2 para volver":"📸 modo foto apagado"); }
 // 🗣️ voz de narrador (grave, para el final del caso)
 function narrate(txt){ try{ if(!window.speechSynthesis) return; const u=new SpeechSynthesisUtterance(txt); u.lang="es-ES"; u.pitch=0.5; u.rate=0.9; u.volume=0.85; speechSynthesis.cancel(); speechSynthesis.speak(u); }catch(e){} }
+// 📤 COMPARTIR el resultado del DESAFÍO DEL DÍA desde la pantalla de fin: share nativo en móvil; si no, portapapeles (fallback textarea)
+async function shareText(txt,btn,lbl){ const done=()=>{ btn.textContent="✅ COPIADO — ¡a retar amigos!"; setTimeout(()=>{ btn.textContent=lbl; },2200); [660,880].forEach((f,i)=>setTimeout(()=>snd(f,"triangle",0.12,0.06),i*110)); try{ if(navigator.vibrate) navigator.vibrate(40); }catch(e){} };
+  try{ if(navigator.share){ await navigator.share({text:txt}); done(); return; } }catch(e){ if(e&&e.name==="AbortError") return; }
+  try{ await navigator.clipboard.writeText(txt); done(); return; }catch(e){}
+  try{ const ta=document.createElement("textarea"); ta.value=txt; ta.style.position="fixed"; ta.style.opacity="0"; document.body.appendChild(ta); ta.select(); document.execCommand("copy"); document.body.removeChild(ta); done(); }catch(e){ btn.textContent="❌ no se pudo copiar"; setTimeout(()=>{ btn.textContent=lbl; },2000); } }
+function nShareBtn(win,inf){ try{ const d=new Date();
+  const txt="📅 Desafío NAG del "+d.getDate()+"/"+(d.getMonth()+1)+": "+kills+" zombies y "+cluesGot+"/7 pistas"+(win?" (caso resuelto ✓)":"...")+" ¿me ganas? 👉 www.edtu.cl/notagame.html (📅 DESAFÍO DEL DÍA)";
+  const lbl="📤 COMPARTIR MI DESAFÍO"; const sb=document.createElement("button"); sb.className="btn"; sb.style.cssText="margin-top:10px;font-size:12px;display:block;margin-left:auto;margin-right:auto"; sb.textContent=lbl; sb.onclick=()=>shareText(txt,sb,lbl);
+  setTimeout(()=>{ try{ inf.appendChild(sb); }catch(e){} },0); }catch(e){} }   // al final, después del mapa de la investigación
 function endGame(win,customInfo){
   running=false; gameOver=true; document.body.classList.remove("playing");
   // 🐛FIX auditoría: si pausabas durante el cierre cinematográfico, el overlay de PAUSA quedaba tapando la pantalla final (softlock en móvil)
@@ -1069,7 +1078,7 @@ function endGame(win,customInfo){
     let caseTxt=""; { const pc=loadNCase(); const isCR=(pc==null||survS<pc);
       if(isCR){ try{ localStorage.setItem("nag_best_case",String(survS)); }catch(e){} }
       caseTxt="<br>⏱ Caso resuelto en <b>"+fmtCase(survS)+"</b>"+(isCR?" 🏆 ¡CASO MÁS RÁPIDO!":" · Récord: <b>"+fmtCase(pc)+"</b>"); }
-    inf.innerHTML=(customInfo||"Reuniste las pistas y eliminaste el brote.<br>La ciudad está a salvo. 🏙️")+caseTxt+recTxt; snd(660,"triangle",0.3,0.1);
+    inf.innerHTML=(customInfo||"Reuniste las pistas y eliminaste el brote.<br>La ciudad está a salvo. 🏙️")+caseTxt+recTxt; if(dailyN) nShareBtn(true,inf); snd(660,"triangle",0.3,0.1);
     // 🗺️ TU INVESTIGACIÓN DIBUJADA: mini-mapa de la ciudad con la ruta del caso
     try{ const mp=document.createElement("canvas"); mp.width=300; mp.height=300; mp.style.cssText="display:block;margin:10px auto 0;border:1px solid rgba(120,200,255,.35);border-radius:10px;background:#070510";
       const g3=mp.getContext("2d"); const K3=140/ARENA, C3=150;
@@ -1085,7 +1094,7 @@ function endGame(win,customInfo){
       inf.appendChild(mp); inf.appendChild(cap); }catch(e){}
     narrate("Caso resuelto, agente. La ciudad está a salvo.");
     document.getElementById("end").classList.remove("hide"); }
-  else { t.textContent="✕ FIN"; t.className="big lose"; inf.innerHTML=(customInfo||("Los zombies te alcanzaron en la oscuridad.<br>Pistas: <b>"+cluesGot+"/7</b>"))+recTxt; snd(60,"sawtooth",0.6,0.12); snd(35,"sawtooth",1.2,0.14);
+  else { t.textContent="✕ FIN"; t.className="big lose"; inf.innerHTML=(customInfo||("Los zombies te alcanzaron en la oscuridad.<br>Pistas: <b>"+cluesGot+"/7</b>"))+recTxt; if(dailyN) nShareBtn(false,inf); snd(60,"sawtooth",0.6,0.12); snd(35,"sawtooth",1.2,0.14);
     try{ const gr=JSON.parse(localStorage.getItem("nag_graves")||"[]");   // 🪦 nueva lápida con esta caída
       gr.unshift({k:kills,c:cluesGot,d:new Date().toLocaleDateString("es-CL")});
       localStorage.setItem("nag_graves",JSON.stringify(gr.slice(0,3))); }catch(e){}

@@ -5661,7 +5661,7 @@ const F1={
     if(('ontouchstart' in window)||navigator.maxTouchPoints>0) $("f1Fs").classList.add("touch");
     this.resize(); window.addEventListener("resize",this._rs=()=>this.resize());
     this.best=+(localStorage.getItem("edtu_f1_best")||0);
-    $("f1Overlay").style.display="flex"; $("f1Msg").textContent="🏎️ F1 RB RUSH";
+    $("f1Overlay").style.display="flex"; $("f1Msg").textContent="🏎️ F1 RB RUSH"; { const oldS=$("f1ShareBtn"); if(oldS) oldS.remove(); }
     // 🎨 GARAJE: carga tu color guardado y pinta los botones
     try{ const ci=parseInt(localStorage.getItem("edtu_f1_car")||"0",10)||0; this._carCol=F1_CARS[ci]||F1_CARS[0]; f1BuildGarage(); }catch(e){}
     // 🪞 MODO ESPEJO: se desbloquea con la medalla de 10 km
@@ -5945,6 +5945,10 @@ const F1={
       try{ if(window.speechSynthesis){ const u=new SpeechSynthesisUtterance("¡Nuevo récord! ¡"+m+" metros! ¡Increíble carrera!"); u.lang="es-ES"; u.pitch=1.35; u.rate=1.15; u.volume=0.95; speechSynthesis.cancel(); setTimeout(()=>{ try{ speechSynthesis.speak(u); }catch(e){} },500); } }catch(e){} }
     $("f1Overlay").style.display="flex";
     $("f1Msg").textContent="💥 ¡CHOCASTE!";
+    // 📤 COMPARTIR el resultado si la carrera fue DESAFÍO DEL DÍA (botón único, se reemplaza en cada choque)
+    { const old=$("f1ShareBtn"); if(old) old.remove(); if(this._daily){ try{ const d=new Date(); const txt="📅 Desafío F1 del "+d.getDate()+"/"+(d.getMonth()+1)+": "+m+" m con el clima de hoy"+(this._kBeat?" y vencí a KÓNDOR 🦅":"")+" ¿me ganas? 👉 www.edtu.cl (📅 DESAFÍO DEL DÍA)";
+      const lbl="📤 COMPARTIR MI DESAFÍO"; const sb=document.createElement("button"); sb.id="f1ShareBtn"; sb.className="btn btn-ghost"; sb.style.cssText="margin-top:8px;font-size:12px"; sb.textContent=lbl; sb.onclick=()=>shareTxtF1(txt,sb,lbl);
+      setTimeout(()=>{ try{ $("f1Overlay").appendChild(sb); }catch(e){} },0); }catch(e){} } }
     // 📈 récords históricos de velocidad y adelantamientos
     let histTxt="";
     try{ const pms=+(localStorage.getItem("edtu_f1_maxspd")||0), pov=+(localStorage.getItem("edtu_f1_overt")||0);
@@ -6794,6 +6798,11 @@ function f1BuildGarage(){ const gd=$("f1Garage"); if(!gd) return; gd.innerHTML="
     b.onclick=()=>{ try{ localStorage.setItem("edtu_f1_car",String(i)); }catch(e){} F1._carCol=F1_CARS[i]; f1BuildGarage();
       try{ const a=F1.actx(); if(a){ const o=a.createOscillator(),g=a.createGain(); o.type="triangle"; o.frequency.value=520+i*80; g.gain.value=0.07; o.connect(g); g.connect(a.destination); o.start(); o.stop(a.currentTime+0.12); } }catch(e){} };
     gd.appendChild(b); }); }
+// 📤 COMPARTIR (F1): share nativo en móvil; si no, portapapeles (fallback textarea)
+async function shareTxtF1(txt,btn,lbl){ const done=()=>{ btn.textContent="✅ COPIADO — ¡a retar amigos!"; setTimeout(()=>{ btn.textContent=lbl; },2200); try{ if(navigator.vibrate) navigator.vibrate(40); }catch(e){} };
+  try{ if(navigator.share){ await navigator.share({text:txt}); done(); return; } }catch(e){ if(e&&e.name==="AbortError") return; }
+  try{ await navigator.clipboard.writeText(txt); done(); return; }catch(e){}
+  try{ const ta=document.createElement("textarea"); ta.value=txt; ta.style.position="fixed"; ta.style.opacity="0"; document.body.appendChild(ta); ta.select(); document.execCommand("copy"); document.body.removeChild(ta); done(); }catch(e){ btn.textContent="❌ no se pudo copiar"; setTimeout(()=>{ btn.textContent=lbl; },2000); } }
 // 📅 botón DESAFÍO DEL DÍA de F1 (mismo clima y tráfico para todos hoy; guarda tus metros de hoy)
 { const db=$("f1Daily"); const setTxt=()=>{ let on=false; try{ on=localStorage.getItem("edtu_f1_daily_on")==="1"; }catch(e){} db.textContent="📅 DESAFÍO DEL DÍA: "+(on?"SÍ ✔":"NO"); };
   if(db){ setTxt(); db.onclick=()=>{ try{ const on=localStorage.getItem("edtu_f1_daily_on")==="1"; localStorage.setItem("edtu_f1_daily_on",on?"0":"1"); }catch(e){} setTxt(); }; } }
