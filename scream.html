@@ -274,7 +274,7 @@ const NOTE_SPOTS=[
  {f:5,x:-HH+16,z:-HH+16,h:"DÍA 32",t:"Se vuelve invisible por rachas. Solo el visor térmico la detecta. NO uses la linterna si no quieres que te encuentre."},
  {f:6,x:0,z:HH-16,h:"ÚLTIMO REGISTRO",t:"La máquina de la zona segura es la única salida. Si lees esto... corre. Y no dejes que te encuentre."}
 ];
-const valves=[], samples=[], notes=[]; let valvesGot=0, samplesGot=0, notesGot=0, craftT=0, timeLeft=1200, won=false;
+const valves=[], samples=[], notes=[]; let valvesGot=0, samplesGot=0, notesGot=0, craftT=0, timeLeft=1200, won=false, allAnn=false;
 const glassZones=[]; let glassWarned=false;   // 🍾 vidrios rotos
 // 🪳 CUCARACHAS (pool de 6): salen disparadas de los cadáveres cuando te acercas
 const roaches=[]; const roachM=new THREE.MeshStandardMaterial({color:0x2a1c10,roughness:.8});
@@ -679,7 +679,12 @@ function crackSVG(){ let p="";
   return "data:image/svg+xml;utf8,"+encodeURIComponent(svg); }
 function doCrack(){ const c=$("crack"); if(!c) return; c.style.transition="none"; c.style.backgroundImage="url(\""+crackSVG()+"\")"; c.style.opacity="0.95";
   requestAnimationFrame(()=>{ c.style.transition="opacity 0.8s"; c.style.opacity="0"; }); }
-function updObj(){ const done=valvesGot>=4&&samplesGot>=3; $("obj").textContent = done ? "🧪 ¡Todo listo! Ve a la MÁQUINA en tu ZONA SEGURA (planta baja) y fabrica el antídoto" : ("🧪 ANTÍDOTO — válvulas "+valvesGot+"/4 · muestras "+samplesGot+"/3 (en los 7 pisos)"); }
+function updObj(){ const done=valvesGot>=4&&samplesGot>=3; $("obj").textContent = done ? "🧪 ¡Todo listo! Ve a la MÁQUINA en tu ZONA SEGURA (planta baja) y fabrica el antídoto" : ("🧪 ANTÍDOTO — válvulas "+valvesGot+"/4 · muestras "+samplesGot+"/3 (en los 7 pisos)");
+  // 🗣️ LA MÁQUINA TE LLAMA: al juntar todo, habla una sola vez con fanfarria épica
+  if(done && !allAnn){ allAnn=true;
+    [523,659,784,1047,1319].forEach((fq,k)=>setTimeout(()=>snd(fq,"triangle",0.22,0.09),k*110)); vib([0,60,40,60,40,120]);
+    setTimeout(()=>{ machineSay("Componentes completos. Ven a mí, planta baja. Te estoy esperando."); },700);
+    showStory("🗣️ La MÁQUINA te llama desde la planta baja..."); } }
 function fade(fn){ const f=$("fade"); f.style.opacity="1"; setTimeout(()=>{ fn&&fn(); f.style.opacity="0"; },250); }
 function goFloor(nf){ if(nf<0||nf>=FLOORS) return;
   [0,140,290,450].forEach((ms,k)=>setTimeout(()=>snd(90+k*8,"triangle",0.09,0.05),ms));   // 🪜 eco metálico de escalones
@@ -718,7 +723,7 @@ function start(){ $("start").classList.add("hide"); $("end").classList.add("hide
   P.x=0; P.z=HH-7; yaw=Math.PI; pitch=0; running=true; gameOver=false; tPrev=performance.now(); flashOn=true; curFloor=0; floorCd=0;
   if(nvOn) toggleNV();
   const D=DIFFS[diff]; hpMax=D.hp; invDur=D.inv; ambushInt=D.amb; gameTime=D.time;
-  spiderDead=false; valvesGot=0; samplesGot=0; craftT=0; timeLeft=gameTime; won=false; hbT=0; spiderFloor=0;
+  spiderDead=false; valvesGot=0; samplesGot=0; craftT=0; timeLeft=gameTime; won=false; hbT=0; spiderFloor=0; allAnn=false;
   statFloors.clear(); statFlares=0; statDist=0; lastPX=null;   // 📊 estadísticas desde cero
   manqF=Math.floor(Math.random()*FLOORS); placeManq(false); manqT=6; manqMoveT=25; manqSting=false;   // 🧍 maniquí nuevo
   phoneActive=false; phoneT=35+Math.random()*35; placePhone();   // 📞 teléfono nuevo
