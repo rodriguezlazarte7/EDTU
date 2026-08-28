@@ -7129,8 +7129,15 @@ function buildTrophies(){ try{
   $("trophyBody").innerHTML=h;
   // 🤖 WALLY saluda (con corona si lo encontraste en los 4 mundos)
   { const wb=document.getElementById("wallyBot"), ws=document.getElementById("wallySpeech");
-    if(wb) wb.textContent = wallys>=4 ? "👑🤖" : "🤖";
-    if(ws) ws.textContent = wallys>=4 ? "«¡Encontraste TODOS mis escondites! Esta sala brilla gracias a ti»" : "«Bienvenido a tu sala, agente. Yo cuido tus trofeos»"; }
+    // 🎩 adorno ESTACIONAL según el mes (calendario chileno: invierno jun-ago, patrias sep, primavera oct-nov... y sustos)
+    let seas="", seasMsg=""; try{ const mo=new Date().getMonth();
+      if(mo===11||mo===0){ seas="🎅"; seasMsg="¡felices fiestas, agente! ho-ho-beep"; }
+      else if(mo===6||mo===7){ seas="🧣"; seasMsg="brrr... ¡frío de invierno! menos mal soy de metal"; }
+      else if(mo===8){ seas="🇨🇱"; seasMsg="¡viva Chile! 🍢 ¿un anticucho de tuercas?"; }
+      else if(mo===9){ seas="🎃"; seasMsg="mes de sustos... como SCREAM jeje"; }
+      else if(mo===2||mo===3){ seas="🍂"; seasMsg="hojitas de otoño chileno... ¡me encanta pisarlas! crunch-beep"; } }catch(e){}
+    if(wb) wb.textContent=(wallys>=4?"👑":"")+seas+"🤖";
+    if(ws) ws.textContent = wallys>=4 ? "«¡Encontraste TODOS mis escondites! Esta sala brilla gracias a ti»" : (seasMsg?"«"+seasMsg+"»":"«Bienvenido a tu sala, agente. Yo cuido tus trofeos»"); }
 }catch(e){ $("trophyBody").textContent="(error cargando trofeos)"; } }
 $("pickTrophies").onclick=()=>{ buildTrophies(); $("trophyFs").style.display="flex"; };
 $("trophyClose").onclick=()=>{ $("trophyFs").style.display="none"; };
@@ -7213,6 +7220,9 @@ $("posterFs").addEventListener("click",e=>{ if(e.target===$("posterFs")) $("post
     if(/dino|jurassic|isla/.test(q)) return "truco: la fogata 🔥 espanta dinos y cura... y en la orilla del lago se puede PESCAR 🎣";
     if(/zombie|zombi/.test(q)) return "truco: con 5 pistas se activa la TORRETA del helipuerto 🤖🔫 ¡y el gato espanta zombies!";
     if(/k[óo]ndor|auto|f1/.test(q)) return "KÓNDOR aparece a los 1500m... tócale la bocina con H 📯 jaja";
+    if(/navidad|viejito pascuero/.test(q)) return "🎅 en diciembre me pongo el gorrito... ¡WALLY-noel reparte beeps de regalo!";
+    if(/fr[íi]o|invierno/.test(q)) return "🧣 brrr, el invierno chileno congela mis circuitos... por suerte en JURASSIC hay fogata 🔥";
+    if(/chile|fiestas patrias|dieciocho|cueca/.test(q)) return "🇨🇱 ¡viva Chile! en septiembre bailo cueca-robot 🕺 beep-beep";
     return pick(["beep-boop... no entendí 🤔 pregúntame por chistes, juegos, récords o trucos","mis circuitos no procesaron eso... ¡prueba con 'chiste'!","*gira la cabeza confundido* ¿me hablas de juegos, récords o chistes?"]); }
   catch(e){ return "beep... error de circuitos jaja"; } }
   function sendWally(){ const q=inp.value.trim(); if(!q) return; inp.value=""; wallyType(wallyReply(q)); }
