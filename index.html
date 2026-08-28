@@ -1581,6 +1581,7 @@
     <div id="f1Result" style="font-size:15px"></div>
     <button class="btn btn-primary" id="f1Start" style="font-size:17px;padding:12px 28px">▶ CORRER</button>
     <button class="btn btn-ghost" id="f1Mirror" title="Curvas invertidas · récords desactivados" style="display:none;margin-top:8px">🪞 ESPEJO: NO</button>
+    <button class="btn btn-ghost" id="f1Daily" title="Mismo clima y misma secuencia de tráfico para todos hoy · compara metros con tus amigos" style="margin-top:8px">📅 DESAFÍO DEL DÍA: NO</button>
     <div style="margin-top:10px;font:700 12px Consolas,monospace;color:#8fd0ff">🎨 GARAJE — elige tu color</div>
     <div id="f1Garage" style="margin-top:6px;display:flex;gap:8px;justify-content:center"></div>
   </div>
@@ -5668,7 +5669,7 @@ const F1={
       mb.style.display=unlocked?"inline-block":"none";
       this._mirror=unlocked&&localStorage.getItem("edtu_f1_mirror")==="1"; this._mir=this._mirror?-1:1;
       mb.textContent="🪞 ESPEJO: "+(this._mirror?"SÍ ✔":"NO"); } }catch(e){}
-    $("f1Result").innerHTML="Vista Need for Speed · ←→ o A/D conducir · 🔥 NITRO: espacio / Y / RT / botón · franjas verdes = DRS<br>⏸ <b>P</b> pausa · ↵ <b>Enter</b> correr otra vez · 📯 <b>H</b> claxon (¡los rivales se apartan!) · ¡Cuidado con las CURVAS ⚠️, el pasto y las 🏍️ motos!<br>🌧️ lluvia · 🌙 día y noche · 🚇 túneles · 🛸 zepelín · 🤖 WALLY cada 1500 m · ⚡ combo de adelantamientos · ⏱️ sectores de 2000 m (🟢 = récord) · 🦅 KÓNDOR te reta a los 1500 m · 🔧 PIT STOP cada 3000 m (pégate a la derecha: 2s lento, sales con nitro lleno y +5%)<br>🏆 Récord: <b>"+Math.round(this.best)+"</b> m<br>🎖️ "+this.medals()+(function(){ try{ return localStorage.getItem("edtu_f1_ghost")?"<br>👻 el FANTASMA de tu récord te espera en la pista... ¡véncelo!":""; }catch(e){ return ""; } })()+(function(){ try{ const w=parseInt(localStorage.getItem("edtu_f1_kondor_w")||"0",10)||0, l=parseInt(localStorage.getItem("edtu_f1_kondor_l")||"0",10)||0; return (w||l)?"<br>⚔️ vs 🦅 KÓNDOR: <b>"+w+"-"+l+"</b>":""; }catch(e){ return ""; } })()+(function(){ try{ const bs=parseFloat(localStorage.getItem("edtu_f1_sector")||"0")||0; return bs>0?" · ⏱️ mejor sector: <b>"+bs.toFixed(1)+"s</b>":""; }catch(e){ return ""; } })()+(function(){ try{ const pw=parseFloat(localStorage.getItem("edtu_f1_week_"+F1.wkKey())||"0")||0; return pw>0?"<br>📅 mejor de esta semana: <b>"+Math.round(pw)+" m</b>":""; }catch(e){ return ""; } })()+F1.diaryLine();
+    $("f1Result").innerHTML="Vista Need for Speed · ←→ o A/D conducir · 🔥 NITRO: espacio / Y / RT / botón · franjas verdes = DRS<br>⏸ <b>P</b> pausa · ↵ <b>Enter</b> correr otra vez · 📯 <b>H</b> claxon (¡los rivales se apartan!) · ¡Cuidado con las CURVAS ⚠️, el pasto y las 🏍️ motos!<br>🌧️ lluvia · 🌙 día y noche · 🚇 túneles · 🛸 zepelín · 🤖 WALLY cada 1500 m · ⚡ combo de adelantamientos · ⏱️ sectores de 2000 m (🟢 = récord) · 🦅 KÓNDOR te reta a los 1500 m · 🔧 PIT STOP cada 3000 m (pégate a la derecha: 2s lento, sales con nitro lleno y +5%)<br>🏆 Récord: <b>"+Math.round(this.best)+"</b> m<br>🎖️ "+this.medals()+(function(){ try{ return localStorage.getItem("edtu_f1_ghost")?"<br>👻 el FANTASMA de tu récord te espera en la pista... ¡véncelo!":""; }catch(e){ return ""; } })()+(function(){ try{ const w=parseInt(localStorage.getItem("edtu_f1_kondor_w")||"0",10)||0, l=parseInt(localStorage.getItem("edtu_f1_kondor_l")||"0",10)||0; return (w||l)?"<br>⚔️ vs 🦅 KÓNDOR: <b>"+w+"-"+l+"</b>":""; }catch(e){ return ""; } })()+(function(){ try{ const bs=parseFloat(localStorage.getItem("edtu_f1_sector")||"0")||0; return bs>0?" · ⏱️ mejor sector: <b>"+bs.toFixed(1)+"s</b>":""; }catch(e){ return ""; } })()+(function(){ try{ const pw=parseFloat(localStorage.getItem("edtu_f1_week_"+F1.wkKey())||"0")||0; return pw>0?"<br>📅 mejor de esta semana: <b>"+Math.round(pw)+" m</b>":""; }catch(e){ return ""; } })()+F1.dailyLine()+F1.diaryLine();
     this.draw();
   },
   close(){
@@ -5685,7 +5686,8 @@ const F1={
     this._spawnT=0; this._nextDrs=500; this._drsEnd=0; this.running=true; this._tPrev=performance.now();
     this.cdT=3.4; this._cdStep=4;   // 🚦 cuenta regresiva de largada
     this._lastKm=0;   // 🏁 arcos de km
-    this._wRain=0; this._wRainOn=false; this._wRainT=30+Math.random()*40;   // 🌧️ clima
+    try{ this._daily=localStorage.getItem("edtu_f1_daily_on")==="1"; }catch(e){ this._daily=false; } this._drng=this._daily?this._mul(this.dailyKey()):null;   // 📅 DESAFÍO DEL DÍA: clima y tráfico salen de la semilla de la fecha
+    this._wRain=0; this._wRainOn=false; this._wRainT=30+this._rnd()*40;   // 🌧️ clima
     this.pickups=[]; this._nextPick=400;   // ⚡ recargas de nitro en pista
     this._ovCombo=0; this._ovT=0; this._ovMsgT=0; this._ovMax=0;   // 🔥 combo de adelantamientos
     this._raceT=0; this._secStart=0; this._nextSec=2000; this._secMsg=""; this._secMsgT=0; this._secGreen=false;   // ⏱️ sectores de 2000 m
@@ -5792,7 +5794,7 @@ const F1={
         try{ const a=this.actx(); if(a){ [880,1175,1568].forEach((fq,i)=>{ const o=a.createOscillator(),g=a.createGain(); o.type="triangle"; o.frequency.value=fq; g.gain.value=0.09; o.connect(g); g.connect(a.destination); o.start(a.currentTime+i*0.08); o.stop(a.currentTime+i*0.08+0.12); }); } }catch(e){} } }
     // 🌧️ CLIMA: a ratos llueve — el locutor avisa, cae un trueno de vez en cuando y la pista RESBALA
     this._wRainT-=dt;
-    if(this._wRainT<=0){ this._wRainOn=!this._wRainOn; this._wRainT=this._wRainOn?(15+Math.random()*12):(45+Math.random()*45);
+    if(this._wRainT<=0){ this._wRainOn=!this._wRainOn; this._wRainT=this._wRainOn?(15+this._rnd()*12):(45+this._rnd()*45);
       if(this._wRainOn){ try{ if(window.speechSynthesis){ const u=new SpeechSynthesisUtterance("¡Está lloviendo! Cuidado en las curvas."); u.lang="es-ES"; u.pitch=1.3; u.rate=1.1; speechSynthesis.cancel(); speechSynthesis.speak(u); } }catch(e){} } }
     this._wRain+=((this._wRainOn?1:0)-this._wRain)*Math.min(1,dt*0.8);
     this.rainSndUpd();   // 🌧️ sonido de lluvia sigue la intensidad
@@ -5891,7 +5893,7 @@ const F1={
       const LX=[-0.66,-0.22,0.22,0.66];
       const COLS=[["#a10d1f","#e8b6b6"],["#d8d8d8","#555"],["#ff7b1e","#3a2413"],["#1673ff","#bfe0ff"],["#12c48b","#0a3d2c"]];
       const isMoto=Math.random()<0.2;   // 🏍️ 20% son MOTOS: más rápidas pero más flacas
-      this.cars.push({ x:LX[Math.floor(Math.random()*4)], z:this.dist+260+Math.random()*160,
+      this.cars.push({ x:LX[Math.floor(this._rnd()*4)], z:this.dist+260+this._rnd()*160,
         v:(isMoto?(150+Math.random()*70):(115+Math.random()*80))/3.6, col:COLS[Math.floor(Math.random()*COLS.length)], moto:isMoto });
     }
     for(let i=this.cars.length-1;i>=0;i--){
@@ -5928,7 +5930,7 @@ const F1={
     if(this.shake>0) this.shake=Math.max(0,this.shake-dt*22);
     if(this._ovT>0){ this._ovT-=dt; if(this._ovT<=0) this._ovCombo=0; }   // 🔥 la racha expira
     this.draw();
-    $("f1Hud").textContent="⚡ "+Math.round(this.speed)+" km/h · 📏 "+(this.dist>=1000?(this.dist/1000).toFixed(2)+" km":Math.round(this.dist)+" m")+" · 🏁 "+this.overt+(this.drs?" · 🟢 DRS":"")+(this._wRain>0.4?" · 🌧️ LLUVIA":"")+(this._inTun?" · 🚇 TÚNEL":(this._nightF>0.5?" · 🌙 NOCHE":""))+(this._ghBeat?" · 👻 ¡SUPERADO!":"")+(this._mirror?" · 🪞 ESPEJO":"")+(this._pitBoostT>0?" · 🔧 +5%":"");
+    $("f1Hud").textContent="⚡ "+Math.round(this.speed)+" km/h · 📏 "+(this.dist>=1000?(this.dist/1000).toFixed(2)+" km":Math.round(this.dist)+" m")+" · 🏁 "+this.overt+(this.drs?" · 🟢 DRS":"")+(this._wRain>0.4?" · 🌧️ LLUVIA":"")+(this._inTun?" · 🚇 TÚNEL":(this._nightF>0.5?" · 🌙 NOCHE":""))+(this._ghBeat?" · 👻 ¡SUPERADO!":"")+(this._mirror?" · 🪞 ESPEJO":"")+(this._pitBoostT>0?" · 🔧 +5%":"")+(this._daily?" · 📅":"");
   },
   crash(){
     try{ if(navigator.vibrate) navigator.vibrate([0,120,60,180]); }catch(e){}   // 📳 golpe de choque
@@ -5982,12 +5984,18 @@ const F1={
     if(moved){ setTimeout(()=>{ try{ const a2=this.actx(); if(a2&&Math.random()<0.6){ const o2=a2.createOscillator(),g2=a2.createGain(); o2.type="square"; o2.frequency.value=330; g2.gain.value=0.05; o2.connect(g2); g2.connect(a2.destination); o2.start(); o2.stop(a2.currentTime+0.18); } }catch(e){} },420); } },
   // 📅 clave de la semana actual (misma fórmula que el progreso semanal del menú)
   wkKey(){ const d=new Date(), j=new Date(d.getFullYear(),0,1); return d.getFullYear()+"-"+Math.floor(((d-j)/86400000+j.getDay())/7); },
-  saveWeek(m){ this.saveDiary(m); if(this._mirror) return; try{ const k="edtu_f1_week_"+this.wkKey(); const pw=parseFloat(localStorage.getItem(k)||"0")||0; if(m>pw) localStorage.setItem(k,String(m)); }catch(e){} },
+  saveWeek(m){ this.saveDiary(m); if(this._mirror) return; try{ const k="edtu_f1_week_"+this.wkKey(); const pw=parseFloat(localStorage.getItem(k)||"0")||0; if(m>pw) localStorage.setItem(k,String(m)); }catch(e){}
+    if(this._daily){ try{ const k2="edtu_f1_daily_"+this.dailyKey(); const pd=parseFloat(localStorage.getItem(k2)||"0")||0; if(m>pd) localStorage.setItem(k2,String(m)); }catch(e){} } },   // 📅 más metros de HOY
+  // 📅 DESAFÍO DEL DÍA: rng propio (semilla = fecha) usado SOLO en clima y tráfico; la pista es fija y el día/noche va por distancia, así que "las mismas condiciones para todos hoy"
+  _mul(a){ return function(){ a|=0; a=a+0x6D2B79F5|0; let t=Math.imul(a^a>>>15,1|a); t=t+Math.imul(t^t>>>7,61|t)^t; return ((t^t>>>14)>>>0)/4294967296; }; },
+  _rnd(){ return this._drng?this._drng():Math.random(); },
+  dailyKey(){ const d=new Date(); return d.getFullYear()*10000+(d.getMonth()+1)*100+d.getDate(); },
+  dailyLine(){ try{ const pd=parseFloat(localStorage.getItem("edtu_f1_daily_"+this.dailyKey())||"0")||0; return pd>0?"<br>📅 mejor de HOY (desafío del día): <b>"+Math.round(pd)+" m</b>":""; }catch(e){ return ""; } },
   // 🏁 DIARIO DE CARRERA: últimas 3 carreras (metros, sectores, pits, DRS, KÓNDOR, espejo, noche/lluvia) en edtu_f1_diary
-  saveDiary(m){ try{ const d=new Date(); const e={date:d.getDate()+"/"+(d.getMonth()+1), m:m, sec:Math.max(0,Math.round((this._nextSec-2000)/2000)), pit:this._pitN||0, drs:this._drsN||0, kondor:this._kSpawned?(this._kBeat?"W":(this._kDone?"L":"")):"", mirror:!!this._mirror, night:(this._nightF||0)>0.5, rain:(this._wRain||0)>0.4};
+  saveDiary(m){ try{ const d=new Date(); const e={date:d.getDate()+"/"+(d.getMonth()+1), m:m, sec:Math.max(0,Math.round((this._nextSec-2000)/2000)), pit:this._pitN||0, drs:this._drsN||0, kondor:this._kSpawned?(this._kBeat?"W":(this._kDone?"L":"")):"", mirror:!!this._mirror, daily:!!this._daily, night:(this._nightF||0)>0.5, rain:(this._wRain||0)>0.4};
     const a=JSON.parse(localStorage.getItem("edtu_f1_diary")||"[]"); a.unshift(e); localStorage.setItem("edtu_f1_diary",JSON.stringify(a.slice(0,3))); }catch(e){} },
   diaryLine(){ try{ const a=JSON.parse(localStorage.getItem("edtu_f1_diary")||"[]"); if(!a.length) return ""; const e=a[0];
-    return "<br>🏁 Última carrera ("+e.date+"): <b>"+e.m+" m</b> · ⏱️ "+e.sec+" sector"+(e.sec===1?"":"es")+" · 🔧 "+e.pit+" pit"+(e.drs?" · 🟢 DRS ×"+e.drs:"")+(e.kondor==="W"?" · 🦅 KÓNDOR vencido":e.kondor==="L"?" · 🦅 KÓNDOR escapó":"")+(e.night?" · 🌙":"")+(e.rain?" · 🌧️":"")+(e.mirror?" · 🪞":""); }catch(e){ return ""; } },
+    return "<br>🏁 Última carrera ("+e.date+"): <b>"+e.m+" m</b> · ⏱️ "+e.sec+" sector"+(e.sec===1?"":"es")+" · 🔧 "+e.pit+" pit"+(e.drs?" · 🟢 DRS ×"+e.drs:"")+(e.kondor==="W"?" · 🦅 KÓNDOR vencido":e.kondor==="L"?" · 🦅 KÓNDOR escapó":"")+(e.night?" · 🌙":"")+(e.rain?" · 🌧️":"")+(e.daily?" · 📅":"")+(e.mirror?" · 🪞":""); }catch(e){ return ""; } },
   // 🎖️ medallas por distancia en UNA carrera (1/3/5/10 km, permanentes)
   medals(){ let s=""; [1000,3000,5000,10000].forEach(t2=>{ let got=false; try{ got=localStorage.getItem("edtu_f1_km_"+t2)==="1"; }catch(e){}
     s+=(got?"🏅":"▫️")+(t2/1000)+"km "; }); return s.trim(); },
@@ -6786,6 +6794,9 @@ function f1BuildGarage(){ const gd=$("f1Garage"); if(!gd) return; gd.innerHTML="
     b.onclick=()=>{ try{ localStorage.setItem("edtu_f1_car",String(i)); }catch(e){} F1._carCol=F1_CARS[i]; f1BuildGarage();
       try{ const a=F1.actx(); if(a){ const o=a.createOscillator(),g=a.createGain(); o.type="triangle"; o.frequency.value=520+i*80; g.gain.value=0.07; o.connect(g); g.connect(a.destination); o.start(); o.stop(a.currentTime+0.12); } }catch(e){} };
     gd.appendChild(b); }); }
+// 📅 botón DESAFÍO DEL DÍA de F1 (mismo clima y tráfico para todos hoy; guarda tus metros de hoy)
+{ const db=$("f1Daily"); const setTxt=()=>{ let on=false; try{ on=localStorage.getItem("edtu_f1_daily_on")==="1"; }catch(e){} db.textContent="📅 DESAFÍO DEL DÍA: "+(on?"SÍ ✔":"NO"); };
+  if(db){ setTxt(); db.onclick=()=>{ try{ const on=localStorage.getItem("edtu_f1_daily_on")==="1"; localStorage.setItem("edtu_f1_daily_on",on?"0":"1"); }catch(e){} setTxt(); }; } }
 $("f1Mirror").onclick=()=>{ try{ const on=localStorage.getItem("edtu_f1_mirror")==="1"; localStorage.setItem("edtu_f1_mirror",on?"0":"1");
   F1._mirror=!on; F1._mir=F1._mirror?-1:1; $("f1Mirror").textContent="🪞 ESPEJO: "+(F1._mirror?"SÍ ✔":"NO");
   try{ const a=F1.actx(); if(a){ const o=a.createOscillator(),g=a.createGain(); o.type="triangle"; o.frequency.value=F1._mirror?880:440; g.gain.value=0.08; o.connect(g); g.connect(a.destination); o.start(); o.stop(a.currentTime+0.14); } }catch(e){}
@@ -7194,16 +7205,16 @@ function buildTrophies(){ try{
       if(wr.length) h+="<br><span style='color:#9fd8c0'>Récords de la semana: "+wr.join(" · ")+"</span>"; }
   }catch(e){}
   // 📅 DESAFÍOS DE HOY: mejores tiempos del día en el cubo (misma revoltura) y en SCREAM (mismo edificio)
-  try{ const dd=new Date(), dk=dd.getFullYear()*10000+(dd.getMonth()+1)*100+dd.getDate(); const dv=parseFloat(g("rubik_daily_"+dk)||"0")||0, sv=parseFloat(g("scream_daily_"+dk)||"0")||0, jv=parseFloat(g("jurassic_daily_"+dk)||"0")||0, nv=parseInt(g("nag_daily_"+dk)||"0",10)||0; const dp=[], miss=[];
-    if(dv>0) dp.push("🧩 "+dv.toFixed(1)+"s"); else miss.push("🧩 el cubo"); if(sv>0) dp.push("🕷️ "+fmtMS(sv)); else miss.push("🕷️ SCREAM"); if(jv>0) dp.push("🦖 "+jv.toFixed(1)+" días"); else miss.push("🦖 JURASSIC"); if(nv>0) dp.push("🧟 "+nv+" kills"); else miss.push("🧟 NAG");
-    if(dp.length) h+="<div style='margin-top:8px;color:#ffd88a'><b>📅 DESAFÍOS DE HOY</b></div>"+dp.join(" · ")+(miss.length?"<span style='color:#9fb6c9'> · te falta"+(miss.length>1?"n":"")+" "+miss.join(", ")+"</span>":" · ¡los cuatro! 🏅"); }catch(e){}
+  try{ const dd=new Date(), dk=dd.getFullYear()*10000+(dd.getMonth()+1)*100+dd.getDate(); const dv=parseFloat(g("rubik_daily_"+dk)||"0")||0, sv=parseFloat(g("scream_daily_"+dk)||"0")||0, jv=parseFloat(g("jurassic_daily_"+dk)||"0")||0, nv=parseInt(g("nag_daily_"+dk)||"0",10)||0, fv=parseFloat(g("edtu_f1_daily_"+dk)||"0")||0; const dp=[], miss=[];
+    if(dv>0) dp.push("🧩 "+dv.toFixed(1)+"s"); else miss.push("🧩 el cubo"); if(sv>0) dp.push("🕷️ "+fmtMS(sv)); else miss.push("🕷️ SCREAM"); if(jv>0) dp.push("🦖 "+jv.toFixed(1)+" días"); else miss.push("🦖 JURASSIC"); if(nv>0) dp.push("🧟 "+nv+" kills"); else miss.push("🧟 NAG"); if(fv>0) dp.push("🏎️ "+Math.round(fv)+" m"); else miss.push("🏎️ F1");
+    if(dp.length) h+="<div style='margin-top:8px;color:#ffd88a'><b>📅 DESAFÍOS DE HOY</b></div>"+dp.join(" · ")+(miss.length?"<span style='color:#9fb6c9'> · te falta"+(miss.length>1?"n":"")+" "+miss.join(", ")+"</span>":" · ¡los cinco! 🏅"); }catch(e){}
   // 📖 ÚLTIMAS AVENTURAS: la entrada más reciente de cada diario (jurassic_diary / scream_diary / nag_diary)
   try{ const rd=k=>{ try{ const a=JSON.parse(g(k)||"[]"); return a.length?a[0]:null; }catch(e){ return null; } };
     const jd=rd("jurassic_diary"), sd=rd("scream_diary"), nd=rd("nag_diary"); const la=[];
     if(jd) la.push("🦖 "+jd.date+": "+jd.days+" días"+(jd.fish?" · 🐟 "+jd.fish:"")+(jd.pack?" · 🐾 manada":"")+(jd.egg?" · 🥚":"")+" · "+(jd.hits?"🩹 "+jd.hits:"🛡️ sin heridas")+(jd.daily?" · 📅":"")+(jd.win?" ✓":""));
     if(sd) la.push("🕷️ "+sd.date+": "+fmtMS(sd.t)+" · 🔧 "+sd.v+"/4 · 🧪 "+sd.s+"/3 · 👁️ "+sd.spot+" apariciones · "+(sd.bites?"🩸 "+sd.bites:"🛡️ sin mordidas")+(sd.daily?" · 📅":"")+(sd.win?" ✓":""));
     if(nd) la.push("🧟 "+nd.date+": "+nd.kills+" kills · 📜 "+nd.clues+"/7 · 🌙 "+nd.nights+(nd.drvz?" · 🧪 Dr. VZ":"")+(nd.cat?" · 🐱":"")+(nd.daily?" · 📅":"")+(nd.win?" ✓":""));
-    const fd=rd("edtu_f1_diary"); if(fd) la.push("🏎️ "+fd.date+": "+fd.m+" m · ⏱️ "+fd.sec+" sectores · 🔧 "+fd.pit+" pit"+(fd.drs?" · 🟢 DRS ×"+fd.drs:"")+(fd.kondor==="W"?" · 🦅 vencido":fd.kondor==="L"?" · 🦅 escapó":"")+(fd.mirror?" · 🪞":""));
+    const fd=rd("edtu_f1_diary"); if(fd) la.push("🏎️ "+fd.date+": "+fd.m+" m · ⏱️ "+fd.sec+" sectores · 🔧 "+fd.pit+" pit"+(fd.drs?" · 🟢 DRS ×"+fd.drs:"")+(fd.kondor==="W"?" · 🦅 vencido":fd.kondor==="L"?" · 🦅 escapó":"")+(fd.daily?" · 📅":"")+(fd.mirror?" · 🪞":""));
     const cd=rd("rubik_diary"); if(cd) la.push("🧩 "+cd.date+": "+cd.diff+" · "+cd.t+"s · 🔄 "+cd.moves+" giros"+(cd.hints?" · 💡 "+cd.hints:"")+(cd.daily?" · 📅":"")+(cd.win?" ✓":" · 🤖 ganó la IA"));
     if(la.length) h+="<div style='margin-top:8px;color:#e8d9a8'><b>📖 ÚLTIMAS AVENTURAS</b></div>"+la.join("<br>"); }catch(e){}
   $("trophyBody").innerHTML=h;
@@ -7325,8 +7336,8 @@ $("posterFs").addEventListener("click",e=>{ if(e.target===$("posterFs")) $("post
       const wp=[]; if(fw>0) wp.push("🏎️ "+Math.round(fw)+" m"); if(jw>0) wp.push("🦖 "+jw.toFixed(1)+" días"); if(nw>0) wp.push("🧟 "+nw+" kills"); if(sw>0) wp.push("🕷️ escape en "+Math.floor(sw/60)+":"+String(Math.floor(sw%60)).padStart(2,"0"));
       return wp.length?"📅 esta semana llevas "+wp.join(", ")+" — ¡el lunes se reinicia, aprovecha!":"📅 esta semana aún no tienes récords... ¡todo por lograr antes del lunes! 💪"; }catch(e){ return "📅 beep... mi calendario se trabó"; } }
     if(/desaf[íi]o|diario|de hoy|hoy/.test(q)){ try{ const d=new Date(), dk=d.getFullYear()*10000+(d.getMonth()+1)*100+d.getDate(); const dv=parseFloat(g("rubik_daily_"+dk)||"0")||0, sv=parseFloat(g("scream_daily_"+dk)||"0")||0;
-      const jv=parseFloat(g("jurassic_daily_"+dk)||"0")||0; const dp=[]; if(dv>0) dp.push("🧩 cubo en "+dv.toFixed(1)+"s"); if(sv>0) dp.push("🕷️ escape en "+Math.floor(sv/60)+":"+String(Math.floor(sv%60)).padStart(2,"0")); if(jv>0) dp.push("🦖 "+jv.toFixed(1)+" días en la isla"); const nv=parseInt(g("nag_daily_"+dk)||"0",10)||0; if(nv>0) dp.push("🧟 "+nv+" kills en la ciudad de hoy");
-      return dp.length?"📅 tus DESAFÍOS DEL DÍA: "+dp.join(", ")+" — ¡reta a tus amigos a batirlos: hoy todos tienen la misma revoltura, el mismo edificio, la misma isla y la misma ciudad!"+(dp.length>=4?" ¡los cuatro! 🏅":" (te falta"+(dp.length===3?"":"n")+" "+(4-dp.length)+" 😉)"):"📅 ¡hoy aún no hiciste ningún DESAFÍO DEL DÍA! el cubo tiene la misma revoltura para todos, SCREAM el mismo edificio, JURASSIC la misma isla y NAG la misma ciudad... ¿quién es más rápido?"; }catch(e){ return "📅 los desafíos del día te esperan en el cubo 🧩 y en SCREAM 🕷️"; } }
+      const jv=parseFloat(g("jurassic_daily_"+dk)||"0")||0; const dp=[]; if(dv>0) dp.push("🧩 cubo en "+dv.toFixed(1)+"s"); if(sv>0) dp.push("🕷️ escape en "+Math.floor(sv/60)+":"+String(Math.floor(sv%60)).padStart(2,"0")); if(jv>0) dp.push("🦖 "+jv.toFixed(1)+" días en la isla"); const nv=parseInt(g("nag_daily_"+dk)||"0",10)||0; if(nv>0) dp.push("🧟 "+nv+" kills en la ciudad de hoy"); const fv=parseFloat(g("edtu_f1_daily_"+dk)||"0")||0; if(fv>0) dp.push("🏎️ "+Math.round(fv)+" m con el clima de hoy");
+      return dp.length?"📅 tus DESAFÍOS DEL DÍA: "+dp.join(", ")+" — ¡reta a tus amigos a batirlos: hoy todos tienen la misma revoltura, el mismo edificio, la misma isla, la misma ciudad y el mismo clima en la pista!"+(dp.length>=5?" ¡los cinco! 🏅":" (te falta"+(dp.length===4?"":"n")+" "+(5-dp.length)+" 😉)"):"📅 ¡hoy aún no hiciste ningún DESAFÍO DEL DÍA! el cubo tiene la misma revoltura para todos, SCREAM el mismo edificio, JURASSIC la misma isla, NAG la misma ciudad y F1 el mismo clima... ¿quién es más rápido?"; }catch(e){ return "📅 los desafíos del día te esperan en el cubo 🧩 y en SCREAM 🕷️"; } }
     return pick(["beep-boop... no entendí 🤔 pregúntame por chistes, juegos, récords o trucos","mis circuitos no procesaron eso... ¡prueba con 'chiste'!","*gira la cabeza confundido* ¿me hablas de juegos, récords o chistes?"]); }
   catch(e){ return "beep... error de circuitos jaja"; } }
   function sendWally(){ const q=inp.value.trim(); if(!q) return; inp.value=""; wallyType(wallyReply(q)); }
