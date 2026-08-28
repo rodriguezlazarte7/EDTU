@@ -465,6 +465,11 @@ const shadowFig=new THREE.Group();
   const h2=new THREE.Mesh(new THREE.SphereGeometry(0.26,10,8),sm2); h2.position.y=1.92; shadowFig.add(h2);
   shadowFig.visible=false; scene.add(shadowFig); }
 let shadowT=35, shadowMove=0, shadowDir=1;
+// 💧 GOTERAS visibles: gotas que caen del techo en puntos fijos
+const drips=[]; const dripM=new THREE.MeshBasicMaterial({color:0x9fc8d8,transparent:true,opacity:0.75});
+for(let i=0;i<12;i++){ const fl2=i%FLOORS; const dx2=(Math.random()*2-1)*(HH-8), dz2=(Math.random()*2-1)*(HH-8);
+  const d2=new THREE.Mesh(new THREE.SphereGeometry(0.05,6,5),dripM); d2.scale.y=2.6; d2.position.set(dx2,fl2*FLOOR_H+HHY-0.4,dz2);
+  (floorGroups[fl2]||scene).add(d2); drips.push({m:d2,f:fl2,x:dx2,z:dz2,y:HHY-0.4,v:0,wait:Math.random()*4}); }
 // 🐀 RATAS decorativas que corretean por los pisos (con chillidos)
 const rats=[];
 (function makeRats(){ const rm=new THREE.MeshStandardMaterial({color:0x24201e,roughness:.95});
@@ -754,6 +759,12 @@ function update(dt){
   // 🧨 registrar cadáveres con bengala
   for(const lc of lootCorpses){ if(lc.looted||lc.f!==curFloor) continue;
     if(Math.hypot(P.x-lc.x,P.z-lc.z)<1.6){ lc.looted=true; lc.item.visible=false; flares++; updFlareHUD(); snd(640,"triangle",0.18,0.08); showStory("🧨 Registraste el cadáver: +1 bengala"); } }
+  // 💧 goteras: la gota espera, cae con gravedad y "plink" al tocar el suelo
+  for(const dp of drips){ if(dp.f!==curFloor) continue;
+    if(dp.wait>0){ dp.wait-=dt; continue; }
+    dp.v+=16*dt; dp.y-=dp.v*dt; dp.m.position.y=dp.f*FLOOR_H+Math.max(0.05,dp.y);
+    if(dp.y<=0.05){ if(Math.hypot(P.x-dp.x,P.z-dp.z)<16) snd(880+Math.random()*350,"sine",0.06,0.03);
+      dp.y=HHY-0.4; dp.v=0; dp.wait=2+Math.random()*5; dp.m.position.y=dp.f*FLOOR_H+dp.y; } }
   // 👤 la SOMBRA cruza el pasillo a lo lejos (solo se insinúa — nunca la alcanzas)
   shadowT-=dt;
   if(shadowT<=0 && !shadowFig.visible){ shadowT=40+Math.random()*35;
