@@ -7164,8 +7164,8 @@ function buildPoster(){ try{
     ["🕷️ SCREAM", (isNaN(parseFloat(g("scream_best")))?"— sin escape aún":"escape "+fmtMS(parseFloat(g("scream_best")))+" · 🚁x"+(g("scream_wins")||0))+(g("scream_win_pesadillaplus")==="1"?" · 👑":"")],
     ["🦖 JURASSIC", ((parseFloat(g("jurassic_best"))||0)>0?"récord "+parseFloat(g("jurassic_best")).toFixed(1)+" días":"— sin récord aún")+(g("jurassic_egg")==="1"?" · 🥚":"")],
     ["🧟 NOT A GAME", "kills "+(g("nag_best_kills")||0)+(g("nag_best_case")!=null?" · caso "+fmtMS(parseInt(g("nag_best_case"),10)):"")],
-    ["🏎️ F1 RB RUSH", ((parseFloat(g("edtu_f1_best"))||0)>0?Math.round(parseFloat(g("edtu_f1_best")))+" m":"— sin récord aún")+((g("edtu_f1_kondor_w")||g("edtu_f1_kondor_l"))?" · ⚔️🦅 "+(parseInt(g("edtu_f1_kondor_w")||"0",10))+"-"+(parseInt(g("edtu_f1_kondor_l")||"0",10)):"")],
-    ["🧩 CUBO 3x3", "victorias "+(g("rubik_wins")||0)+(rbBT>0?" · mejor ⏱"+rbBT.toFixed(1)+"s":"")]
+    ["🏎️ F1 RB RUSH", ((parseFloat(g("edtu_f1_best"))||0)>0?Math.round(parseFloat(g("edtu_f1_best")))+" m":"— sin récord aún")+((g("edtu_f1_kondor_w")||g("edtu_f1_kondor_l"))?" · ⚔️🦅 "+(parseInt(g("edtu_f1_kondor_w")||"0",10))+"-"+(parseInt(g("edtu_f1_kondor_l")||"0",10)):"")+((parseFloat(g("edtu_f1_sector"))||0)>0?" · sector "+parseFloat(g("edtu_f1_sector")).toFixed(1)+"s":"")],
+    ["🧩 CUBO 3x3", "victorias "+(g("rubik_wins")||0)+(rbBT>0?" · mejor ⏱"+rbBT.toFixed(1)+"s":"")+((parseInt(g("rubik_best_streakP")||"0",10)||0)>=3?" · 🔥x"+parseInt(g("rubik_best_streakP"),10):"")]
   ];
   let y0=232;
   for(const [t2,v] of rows){
