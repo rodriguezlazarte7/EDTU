@@ -179,6 +179,13 @@ const camera=new THREE.PerspectiveCamera(78,1,0.1,300); camera.rotation.order="Y
 function resize(){ renderer.setSize(innerWidth,innerHeight); camera.aspect=innerWidth/innerHeight; camera.updateProjectionMatrix(); }
 addEventListener("resize",resize); resize();
 function snd(f,t,d,v){ try{ const a=snd.ctx||(snd.ctx=new (AudioContext||webkitAudioContext)()); const o=a.createOscillator(),g=a.createGain(); o.type=t||"sine"; o.frequency.value=f; o.connect(g); g.connect(a.destination); g.gain.value=v||0.1; o.start(); g.gain.exponentialRampToValueAtTime(0.0001,a.currentTime+(d||0.2)); o.stop(a.currentTime+(d||0.2)); }catch(e){} }
+// 😮‍💨 JADEO: soplo de aire (ruido filtrado) — se usa cuando te quedas sin aliento
+function breath(vol){ try{ const a=snd.ctx||(snd.ctx=new (AudioContext||webkitAudioContext)());
+  const len=Math.floor(a.sampleRate*0.22), buf=a.createBuffer(1,len,a.sampleRate), d=buf.getChannelData(0);
+  for(let i=0;i<len;i++){ const env=Math.sin(Math.PI*i/len); d[i]=(Math.random()*2-1)*env; }
+  const src=a.createBufferSource(); src.buffer=buf;
+  const fl=a.createBiquadFilter(); fl.type="bandpass"; fl.frequency.value=850+Math.random()*250; fl.Q.value=0.9;
+  const g=a.createGain(); g.gain.value=vol||0.05; src.connect(fl); fl.connect(g); g.connect(a.destination); src.start(); }catch(e){} }
 // 😨 SUSURROS ininteligibles (blips agudos apagados en ráfaga, como voces lejanas)
 function whisper(){ for(let i=0;i<6;i++){ setTimeout(()=>{ snd(500+Math.random()*700,"sine",0.05+Math.random()*0.06,0.012+Math.random()*0.018); }, i*90+Math.random()*60); } }
 // 🗣️ voz robótica de la MÁQUINA (speechSynthesis, grave y lenta)
@@ -507,7 +514,7 @@ for(let i=0;i<3;i++){ const b=makeSpider(); b.grp.scale.setScalar(0.22);
 // ---------- jugador / input ----------
 const P={x:0,z:HH-7,y:1.7};
 let yaw=Math.PI,pitch=0,running=false,gameOver=false,tPrev=0,flashOn=true,nvOn=false,curFloor=0,floorCd=0,prevRT=false,prevLT=false;
-let hp=3, hpMax=3, hurtCd=0, stam=100, sprintHeld=false, safeTime=0, visorBatt=100, stepT=0;
+let hp=3, hpMax=3, hurtCd=0, stam=100, sprintHeld=false, safeTime=0, visorBatt=100, stepT=0, breathT=0.3;
 function vib(p){ try{ if(navigator.vibrate) navigator.vibrate(p); }catch(e){} }
 let diff="normal", invDur=30, ambushInt=10, gameTime=1200;
 const DIFFS={facil:{sp:3.6,inv:20,time:1500,hp:4,amb:14,lbl:"🟢 FÁCIL"},normal:{sp:4.4,inv:30,time:1200,hp:3,amb:10,lbl:"🟡 NORMAL"},pesadilla:{sp:5.4,inv:40,time:900,hp:2,amb:8,lbl:"🔴 PESADILLA"}};
@@ -677,6 +684,8 @@ function update(dt){
   if(moving && !mapOpen){ stepT-=dt; if(stepT<=0){ stepT=sprinting?0.28:0.46; snd(66+Math.random()*16,"sine",0.09,0.05); snd(150,"triangle",0.05,0.025); } } else stepT=0.12;
   stam = Math.max(0,Math.min(100, stam + (sprinting?-dt*26:dt*17)));   // stamina
   const stI=$("stam").firstElementChild; if(stI) stI.style.width=stam+"%"; $("stam").style.opacity=(stam<99||sprinting)?"1":"0.35";
+  // 😮‍💨 con la stamina baja JADEAS: respiración agitada, más rápida y fuerte mientras menos aire te queda
+  if(stam<35){ breathT-=dt; if(breathT<=0){ const ag=1-stam/35; breathT=0.62-ag*0.24; breath(0.03+ag*0.05); } } else breathT=0.3;
   let inWeb=false; for(const w of webTraps){ if(w.f===curFloor && Math.hypot(P.x-w.x,P.z-w.z)<w.r){ inWeb=true; break; } }
   if(inWeb && !webWarned){ webWarned=true; showStory("🕸️ ¡TELARAÑA PEGAJOSA! Te frena — sal rápido y mira por dónde pisas"); snd(150,"square",0.35,0.1); vib(80); }
   if(inWeb && moving && Math.random()<dt*2.2) snd(180+Math.random()*80,"square",0.06,0.04);   // pegajoso
