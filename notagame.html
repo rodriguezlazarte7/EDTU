@@ -69,6 +69,7 @@
     <div>🔎 PISTAS: <span id="clues">0</span>/7</div>
   </div>
 </div>
+<canvas id="nradar" width="104" height="104" style="position:fixed;top:118px;right:12px;opacity:.92;z-index:5;pointer-events:none"></canvas>
 <div id="story"></div>
 <div id="touch"><div id="stick"><div id="nub"></div></div><button id="fire">🔫<br>FUEGO</button></div>
 <div class="hint" id="hint"></div>
@@ -536,6 +537,20 @@ scene.add(tracer); let tracerT=0;
 const P={x:0,z:ARENA-5,y:1.7,vy:0,onGround:true,speed:6.5,hp:100};
 let yaw=0, pitch=0, running=false, gameOver=false, tPrev=0, cluesGot=0, kills=0, muzzle=0, shootCd=0, startT=0, level="surface", heliMode=false, stepT=0, rotorT=0, ambT=10, lastDayF=0, zMul=1, comboN=0, comboT=0, comboPop=0, shield=false, bloodMoon=false;
 const shieldDrops=[];   // 🛡️ escudos que sueltan los zombies
+// 📡 RADAR: zombies rojos, GIGANTE naranja, escudos celestes, rayos amarillos (adelante = arriba)
+function drawNRadar(){ const cv=document.getElementById("nradar"); if(!cv) return; const g=cv.getContext("2d");
+  g.clearRect(0,0,104,104); g.fillStyle="rgba(8,12,20,.55)"; g.beginPath(); g.arc(52,52,50,0,6.28); g.fill();
+  g.strokeStyle="rgba(120,200,255,.3)"; g.beginPath(); g.arc(52,52,50,0,6.28); g.stroke();
+  g.beginPath(); g.arc(52,52,25,0,6.28); g.stroke();
+  const R=42, s2=Math.sin(yaw), c2=Math.cos(yaw);
+  const put=(x,z,color,r2)=>{ const dx=x-P.x, dz=z-P.z; const rgt=dx*c2-dz*s2, fw=-dx*s2-dz*c2;
+    if(Math.hypot(rgt,fw)>R) return; g.fillStyle=color; g.beginPath(); g.arc(52+rgt/R*50,52-fw/R*50,r2,0,6.28); g.fill(); };
+  if(level==="surface"){ zombies.forEach(z=>{ if(!z.dead) put(z.grp.position.x,z.grp.position.z,"#ff3b3b",3); });
+    if(boss) put(boss.grp.position.x,boss.grp.position.z,"#ff8c1a",5.5);
+    shieldDrops.forEach(sd2=>put(sd2.m.position.x,sd2.m.position.z,"#3fd0ff",3));
+    rapidDrops.forEach(rp=>put(rp.m.position.x,rp.m.position.z,"#ffb020",3)); }
+  g.fillStyle="#7dff5a"; g.beginPath(); g.arc(52,52,3.4,0,6.28); g.fill();
+  g.strokeStyle="#7dff5a"; g.lineWidth=2; g.beginPath(); g.moveTo(52,52); g.lineTo(52,43); g.stroke(); }
 // ➕ numerito flotante junto a la mira al matar (sube y se desvanece)
 function plusOne(txt,color){ const el=document.getElementById("plusone"); if(!el) return;
   el.style.transition="none"; el.style.transform="translateY(0)"; el.style.opacity="1"; el.textContent=txt; el.style.color=color||"#7dff5a";
@@ -768,6 +783,7 @@ function update(dt){
       : (tGame<12 && !touchUI) ? "Mueve el mouse para mirar · clic para disparar"
       : ""; }
   if(shootCd>0) shootCd-=dt;
+  drawNRadar();   // 📡
   const now=performance.now()/1000;
   const dn=document.getElementById("daynight");
   if(level==="hospital"){   // 🏥 OSCURIDAD TOTAL: la linterna es el único foco de luz (MUY potente)
