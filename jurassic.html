@@ -328,9 +328,10 @@ function makeDino(type){ const T=DTYPE[type], g=new THREE.Group(); const mat=new
 const dinos=[]; let mosa=null;
 // 💦 salpicaduras de agua (anillos que se expanden y desvanecen)
 const splashes=[];
-function doSplash(x,z){ const r=new THREE.Mesh(new THREE.RingGeometry(0.5,1.1,24),new THREE.MeshBasicMaterial({color:0xdfffff,transparent:true,opacity:0.85,side:THREE.DoubleSide,depthWrite:false}));
+function doSplash(x,z,quiet){ const r=new THREE.Mesh(new THREE.RingGeometry(0.5,1.1,24),new THREE.MeshBasicMaterial({color:0xdfffff,transparent:true,opacity:quiet?0.5:0.85,side:THREE.DoubleSide,depthWrite:false}));
   r.rotation.x=-Math.PI/2; r.position.set(x,0.18,z); scene.add(r); splashes.push({m:r,life:0.9});
-  snd(650,"sine",0.1,0.09); snd(210,"sine",0.3,0.1); snd(90,"sine",0.4,0.08); }
+  if(quiet){ snd(420,"sine",0.12,0.03); snd(150,"sine",0.2,0.03); }
+  else { snd(650,"sine",0.1,0.09); snd(210,"sine",0.3,0.1); snd(90,"sine",0.4,0.08); } }
 // 🦅 PTERODÁCTILOS decorativos que vuelan en círculos
 const pteros=[];
 (function makePteros(){ const pm=new THREE.MeshStandardMaterial({color:0x4a3a30,roughness:.85});
@@ -561,7 +562,8 @@ function update(dt){
   if(mosa){ if(inLake(P.x,P.z,2)){ const dxz=P.x-mosa.grp.position.x, dzz=P.z-mosa.grp.position.z, dd=Math.hypot(dxz,dzz)||1;
       mosa.grp.position.x+=dxz/dd*mosa.T.sp*jdSpeed*dt; mosa.grp.position.z+=dzz/dd*mosa.T.sp*jdSpeed*dt; danger=true;
       if(mosa.hitCd>0) mosa.hitCd-=dt; if(dd<5 && mosa.hitCd<=0){ mosa.hitCd=1; doSplash(mosa.grp.position.x,mosa.grp.position.z); hurt(mosa.T.dmg*jdDmg,"algo en el agua"); } }
-    else { mosa.grp.position.x+=(LAKE.x-mosa.grp.position.x)*dt*0.6; mosa.grp.position.z+=(LAKE.z-mosa.grp.position.z)*dt*0.6; } }
+    else { mosa.grp.position.x+=(LAKE.x-mosa.grp.position.x)*dt*0.6; mosa.grp.position.z+=(LAKE.z-mosa.grp.position.z)*dt*0.6;
+      if(Math.random()<dt*0.1) doSplash(LAKE.x+(Math.random()*2-1)*LAKE.r*0.6, LAKE.z+(Math.random()*2-1)*LAKE.r*0.6, true); } }   // 💦 chapuzón sutil: "algo se mueve ahí abajo"
 
   // HUD barras
   $("hpF").style.width=hp+"%"; $("huF").style.width=hunger+"%"; $("thF").style.width=thirst+"%";
