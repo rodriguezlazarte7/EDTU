@@ -5692,6 +5692,7 @@ const F1={
     this._kSpawned=false; this._kDone=false; this._kBeat=false; this._kBanT=0; this._kBanTxt="";   // 🦅 rival KÓNDOR
     this._meteors=[]; this._metT=2;   // ☄️ meteoros nocturnos
     this._sparks=[]; this._drsSpark=0; this._drsWas=false;   // ✨ chispas DRS
+    this._falseStart=false; this._lcDone=false; this._lcWin=0; this._lcMsg=""; this._lcMsgT=0; this._lcGood=false;   // 🚦 launch control
     this.paused=false;   // ⏸
     this._recPassed=false;   // 🏆 marcador de récord en la pista
     this._nearN=0; this._nearT=0;   // 😅 casi-choques
@@ -5767,11 +5768,21 @@ const F1={
         try{ const a=this.actx(); if(a){ const o=a.createOscillator(),g=a.createGain(); o.type="square"; o.frequency.value=step>0?420:900;
           g.gain.value=.07; o.connect(g); g.connect(a.destination); o.start(); const du=step>0?0.16:0.5;
           g.gain.exponentialRampToValueAtTime(0.0001,a.currentTime+du); o.stop(a.currentTime+du); } }catch(e){} }
+      // 🚦 LAUNCH CONTROL: nitro con luces ROJAS = salida en falso; nitro justo en el VERDE = salida perfecta
+      { const nitroHeld=!!(this.keys[" "]||this.keys.Shift||this._btnNitro);
+        if(!this._falseStart && !this._lcDone && this.cdT>0.4 && nitroHeld){ this._falseStart=true; this._lcGood=false; this._lcMsg="🚫 ¡SALIDA EN FALSO! (nitro antes del verde)"; this._lcMsgT=2.6;
+          try{ if(navigator.vibrate) navigator.vibrate([0,80,60,80]); }catch(e){} }
+        if(!this._falseStart && !this._lcDone && this.cdT<=0.4 && nitroHeld){ this._lcDone=true; this._lcGood=true; this._lcMsg="🚀 ¡SALIDA PERFECTA! +nitro"; this._lcMsgT=2.6;
+          try{ const a=this.actx(); if(a){ [880,1175,1568].forEach((fq,i)=>{ const o=a.createOscillator(),g=a.createGain(); o.type="triangle"; o.frequency.value=fq; g.gain.value=0.09; o.connect(g); g.connect(a.destination); o.start(a.currentTime+i*0.08); o.stop(a.currentTime+i*0.08+0.12); }); } }catch(e){}
+          try{ if(navigator.vibrate) navigator.vibrate(40); }catch(e){} } }
       this.speed=0;
-      this.draw(); this.drawLights(); $("f1Hud").textContent="🚦 PREPARADO...";
-      if(this.cdT<=0) this.speed=120;
+      this.draw(); this.drawLights(); $("f1Hud").textContent=this._falseStart?"🚫 SALIDA EN FALSO...":"🚦 PREPARADO...";
+      if(this.cdT<=0){ this.speed=this._falseStart?60:(this._lcGood?175:120); if(this._lcGood) this.fuel=Math.min(100,this.fuel+25); this._lcWin=this._lcDone||this._falseStart?0:0.3; }
       return; }
     this.input(dt);
+    if(this._lcWin>0){ this._lcWin-=dt;   // 🚦 ventana de 0.3s tras el verde para la salida perfecta
+      if(!this._lcDone && !this._falseStart && this.nitroOn){ this._lcDone=true; this._lcGood=true; this.speed+=50; this.fuel=Math.min(100,this.fuel+25); this._lcMsg="🚀 ¡SALIDA PERFECTA! +nitro"; this._lcMsgT=2.6;
+        try{ const a=this.actx(); if(a){ [880,1175,1568].forEach((fq,i)=>{ const o=a.createOscillator(),g=a.createGain(); o.type="triangle"; o.frequency.value=fq; g.gain.value=0.09; o.connect(g); g.connect(a.destination); o.start(a.currentTime+i*0.08); o.stop(a.currentTime+i*0.08+0.12); }); } }catch(e){} } }
     // 🌧️ CLIMA: a ratos llueve — el locutor avisa, cae un trueno de vez en cuando y la pista RESBALA
     this._wRainT-=dt;
     if(this._wRainT<=0){ this._wRainOn=!this._wRainOn; this._wRainT=this._wRainOn?(15+Math.random()*12):(45+Math.random()*45);
@@ -6216,6 +6227,10 @@ const F1={
     if(this._secMsgT>0){ this._secMsgT-=0.016; const sA=Math.min(1,this._secMsgT*1.4).toFixed(2);
       c.fillStyle=this._secGreen?("rgba(57,255,20,"+sA+")"):("rgba(200,220,255,"+sA+")");
       c.font="900 "+Math.min(26,W*0.042)+"px system-ui,sans-serif"; c.textAlign="center"; c.fillText(this._secMsg,W/2,H*0.5); }
+    // 🚦 cartel de launch control (verde = perfecta, rojo = en falso)
+    if(this._lcMsgT>0){ this._lcMsgT-=0.016; const lA=Math.min(1,this._lcMsgT*1.4).toFixed(2);
+      c.fillStyle=this._lcGood?("rgba(57,255,20,"+lA+")"):("rgba(255,60,60,"+lA+")");
+      c.font="900 "+Math.min(28,W*0.046)+"px system-ui,sans-serif"; c.textAlign="center"; c.fillText(this._lcMsg,W/2,H*0.38); }
     // 🦅 cartel de KÓNDOR (dorado)
     if(this._kBanT>0){ this._kBanT-=0.016; c.fillStyle="rgba(255,209,46,"+Math.min(1,this._kBanT*1.4).toFixed(2)+")";
       c.font="900 "+Math.min(28,W*0.046)+"px system-ui,sans-serif"; c.textAlign="center"; c.fillText(this._kBanTxt,W/2,H*0.44); }
