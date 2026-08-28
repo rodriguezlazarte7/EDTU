@@ -77,14 +77,14 @@
 <canvas id="nradar" width="104" height="104" style="position:fixed;top:118px;right:12px;opacity:.92;z-index:5;pointer-events:none"></canvas>
 <div id="toPad" style="position:fixed;top:64px;left:0;right:0;text-align:center;display:none;z-index:5;color:#33bbff;font:800 13px Consolas,monospace;text-shadow:0 0 8px #000;pointer-events:none"><span class="arw" style="display:inline-block;font-size:20px;vertical-align:middle">▲</span> HELICÓPTERO</div>
 <div id="nPauseOv" style="position:fixed;inset:0;z-index:60;display:none;background:rgba(5,0,10,.8);color:#c8d8ff;font:900 36px system-ui,sans-serif;align-items:center;justify-content:center;text-align:center;flex-direction:column">⏸ PAUSA<div style="font-size:16px;margin-top:10px;color:#7a86b8">pulsa P (o toca la pantalla) para seguir · los zombies también descansan</div></div>
-<button id="npauseBtn" style="position:fixed;right:24px;bottom:216px;z-index:6;width:58px;height:58px;border-radius:50%;background:rgba(120,120,120,.25);border:3px solid rgba(210,210,210,.5);color:#fff;font-size:22px;cursor:pointer;display:none">⏸</button>
-<button id="nmapBtn" style="position:fixed;right:24px;bottom:284px;z-index:6;width:58px;height:58px;border-radius:50%;background:rgba(120,120,120,.25);border:3px solid rgba(210,210,210,.5);color:#fff;font-size:22px;cursor:pointer;display:none">🗺️</button>
+<button id="npauseBtn" title="Pausa (P)" style="position:fixed;right:24px;bottom:216px;z-index:6;width:58px;height:58px;border-radius:50%;background:rgba(120,120,120,.25);border:3px solid rgba(210,210,210,.5);color:#fff;font-size:22px;cursor:pointer;display:none">⏸</button>
+<button id="nmapBtn" title="Mapa de la ciudad (M)" style="position:fixed;right:24px;bottom:284px;z-index:6;width:58px;height:58px;border-radius:50%;background:rgba(120,120,120,.25);border:3px solid rgba(210,210,210,.5);color:#fff;font-size:22px;cursor:pointer;display:none">🗺️</button>
 <div id="nmap" style="position:fixed;inset:0;z-index:55;display:none;background:rgba(4,0,10,.93);align-items:center;justify-content:center;flex-direction:column">
   <canvas id="nmapCv" width="520" height="520" style="max-width:92vw;max-height:76vh"></canvas>
   <div style="color:#9fb6d8;font:700 13px Consolas,monospace;margin-top:8px">🗺️ M para cerrar · 🔴 zombie 🟠 gigante 🟩 pista 🔵 heli 🟣 drenaje 🐕 perro 🤖 WALLY</div>
 </div>
 <div id="story"></div>
-<div id="touch"><div id="stick"><div id="nub"></div></div><button id="fire">🔫<br>FUEGO</button></div>
+<div id="touch"><div id="stick"><div id="nub"></div></div><button id="fire" title="Disparar">🔫<br>FUEGO</button></div>
 <div class="hint" id="hint"></div>
 <div id="combo" style="position:fixed;top:26%;left:50%;transform:translate(-50%,-50%);z-index:6;font-weight:900;font-size:34px;color:#ffb020;text-shadow:0 0 18px #ff6a00,0 0 40px #ff3b00;opacity:0;pointer-events:none;transition:opacity .25s"></div>
 <div id="plusone" style="position:fixed;left:calc(50% + 26px);top:calc(50% - 18px);z-index:6;font-weight:900;font-size:19px;color:#7dff5a;text-shadow:0 0 8px #000;opacity:0;pointer-events:none"></div>
