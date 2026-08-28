@@ -636,9 +636,9 @@ function update(dt){
 
   // válvulas y muestras (solo del piso actual)
   for(const v of valves){ if(v.got||v.f!==curFloor) continue; v.grp.rotation.y+=dt*1.6;
-    if(Math.hypot(P.x-v.x,P.z-v.z)<1.9){ v.got=true; v.grp.visible=false; if(v.light){ v.light.visible=false; v.light.userData.fl=-1; } valvesGot++; snd(700,"triangle",0.2,0.09); showStory("🔧 Válvula "+valvesGot+"/4"); updObj(); } }
+    if(Math.hypot(P.x-v.x,P.z-v.z)<1.9){ v.got=true; v.grp.visible=false; if(v.light){ v.light.visible=false; v.light.userData.fl=-1; } valvesGot++; [392,494,587].forEach((fq,k)=>setTimeout(()=>snd(fq,"triangle",0.18,0.08),k*90)); showStory("🔧 Válvula "+valvesGot+"/4"); updObj(); } }   // 🎵 arpegio metálico
   for(const v of samples){ if(v.got||v.f!==curFloor) continue; v.grp.rotation.y+=dt*1.8; v.grp.position.y=curFloor*FLOOR_H+1+Math.sin(now*3)*0.15;
-    if(Math.hypot(P.x-v.x,P.z-v.z)<1.9){ v.got=true; v.grp.visible=false; if(v.light){ v.light.visible=false; v.light.userData.fl=-1; } samplesGot++; snd(880,"sine",0.25,0.09); showStory("🧪 Muestra de antídoto "+samplesGot+"/3"); updObj(); } }
+    if(Math.hypot(P.x-v.x,P.z-v.z)<1.9){ v.got=true; v.grp.visible=false; if(v.light){ v.light.visible=false; v.light.userData.fl=-1; } samplesGot++; [523,659,880].forEach((fq,k)=>setTimeout(()=>snd(fq,"sine",0.2,0.08),k*90)); showStory("🧪 Muestra de antídoto "+samplesGot+"/3"); updObj(); } }   // 🎵 arpegio cristalino
   // 📄 notas de historia
   for(const v of notes){ if(v.got||v.f!==curFloor) continue; v.grp.rotation.y+=dt*1.2; v.grp.position.y=curFloor*FLOOR_H+1.2+Math.sin(now*2.5)*0.12;
     if(Math.hypot(P.x-v.x,P.z-v.z)<1.9){ v.got=true; v.grp.visible=false; if(v.light){ v.light.visible=false; v.light.userData.fl=-1; } notesGot++; snd(520,"triangle",0.15,0.07);
