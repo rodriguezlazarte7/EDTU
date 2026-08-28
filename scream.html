@@ -100,6 +100,8 @@
   <div id="floor">PLANTA BAJA</div>
   <div id="timer">⏱ 20:00</div>
   <div id="floorInd" style="position:absolute;top:38px;left:14px;font-size:14px;font-weight:900;color:#9fc8d8;text-shadow:0 0 8px #000">🏢 PISO 1/7</div>
+  <div id="earL" style="position:fixed;left:0;top:0;bottom:0;width:12vw;z-index:4;background:linear-gradient(90deg,rgba(200,10,20,.55),transparent);opacity:0;pointer-events:none;transition:opacity .25s"></div>
+  <div id="earR" style="position:fixed;right:0;top:0;bottom:0;width:12vw;z-index:4;background:linear-gradient(-90deg,rgba(200,10,20,.55),transparent);opacity:0;pointer-events:none;transition:opacity .25s"></div>
   <canvas id="radar" width="92" height="92"></canvas>
   <div id="hp">❤️❤️❤️</div>
   <div id="toMachine"><span class="arw">▲</span> <span id="tmLbl">MÁQUINA</span></div>
@@ -883,6 +885,13 @@ function update(dt){
   // 👻 INVISIBILIDAD: 30s invisible / 30s visible — SIN AVISO (solo con el VISOR la ves)
   spider.invT-=dt; if(spider.invT<=0){ spider.invPhase=!spider.invPhase; spider.invT=invDur; }
   const invHidden = spider.invPhase && !nvOn;
+  // 👂 OÍDO DIRECCIONAL: el borde de la pantalla brilla rojo hacia el lado donde está la araña (<22m, tu piso)
+  { const eL=$("earL"), eR=$("earR");
+    if(eL&&eR){ let oL=0,oR=0;
+      if(sameFloor && !spiderDead && sd<22 && !gameOver){ const inten=(1-sd/22)*0.8;
+        const rgt=(-sx)*Math.cos(yaw)-(-sz)*Math.sin(yaw);
+        if(rgt<-0.8) oL=inten; else if(rgt>0.8) oR=inten; else { oL=inten*0.45; oR=inten*0.45; } }
+      eL.style.opacity=oL.toFixed(2); eR.style.opacity=oR.toFixed(2); } }
   // 🪳 cucarachas: al acercarte a un cadáver por PRIMERA vez, 6 salen disparadas en abanico y se esconden
   for(const lc of lootCorpses){ if(lc.roached||lc.f!==curFloor) continue;
     if(Math.hypot(P.x-lc.x,P.z-lc.z)<2.4){ lc.roached=true;
