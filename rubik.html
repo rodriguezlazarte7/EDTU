@@ -172,7 +172,7 @@ async function shareText(txt,btn,lbl){ const done=()=>{ btn.textContent="✅ COP
   try{ await navigator.clipboard.writeText(txt); done(); return; }catch(e){}
   try{ const ta=document.createElement("textarea"); ta.value=txt; ta.style.position="fixed"; ta.style.opacity="0"; document.body.appendChild(ta); ta.select(); document.execCommand("copy"); document.body.removeChild(ta); done(); }catch(e){ btn.textContent="❌ no se pudo copiar"; setTimeout(()=>{ btn.textContent=lbl; },2000); } }
 { const rb=document.getElementById("rshare"); if(rb){ const lbl=rb.textContent; rb.onclick=()=>{ const d=new Date(); const pv=dailyPreview(); const v=loadDaily();
-    const txt="📅 Revoltura EDTU del "+d.getDate()+"/"+(d.getMonth()+1)+" ("+diff+"): "+(pv||"—")+" — "+(v>0?"mi tiempo: "+v.toFixed(1)+"s":"aún sin tiempo")+" · ¿me ganas? 👉 www.edtu.cl/rubik.html (📅 DESAFÍO DEL DÍA)";
+    const txt="📅 Revoltura EDTU del "+d.getDate()+"/"+(d.getMonth()+1)+" ("+diff+"): "+(pv||"—")+" — "+(v>0?"mi tiempo: "+v.toFixed(1)+"s":"aún sin tiempo")+" · ¿me ganas? 👉 www.edtu.cl/rubik.html?reto=1";
     shareText(txt,rb,lbl); }; } }
 function randMove(){ const r1=scrRng?scrRng():Math.random(), r2=scrRng?scrRng():Math.random(); return {face:FACE_LIST[(r1*6)|0], dir:r2<0.5?1:-1}; }
 
@@ -467,6 +467,11 @@ addEventListener("keydown",e=>{ const k=e.key.toUpperCase();
 document.getElementById("introStart").onclick=()=>{ dailyMode=false; scrRng=null; startRace(); };
 document.getElementById("introPractice").onclick=()=>{ dailyMode=false; scrRng=null; startPractice(); };
 document.getElementById("introDaily").onclick=()=>{ dailyMode=true; startRace(); };   // 📅 misma revoltura para todos hoy
+// ⚔️ RECIBIR UN RETO: si llegas por un link compartido (?reto=1) el intro te lo avisa y resalta el botón del DESAFÍO DEL DÍA (misma revoltura que tu amigo)
+try{ if(/[?&]reto=1/.test(location.search)){ const ib=document.getElementById("introDaily"), is=document.getElementById("introStart");
+  if(ib){ ib.style.boxShadow="0 0 18px #ffd88a"; ib.style.transform="scale(1.06)"; ib.textContent="📅 DESAFÍO DEL DÍA ⚔️ ¡ACEPTAR RETO!"; }
+  if(is){ const p=document.createElement("p"); p.style.cssText="color:#ff9a3c;font-weight:900;font-size:14px"; p.textContent="⚔️ ¡TE RETARON! Pulsa 📅 DESAFÍO DEL DÍA: misma revoltura que tu amigo — ¡ármala más rápido!"; is.parentNode.insertBefore(p,is); }
+  try{ history.replaceState(null,"",location.pathname); }catch(e){} } }catch(e){}
 updRW(); updDaily();
 // selector de dificultad (arriba y en el intro)
 function buildDiffs(container){ container.innerHTML=""; [["facil","🟢 Fácil"],["medio","🟡 Medio"],["dificil","🔴 Difícil"],["imposible","💀 Imposible"]].forEach(([k,lbl])=>{ const b=document.createElement("button"); b.className="diff"+(diff===k?" sel":""); const bt=loadBT(k); b.textContent=lbl+(bt?" ⏱️"+bt.toFixed(1)+"s":""); b.onclick=()=>{ if(state==="race"||state==="count") return; diff=k; try{ localStorage.setItem("rubik_diff",k); }catch(e){} buildDiffs(document.getElementById("diffs")); buildDiffs(document.getElementById("introDiffs")); }; container.appendChild(b); }); updPodium(); updDaily(); }   // 🐛FIX ronda2: cambiar dificultad EN PLENA carrera alteraba la IA y guardaba récords falsos

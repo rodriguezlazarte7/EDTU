@@ -5946,7 +5946,7 @@ const F1={
     $("f1Overlay").style.display="flex";
     $("f1Msg").textContent="💥 ¡CHOCASTE!";
     // 📤 COMPARTIR el resultado si la carrera fue DESAFÍO DEL DÍA (botón único, se reemplaza en cada choque)
-    { const old=$("f1ShareBtn"); if(old) old.remove(); if(this._daily){ try{ const d=new Date(); const txt="📅 Desafío F1 del "+d.getDate()+"/"+(d.getMonth()+1)+": "+m+" m con el clima de hoy"+(this._kBeat?" y vencí a KÓNDOR 🦅":"")+" ¿me ganas? 👉 www.edtu.cl (📅 DESAFÍO DEL DÍA)";
+    { const old=$("f1ShareBtn"); if(old) old.remove(); if(this._daily){ try{ const d=new Date(); const txt="📅 Desafío F1 del "+d.getDate()+"/"+(d.getMonth()+1)+": "+m+" m con el clima de hoy"+(this._kBeat?" y vencí a KÓNDOR 🦅":"")+" ¿me ganas? 👉 www.edtu.cl/?reto=f1";
       const lbl="📤 COMPARTIR MI DESAFÍO"; const sb=document.createElement("button"); sb.id="f1ShareBtn"; sb.className="btn btn-ghost"; sb.style.cssText="margin-top:8px;font-size:12px"; sb.textContent=lbl; sb.onclick=()=>shareTxtF1(txt,sb,lbl);
       setTimeout(()=>{ try{ $("f1Overlay").appendChild(sb); }catch(e){} },0); }catch(e){} } }
     // 📈 récords históricos de velocidad y adelantamientos
@@ -7223,7 +7223,7 @@ function buildTrophies(){ try{
     const today=hasDay(dk); let streak=0; { const y=dd.getFullYear(), mo=dd.getMonth(), da=dd.getDate(); for(let i=today?0:1;i<60;i++){ if(hasDay(keyOf(y,mo,da-i))) streak++; else break; } }
     let sbest=parseInt(g("edtu_daily_streak_best")||"0",10)||0; if(today && streak>sbest){ sbest=streak; try{ localStorage.setItem("edtu_daily_streak_best",String(streak)); }catch(e){} }
     if(dp.length||streak>0){ h+="<div style='margin-top:8px;color:#ffd88a'><b>📅 DESAFÍOS DE HOY</b></div>"+(dp.length?dp.join(" · ")+(miss.length?"<span style='color:#9fb6c9'> · te falta"+(miss.length>1?"n":"")+" "+miss.join(", ")+"</span>":" · ¡los cinco! 🏅"):"<span style='color:#9fb6c9'>aún ninguno hoy...</span>")+(dp.length?" <button id='shareDaily' class='btn btn-ghost' style='margin-left:6px;padding:2px 10px;font-size:12px;vertical-align:middle' title='Copia tus marcas de hoy para retar a tus amigos'>📤 COMPARTIR</button>":"");
-      if(dp.length) shareTxt="📅 Desafío EDTU del "+dd.getDate()+"/"+(dd.getMonth()+1)+" — "+dp.join(" · ")+(streak>1?" · 🔥 racha "+streak+" días":"")+" · ¿me ganas? 👉 www.edtu.cl";
+      if(dp.length) shareTxt="📅 Desafío EDTU del "+dd.getDate()+"/"+(dd.getMonth()+1)+" — "+dp.join(" · ")+(streak>1?" · 🔥 racha "+streak+" días":"")+" · ¿me ganas? 👉 www.edtu.cl/?reto=1";
       if(streak>0) h+="<br><span style='color:"+(today?"#ff9a3c":"#ff6a6a")+"'>🔥 RACHA: "+streak+" día"+(streak>1?"s":"")+" seguido"+(streak>1?"s":"")+" con desafíos"+(today?(streak>=sbest&&streak>1?" · ¡RÉCORD!":(sbest>streak?" · récord "+sbest:"")):" — ¡juega uno HOY o se pierde a medianoche!")+"</span>"; } }catch(e){}
   // 📖 ÚLTIMAS AVENTURAS: la entrada más reciente de cada diario (jurassic_diary / scream_diary / nag_diary)
   try{ const rd=k=>{ try{ const a=JSON.parse(g(k)||"[]"); return a.length?a[0]:null; }catch(e){ return null; } };
@@ -7392,6 +7392,11 @@ $("posterFs").addEventListener("click",e=>{ if(e.target===$("posterFs")) $("post
 try{ const lv=parseInt(localStorage.getItem("edtu_last_visit")||"0",10)||0;
   if(lv && Date.now()-lv>4*3600*1000){ setTimeout(()=>{ try{ if(window._wallyCross) window._wallyCross("¡VOLVISTE! te tengo MUCHAS sorpresas nuevas 🎁"); }catch(e){} },1500); }
   localStorage.setItem("edtu_last_visit",String(Date.now())); }catch(e){}
+// ⚔️ RECIBIR UN RETO: link compartido con ?reto=1 (desafíos de hoy) o ?reto=f1 (F1: activa su desafío del día); WALLY cruza avisando y se limpia la URL
+try{ const rq=(location.search.match(/[?&]reto=([a-z0-9]+)/i)||[])[1];
+  if(rq){ if(rq==="f1"){ try{ localStorage.setItem("edtu_f1_daily_on","1"); }catch(e){} const fb=document.getElementById("f1Daily"); if(fb) fb.textContent="📅 DESAFÍO DEL DÍA: SÍ ✔"; }
+    setTimeout(()=>{ try{ if(window._wallyCross) window._wallyCross(rq==="f1"?"⚔️ ¡TE RETARON en F1! el DESAFÍO DEL DÍA quedó activado 🏎️ ¡supera sus metros!":"⚔️ ¡TE RETARON! juega los DESAFÍOS DEL DÍA 📅 y supera sus marcas"); }catch(e){} },1500);
+    try{ history.replaceState(null,"",location.pathname); }catch(e){} } }catch(e){}
 // 🤖🌧️ HUEVO SORPRESA DEL LOGO: 5 clics rápidos (<3s) en "EDTU" → ¡LLUVIA DE WALLYs!
 (function(){ const logo=document.querySelector("h1.glow"); if(!logo) return;
   let clicks=0, t0=0, raining=false;
