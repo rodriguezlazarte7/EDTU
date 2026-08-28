@@ -179,6 +179,9 @@ const camera=new THREE.PerspectiveCamera(78,1,0.1,300); camera.rotation.order="Y
 function resize(){ renderer.setSize(innerWidth,innerHeight); camera.aspect=innerWidth/innerHeight; camera.updateProjectionMatrix(); }
 addEventListener("resize",resize); resize();
 function snd(f,t,d,v){ try{ const a=snd.ctx||(snd.ctx=new (AudioContext||webkitAudioContext)()); const o=a.createOscillator(),g=a.createGain(); o.type=t||"sine"; o.frequency.value=f; o.connect(g); g.connect(a.destination); g.gain.value=v||0.1; o.start(); g.gain.exponentialRampToValueAtTime(0.0001,a.currentTime+(d||0.2)); o.stop(a.currentTime+(d||0.2)); }catch(e){} }
+// 🗣️ voz robótica de la MÁQUINA (speechSynthesis, grave y lenta)
+function machineSay(txt){ try{ if(!window.speechSynthesis) return; const u=new SpeechSynthesisUtterance(txt);
+  u.lang="es-ES"; u.pitch=0.35; u.rate=0.85; u.volume=0.9; speechSynthesis.cancel(); speechSynthesis.speak(u); }catch(e){} }
 // 🕷️ CHIRRIDO de araña (barrido de frecuencia agudo→grave con vibrato, tipo screech)
 function screech(){ try{ const a=snd.ctx||(snd.ctx=new (AudioContext||webkitAudioContext)()); const t0=a.currentTime;
   const o=a.createOscillator(),g=a.createGain(),v=a.createOscillator(),vg=a.createGain();
@@ -787,12 +790,15 @@ function update(dt){
   const ready = valvesGot>=4 && samplesGot>=3;
   const atMachine = curFloor===0 && Math.hypot(P.x-MACHINE.x,P.z-MACHINE.z)<3.4;
   const cbar=$("craft");
-  if(ready && atMachine && !won && !gameOver){ craftT+=dt; cbar.style.display="block"; cbar.firstElementChild.style.width=Math.min(100,craftT/8*100)+"%";
+  if(ready && atMachine && !won && !gameOver){
+    if(craftT===0) machineSay("Síntesis de antídoto iniciada. No se aleje de la máquina.");   // 🗣️ voz al empezar
+    craftT+=dt; cbar.style.display="block"; cbar.firstElementChild.style.width=Math.min(100,craftT/8*100)+"%";
     if(Math.random()<dt*3) snd(360+Math.random()*300,"square",0.06,0.05);
     if(craftT>=8){ won=true; running=false; const elapsed=gameTime-timeLeft; let best=loadBest(); const isNew=(best==null||elapsed<best); if(isNew){ best=elapsed; saveBest(best); } addWin();
       const winMsg="🧪 ¡Fabricaste el ANTÍDOTO y escapaste del hospital de 7 pisos! ✅<br><br>⏱ Tu tiempo: <b>"+fmtT(elapsed)+"</b>"+(isNew?"<br>🏆 ¡NUEVO RÉCORD!":"<br>🏆 Mejor: <b>"+fmtT(best)+"</b>")+"<br>🚁 Escapes totales: <b>"+loadWins()+"</b>";
       // 🎬 cinemática de ESCAPE: fundido a blanco + radio de rescate
       cbar.style.display="none"; const fd=$("fade"); if(fd){ fd.style.background="#e2fff7"; fd.style.opacity="0.94"; }
+      machineSay("Antídoto completado. Evacuación autorizada. Buena suerte.");   // 🗣️ voz de la máquina
       snd(400,"triangle",0.3,0.1); showStory("📻 «¡Equipo de rescate! Te tenemos... sal de ahí!»");
       setTimeout(()=>snd(600,"triangle",0.4,0.1),600); setTimeout(()=>snd(780,"triangle",0.5,0.12),1150);
       setTimeout(()=>{ if(fd) fd.style.opacity="0"; endGame(true,winMsg); if(fd) setTimeout(()=>{ fd.style.background="#000"; },400); },2400); } }
