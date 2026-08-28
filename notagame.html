@@ -740,7 +740,7 @@ function shoot(){
         const sm=new THREE.Mesh(new THREE.OctahedronGeometry(0.42),new THREE.MeshBasicMaterial({color:0x3fd0ff}));
         sm.position.set(best.grp.position.x,0.9,best.grp.position.z); scene.add(sm); shieldDrops.push({m:sm}); }
       else {
-        kills++; document.getElementById("kills").textContent=kills; snd(70,"sawtooth",0.4,0.12); plusOne("+1","#7dff5a");
+        kills+=(sirenOn>0?2:1); document.getElementById("kills").textContent=kills; snd(70,"sawtooth",0.4,0.12); plusOne(sirenOn>0?"+2 🚨":"+1",sirenOn>0?"#ff5a5a":"#7dff5a");
         // 🛡️ 10%: el zombie suelta un ESCUDO brillante donde cayó
         if(Math.random()<(bloodMoon?0.25:0.10)){ const sm=new THREE.Mesh(new THREE.OctahedronGeometry(0.42),new THREE.MeshBasicMaterial({color:0x3fd0ff}));
           sm.position.set(best.grp.position.x,0.9,best.grp.position.z); scene.add(sm); shieldDrops.push({m:sm}); }
@@ -777,6 +777,7 @@ function startGame(){
   nStatDist=0; nLastX=null; nStatShields=0; nStatBoss=0;   // 📊 estadísticas desde cero
   rapidT=0; tracer.material.color.setHex(0xffe066); rapidDrops.forEach(r2=>scene.remove(r2.m)); rapidDrops.length=0;   // ⚡ reset
   hordeT=90+Math.random()*70; hordeOn=0;   // 🚨 reset horda
+  sirenOn=0; sirenDone=false; scene.fog.color.setHex(0x050308);   // 🚨 reset modo sirena
   nPaused=false; const po4=document.getElementById("nPauseOv"); if(po4) po4.style.display="none";   // ⏸ reset pausa
   try{ nTutOn=!localStorage.getItem("nag_tut1"); }catch(e){ nTutOn=false; }  nTutStep=0; nTutT=5;   // 🎓 tutorial solo la primera vez
   bloodMoon=false; lastDayF=0; dawnFog=0;   // 🐛FIX ronda2: la luna de sangre y la niebla se filtraban a la partida nueva
@@ -815,6 +816,8 @@ let rapidT=0; const rapidDrops=[];
 let hordeT=90+Math.random()*70, hordeOn=0;
 // 🌫️ niebla del amanecer
 let dawnFog=0;
+// 🚨 MODO SIRENA: a los 60 kills, 30s de niebla roja — zombies al DOBLE pero cada kill vale DOBLE
+let sirenOn=0, sirenDone=false;
 // ⏸ pausa con P
 let nPaused=false;
 let nTutOn=false, nTutStep=0, nTutT=0;   // 🎓 mini-tutorial de primera vez
@@ -874,6 +877,15 @@ function update(dt){
       "🎓 M = mapa de la ciudad 🗺️ · P pausa · ¡ojo con el GIGANTE cada 25 kills! 👹"];
       if(nTutStep<TUT.length){ showStory(TUT[nTutStep]); snd(980,"triangle",0.15,0.06); nTutStep++; nTutT=10; }
       else { nTutOn=false; try{ localStorage.setItem("nag_tut1","1"); }catch(e){} } } }
+  // 🚨 MODO SIRENA: se dispara UNA vez al llegar a 60 kills
+  if(!sirenDone && kills>=60 && running && !gameOver){ sirenDone=true; sirenOn=30;
+    sirenSnd(); setTimeout(()=>{ try{ if(running&&sirenOn>0) sirenSnd(); }catch(e){} },1700);
+    narrate("Alerta máxima. Niebla roja detectada.");
+    showStory("🚨 ¡SIRENA! NIEBLA ROJA 30s: zombies al DOBLE de rápido... ¡pero cada kill vale DOBLE!"); }
+  if(sirenOn>0){ sirenOn-=dt;
+    if(level==="surface"){ scene.fog.color.setHex(0x2e060a); scene.fog.density=Math.max(scene.fog.density,0.065); }
+    if(sirenOn<=0){ scene.fog.color.setHex(0x050308);
+      showStory("🌫️ NIEBLA DESPEJADA — sobreviviste al frenesí, agente"); snd(500,"triangle",0.4,0.08); snd(660,"triangle",0.35,0.06); } }
   // mover (W = adelante, corregido)
   let f=0,s=0;
   if(keys["KeyW"]||keys["ArrowUp"])f+=1; if(keys["KeyS"]||keys["ArrowDown"])f-=1;
@@ -1052,6 +1064,7 @@ function update(dt){
         if(zombies.length<30) spawnZombies(6); } }
     else hordeOn-=dt; }
   if(hordeOn>0) zMul*=1.2;
+  if(sirenOn>0) zMul*=2;   // 🚨 niebla roja: van al DOBLE
   // 🎵 zumbido ominoso en el hospital
   if(level==="hospital"){ droneT-=dt; if(droneT<=0){ droneT=2.5+Math.random()*2.5; snd(38+Math.random()*8,"sawtooth",1.1,0.035); } }
   if(level==="surface") zombies.forEach(z=>{ if(z.dead)return;
