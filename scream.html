@@ -578,6 +578,18 @@ function genBar(p){ let el=document.getElementById("genbar");
   if(!el){ el=document.createElement("div"); el.id="genbar"; el.style.cssText="position:fixed;left:50%;top:60%;transform:translateX(-50%);width:220px;height:14px;background:rgba(0,0,0,.6);border:2px solid #ffd15a;border-radius:8px;z-index:6;overflow:hidden;display:none";
     const i2=document.createElement("i"); i2.style.cssText="display:block;height:100%;width:0;background:#ffd15a"; el.appendChild(i2); document.body.appendChild(el); }
   el.style.display=(p>=0&&p<1)?"block":"none"; el.firstElementChild.style.width=Math.max(0,Math.min(100,p*100))+"%"; }
+// 🎵 VITROLA: tocadiscos viejo en un piso al azar — actívala con E y la araña queda HIPNOTIZADA yendo hacia la música (25s, un uso)
+const vit=new THREE.Group();
+{ const base=new THREE.Mesh(new THREE.BoxGeometry(0.6,0.9,0.5),new THREE.MeshStandardMaterial({color:0x4a3320,roughness:.85})); base.position.y=0.45; vit.add(base);
+  const plato=new THREE.Mesh(new THREE.CylinderGeometry(0.24,0.24,0.04,12),new THREE.MeshStandardMaterial({color:0x111111,roughness:.4})); plato.position.y=0.93; vit.add(plato);
+  const horn=new THREE.Mesh(new THREE.ConeGeometry(0.28,0.6,10,1,true),new THREE.MeshStandardMaterial({color:0xb08a3a,metalness:.6,roughness:.35,side:THREE.DoubleSide})); horn.rotation.z=0.7; horn.position.set(0.18,1.35,0); vit.add(horn); }
+scene.add(vit);
+let vitF=0, vitUsed=false, vitOn=0, vitNoteI=0, vitNoteT=0;
+const VIT_NOTES=[[587,0.3],[554,0.3],[587,0.9],[0,0.25],[523,0.25],[494,0.25],[466,0.25],[440,0.55],[466,0.55],[0,0.4]];
+function playVitrola(){ if(!running||gameOver||vitUsed||vitOn>0) return;
+  if(vitF!==curFloor || Math.hypot(P.x-vit.position.x,P.z-vit.position.z)>2.5) return;
+  vitUsed=true; vitOn=25; vitNoteI=0; vitNoteT=0;
+  showStory("🎵 la vitrola cruje y empieza a sonar... ¡a la araña le ENCANTA la música!"); vib(50); }
 const WQUIPS_S=["¡Beep-boop! Qué oscuro está todo...","Mis sensores tiemblan... ¿o soy yo?","Si ves a la araña CORRE, yo solo ruedo","Una vez gané una carrera de mBots 🏁","Mi linterna nunca se queda sin pilas 😎","Cálculo: 87% de probabilidad de que ganes","Dejé las balizas prendidas para que me encuentres","Tú salva el edificio, yo vigilo este piso"];
 // 🏆 ¿los 21 logros EDTU completos? (mismo cálculo que el menú)
 function edtuLegend(){ try{ const g=k=>localStorage.getItem(k)==="1"; let n=0;
@@ -673,7 +685,7 @@ function drawMap(){ const c=$("mapC"); if(!c) return; const g=c.getContext("2d")
   if(spiderFloor===curFloor && !spiderDead){ const p=w2m(spider.grp.position.x,spider.grp.position.z); g.fillStyle="#ff2a2a"; g.shadowColor="#f00"; g.shadowBlur=8; g.beginPath(); g.arc(p[0],p[1],5,0,6.28); g.fill(); g.shadowBlur=0; }
   for(const b of babies){ if(b.f!==curFloor) continue; const p=w2m(b.grp.position.x,b.grp.position.z); g.fillStyle="#ff8a2a"; g.beginPath(); g.arc(p[0],p[1],3,0,6.28); g.fill(); }   // 🕷️ crías (naranjo)
   const pp=w2m(P.x,P.z), fx=-Math.sin(yaw), fz=-Math.cos(yaw); g.fillStyle="#ffd12e"; g.beginPath(); g.moveTo(pp[0]+fx*8,pp[1]+fz*8); g.lineTo(pp[0]-fz*5-fx*4,pp[1]+fx*5-fz*4); g.lineTo(pp[0]+fz*5-fx*4,pp[1]-fx*5-fz*4); g.closePath(); g.fill(); }
-addEventListener("keydown",e=>{ keys[e.code]=true; if(e.code==="KeyF") toggleFlash(); if(e.code==="KeyM") toggleMap(); if(e.code==="KeyG") throwFlare(); if(e.code==="KeyH") toggleHelp(); if(e.code==="KeyE") talkWally(); if(e.code==="F2"){ e.preventDefault(); togglePhoto(); }
+addEventListener("keydown",e=>{ keys[e.code]=true; if(e.code==="KeyF") toggleFlash(); if(e.code==="KeyM") toggleMap(); if(e.code==="KeyG") throwFlare(); if(e.code==="KeyH") toggleHelp(); if(e.code==="KeyE"){ talkWally(); playVitrola(); } if(e.code==="F2"){ e.preventDefault(); togglePhoto(); }
   if(e.code==="KeyP") togglePauseS();
   if(e.code==="Enter" && gameOver) start();   // ↩ reintentar al instante
   if(e.code==="ShiftLeft"||e.code==="ShiftRight") sprintHeld=true; },true);
@@ -778,6 +790,7 @@ function start(){ $("start").classList.add("hide"); $("end").classList.add("hide
   genF=Math.floor(Math.random()*FLOORS); { const gs=randSpotOnFloor(genF); genM.position.set(gs.x,genF*FLOOR_H,gs.z); }   // ⚡ generador nuevo
   genUsed=false; genOn=0; genCharge=0; genBar(-1); ambient.intensity=0.05; ambient.color.setHex(0x241018);
   legendSaid=false;   // 👑 WALLY puede volver a celebrar el 21/21 una vez por partida
+  vitF=Math.floor(Math.random()*FLOORS); { const vs=randSpotOnFloor(vitF); vit.position.set(vs.x,vitF*FLOOR_H,vs.z); } vitUsed=false; vitOn=0;   // 🎵 vitrola nueva
   phoneActive=false; phoneT=35+Math.random()*35; placePhone();   // 📞 teléfono nuevo
   placeWallyS();   // 🤖 WALLY en otro piso
   hp=hpMax; stam=100; hurtCd=0; safeTime=0; sprintHeld=false; visorBatt=100; updHP(); $("crack").style.opacity="0"; $("fade").style.background="#000"; $("fade").style.opacity="0";
@@ -829,6 +842,12 @@ function update(dt){
       "🎓 Junta 4 válvulas 🟢 + 3 muestras 🟣 y fabrica el ANTÍDOTO en la zona segura 🛡️ ¡Suerte, agente!"];
       if(tutStep<TUT.length){ showStory(TUT[tutStep]); snd(980,"triangle",0.15,0.06); tutStep++; tutT=9.5; }
       else { tutOn=false; try{ localStorage.setItem("scream_tut1","1"); }catch(e){} } } }
+  // 🎵 VITROLA sonando: melodía fúnebre en loop + fin del hechizo
+  if(vitOn>0){ vitOn-=dt; vitNoteT-=dt;
+    if(vitNoteT<=0){ const nt=VIT_NOTES[vitNoteI%VIT_NOTES.length]; vitNoteI++;
+      vitNoteT=nt[1]; if(nt[0]>0){ snd(nt[0],"triangle",nt[1]*0.9,0.05); snd(nt[0]/2,"sine",nt[1],0.02); } }
+    if(vitOn<=0) showStory("🎵 la vitrola se detuvo... la araña despierta del trance"); }
+  if(touchUI && !vitUsed && vitF===curFloor && Math.hypot(P.x-vit.position.x,P.z-vit.position.z)<1.5) playVitrola();   // 📱 en celu se activa al acercarse mucho
   // ⚡ GENERADOR DE EMERGENCIA: cargar 3s a su lado → LUZ TOTAL 20s y araña congelada
   if(genOn>0){ genOn-=dt; ambient.intensity=0.9; ambient.color.setHex(0x8a7a58);
     if(Math.random()<dt*8) snd(120+Math.random()*40,"sawtooth",0.06,0.03);   // runrún del motor
@@ -1030,6 +1049,8 @@ function update(dt){
     if(sd>1.2){ let dirx,dirz,spd;
       const pm=1+panic*0.7;   // frenética en la recta final
       if(hunts){ const wob=Math.sin(now*6)*0.45; dirx=sx/sd+(-sz/sd)*wob; dirz=sz/sd+(sx/sd)*wob; spd=(sd<7?spider.sp*1.7:(sd>18?spider.sp*0.6:spider.sp))*pm; }
+      else if(vitOn>0 && spiderFloor===vitF){ const vx=vit.position.x-spider.grp.position.x, vz=vit.position.z-spider.grp.position.z, vl=Math.hypot(vx,vz)||1;
+        dirx=vx/vl; dirz=vz/vl; spd=spider.sp*0.8*pm; }   // 🎵 hipnotizada: va derechito a la vitrola
       else { dirx=Math.cos(spider.wdir); dirz=Math.sin(spider.wdir); spd=spider.sp*0.45*pm; if(Math.random()<dt*0.6) spider.wdir=Math.random()*6.28; }
       // 🧨 le TEME AL FUEGO: si hay una bengala ardiendo a <9m, huye de ella chillando (te protege)
       let flareX=0, flareZ=0, flareD=999;
@@ -1176,7 +1197,8 @@ function update(dt){
       if(phoneActive&&phoneF===curFloor&&blink) blip(phone.position.x,phone.position.z,(x,y)=>{ rg.fillStyle="#3af0ff"; rg.beginPath(); rg.arc(x,y,3,0,6.28); rg.fill(); });
       if(wallySF===curFloor&&blink) blip(wallyS.position.x,wallyS.position.z,(x,y)=>{ rg.fillStyle="#38b6ff"; rg.beginPath(); rg.arc(x,y,3,0,6.28); rg.fill(); });
       if(manqF===curFloor) blip(manq.position.x,manq.position.z,(x,y)=>{ rg.fillStyle="#cfc8bf"; rg.beginPath(); rg.arc(x,y,2.4,0,6.28); rg.fill(); });
-      if(!genUsed&&genF===curFloor) blip(genM.position.x,genM.position.z,(x,y)=>{ rg.fillStyle="#ffd15a"; rg.fillRect(x-1.6,y-3,3.2,6); }); }
+      if(!genUsed&&genF===curFloor) blip(genM.position.x,genM.position.z,(x,y)=>{ rg.fillStyle="#ffd15a"; rg.fillRect(x-1.6,y-3,3.2,6); });
+      if(!vitUsed&&vitF===curFloor) blip(vit.position.x,vit.position.z,(x,y)=>{ rg.fillStyle="#d05aff"; rg.beginPath(); rg.arc(x-1.2,y+2,2,0,6.28); rg.fill(); rg.fillRect(x,y-4,1.4,6); }); }
   }
 
   // 🧪 FABRICAR el antídoto en la MÁQUINA (zona segura, planta baja)
