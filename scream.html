@@ -660,7 +660,11 @@ function loadWins(){ try{ return parseInt(localStorage.getItem("scream_wins")||"
 function loadBestD(d){ try{ const v=localStorage.getItem("scream_best_"+d); return v==null?null:parseFloat(v); }catch(e){ return null; } }
 function saveBestD(d,v){ try{ localStorage.setItem("scream_best_"+d,String(v)); }catch(e){} }
 function addWin(){ try{ localStorage.setItem("scream_wins",String(loadWins()+1)); }catch(e){} }
-function updBest(){ const b=loadBest(), w=loadWins(), el=$("bestT"); if(el) el.textContent = (b==null?"🏆 Aún sin récord — ¡sé el primero en escapar!":("🏆 Mejor escape: "+fmtT(b))) + (w>0?"  ·  🚁 Escapes: "+w:""); }
+function updBest(){ const b=loadBest(), w=loadWins(), el=$("bestT"); if(!el) return;
+  // 🏅 medallas: una por cada dificultad vencida
+  const med=["facil","normal","pesadilla","infierno"].map(k=>{ let got=false; try{ got=localStorage.getItem("scream_win_"+k)==="1"; }catch(e){}
+    return DIFFS[k].lbl.split(" ")[0]+(got?"✔":"–"); }).join(" ");
+  el.textContent = (b==null?"🏆 Aún sin récord — ¡sé el primero en escapar!":("🏆 Mejor escape: "+fmtT(b))) + (w>0?"  ·  🚁 Escapes: "+w:"") + "  ·  🏅 "+med; }
 // 💥 grietas de vidrio roto para el jumpscare
 function crackSVG(){ let p="";
   for(let i=0;i<12;i++){ const a=i/12*6.283+Math.random()*0.4; let x=200,y=200,d="M200 200"; const steps=6, len=140+Math.random()*200;
@@ -1073,6 +1077,7 @@ function update(dt){
     if(Math.random()<dt*3) snd(360+Math.random()*300,"square",0.06,0.05);
     if(craftT>=8){ won=true; running=false; const elapsed=gameTime-timeLeft; let best=loadBest(); const isNew=(best==null||elapsed<best); if(isNew){ best=elapsed; saveBest(best); } addWin();
       const bd=loadBestD(diff), isNewD=(bd==null||elapsed<bd); if(isNewD) saveBestD(diff,elapsed); buildDiffs();   // 🏆 récord de esta dificultad
+      try{ localStorage.setItem("scream_win_"+diff,"1"); }catch(e){}   // 🏅 medalla de esta dificultad
       const winMsg="🧪 ¡Fabricaste el ANTÍDOTO y escapaste del hospital de 7 pisos! ✅<br><br>⏱ Tu tiempo: <b>"+fmtT(elapsed)+"</b>"+(isNew?"<br>🏆 ¡NUEVO RÉCORD!":"<br>🏆 Mejor: <b>"+fmtT(best)+"</b>")+(isNewD?"<br>⭐ ¡MEJOR TIEMPO en "+DIFFS[diff].lbl+"!":"<br>⭐ Mejor en "+DIFFS[diff].lbl+": <b>"+fmtT(bd)+"</b>")+"<br>🚁 Escapes totales: <b>"+loadWins()+"</b>";
       // 🎬 cinemática de ESCAPE: fundido a blanco + radio de rescate
       cbar.style.display="none"; const fd=$("fade"); if(fd){ fd.style.background="#e2fff7"; fd.style.opacity="0.94"; }
