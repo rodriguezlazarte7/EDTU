@@ -61,7 +61,9 @@
   <p style="color:#8fb3ff;font-size:12px;max-width:460px;line-height:1.7;font-family:Consolas,monospace">📖 Notación: <b style="color:#fff">U</b>=arriba · <b style="color:#fff">D</b>=abajo · <b style="color:#fff">L</b>=izquierda · <b style="color:#fff">R</b>=derecha · <b style="color:#fff">F</b>=frente · <b style="color:#fff">B</b>=atrás — con <b style="color:#ffd12e">'</b> gira al revés (ej: U' = arriba anti-horario)<br>⌨️ <b style="color:#39ff14">SPEEDCUBING</b>: pulsa la LETRA para girar · <b style="color:#ffd12e">Shift+letra</b> = inverso · <b style="color:#ffd12e">Z</b> = deshacer · <b style="color:#ffd12e">T</b> = 💡 pista (máx 3) · <b style="color:#ffd12e">Enter</b> = revancha</p>
   <p id="rwins" style="color:#ffd12e;font-weight:800;font-size:13px;margin-bottom:8px"></p>
   <p id="rpodium" style="color:#8fd0ff;font-weight:800;font-size:12px;margin-bottom:8px"></p>
+  <p id="rdaily" style="color:#ffd88a;font-weight:800;font-size:12px;margin-bottom:8px"></p>
   <button class="btn go" id="introStart">▶ EMPEZAR</button>
+  <button class="btn" id="introDaily" title="La misma revoltura para todos durante el día: compara tu tiempo con tus amigos" style="border-color:rgba(255,216,138,.7);color:#ffd88a">📅 DESAFÍO DEL DÍA</button>
   <button class="btn" id="introPractice" title="Resuelve a tu ritmo: sin IA, sin reloj, con pistas infinitas" style="border-color:rgba(143,208,255,.6);color:#8fd0ff">🎓 PRÁCTICA LIBRE</button>
   <button class="btn" id="introSym" title="Cada color lleva su figura: ideal si no distingues colores" style="border-color:rgba(255,209,46,.5);color:#ffd88a;font-size:12px">🎨 MODO SÍMBOLOS: NO</button>
   <button class="btn" id="introGold" title="Skin metálica exclusiva de los 21 logros EDTU" style="display:none;border-color:rgba(255,215,0,.7);color:#ffd700;font-size:12px">👑 CUBO DE ORO: NO</button>
@@ -152,7 +154,13 @@ let diff="medio", DIFF={facil:{scr:6,pace:1.0},medio:{scr:12,pace:0.5},dificil:{
 try{ const rd0=localStorage.getItem("rubik_diff"); if(rd0&&DIFF[rd0]) diff=rd0; }catch(e){}   // 🧠 recuerda tu dificultad
 let state="idle", raceStart=0, ended=false, scramble=[], aiQueue=[], aiTimer=null;
 const FACE_LIST=["U","D","L","R","F","B"];
-function randMove(){ return {face:FACE_LIST[(Math.random()*6)|0], dir:Math.random()<0.5?1:-1}; }
+// 📅 DESAFÍO DEL DÍA: la misma revoltura para todos durante el día (semilla = fecha, generador mulberry32)
+let scrRng=null, dailyMode=false;
+function mulberry32(a){ return function(){ a|=0; a=a+0x6D2B79F5|0; let t=Math.imul(a^a>>>15,1|a); t=t+Math.imul(t^t>>>7,61|t)^t; return ((t^t>>>14)>>>0)/4294967296; }; }
+function dailyKey(){ const d=new Date(); return d.getFullYear()*10000+(d.getMonth()+1)*100+d.getDate(); }
+function loadDaily(){ try{ return parseFloat(localStorage.getItem("rubik_daily_"+dailyKey())||"0")||0; }catch(e){ return 0; } }
+function updDaily(){ const el=document.getElementById("rdaily"); if(!el) return; const v=loadDaily(); el.textContent=v>0?("📅 Tu mejor de HOY: "+v.toFixed(1)+"s — ¡compáralo con tus amigos!"):"📅 Desafío del día: la misma revoltura para todos hoy — ¿quién la arma más rápido?"; }
+function randMove(){ const r1=scrRng?scrRng():Math.random(), r2=scrRng?scrRng():Math.random(); return {face:FACE_LIST[(r1*6)|0], dir:r2<0.5?1:-1}; }
 
 function newScramble(){
   // resetear ambos cubos (recrearlos es lo más simple y seguro)
@@ -160,6 +168,7 @@ function newScramble(){
   resetCube(player); resetCube(ai);
   scramble=[]; const n=DIFF[diff].scr; let last=-1;
   for(let i=0;i<n;i++){ let m; do{ m=randMove(); }while(m.face===last); last=m.face; scramble.push(m); move(player,m.face,m.dir,0); move(ai,m.face,m.dir,0); }
+  scrRng=null;   // 📅 la semilla del día solo vale para esta revoltura
 }
 function resetCube(cu){ // vuelve cada cubie a su posición/orientación resuelta
   let i=0; for(let x=-1;x<=1;x++)for(let y=-1;y<=1;y++)for(let z=-1;z<=1;z++){ const c=cu.cubies[i++]; c.position.set(x,y,z); c.rotation.set(0,0,0); c.updateMatrix(); } cu.busy=false;
@@ -176,6 +185,7 @@ function updAIBar(){ const done=aiTotal?(aiTotal-aiQueue.length)/aiTotal:0; cons
   if(done>=0.9&&!aiT90&&state==="race"&&!ended){ aiT90=true; aiSay("¡Casi termino! ¡Apúrate!"); } }
 function startRace(){
   if(state==="count") return;   // ya hay una cuenta corriendo
+  if(dailyMode) scrRng=mulberry32(dailyKey());   // 📅 revoltura fija del día
   document.getElementById("intro").classList.add("hide");
   aiGen++;   // 🐛FIX: invalida cualquier cadena aiStep en vuelo de la carrera anterior
   aiWinT=0; camA.position.set(1000+5,5,7); camA.lookAt(1000,0,0);   // 🐛FIX ronda2: la vuelta de la victoria de la IA invadía la cuenta regresiva de la revancha
@@ -192,7 +202,7 @@ function startRace(){
       { const hb0=document.getElementById("hintBtn"); if(hb0) hb0.textContent="💡 PISTA x3"; }
       // 📜 muestra la REVOLTURA exacta: deshacerla al revés (y con giros opuestos) resuelve el cubo
       const ss=document.getElementById("scramShow");
-      if(ss) ss.innerHTML="📜 Revoltura:<br>"+scramble.map(m=>m.face+(m.dir<0?"'":"")).join(" ")+"<br><span style='color:#6a86b8'>(deshazla al revés para ganar)</span>";
+      if(ss) ss.innerHTML=(dailyMode?"📅 <b style='color:#ffd12e'>DESAFÍO DEL DÍA</b><br>":"")+"📜 Revoltura:<br>"+scramble.map(m=>m.face+(m.dir<0?"'":"")).join(" ")+"<br><span style='color:#6a86b8'>(deshazla al revés para ganar)</span>";
       // IA resuelve deshaciendo el revuelto (en vivo)
       aiQueue=scramble.slice().reverse().map(m=>({face:m.face,dir:-m.dir}));
       ended=false;   // 🐛FIX: si una cadena vieja alcanzó a llamar finish() durante la cuenta, la nueva carrera parte limpia igual
@@ -370,9 +380,10 @@ function finish(who){
     const tf=parseFloat(t), bt=loadBT(diff), isBT=!bt||tf<bt; if(isBT) saveBT(diff,tf);   // ⏱️ ¿nuevo mejor tiempo?
     const bm=loadBM(diff), isBM=!bm||moveCount<bm; if(isBM) saveBM(diff,moveCount);   // 🔄 ¿menos movimientos que nunca?
     const podPos=pushTop3(diff,tf);   // 🏁 ¿entra al podio?
+    let dailyNew=false; if(dailyMode){ try{ const dv=loadDaily(); if(!dv||tf<dv){ localStorage.setItem("rubik_daily_"+dailyKey(),String(tf)); dailyNew=true; } }catch(e){} updDaily(); }   // 📅 mejor del día
     const stk=loadStreak()+1; saveStreak(stk);   // 👑 sigue la racha
     if(diff==="imposible") setTimeout(()=>{ try{ if(window.speechSynthesis){ const u2=new SpeechSynthesisUtterance("¡¿Qué?! ¡Nadie me había ganado en imposible! Eres una leyenda."); u2.lang="es-ES"; u2.pitch=1.6; u2.rate=1.15; u2.volume=0.8; speechSynthesis.speak(u2); } }catch(e){} },1500);   // 💀 shock de la IA (🐛FIX ronda2: sin cancel(), se ENCOLA tras la celebración en vez de cortarla a mitad de frase)
-    showMsg("🎉 ¡GANASTE!\n"+t+"s · 🔄 "+moveCount+" movs · 🏆 victorias: "+loadRW()+(stk>=2?"\n👑 ¡"+stk+" victorias SEGUIDAS!":"")+(isBT?"\n⏱️ ¡MEJOR TIEMPO en "+diff+"!":"\n⏱️ Tu mejor: "+bt.toFixed(1)+"s")+(isBM?"\n🔄 ¡MENOS MOVIMIENTOS QUE NUNCA!":"\n🔄 Récord movs: "+bm)+"\n🏁 "+podiumTxt(diff)+(podPos===0?" — ¡ORO!":podPos===1?" — ¡PLATA!":podPos===2?" — ¡BRONCE!":"")+(streakPMax>=3?"\n🔥 mejor racha perfecta: x"+streakPMax:""),"#39ff14");
+    showMsg("🎉 ¡GANASTE!\n"+t+"s · 🔄 "+moveCount+" movs · 🏆 victorias: "+loadRW()+(stk>=2?"\n👑 ¡"+stk+" victorias SEGUIDAS!":"")+(isBT?"\n⏱️ ¡MEJOR TIEMPO en "+diff+"!":"\n⏱️ Tu mejor: "+bt.toFixed(1)+"s")+(isBM?"\n🔄 ¡MENOS MOVIMIENTOS QUE NUNCA!":"\n🔄 Récord movs: "+bm)+"\n🏁 "+podiumTxt(diff)+(podPos===0?" — ¡ORO!":podPos===1?" — ¡PLATA!":podPos===2?" — ¡BRONCE!":"")+(streakPMax>=3?"\n🔥 mejor racha perfecta: x"+streakPMax:"")+(dailyMode?"\n📅 DESAFÍO DEL DÍA: "+tf.toFixed(1)+"s"+(dailyNew?" ¡tu mejor de hoy!":""):""),"#39ff14");
     buildDiffs(document.getElementById("diffs")); buildDiffs(document.getElementById("introDiffs"));
     confetti();   // 🎉 lluvia de papelitos
     victoryTune(false);   // 🎼 Oda a la Alegría completa
@@ -426,7 +437,10 @@ addEventListener("keydown",e=>{ const k=e.key.toUpperCase();
   if(k==="Z"){ undoMove(); return; }
   if(k==="T"){ hint(); return; }   // 💡 pista
   if(FACES[k] && !e.repeat) playerMove(k, e.shiftKey?-1:1); });
-document.getElementById("introStart").onclick=startRace; document.getElementById("introPractice").onclick=startPractice; updRW();
+document.getElementById("introStart").onclick=()=>{ dailyMode=false; scrRng=null; startRace(); };
+document.getElementById("introPractice").onclick=()=>{ dailyMode=false; scrRng=null; startPractice(); };
+document.getElementById("introDaily").onclick=()=>{ dailyMode=true; startRace(); };   // 📅 misma revoltura para todos hoy
+updRW(); updDaily();
 // selector de dificultad (arriba y en el intro)
 function buildDiffs(container){ container.innerHTML=""; [["facil","🟢 Fácil"],["medio","🟡 Medio"],["dificil","🔴 Difícil"],["imposible","💀 Imposible"]].forEach(([k,lbl])=>{ const b=document.createElement("button"); b.className="diff"+(diff===k?" sel":""); const bt=loadBT(k); b.textContent=lbl+(bt?" ⏱️"+bt.toFixed(1)+"s":""); b.onclick=()=>{ if(state==="race"||state==="count") return; diff=k; try{ localStorage.setItem("rubik_diff",k); }catch(e){} buildDiffs(document.getElementById("diffs")); buildDiffs(document.getElementById("introDiffs")); }; container.appendChild(b); }); updPodium(); }   // 🐛FIX ronda2: cambiar dificultad EN PLENA carrera alteraba la IA y guardaba récords falsos
 buildDiffs(document.getElementById("diffs")); buildDiffs(document.getElementById("introDiffs"));
