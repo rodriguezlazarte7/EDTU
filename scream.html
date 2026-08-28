@@ -172,6 +172,16 @@ const camera=new THREE.PerspectiveCamera(78,1,0.1,300); camera.rotation.order="Y
 function resize(){ renderer.setSize(innerWidth,innerHeight); camera.aspect=innerWidth/innerHeight; camera.updateProjectionMatrix(); }
 addEventListener("resize",resize); resize();
 function snd(f,t,d,v){ try{ const a=snd.ctx||(snd.ctx=new (AudioContext||webkitAudioContext)()); const o=a.createOscillator(),g=a.createGain(); o.type=t||"sine"; o.frequency.value=f; o.connect(g); g.connect(a.destination); g.gain.value=v||0.1; o.start(); g.gain.exponentialRampToValueAtTime(0.0001,a.currentTime+(d||0.2)); o.stop(a.currentTime+(d||0.2)); }catch(e){} }
+// 🕷️ CHIRRIDO de araña (barrido de frecuencia agudo→grave con vibrato, tipo screech)
+function screech(){ try{ const a=snd.ctx||(snd.ctx=new (AudioContext||webkitAudioContext)()); const t0=a.currentTime;
+  const o=a.createOscillator(),g=a.createGain(),v=a.createOscillator(),vg=a.createGain();
+  o.type="sawtooth"; o.frequency.setValueAtTime(1900,t0); o.frequency.exponentialRampToValueAtTime(220,t0+0.55);
+  v.type="sine"; v.frequency.value=38; vg.gain.value=140; v.connect(vg); vg.connect(o.frequency);   // vibrato áspero
+  g.gain.setValueAtTime(0.14,t0); g.gain.exponentialRampToValueAtTime(0.0001,t0+0.6);
+  o.connect(g); g.connect(a.destination); o.start(t0); v.start(t0); o.stop(t0+0.62); v.stop(t0+0.62);
+  const e=a.createOscillator(),eg=a.createGain(); e.type="sawtooth"; e.frequency.setValueAtTime(950,t0+0.18); e.frequency.exponentialRampToValueAtTime(150,t0+0.75);   // eco
+  eg.gain.setValueAtTime(0.05,t0+0.18); eg.gain.exponentialRampToValueAtTime(0.0001,t0+0.8); e.connect(eg); eg.connect(a.destination); e.start(t0+0.18); e.stop(t0+0.82);
+}catch(err){} }
 
 // ---------- texturas procedurales (calidad) ----------
 function tex(draw,rep){ const c=document.createElement("canvas"); c.width=c.height=256; const x=c.getContext("2d"); draw(x); const t=new THREE.CanvasTexture(c); t.wrapS=t.wrapT=THREE.RepeatWrapping; t.encoding=THREE.sRGBEncoding; if(rep) t.repeat.set(rep,rep); t.anisotropy=4; return t; }
@@ -584,8 +594,8 @@ function update(dt){
   if(!spiderDead && flashOn){ spider.ambushT-=dt;   // 🔦 SOLO se teletransporta con la linterna PRENDIDA
     if(spider.ambushT<=0){ spider.ambushT=ambushInt*(1-panic*0.45);   // se teletransporta más seguido con poco tiempo
       if(sameFloor){ const fx=-Math.sin(yaw), fz=-Math.cos(yaw), dist=7+Math.random()*2; const sp2=safeSpotF(P.x+fx*dist,P.z+fz*dist,curFloor);   // aparece ADELANTE
-          spider.grp.position.x=sp2.x; spider.grp.position.z=sp2.z; spider.camo=1; snd(60,"sawtooth",0.7,0.18); snd(1300,"square",0.18,0.12); const sf=$("sflash"); if(sf){ sf.style.opacity="0.55"; setTimeout(()=>sf.style.opacity="0",90);} doCrack(); vib([0,40,30,50]); showStory("🕷️ ¡APARECIÓ FRENTE A TI!"); }
-      else { spiderFloor=curFloor; const sp2=safeSpotF(STAIRX,STAIRZ,curFloor); spider.grp.position.x=sp2.x; spider.grp.position.z=sp2.z; spider.camo=1; snd(80,"sawtooth",0.9,0.16); snd(1000,"square",0.3,0.1); showStory("🕷️ ¡SUBIÓ POR LAS ESCALERAS a tu piso!"); } } }
+          spider.grp.position.x=sp2.x; spider.grp.position.z=sp2.z; spider.camo=1; screech(); snd(60,"sawtooth",0.7,0.18); const sf=$("sflash"); if(sf){ sf.style.opacity="0.55"; setTimeout(()=>sf.style.opacity="0",90);} doCrack(); vib([0,40,30,50]); showStory("🕷️ ¡APARECIÓ FRENTE A TI!"); }
+      else { spiderFloor=curFloor; const sp2=safeSpotF(STAIRX,STAIRZ,curFloor); spider.grp.position.x=sp2.x; spider.grp.position.z=sp2.z; spider.camo=1; screech(); snd(80,"sawtooth",0.9,0.16); showStory("🕷️ ¡SUBIÓ POR LAS ESCALERAS a tu piso!"); } } }
   if(sameFloor && !spiderDead){
     const hunts = flashOn && !inSafe(P.x,P.z,curFloor);   // solo caza con LINTERNA (y no en zona segura)
     if(sd>1.2){ let dirx,dirz,spd;
