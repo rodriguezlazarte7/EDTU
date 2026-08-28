@@ -954,7 +954,8 @@ function killMedals(){ let s=""; KILL_TH.forEach(t2=>{ let got=false; try{ got=l
 function loadNCase(){ try{ const v=localStorage.getItem("nag_best_case"); return v==null?null:parseInt(v,10); }catch(e){ return null; } }
 function fmtCase(s){ return Math.floor(s/60)+":"+String(s%60).padStart(2,"0"); }
 function updNagMedals(){ const el=document.getElementById("nagMedals"); if(el){ const bc=loadNCase();
-  el.textContent="🎖️ Hitos de una partida: "+killMedals()+(bc!=null?"  ·  ⏱ Caso más rápido: "+fmtCase(bc):""); } }
+  let bn=0; try{ bn=parseInt(localStorage.getItem("nag_best_nights")||"0",10)||0; }catch(e){}
+  el.textContent="🎖️ Hitos de una partida: "+killMedals()+(bc!=null?"  ·  ⏱ Caso más rápido: "+fmtCase(bc):"")+(bn>0?"  ·  🌙 Récord: "+bn+" noche"+(bn>1?"s":""):""); } }
 updNagMedals();
 // 🔥 récord de mejor RACHA
 function loadNCombo(){ try{ return parseInt(localStorage.getItem("nag_best_combo")||"0",10)||0; }catch(e){ return 0; } }
@@ -1005,7 +1006,10 @@ function endGame(win,customInfo){
   const prevK=loadNKills(); const isRec=kills>prevK; if(isRec){ try{ localStorage.setItem("nag_best_kills",String(kills)); }catch(e){} }
   KILL_TH.forEach(t2=>{ if(kills>=t2){ try{ localStorage.setItem("nag_kills_"+t2,"1"); }catch(e){} } }); updNagMedals();   // 🎖️ hitos logrados
   const survS=Math.max(0,Math.floor(performance.now()/1000-startT)), svm=Math.floor(survS/60), svs=survS%60;
-  const recTxt="<br>🧟 Eliminados: <b>"+kills+"</b>"+(isRec?" 🏆 ¡RÉCORD!":" · Récord: <b>"+prevK+"</b>")+(maxCombo>=2?"<br>🔥 Mejor racha: <b>x"+maxCombo+"</b> · Récord: <b>x"+loadNCombo()+"</b>":"")
+  // 🌙 NOCHES sobrevividas: cada ciclo de 360s empieza de noche; si ya amaneció, esa noche cuenta
+  const nightsSurv=Math.floor(survS/360)+(((survS%360)/360)>=0.5?1:0);
+  let bestN=0; try{ bestN=parseInt(localStorage.getItem("nag_best_nights")||"0",10)||0; if(nightsSurv>bestN){ bestN=nightsSurv; localStorage.setItem("nag_best_nights",String(nightsSurv)); } }catch(e){}
+  const recTxt="<br>🧟 Eliminados: <b>"+kills+"</b>"+(isRec?" 🏆 ¡RÉCORD!":" · Récord: <b>"+prevK+"</b>")+(maxCombo>=2?"<br>🔥 Mejor racha: <b>x"+maxCombo+"</b> · Récord: <b>x"+loadNCombo()+"</b>":"")+"<br>🌙 Noches sobrevividas: <b>"+nightsSurv+"</b> · Récord: <b>"+bestN+"</b>"
     +"<div style='margin-top:8px;font-size:13px;color:#9fb6c9;line-height:1.9'>📊 <b>ESTADÍSTICAS</b><br>⏱ Jugaste "+svm+":"+String(svs).padStart(2,"0")+" · 🚶 "+Math.round(nStatDist)+" m recorridos<br>🛡️ Escudos recogidos: "+nStatShields+" · 👹 Gigantes derribados: "+nStatBoss+"<br>🎖️ "+killMedals()+"</div>";
   if(win){ t.textContent="✓ CASO RESUELTO"; t.className="big win";
     // ⏱ speedrun: ¿resolviste el caso más rápido que nunca?
@@ -1192,7 +1196,7 @@ function update(dt){
       [880,1175,880,1568].forEach((fq,k)=>setTimeout(()=>snd(fq,"square",0.09,0.06),k*120));
       try{ localStorage.setItem("wally_notagame","1"); }catch(e){}   // 🏅 cacería de WALLY
       showStory("🤖 ¡WALLY sobrevivió al brote! (beep-boop)"); }
-    if(dn) dn.textContent = (dayF>0.5 ? "☀️ DÍA" : (bloodMoon?"🔴 LUNA DE SANGRE":"🌙 NOCHE"))+(dayF<0.5?" · 🔋"+Math.round(fBatt)+"%":"");
+    if(dn){ const nightN=Math.floor((now-startT)/360)+1; dn.textContent = (dayF>0.5 ? "☀️ DÍA "+nightN : (bloodMoon?"🔴 LUNA DE SANGRE "+nightN:"🌙 NOCHE "+nightN))+(dayF<0.5?" · 🔋"+Math.round(fBatt)+"%":""); }
     // 🏮 faroles: se encienden al anochecer (algunos titilan)
     for(const sl of streetLamps){ const base=(1-dayF)*1.4; sl.l.intensity=base*(Math.random()<0.06?0.2:1); sl.b.material.color.setHex(dayF>0.6?0x555550:0xffd890); }
     // 🔴 LUNA DE SANGRE: algunas noches (35%) la luna se tiñe de rojo — zombies enloquecidos pero sueltan MÁS escudos

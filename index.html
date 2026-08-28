@@ -7123,7 +7123,7 @@ function buildTrophies(){ try{
   h+=["facil","normal","dificil","extincion"].map(k=>med(g("jurassic_win_"+k)==="1")).join(" ")+" <small>(🟢🟡🔴☄️)</small> · "+(g("jurassic_egg")==="1"?"🥚 Huevo Dorado":"▫️ ¿secreto? 🤫")+"<br>";
   // NOT A GAME
   const nk=parseInt(g("nag_best_kills")||"0",10)||0, nc2=parseInt(g("nag_best_combo")||"0",10)||0, ncase=g("nag_best_case");
-  h+="<div style='color:#ff2d55'><b>🧟 NOT A GAME</b></div>🧟 Récord kills: <b>"+nk+"</b>"+(nc2?" · 🔥 Racha: <b>x"+nc2+"</b>":"")+(ncase!=null?" · ⏱ Caso: <b>"+fmtMS(parseInt(ncase,10))+"</b>":"")+"<br>";
+  h+="<div style='color:#ff2d55'><b>🧟 NOT A GAME</b></div>🧟 Récord kills: <b>"+nk+"</b>"+(nc2?" · 🔥 Racha: <b>x"+nc2+"</b>":"")+(ncase!=null?" · ⏱ Caso: <b>"+fmtMS(parseInt(ncase,10))+"</b>":"")+((parseInt(g("nag_best_nights")||"0",10)||0)>0?" · 🌙 x"+parseInt(g("nag_best_nights"),10)+" noches":"")+"<br>";
   h+=[25,50,100,200].map(k=>med(g("nag_kills_"+k)==="1")+k).join(" ")+"<br>";
   // F1
   const fb=parseFloat(g("edtu_f1_best")), fms=parseInt(g("edtu_f1_maxspd")||"0",10)||0, fov=parseInt(g("edtu_f1_overt")||"0",10)||0;
