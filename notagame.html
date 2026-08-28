@@ -431,6 +431,38 @@ function respawnZombie(z){ const p=zPos(); z.grp.position.set(p.x,0,p.z); z.hp=2
   else { z.grp.scale.set(1,1,1); if(z.spitG) z.spitG.visible=false; } }   // ∞: vuelve más fuerte
 // 🗺️ rastro de tu ruta por la ciudad (un punto cada 3s) para dibujar el caso al ganar
 const nPath=[]; let nPathT=0;
+// 🧪 DR. VZ: el creador del virus — aparece UNA vez al abrir la 5ª pista y HUYE de ti; atrápalo en 45s
+let drVZ=null, drVZT=0, drVZDone=false, drVZDir=0;
+function spawnDrVZ(){ if(drVZDone||drVZ||gameOver||!running) return;
+  const g=makeZombie();
+  const coat=new THREE.Mesh(new THREE.BoxGeometry(0.78,0.95,0.46),new THREE.MeshStandardMaterial({color:0xe8e8e2,roughness:.7})); coat.position.y=0.5; g.add(coat);
+  const gafas=new THREE.Mesh(new THREE.BoxGeometry(0.34,0.08,0.06),new THREE.MeshBasicMaterial({color:0x111111})); gafas.position.set(0,1.32,0.21); g.add(gafas);
+  const s=freeSpot(10,ARENA-6,2.4); g.position.set(s.x,0,s.z); scene.add(g);
+  drVZ={grp:g}; drVZT=45; drVZDir=Math.random()*6.28;
+  narrate("Atención. El doctor V Z, creador del virus, fue visto en la zona. Atrápelo.");
+  showStory("🧪 ¡EL DR. VZ anda cerca! Persíguelo y atrápalo antes de 45s"); snd(880,"square",0.15,0.07); }
+function drVZTick(dt){ if(!drVZ||level!=="surface"||gameOver) return;
+  drVZT-=dt;
+  const dx=drVZ.grp.position.x-P.x, dz=drVZ.grp.position.z-P.z, d=Math.hypot(dx,dz);
+  if(d<1.9){   // 🎉 ¡lo alcanzaste!
+    scene.remove(drVZ.grp); drVZ=null; drVZDone=true;
+    shield=true; updShieldHUD(); rapidT=12;
+    [523,659,784,1047].forEach((f2,j)=>setTimeout(()=>snd(f2,"triangle",0.2,0.08),j*110));
+    try{ if(navigator.vibrate) navigator.vibrate([0,60,40,60,40,160]); }catch(e){}
+    narrate("El doctor escapó de tus manos... pero dejó caer su maletín.");
+    showStory("🧪 ¡Casi lo atrapas! Su MALETÍN: 🛡️ escudo + ⚡ disparo rápido"); return; }
+  if(drVZT<=0){ scene.remove(drVZ.grp); drVZ=null; drVZDone=true;
+    narrate("El doctor escapó entre risas."); showStory("🧪 el Dr. VZ se esfumó entre las casas..."); return; }
+  let fx=dx/(d||1), fz=dz/(d||1);   // dirección opuesta a ti + bandazos de loco
+  drVZDir+=(Math.random()-0.5)*dt*3;
+  fx=fx*0.75+Math.cos(drVZDir)*0.25; fz=fz*0.75+Math.sin(drVZDir)*0.25;
+  const spV=(d<10?4.6:3.2);
+  const nx=drVZ.grp.position.x+fx*spV*dt, nz=drVZ.grp.position.z+fz*spV*dt;
+  if(Math.hypot(nx,drVZ.grp.position.z)<ARENA-3 && !collide(nx,drVZ.grp.position.z)) drVZ.grp.position.x=nx; else drVZDir+=2;
+  if(Math.hypot(drVZ.grp.position.x,nz)<ARENA-3 && !collide(drVZ.grp.position.x,nz)) drVZ.grp.position.z=nz; else drVZDir+=2;
+  drVZ.grp.rotation.y=Math.atan2(fx,fz);
+  drVZ.grp.position.y=Math.abs(Math.sin(performance.now()*0.012))*0.12;
+  if(Math.random()<dt*0.5){ [1200,1500,1100].forEach((fq,j)=>setTimeout(()=>snd(fq+Math.random()*200,"square",0.06,0.04),j*90)); } }   // 🤪 risas locas
 // 🟣 proyectiles de ácido y aturdimiento
 const spitProj=[]; let acidT=0;
 function acidOverlay(){ let el=document.getElementById("acidFx");
@@ -640,6 +672,7 @@ function openDrawer(d){
   if(cluesGot<7){ try{ if(window.speechSynthesis){ const ci=CLUE_NOTES.indexOf(d.note);
     const u=new SpeechSynthesisUtterance("Pista "+(ci>=0?ci+1:cluesGot)+": "+(ci>=0?CLUE_VOICE[ci]:"anotada en el expediente")); u.lang="es-ES"; u.pitch=0.6; u.rate=1.0; u.volume=0.8; speechSynthesis.speak(u); } }catch(e){} }
   showStory(d.note + (cluesGot<7 ? "   ·   📜 te faltan "+(7-cluesGot)+" pista"+(7-cluesGot>1?"s":"") : ""));
+  if(cluesGot===5) setTimeout(spawnDrVZ,1500);   // 🧪 la 5ª pista despierta al DR. VZ
   if(cluesGot>=7){
     running=false;   // 🐛FIX ronda2: durante la cinemática el juego queda CONGELADO (antes un zombie podía "matarte" en plena victoria y los fundidos chocaban)
     // 🎬 CIERRE DEL CASO con drama: fanfarria + narrador + fundido blanco antes de la pantalla final
@@ -675,6 +708,7 @@ function drawNRadar(){ const cv=document.getElementById("nradar"); if(!cv) retur
     if(dog.visible) put(dog.position.x,dog.position.z,"#c8a06a",3);   // 🐕 el perro
     if(catAlly>0) put(cat.position.x,cat.position.z,"#b48aff",2.6);   // 🐈‍⬛ gato aliado
     rapidDrops.forEach(rp=>put(rp.m.position.x,rp.m.position.z,"#ffb020",3));
+    if(drVZ&&Math.sin(performance.now()*0.01)>0) put(drVZ.grp.position.x,drVZ.grp.position.z,"#ffffff",3.6);   // 🧪 el doctor parpadea blanco
     // 🔎 cajones con PISTA sin abrir: verdes y PARPADEANDO (guían a resolver el caso)
     if(Math.sin(performance.now()*0.008)>0) drawers.forEach(d=>{ if(!d.open) put(d.cx,d.cz,"#7dff5a",3.4); }); }
   g.fillStyle="#7dff5a"; g.beginPath(); g.arc(52,52,3.4,0,6.28); g.fill();
@@ -709,7 +743,7 @@ function drawNMap(){ const cv=document.getElementById("nmapCv"); if(!cv) return;
   dot2(heliPad.x,heliPad.z,"#33bbff",7);
   stairDowns.forEach(s=>dot2(s.x,s.z,"#b26bff",6));
   const emo2=(x,z,t2)=>{ g.font="16px serif"; g.textAlign="center"; g.fillText(t2,px2(x),pz2(z)+6); };
-  emo2(wallyN.position.x,wallyN.position.z,"🤖"); if(dog.visible) emo2(dog.position.x,dog.position.z,"🐕");
+  emo2(wallyN.position.x,wallyN.position.z,"🤖"); if(dog.visible) emo2(dog.position.x,dog.position.z,"🐕"); if(drVZ) emo2(drVZ.grp.position.x,drVZ.grp.position.z,"🧪");
   zombies.forEach(z=>{ if(!z.dead) dot2(z.grp.position.x,z.grp.position.z,z.spitter?"#7dff2a":(z.runner?"#ff8ade":"#ff3a3a"),5); });
   if(boss) dot2(boss.grp.position.x,boss.grp.position.z,"#ff8c1a",8);
   const fx=-Math.sin(yaw), fz=-Math.cos(yaw);
@@ -839,6 +873,7 @@ function startGame(){
   legendSaid=false;   // 👑 WALLY puede volver a celebrar el 21/21 una vez por partida
   spitProj.forEach(pr=>scene.remove(pr.m)); spitProj.length=0; acidT=0; canvas.style.filter=""; { const ax=document.getElementById("acidFx"); if(ax) ax.style.opacity="0"; }   // 🟣 reset ácido
   nPath.length=0; nPathT=0;   // 🗺️ rastro desde cero
+  if(drVZ){ scene.remove(drVZ.grp); drVZ=null; } drVZDone=false; drVZT=0;   // 🧪 doctor desde cero
   nPaused=false; const po4=document.getElementById("nPauseOv"); if(po4) po4.style.display="none";   // ⏸ reset pausa
   try{ nTutOn=!localStorage.getItem("nag_tut1"); }catch(e){ nTutOn=false; }  nTutStep=0; nTutT=5;   // 🎓 tutorial solo la primera vez
   bloodMoon=false; lastDayF=0; dawnFog=0;   // 🐛FIX ronda2: la luna de sangre y la niebla se filtraban a la partida nueva
@@ -1131,6 +1166,7 @@ function update(dt){
     if(dogBarkCd<=0){ let zn=1e9; zombies.forEach(z=>{ if(z.dead)return; const zd=Math.hypot(dog.position.x-z.grp.position.x,dog.position.z-z.grp.position.z); if(zd<zn)zn=zd; });
       if(boss){ const bd2=Math.hypot(dog.position.x-boss.grp.position.x,dog.position.z-boss.grp.position.z); if(bd2<zn)zn=bd2; }
       if(zn<13){ dogBarkCd=3.5; snd(520,"square",0.09,0.09); setTimeout(()=>snd(480,"square",0.11,0.09),170); dog.rotation.y+=0.4; } } }
+  if(!nPaused) drVZTick(dt);   // 🧪 el doctor huye
   // 🐈‍⬛ gato negro: cruza la calle... y si lo acaricias (E) se vuelve tu ALIADO 60s
   if(level==="surface"){
     if(catAlly>0){ catAlly-=dt;
