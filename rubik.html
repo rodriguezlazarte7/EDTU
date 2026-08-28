@@ -161,6 +161,7 @@ function resetCube(cu){ // vuelve cada cubie a su posición/orientación resuelt
 let moveCount=0;
 // 🤖 progreso de la IA en vivo + burlas para meterte presión
 let aiTotal=0, aiT50=false, aiT90=false;
+let aiGen=0;   // 🐛FIX auditoría: token de generación — mata las cadenas aiStep viejas al reiniciar (antes quedaban 2 IAs comiéndose la misma cola o el timer congelado)
 function aiSay(txt){ try{ if(!window.speechSynthesis) return; const u=new SpeechSynthesisUtterance(txt); u.lang="es-ES"; u.pitch=1.6; u.rate=1.15; u.volume=0.8; speechSynthesis.cancel(); speechSynthesis.speak(u); }catch(e){} }
 function updAIBar(){ const done=aiTotal?(aiTotal-aiQueue.length)/aiTotal:0; const f=document.getElementById("aifill"), p=document.getElementById("aipct");
   if(f) f.style.width=Math.round(done*100)+"%"; if(p) p.textContent="🧩 "+Math.round(done*100)+"%";
@@ -169,6 +170,7 @@ function updAIBar(){ const done=aiTotal?(aiTotal-aiQueue.length)/aiTotal:0; cons
 function startRace(){
   if(state==="count") return;   // ya hay una cuenta corriendo
   document.getElementById("intro").classList.add("hide");
+  aiGen++;   // 🐛FIX: invalida cualquier cadena aiStep en vuelo de la carrera anterior
   clearTimeout(aiTimer); ended=false; state="count"; moveCount=0; document.getElementById("mvs").textContent="🔄 0";
   undoStack.length=0; document.getElementById("timer").textContent="0.0s";
   // ⏱️ CUENTA REGRESIVA estilo F1: 3.. 2.. 1.. ¡YA! y recién ahí se revuelve y parte la IA
@@ -182,15 +184,16 @@ function startRace(){
       if(ss) ss.innerHTML="📜 Revoltura:<br>"+scramble.map(m=>m.face+(m.dir<0?"'":"")).join(" ")+"<br><span style='color:#6a86b8'>(deshazla al revés para ganar)</span>";
       // IA resuelve deshaciendo el revuelto (en vivo)
       aiQueue=scramble.slice().reverse().map(m=>({face:m.face,dir:-m.dir}));
-      aiTotal=aiQueue.length; aiT50=false; aiT90=false; updAIBar(); aiStep(); } };
+      ended=false;   // 🐛FIX: si una cadena vieja alcanzó a llamar finish() durante la cuenta, la nueva carrera parte limpia igual
+      aiTotal=aiQueue.length; aiT50=false; aiT90=false; updAIBar(); aiStep(aiGen); } };
   setTimeout(step,700);
 }
-function aiStep(){
-  if(ended) return;
+function aiStep(gen){
+  if(ended||gen!==aiGen) return;   // 🐛FIX: una cadena de otra carrera muere aquí
   if(aiQueue.length===0){ if(isSolved(ai)) finish("ai"); return; }
   const m=aiQueue.shift(); updAIBar(); showMv("lastMvA",m.face,m.dir); snd((FACE_NOTES[m.face]||440)*0.5,"sine",0.09,0.014);   // 🎵 la IA suena suavecito
   const pace=DIFF[diff].pace, dur=Math.min(pace*0.6,260);
-  move(ai,m.face,m.dir,Math.min(pace*600,260),()=>{ if(!ended) aiTimer=setTimeout(aiStep, Math.max(40,pace*1000-260)); });
+  move(ai,m.face,m.dir,Math.min(pace*600,260),()=>{ if(!ended&&gen===aiGen) aiTimer=setTimeout(()=>aiStep(gen), Math.max(40,pace*1000-260)); });
 }
 function playerMove(face,dir){ if(state!=="race"||player.busy) return;
   const FN=FACE_NOTES[face]||440; snd(dir<0?FN*0.94:FN,"triangle",0.14,0.06); snd(FN/2,"sine",0.08,0.02);   // 🎵 nota de la cara (los ' suenan un pelín más graves)

@@ -5630,7 +5630,14 @@ const F1={
     $("f1Result").innerHTML="Vista Need for Speed · ←→ o A/D conducir · 🔥 NITRO: espacio / Y / RT / botón · franjas verdes = DRS<br>¡Cuidado con las CURVAS y el pasto! · 🏆 Récord: <b>"+Math.round(this.best)+"</b> m<br>🎖️ "+this.medals();
     this.draw();
   },
-  close(){ this.stop(); $("f1Fs").classList.remove("open"); window.removeEventListener("resize",this._rs); },
+  close(){
+    // 🐛FIX auditoría: salir con ✕/Escape en plena carrera perdía récord, históricos y medallas aunque ya los habías superado
+    try{ if(this.running && this.dist>0){ const m=Math.round(this.dist);
+      if(m>this.best){ this.best=m; localStorage.setItem("edtu_f1_best",String(m)); }
+      const pms=+(localStorage.getItem("edtu_f1_maxspd")||0); if(Math.round(this.maxSpd||0)>pms) localStorage.setItem("edtu_f1_maxspd",String(Math.round(this.maxSpd||0)));
+      const pov=+(localStorage.getItem("edtu_f1_overt")||0); if(this.overt>pov) localStorage.setItem("edtu_f1_overt",String(this.overt));
+      this.markMedals(); } }catch(e){}
+    this.stop(); $("f1Fs").classList.remove("open"); window.removeEventListener("resize",this._rs); },
   resize(){ const c=$("f1Canvas"); this.W=c.width=innerWidth; this.H=c.height=innerHeight; this.ctx=c.getContext("2d"); },
   start(){
     this.x=0; this.speed=120; this.dist=0; this.fuel=100; this.cars=[]; this.overt=0; this.shake=0; this.bgShift=0; this.maxSpd=0;

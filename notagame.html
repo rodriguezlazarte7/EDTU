@@ -542,7 +542,9 @@ function buildHospital(){
   // ARAÑA (al fondo, lejos de la entrada)
   spider=makeSpider(); spider.grp.position.set(HOSPX, 0, HOSPZ-HH+22);
 }
-buildHospital();
+// 🐛FIX auditoría: el hospital era nivel MUERTO (goHospital no tiene ningún trigger desde que la araña se mudó a su propio juego SCREAM);
+// ya no se construye: ahorra memoria y render sin cambiar nada del gameplay real
+// buildHospital();
 function closeDoor(){ if(doorMesh) doorMesh.visible=true; if(doorWall){ doorWall.x0=chamber.x0; doorWall.x1=chamber.x1; doorWall.z0=chamber.z1-0.3; doorWall.z1=chamber.z1+0.3; } }
 function openDoor(){ if(doorMesh) doorMesh.visible=false; if(doorWall){ doorWall.x0=99990; doorWall.x1=99991; doorWall.z0=99990; doorWall.z1=99991; } if(gasMesh){ gasMesh.visible=false; gasMesh.material.opacity=0; } gasOn=false; gasT=0; }
 function goHospital(){ if(level==="hospital")return; hospitalVisited=true; level="hospital"; fadeDo(()=>{ const sp=safeSpot(HOSP_ENTRY.x,HOSP_ENTRY.z); P.x=sp.x; P.z=sp.z; P.y=1.7; P.vy=0; yaw=Math.PI; snd(1500,"sawtooth",0.5,0.14); snd(55,"sawtooth",0.9,0.12); showStory("🏥 HOSPITAL — sin luz. Encierra a la ARAÑA (error de laboratorio) en la CÁMARA DE GAS: atráela adentro y pisa el anillo rojo. ¡No la enfrentes con balas!"); }); }
@@ -765,6 +767,8 @@ let nPaused=false;
 function narrate(txt){ try{ if(!window.speechSynthesis) return; const u=new SpeechSynthesisUtterance(txt); u.lang="es-ES"; u.pitch=0.5; u.rate=0.9; u.volume=0.85; speechSynthesis.cancel(); speechSynthesis.speak(u); }catch(e){} }
 function endGame(win,customInfo){
   running=false; gameOver=true; document.body.classList.remove("playing");
+  // 🐛FIX auditoría: si pausabas durante el cierre cinematográfico, el overlay de PAUSA quedaba tapando la pantalla final (softlock en móvil)
+  nPaused=false; const poE=document.getElementById("nPauseOv"); if(poE) poE.style.display="none";
   try{ document.exitPointerLock(); }catch(e){}
   document.getElementById("touch").classList.remove("on"); document.getElementById("hint").textContent="";
   const t=document.getElementById("endTitle"),inf=document.getElementById("endInfo");

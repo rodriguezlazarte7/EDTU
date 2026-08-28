@@ -687,6 +687,7 @@ function updObj(){ const done=valvesGot>=4&&samplesGot>=3; $("obj").textContent 
     showStory("🗣️ La MÁQUINA te llama desde la planta baja..."); } }
 function fade(fn){ const f=$("fade"); f.style.opacity="1"; setTimeout(()=>{ fn&&fn(); f.style.opacity="0"; },250); }
 function goFloor(nf){ if(nf<0||nf>=FLOORS) return;
+  floorCd=1.5;   // 🐛FIX auditoría: cooldown INMEDIATO (antes se fijaba 250ms después en el callback y goFloor se disparaba ~15 veces por frame apilando sonidos y fades)
   [0,140,290,450].forEach((ms,k)=>setTimeout(()=>snd(90+k*8,"triangle",0.09,0.05),ms));   // 🪜 eco metálico de escalones
   fade(()=>{ curFloor=nf; floorCd=1.2; const sp=safeSpotF(STAIRX-5,STAIRZ,nf); P.x=sp.x; P.z=sp.z; $("floor").textContent=FLOORNAME[nf]; showStory("Subiste a "+FLOORNAME[nf]);
     const ft2=$("floorTitle"); if(ft2){ ft2.textContent=FLOORNAME[nf]; ft2.classList.add("on"); clearTimeout(ft2._t); ft2._t=setTimeout(()=>ft2.classList.remove("on"),1100); } }); }   // 👻 título fantasma
@@ -717,7 +718,7 @@ function spawnMedkits(){ medkits.forEach(mk=>{ if(mk.grp.parent) mk.grp.parent.r
     medkits.push({grp:g,x:s.x,z:s.z,f:f2,got:false}); } }
 spawnMedkits();
 function start(){ $("start").classList.add("hide"); $("end").classList.add("hide"); $("hud").classList.remove("hide");
-  if(touchUI){ $("touch").classList.add("on"); $("tflash").classList.remove("hide"); $("tnv").classList.remove("hide"); $("sprint").classList.remove("hide"); $("tmap").classList.remove("hide"); $("tflare").classList.remove("hide"); $("thelp").classList.remove("hide"); }
+  if(touchUI){ $("touch").classList.remove("hide"); $("touch").classList.add("on"); $("tflash").classList.remove("hide"); $("tnv").classList.remove("hide"); $("sprint").classList.remove("hide"); $("tmap").classList.remove("hide"); $("tflare").classList.remove("hide"); $("thelp").classList.remove("hide"); }   // 🐛FIX auditoría: el joystick táctil nunca se mostraba (quedaba con .hide)
   helpOpen=false; $("help").classList.remove("on");
   mapOpen=false; $("map").classList.remove("on");
   P.x=0; P.z=HH-7; yaw=Math.PI; pitch=0; running=true; gameOver=false; tPrev=performance.now(); flashOn=true; curFloor=0; floorCd=0;
@@ -730,6 +731,8 @@ function start(){ $("start").classList.add("hide"); $("end").classList.add("hide
   placeWallyS();   // 🤖 WALLY en otro piso
   hp=hpMax; stam=100; hurtCd=0; safeTime=0; sprintHeld=false; visorBatt=100; updHP(); $("crack").style.opacity="0"; $("fade").style.background="#000"; $("fade").style.opacity="0";
   paused=false; const po2=$("pauseOv"); if(po2) po2.style.display="none";
+  // 🐛FIX auditoría: un ataque del techo a medias sobrevivía al reinicio (araña cayéndote encima al partir o anillo rojo fantasma)
+  ceilAtk.phase=0; ceilT=40+Math.random()*40; atkRing.material.opacity=0; spider.grp.rotation.x=0;
   activeFlares.forEach(f=>{ if(f.parent){ f.parent.remove(f.glow); f.parent.remove(f.light); } }); activeFlares.length=0; flares=3; updFlareHUD(); panicWarned=false; webWarned=false; glassWarned=false;
   lootCorpses.forEach(lc=>{ lc.looted=false; lc.item.visible=true; lc.roached=false; });
   if(spider) spider.sp=D.sp;
@@ -744,7 +747,7 @@ function start(){ $("start").classList.add("hide"); $("end").classList.add("hide
   $("invtag").style.display="none";
   $("floor").textContent=FLOORNAME[0]; updObj(); showStory("7 pisos a oscuras. Tienes 20 min: reúne 4 válvulas + 3 muestras y fabrica el antídoto en tu zona segura.");
 }
-function endGame(win,info){ running=false; gameOver=true; sprintHeld=false; $("lowhp").classList.remove("on"); try{document.exitPointerLock();}catch(e){} $("touch").classList.remove("on"); $("tflash").classList.add("hide"); $("tnv").classList.add("hide"); $("sprint").classList.add("hide"); $("tmap").classList.add("hide"); $("tflare").classList.add("hide"); $("thelp").classList.add("hide"); mapOpen=false; $("map").classList.remove("on"); helpOpen=false; $("help").classList.remove("on");
+function endGame(win,info){ running=false; gameOver=true; sprintHeld=false; $("lowhp").classList.remove("on"); try{document.exitPointerLock();}catch(e){} $("touch").classList.remove("on"); $("touch").classList.add("hide"); $("tflash").classList.add("hide"); $("tnv").classList.add("hide"); $("sprint").classList.add("hide"); $("tmap").classList.add("hide"); $("tflare").classList.add("hide"); $("thelp").classList.add("hide"); mapOpen=false; $("map").classList.remove("on"); helpOpen=false; $("help").classList.remove("on");
   const t=$("endTitle"); if(win){ t.textContent="✓ SOBREVIVISTE"; t.className="big win"; } else { t.textContent="✕ TE ATRAPÓ"; t.className="big lose"; }
   // 📊 resumen de la partida
   const surv=Math.max(0,Math.floor(gameTime-timeLeft)), smm=Math.floor(surv/60), sss=surv%60;
@@ -936,7 +939,7 @@ function update(dt){
       snd(300,"square",0.08,0.05);
       if(!spiderDead && sameFloor && sd<25){ spider.ambushT=Math.min(spider.ambushT,1.5);
         if(!glassWarned){ glassWarned=true; showStory("🍾 ¡Pisaste VIDRIOS! Te escuchó... ¡muévete!"); } } } }
-  if(!spiderDead && flashOn){ spider.ambushT-=dt;   // 🔦 SOLO se teletransporta con la linterna PRENDIDA
+  if(!spiderDead && flashOn && ceilAtk.phase===0){ spider.ambushT-=dt;   // 🔦 SOLO se teletransporta con la linterna PRENDIDA (🐛FIX: y nunca en pleno ataque del techo — daba sustos falsos)
     if(spider.ambushT<=0){ spider.ambushT=ambushInt*(1-panic*0.45);   // se teletransporta más seguido con poco tiempo
       if(sameFloor){ const fx=-Math.sin(yaw), fz=-Math.cos(yaw), dist=7+Math.random()*2; const sp2=safeSpotF(P.x+fx*dist,P.z+fz*dist,curFloor);   // aparece ADELANTE
           spider.grp.position.x=sp2.x; spider.grp.position.z=sp2.z; spider.camo=1; screech(); snd(60,"sawtooth",0.7,0.18); const sf=$("sflash"); if(sf){ sf.style.opacity="0.55"; setTimeout(()=>sf.style.opacity="0",90);} doCrack(); vib([0,40,30,50]); showStory("🕷️ ¡APARECIÓ FRENTE A TI!"); }
