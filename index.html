@@ -5677,6 +5677,12 @@ const F1={
     // la CURVA te empuja hacia afuera (¡como en NFS!)
     const curve=this.curveAt(this.dist+8);
     this.x-=curve*dt*(this.speed/300)*1.5;
+    // 🛞 DERRAPE: chirrido de neumáticos en curvas fuertes a alta velocidad
+    this._skidT=(this._skidT||0)-dt;
+    if(Math.abs(curve)>0.85 && this.speed>230 && this._skidT<=0){ this._skidT=0.16;
+      try{ const a=this.actx(); if(a){ const n=a.createBufferSource(), buf=a.createBuffer(1,a.sampleRate*0.14,a.sampleRate), d2=buf.getChannelData(0);
+        for(let i=0;i<d2.length;i++) d2[i]=(Math.random()*2-1)*(1-i/d2.length)*Math.sin(i*0.09);
+        const g2=a.createGain(); g2.gain.value=0.05+Math.min(0.05,(this.speed-230)/1500); n.buffer=buf; n.connect(g2); g2.connect(a.destination); n.start(); } }catch(e){} }
     // pasto: fuera de la pista se frena y tiembla
     if(Math.abs(this.x)>1.08){ target=Math.min(target,80); this.shake=3; if(this.speed>95) this.speed-=120*dt; }
     this.x=Math.max(-1.7,Math.min(1.7,this.x));
