@@ -448,7 +448,7 @@ scene.add(tracer); let tracerT=0;
 
 // ---------- jugador ----------
 const P={x:0,z:ARENA-5,y:1.7,vy:0,onGround:true,speed:6.5,hp:100};
-let yaw=0, pitch=0, running=false, gameOver=false, tPrev=0, cluesGot=0, kills=0, muzzle=0, shootCd=0, startT=0, level="surface", heliMode=false;
+let yaw=0, pitch=0, running=false, gameOver=false, tPrev=0, cluesGot=0, kills=0, muzzle=0, shootCd=0, startT=0, level="surface", heliMode=false, stepT=0;
 
 // ---------- input ----------
 const keys={};
@@ -553,6 +553,8 @@ function update(dt){
   if(keys["KeyA"]||keys["ArrowLeft"])s-=1; if(keys["KeyD"]||keys["ArrowRight"])s+=1;
   f-=moveV.y; s+=moveV.x;   // joystick táctil (0 si no tocas) — coexiste con WASD
   const len=Math.hypot(f,s); if(len>1){f/=len;s/=len;}
+  // 👣 pasos con sonido (distinto en el drenaje: eco metálico)
+  if((f||s) && P.onGround){ stepT-=dt; if(stepT<=0){ stepT=0.42; if(level==="drain"){ snd(95,"triangle",0.12,0.05); } else { snd(62+Math.random()*14,"sine",0.09,0.045); } } } else stepT=0.1;
   const sin=Math.sin(yaw),cos=Math.cos(yaw);
   let dx=(f*(-sin)+s*cos)*P.speed*dt, dz=(f*(-cos)+s*(-sin))*P.speed*dt;
   let nx=P.x+dx, nz=P.z+dz;
