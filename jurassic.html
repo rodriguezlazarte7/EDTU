@@ -398,6 +398,14 @@ const turtFlips=[];
     fp.rotation.x=-Math.PI/2; fp.position.set(fx2,0.3,fz2); turtle.add(fp); turtFlips.push(fp); }
 })();
 let turtA=Math.random()*6.28, turtHide=0, turtSeen=false;
+// 🦀 CANGREJOS: corretean DE LADO por la orilla y se entierran si te acercas
+const crabs=[]; const crabM=new THREE.MeshStandardMaterial({color:0xd13a1e,roughness:.7});
+for(let i=0;i<5;i++){ const g=new THREE.Group();
+  const cbody=new THREE.Mesh(new THREE.SphereGeometry(0.16,8,6),crabM); cbody.scale.set(1.4,0.6,1); cbody.position.y=0.12; g.add(cbody);
+  for(const s of [-0.2,0.2]){ const claw=new THREE.Mesh(new THREE.SphereGeometry(0.06,6,5),crabM); claw.position.set(s,0.12,0.16); g.add(claw); }
+  const a=Math.random()*6.28, r=ISLR-5+Math.random()*3;
+  g.position.set(Math.cos(a)*r,0,Math.sin(a)*r); scene.add(g);
+  crabs.push({g,dir:Math.random()<0.5?1:-1,hid:0,mv:0}); }
 // 🦇 MURCIÉLAGOS: bandada que cruza el cielo al caer la noche
 const bats=new THREE.Group(); const batM=new THREE.MeshBasicMaterial({color:0x0a0a10,side:THREE.DoubleSide});
 for(let i=0;i<12;i++){ const b=new THREE.Group();
@@ -734,6 +742,16 @@ function update(dt){
   if(!skelSeen && Math.hypot(P.x-skel.position.x,P.z-skel.position.z)<10){ skelSeen=true;
     [330,262,196].forEach((fq,k)=>setTimeout(()=>snd(fq,"triangle",0.35,0.07),k*160));
     toast2("🦴 Restos de un dinosaurio COLOSAL... ¿qué pudo matarlo?"); }
+  // 🦀 cangrejos: caminan de lado por la orilla, cambian de rumbo al azar y se ENTIERRAN si te acercas
+  for(const cb2 of crabs){
+    if(cb2.hid>0){ cb2.hid-=dt; if(cb2.hid<=0){ const a=Math.random()*6.28, r=ISLR-5+Math.random()*3;
+      cb2.g.position.set(Math.cos(a)*r,0,Math.sin(a)*r); cb2.g.visible=true; } continue; }
+    cb2.mv-=dt; if(cb2.mv<=0){ cb2.mv=1+Math.random()*2; if(Math.random()<0.3) cb2.dir*=-1; }
+    const tx2=-cb2.g.position.z, tz2=cb2.g.position.x, tl=Math.hypot(tx2,tz2)||1;
+    cb2.g.position.x+=tx2/tl*cb2.dir*1.6*dt; cb2.g.position.z+=tz2/tl*cb2.dir*1.6*dt;
+    cb2.g.position.y=Math.abs(Math.sin(elapsed*10+cb2.g.position.x))*0.035;
+    cb2.g.rotation.y=Math.atan2(tx2*cb2.dir,tz2*cb2.dir)+Math.PI/2;
+    if(Math.hypot(P.x-cb2.g.position.x,P.z-cb2.g.position.z)<3){ cb2.g.visible=false; cb2.hid=6; snd(180,"sine",0.1,0.05); } }
   // 🐢 la tortuga avanza por la orilla; aletas remando; si te acercas ESCONDE la cabeza 4s
   turtA+=dt*0.012; const tR2=ISLR-6;
   turtle.position.set(Math.cos(turtA)*tR2,0,Math.sin(turtA)*tR2); turtle.rotation.y=-turtA;
