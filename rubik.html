@@ -43,6 +43,7 @@
   <div class="row">
     <button class="btn go" id="startBtn">▶ EMPEZAR CARRERA</button>
     <button class="btn done" id="listoBtn">✅ LISTO</button>
+    <button class="btn" id="undoBtn" style="border-color:rgba(255,209,46,.6);color:#ffd12e">↩ DESHACER</button>
   </div>
 </div>
 
@@ -153,7 +154,7 @@ function startRace(){
   showMsg("");
   // IA resuelve deshaciendo el revuelto (en vivo)
   aiQueue=scramble.slice().reverse().map(m=>({face:m.face,dir:-m.dir}));
-  aiTotal=aiQueue.length; aiT50=false; aiT90=false; updAIBar();
+  aiTotal=aiQueue.length; aiT50=false; aiT90=false; updAIBar(); undoStack.length=0;
   clearTimeout(aiTimer); aiStep();
 }
 function aiStep(){
@@ -164,7 +165,13 @@ function aiStep(){
 }
 function playerMove(face,dir){ if(state!=="race"||player.busy) return; snd(340+Math.random()*60,"square",0.06,0.05); snd(180,"triangle",0.04,0.03);   // 🔊 clic de giro
   moveCount++; document.getElementById("mvs").textContent="🔄 "+moveCount;   // contador de movimientos
+  undoStack.push({face,dir});   // ↩ para poder deshacer
   move(player,face,dir,150,()=>{ if(!ended && isSolved(player)) finish("player"); }); }
+// ↩ DESHACER: revierte tu último giro (cuenta como movimiento, así no es trampa)
+const undoStack=[];
+function undoMove(){ if(state!=="race"||player.busy||!undoStack.length) return; const m=undoStack.pop();
+  moveCount++; document.getElementById("mvs").textContent="🔄 "+moveCount; snd(240,"square",0.06,0.05);
+  move(player,m.face,-m.dir,150,()=>{ if(!ended && isSolved(player)) finish("player"); }); }
 
 // 🏆 victorias contra la IA (localStorage)
 function loadRW(){ try{ return parseInt(localStorage.getItem("rubik_wins")||"0",10)||0; }catch(e){ return 0; } }
@@ -221,6 +228,7 @@ FACE_LIST.forEach(face=>{
 });
 document.getElementById("startBtn").onclick=startRace;
 document.getElementById("listoBtn").onclick=tryListo;
+document.getElementById("undoBtn").onclick=undoMove;
 document.getElementById("introStart").onclick=startRace; updRW();
 // selector de dificultad (arriba y en el intro)
 function buildDiffs(container){ container.innerHTML=""; [["facil","🟢 Fácil"],["medio","🟡 Medio"],["dificil","🔴 Difícil"]].forEach(([k,lbl])=>{ const b=document.createElement("button"); b.className="diff"+(diff===k?" sel":""); const bt=loadBT(k); b.textContent=lbl+(bt?" ⏱️"+bt.toFixed(1)+"s":""); b.onclick=()=>{ diff=k; buildDiffs(document.getElementById("diffs")); buildDiffs(document.getElementById("introDiffs")); }; container.appendChild(b); }); }
