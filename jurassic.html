@@ -386,6 +386,14 @@ let wallySeen=false, wBalR=null, wBalB=null;
   wBalR=new THREE.Mesh(new THREE.SphereGeometry(0.09,7,6),new THREE.MeshBasicMaterial({color:0xff2020})); wBalR.position.set(-0.18,1.1,-0.35); wally.add(wBalR);
   wBalB=new THREE.Mesh(new THREE.SphereGeometry(0.09,7,6),new THREE.MeshBasicMaterial({color:0x2060ff})); wBalB.position.set(0.18,1.1,-0.35); wally.add(wBalB);
 })();
+// 🦇 MURCIÉLAGOS: bandada que cruza el cielo al caer la noche
+const bats=new THREE.Group(); const batM=new THREE.MeshBasicMaterial({color:0x0a0a10,side:THREE.DoubleSide});
+for(let i=0;i<12;i++){ const b=new THREE.Group();
+  const wl2=new THREE.Mesh(new THREE.PlaneGeometry(0.5,0.22),batM); wl2.position.x=-0.25; b.add(wl2);
+  const wr2=new THREE.Mesh(new THREE.PlaneGeometry(0.5,0.22),batM); wr2.position.x=0.25; b.add(wr2);
+  b.position.set((Math.random()*2-1)*6,(Math.random()*2-1)*2,(Math.random()*2-1)*6); bats.add(b); }
+bats.visible=false; scene.add(bats);
+let batT=0, batDx=0, batDz=0, duskDone=false;
 // 🐬 DELFINES: saltan en arco por el mar alrededor de la isla
 const dolphins=[];
 for(let i=0;i<3;i++){ const m=new THREE.Mesh(new THREE.SphereGeometry(0.5,10,8),new THREE.MeshStandardMaterial({color:0x7d8ea0,roughness:.4}));
@@ -714,6 +722,16 @@ function update(dt){
   if(!skelSeen && Math.hypot(P.x-skel.position.x,P.z-skel.position.z)<10){ skelSeen=true;
     [330,262,196].forEach((fq,k)=>setTimeout(()=>snd(fq,"triangle",0.35,0.07),k*160));
     toast2("🦴 Restos de un dinosaurio COLOSAL... ¿qué pudo matarlo?"); }
+  // 🦇 al caer la noche una BANDADA de murciélagos cruza chillando sobre ti (una vez por atardecer)
+  if(lightF>0.5) duskDone=false;
+  if(!duskDone && lightF<0.3 && !bats.visible){ duskDone=true; batT=9;
+    const ba=Math.random()*6.28; batDx=Math.cos(ba)*9; batDz=Math.sin(ba)*9;
+    bats.position.set(P.x-batDx*4, 10+Math.random()*4, P.z-batDz*4); bats.visible=true; }
+  if(bats.visible){ batT-=dt; bats.position.x+=batDx*dt; bats.position.z+=batDz*dt;
+    bats.children.forEach((b,i)=>{ const fw2=Math.sin(elapsed*18+i)*0.9; b.children[0].rotation.z=fw2; b.children[1].rotation.z=-fw2;
+      b.position.y=Math.sin(elapsed*2+i)*0.8; b.rotation.y=Math.atan2(batDx,batDz); });
+    if(Math.random()<dt*2) snd(3200+Math.random()*800,"sine",0.04,0.02);
+    if(batT<=0) bats.visible=false; }
   // 🐬 delfines: esperan bajo el agua y saltan en un arco de 1.5s; si estás en la playa oyes el chapuzón
   for(const dp2 of dolphins){
     if(!dp2.m.visible){ dp2.wait-=dt;
