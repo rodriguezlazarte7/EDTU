@@ -5633,7 +5633,7 @@ const F1={
   close(){ this.stop(); $("f1Fs").classList.remove("open"); window.removeEventListener("resize",this._rs); },
   resize(){ const c=$("f1Canvas"); this.W=c.width=innerWidth; this.H=c.height=innerHeight; this.ctx=c.getContext("2d"); },
   start(){
-    this.x=0; this.speed=120; this.dist=0; this.fuel=100; this.cars=[]; this.overt=0; this.shake=0; this.bgShift=0;
+    this.x=0; this.speed=120; this.dist=0; this.fuel=100; this.cars=[]; this.overt=0; this.shake=0; this.bgShift=0; this.maxSpd=0;
     this._spawnT=0; this._nextDrs=500; this._drsEnd=0; this.running=true; this._tPrev=performance.now();
     $("f1Overlay").style.display="none";
     this.engineOn();
@@ -5687,7 +5687,7 @@ const F1={
     if(Math.abs(this.x)>1.08){ target=Math.min(target,80); this.shake=3; if(this.speed>95) this.speed-=120*dt; }
     this.x=Math.max(-1.7,Math.min(1.7,this.x));
     this.speed += (target-this.speed)*Math.min(1,dt*(this.speed<target?0.9:2.4));
-    const mps=this.speed/3.6; this.dist+=mps*dt;
+    const mps=this.speed/3.6; this.dist+=mps*dt; this.maxSpd=Math.max(this.maxSpd||0,this.speed);
     this.bgShift+=curve*mps*dt*2.4;
     if(this._eng) this._eng.frequency.value=70+this.speed*0.6+(this.nitroOn?60:0);
     if(this.dist>this._nextDrs){ this._drsEnd=this.dist+220; this._nextDrs=this.dist+800+Math.random()*400; }
@@ -5717,7 +5717,7 @@ const F1={
     if(rec){ this.best=m; localStorage.setItem("edtu_f1_best",String(m)); }
     $("f1Overlay").style.display="flex";
     $("f1Msg").textContent="💥 ¡CHOCASTE!";
-    $("f1Result").innerHTML=(rec?"🏆 ¡NUEVO RÉCORD!<br>":"")+"Distancia: <b>"+m+"</b> m · Adelantados: <b>"+this.overt+"</b> · Récord: <b>"+Math.round(this.best)+"</b> m";
+    $("f1Result").innerHTML=(rec?"🏆 ¡NUEVO RÉCORD!<br>":"")+"Distancia: <b>"+m+"</b> m · Adelantados: <b>"+this.overt+"</b> · ⚡ Vel. máx: <b>"+Math.round(this.maxSpd||0)+"</b> km/h · Récord: <b>"+Math.round(this.best)+"</b> m";
     $("f1Start").textContent="▶ CORRER OTRA VEZ";
     if(this.raf){ cancelAnimationFrame(this.raf); this.raf=null; }
   },
