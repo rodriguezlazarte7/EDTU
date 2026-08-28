@@ -245,6 +245,14 @@ let fireLight=null, fireCone=null;
   const inner=new THREE.Mesh(new THREE.ConeGeometry(0.2,0.7,8),new THREE.MeshBasicMaterial({color:0xffe08a,transparent:true,opacity:0.95})); inner.position.set(fx,0.62,fz); scene.add(inner);
   fireLight=new THREE.PointLight(0xff9a2e,1.6,20); fireLight.position.set(fx,1.4,fz); scene.add(fireLight);
 })();
+// ✨ LUCIÉRNAGAS de noche alrededor de la fogata
+let fireflies=null, fireflyMat=null;
+(function makeFireflies(){ const g=new THREE.BufferGeometry(), v=[];
+  for(let i=0;i<40;i++){ const a=Math.random()*6.28, r=2+Math.random()*10; v.push(SH.x+7+Math.cos(a)*r, 0.5+Math.random()*2.5, SH.z+3+Math.sin(a)*r); }
+  g.setAttribute("position",new THREE.Float32BufferAttribute(v,3));
+  fireflyMat=new THREE.PointsMaterial({color:0xd8ff5a,size:0.14,transparent:true,opacity:0});
+  fireflies=new THREE.Points(g,fireflyMat); scene.add(fireflies);
+})();
 // ---------- ZONAS SEGURAS (los dinos NO entran) ----------
 const safeZones=[{x:SH.x,z:SH.z,r:7}];   // la cabaña
 function addSafeZone(x,z,r){ safeZones.push({x,z,r});
@@ -455,6 +463,8 @@ function update(dt){
   starMat.opacity=(1-lightF)*0.9;   // ⭐ estrellas: aparecen al oscurecer, se van de día
   // 🔥 fogata que parpadea y "baila"
   if(fireLight){ fireLight.intensity=1.3+Math.random()*0.7; fireCone.scale.y=0.85+Math.random()*0.35; fireCone.rotation.y+=dt*2; }
+  // ✨ luciérnagas: brillan de noche, titilan y "flotan" girando lento
+  if(fireflies){ fireflyMat.opacity=(1-lightF)*(0.55+0.35*Math.abs(Math.sin(elapsed*2.2))); fireflies.position.y=Math.sin(elapsed*0.9)*0.35; fireflies.position.x=Math.sin(elapsed*0.5)*0.4; }
   // 🦅 pterodáctilos: círculos en el cielo, alas que aletean, graznido lejano
   for(const pt of pteros){ const a=elapsed*pt.sp+pt.ph;
     pt.grp.position.set(pt.cx+Math.cos(a)*pt.r, pt.h+Math.sin(elapsed*0.7+pt.ph)*3, pt.cz+Math.sin(a)*pt.r);
