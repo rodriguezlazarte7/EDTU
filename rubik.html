@@ -167,7 +167,7 @@ function dailyPreview(){ try{ const rng=mulberry32(dailyKey()); const n=DIFF[dif
 function updDaily(){ updRDiary(); const el=document.getElementById("rdaily"); if(!el) return; const v=loadDaily(); const pv=dailyPreview();
   el.textContent=(v>0?("📅 Tu mejor de HOY: "+v.toFixed(1)+"s — ¡compáralo con tus amigos!"):"📅 Desafío del día: la misma revoltura para todos hoy — ¿quién la arma más rápido?")+(pv?"  ·  revoltura de hoy: "+pv:""); }
 // 📤 COMPARTIR la revoltura del día (+ tu tiempo): share nativo en móvil; si no, portapapeles (con fallback a textarea)
-async function shareText(txt,btn,lbl){ const done=()=>{ btn.textContent="✅ COPIADO — ¡a retar amigos!"; setTimeout(()=>{ btn.textContent=lbl; },2200); [660,880].forEach((f,i)=>setTimeout(()=>snd(f,"triangle",0.12,0.06),i*110)); };
+async function shareText(txt,btn,lbl){ const done=()=>{ btn.textContent="✅ COPIADO — ¡a retar amigos!"; try{ localStorage.setItem("edtu_retos_enviados",String((parseInt(localStorage.getItem("edtu_retos_enviados")||"0",10)||0)+1)); }catch(e){} setTimeout(()=>{ btn.textContent=lbl; },2200); [660,880].forEach((f,i)=>setTimeout(()=>snd(f,"triangle",0.12,0.06),i*110)); };
   try{ if(navigator.share){ await navigator.share({text:txt}); done(); return; } }catch(e){ if(e&&e.name==="AbortError") return; }
   try{ await navigator.clipboard.writeText(txt); done(); return; }catch(e){}
   try{ const ta=document.createElement("textarea"); ta.value=txt; ta.style.position="fixed"; ta.style.opacity="0"; document.body.appendChild(ta); ta.select(); document.execCommand("copy"); document.body.removeChild(ta); done(); }catch(e){ btn.textContent="❌ no se pudo copiar"; setTimeout(()=>{ btn.textContent=lbl; },2000); } }
@@ -468,7 +468,7 @@ document.getElementById("introStart").onclick=()=>{ dailyMode=false; scrRng=null
 document.getElementById("introPractice").onclick=()=>{ dailyMode=false; scrRng=null; startPractice(); };
 document.getElementById("introDaily").onclick=()=>{ dailyMode=true; startRace(); };   // 📅 misma revoltura para todos hoy
 // ⚔️ RECIBIR UN RETO: si llegas por un link compartido (?reto=1) el intro te lo avisa y resalta el botón del DESAFÍO DEL DÍA (misma revoltura que tu amigo)
-try{ if(/[?&]reto=1/.test(location.search)){ const ib=document.getElementById("introDaily"), is=document.getElementById("introStart");
+try{ if(/[?&]reto=1/.test(location.search)){ const ib=document.getElementById("introDaily"), is=document.getElementById("introStart"); try{ localStorage.setItem("edtu_retos_recibidos",String((parseInt(localStorage.getItem("edtu_retos_recibidos")||"0",10)||0)+1)); }catch(e){}
   if(ib){ ib.style.boxShadow="0 0 18px #ffd88a"; ib.style.transform="scale(1.06)"; ib.textContent="📅 DESAFÍO DEL DÍA ⚔️ ¡ACEPTAR RETO!"; }
   if(is){ const p=document.createElement("p"); p.style.cssText="color:#ff9a3c;font-weight:900;font-size:14px"; p.textContent="⚔️ ¡TE RETARON! Pulsa 📅 DESAFÍO DEL DÍA: misma revoltura que tu amigo — ¡ármala más rápido!"; is.parentNode.insertBefore(p,is); }
   try{ history.replaceState(null,"",location.pathname); }catch(e){} } }catch(e){}

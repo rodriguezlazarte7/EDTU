@@ -967,7 +967,7 @@ function jDiaryEnd(win,days){ const e=Object.assign({},jDiary); e.days=+days.toF
   try{ const arr=JSON.parse(localStorage.getItem("jurassic_diary")||"[]"); arr.unshift(e); localStorage.setItem("jurassic_diary",JSON.stringify(arr.slice(0,3))); }catch(err){}
   return "<div style='margin-top:6px;font-size:13px;color:#e8d9a8;line-height:1.8'>📖 <b>DIARIO DEL EXPLORADOR</b><br>"+jDiaryLine(e)+"</div>"; }
 // 📤 COMPARTIR el resultado del DESAFÍO DEL DÍA desde la pantalla de fin: share nativo en móvil; si no, portapapeles (fallback textarea)
-async function shareText(txt,btn,lbl){ const done=()=>{ btn.textContent="✅ COPIADO — ¡a retar amigos!"; setTimeout(()=>{ btn.textContent=lbl; },2200); [660,880].forEach((f,i)=>setTimeout(()=>snd(f,"triangle",0.12,0.06),i*110)); vibJ(40); };
+async function shareText(txt,btn,lbl){ const done=()=>{ btn.textContent="✅ COPIADO — ¡a retar amigos!"; try{ localStorage.setItem("edtu_retos_enviados",String((parseInt(localStorage.getItem("edtu_retos_enviados")||"0",10)||0)+1)); }catch(e){} setTimeout(()=>{ btn.textContent=lbl; },2200); [660,880].forEach((f,i)=>setTimeout(()=>snd(f,"triangle",0.12,0.06),i*110)); vibJ(40); };
   try{ if(navigator.share){ await navigator.share({text:txt}); done(); return; } }catch(e){ if(e&&e.name==="AbortError") return; }
   try{ await navigator.clipboard.writeText(txt); done(); return; }catch(e){}
   try{ const ta=document.createElement("textarea"); ta.value=txt; ta.style.position="fixed"; ta.style.opacity="0"; document.body.appendChild(ta); ta.select(); document.execCommand("copy"); document.body.removeChild(ta); done(); }catch(e){ btn.textContent="❌ no se pudo copiar"; setTimeout(()=>{ btn.textContent=lbl; },2000); } }
@@ -1021,7 +1021,7 @@ function endGame(win,info){ running=false; gameOver=true; try{document.exitPoint
 }
 $("startBtn").onclick=start; $("againBtn").onclick=start; updJBest(); buildJDiffs();
 // ⚔️ RECIBIR UN RETO: si llegas por un link compartido (?reto=1) el DESAFÍO DEL DÍA se activa solo y la portada te lo avisa
-try{ if(/[?&]reto=1/.test(location.search)){ dailyJ=true; try{ localStorage.setItem("jurassic_daily_on","1"); }catch(e){} buildJDiffs(); updJBest();
+try{ if(/[?&]reto=1/.test(location.search)){ dailyJ=true; try{ localStorage.setItem("jurassic_daily_on","1"); }catch(e){} buildJDiffs(); updJBest(); try{ localStorage.setItem("edtu_retos_recibidos",String((parseInt(localStorage.getItem("edtu_retos_recibidos")||"0",10)||0)+1)); }catch(e){}
   const p=document.createElement("p"); p.style.cssText="color:#ff9a3c;font-weight:900;font-size:14px"; p.textContent="⚔️ ¡TE RETARON! El 📅 DESAFÍO DEL DÍA quedó activado — misma isla que tu amigo: ¡sobrevive más días!"; $("startBtn").parentNode.insertBefore(p,$("startBtn"));
   try{ history.replaceState(null,"",location.pathname); }catch(e){} } }catch(e){}
 // 🏝️ MODO LIBRE: seguir explorando la isla después del rescate (sin nueva victoria, la partida sigue viva)

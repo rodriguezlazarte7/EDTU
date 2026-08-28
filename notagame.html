@@ -985,7 +985,7 @@ function updNagMedals(){ updNDiary(); const el=document.getElementById("nagMedal
 // 📅 botón DESAFÍO DEL DÍA (cambia el flag y recarga: la ciudad se genera al cargar)
 { const nb=document.getElementById("nagDailyBtn"); if(nb){ nb.textContent="📅 DESAFÍO DEL DÍA: "+(dailyN?"SÍ ✔ — la misma ciudad para todos hoy":"NO"); nb.onclick=()=>{ try{ localStorage.setItem("nag_daily_on",dailyN?"0":"1"); }catch(e){} location.reload(); }; } }
 // ⚔️ aviso de RETO recibido en la portada (misma ciudad que tu amigo) y limpieza de la URL
-if(retoFlag){ try{ const nb2=document.getElementById("nagDailyBtn"); if(nb2){ const dv=document.createElement("div"); dv.style.cssText="color:#ff9a3c;font:900 14px Consolas,monospace;margin:6px 0"; dv.textContent="⚔️ ¡TE RETARON! Misma ciudad que tu amigo — ¡elimina más zombies y resuelve el caso!"; nb2.parentNode.insertBefore(dv,nb2); } history.replaceState(null,"",location.pathname); }catch(e){} }
+if(retoFlag){ try{ localStorage.setItem("edtu_retos_recibidos",String((parseInt(localStorage.getItem("edtu_retos_recibidos")||"0",10)||0)+1)); }catch(e){} try{ const nb2=document.getElementById("nagDailyBtn"); if(nb2){ const dv=document.createElement("div"); dv.style.cssText="color:#ff9a3c;font:900 14px Consolas,monospace;margin:6px 0"; dv.textContent="⚔️ ¡TE RETARON! Misma ciudad que tu amigo — ¡elimina más zombies y resuelve el caso!"; nb2.parentNode.insertBefore(dv,nb2); } history.replaceState(null,"",location.pathname); }catch(e){} }
 updNagMedals();
 // 🔥 récord de mejor RACHA
 function loadNCombo(){ try{ return parseInt(localStorage.getItem("nag_best_combo")||"0",10)||0; }catch(e){ return 0; } }
@@ -1049,7 +1049,7 @@ function togglePhotoN(){ nPhoto=!nPhoto; document.body.classList.toggle("photo",
 // 🗣️ voz de narrador (grave, para el final del caso)
 function narrate(txt){ try{ if(!window.speechSynthesis) return; const u=new SpeechSynthesisUtterance(txt); u.lang="es-ES"; u.pitch=0.5; u.rate=0.9; u.volume=0.85; speechSynthesis.cancel(); speechSynthesis.speak(u); }catch(e){} }
 // 📤 COMPARTIR el resultado del DESAFÍO DEL DÍA desde la pantalla de fin: share nativo en móvil; si no, portapapeles (fallback textarea)
-async function shareText(txt,btn,lbl){ const done=()=>{ btn.textContent="✅ COPIADO — ¡a retar amigos!"; setTimeout(()=>{ btn.textContent=lbl; },2200); [660,880].forEach((f,i)=>setTimeout(()=>snd(f,"triangle",0.12,0.06),i*110)); try{ if(navigator.vibrate) navigator.vibrate(40); }catch(e){} };
+async function shareText(txt,btn,lbl){ const done=()=>{ btn.textContent="✅ COPIADO — ¡a retar amigos!"; try{ localStorage.setItem("edtu_retos_enviados",String((parseInt(localStorage.getItem("edtu_retos_enviados")||"0",10)||0)+1)); }catch(e){} setTimeout(()=>{ btn.textContent=lbl; },2200); [660,880].forEach((f,i)=>setTimeout(()=>snd(f,"triangle",0.12,0.06),i*110)); try{ if(navigator.vibrate) navigator.vibrate(40); }catch(e){} };
   try{ if(navigator.share){ await navigator.share({text:txt}); done(); return; } }catch(e){ if(e&&e.name==="AbortError") return; }
   try{ await navigator.clipboard.writeText(txt); done(); return; }catch(e){}
   try{ const ta=document.createElement("textarea"); ta.value=txt; ta.style.position="fixed"; ta.style.opacity="0"; document.body.appendChild(ta); ta.select(); document.execCommand("copy"); document.body.removeChild(ta); done(); }catch(e){ btn.textContent="❌ no se pudo copiar"; setTimeout(()=>{ btn.textContent=lbl; },2000); } }
