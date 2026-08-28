@@ -228,7 +228,7 @@ const rainbow=new THREE.Group(); const rbMats=[];
   const mt=new THREE.MeshBasicMaterial({color:cl,transparent:true,opacity:0,fog:false,side:THREE.DoubleSide});
   rbMats.push(mt); rainbow.add(new THREE.Mesh(new THREE.TorusGeometry(85-i*1.7,0.9,6,64,Math.PI),mt)); });
 rainbow.position.set(95,0,-150); rainbow.rotation.y=-0.5; rainbow.visible=false; scene.add(rainbow);
-let rainWas=false, rbT=0, rbF=0;
+let rainWas=false, rbT=0, rbF=0, natT=2;
 // 🌠 ESTRELLAS FUGACES: rayas de luz que cruzan el cielo nocturno cada tanto
 const meteors=[];
 for(let i=0;i<3;i++){ const m=new THREE.Mesh(new THREE.BoxGeometry(6,0.12,0.12),new THREE.MeshBasicMaterial({color:i===0?0xffe9a8:0xffffff,transparent:true,opacity:0,fog:false}));
@@ -629,6 +629,13 @@ function update(dt){
     else { mt2.t-=dt; mt2.m.position.x+=mt2.vx*dt; mt2.m.position.z+=mt2.vz*dt; mt2.m.position.y+=mt2.vy*dt;
       mt2.m.material.opacity=Math.min(1,mt2.t*2)*(1-lightF)*0.9;
       if(mt2.t<=0 || mt2.m.position.y<25){ mt2.active=false; mt2.m.material.opacity=0; mt2.wait=6+Math.random()*25; } } }
+  // 🦗🐦 SONIDOS DE LA NATURALEZA: grillos cri-cri de noche y coro de pájaros al amanecer (callan si llueve)
+  natT-=dt; if(natT<=0){
+    if(lightF<0.15 && rainF<0.5){ natT=0.35+Math.random()*0.5;
+      if(Math.random()<0.8){ snd(4200+Math.random()*400,"sine",0.05,0.012); setTimeout(()=>snd(4200+Math.random()*400,"sine",0.05,0.01),90); } }
+    else if(df<0.2 && lightF>0.2 && rainF<0.3){ natT=0.5+Math.random()*1.2; const bf2=1800+Math.random()*1400;
+      snd(bf2,"sine",0.09,0.022); setTimeout(()=>snd(bf2*1.2,"sine",0.07,0.018),110); setTimeout(()=>snd(bf2*0.9,"sine",0.06,0.015),230); }
+    else natT=1.5; }
   // 🦅 pterodáctilos: círculos en el cielo, alas que aletean, graznido lejano — y PASADAS RASANTES
   for(const pt of pteros){ const a=elapsed*pt.sp+pt.ph;
     // pasada rasante: de vez en cuando baja en picada hacia donde estás y vuelve a subir
