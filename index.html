@@ -7176,6 +7176,12 @@ function buildPoster(){ try{
 $("trophyPoster").onclick=buildPoster;
 $("posterClose").onclick=()=>{ $("posterFs").style.display="none"; };
 $("posterFs").addEventListener("click",e=>{ if(e.target===$("posterFs")) $("posterFs").style.display="none"; });
+// 🔊 tick suave al pasar el ratón por los botones de juego del menú
+(function(){ const gp=$("gamePick"); if(!gp) return; let lastHov=0, A4=null;
+  gp.addEventListener("mouseover",e=>{ const b=e.target&&e.target.closest?e.target.closest(".pickgame"):null; if(!b) return;
+    const t2=performance.now(); if(t2-lastHov<90) return; lastHov=t2;
+    try{ A4=A4||new (window.AudioContext||window.webkitAudioContext)(); const o=A4.createOscillator(),g4=A4.createGain(); o.type="sine"; o.frequency.value=740; g4.gain.value=0.035; o.connect(g4); g4.connect(A4.destination); o.start(); o.stop(A4.currentTime+0.05); }catch(e2){} });
+})();
 // 🤖💬 CHAT CON WALLY: respuestas pre-escritas por palabra clave con efecto de tecleo (sin red, sin IA)
 (function(){ const inp=$("wallyIn"), sbtn=$("wallySend"); if(!inp||!sbtn) return;
   let typing=null;
