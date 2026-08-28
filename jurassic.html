@@ -413,7 +413,7 @@ function talkWallyJ(){ if(petBCd>0) return false;
   const rgt=tx*c2-tz*s2, fw=-tx*s2-tz*c2;
   const dirTxt=Math.abs(fw)>=Math.abs(rgt)?(fw>0?"ADELANTE":"ATRÁS tuyo"):(rgt>0?"a tu DERECHA":"a tu IZQUIERDA");
   toast2("🤖 WALLY escanea: 🔋 batería a "+Math.round(bd)+"m "+dirTxt); return true; }
-function petBaby(){ if(!running||petBCd>0) return;
+function petBaby(){ if(!running||jPaused||petBCd>0) return;
   if(talkWallyJ()) return;   // 🤖 si estás junto a WALLY, la E habla con él
   let best=null, bd=2.2;
   for(const b of dinoBabies){ const d2=Math.hypot(P.x-b.grp.position.x,P.z-b.grp.position.z); if(d2<bd){ bd=d2; best=b; } }
@@ -542,7 +542,7 @@ function radioSay(txt){ try{
   if(window.speechSynthesis){ const u=new SpeechSynthesisUtterance(txt.replace(/[«»…]/g,"")); u.lang="es-ES"; u.pitch=1.15; u.rate=0.9; u.volume=0.5; setTimeout(()=>{ try{ speechSynthesis.cancel(); speechSynthesis.speak(u); }catch(e){} },350); }
 }catch(e){} }
 const P={x:0,z:22,y:1.7,vy:0,onGround:true,speed:7.2};
-function jump(){ if(running && !gameOver && P.onGround){ P.vy=7.2; P.onGround=false; snd(420,"sine",0.1,0.06); } }
+function jump(){ if(running && !gameOver && !jPaused && P.onGround){ P.vy=7.2; P.onGround=false; snd(420,"sine",0.1,0.06); } }   // 🐛FIX ronda2: nada de saltar en pausa
 let yaw=0,pitch=0,running=false,gameOver=false,tPrev=0,elapsed=0,roarT=2,stepT=0,wasInLake=false,lakeWarnCd=0;
 let jdiff="normal", jdSpeed=1, jdDmg=1, jdDet=1;
 const JDIFFS={facil:{sp:0.8,dmg:0.55,det:0.8,lbl:"🟢 FÁCIL"},normal:{sp:1,dmg:1,det:1,lbl:"🟡 NORMAL"},dificil:{sp:1.25,dmg:1.5,det:1.2,lbl:"🔴 DIFÍCIL"},extincion:{sp:1.5,dmg:2.2,det:1.5,lbl:"☄️ EXTINCIÓN"}};
@@ -578,17 +578,17 @@ canvas.addEventListener("pointermove",e=>{ if(e.pointerId!==lookId)return; yaw-=
 canvas.addEventListener("pointerup",e=>{ if(e.pointerId===lookId) lookId=null; });
 
 // inventario: usar
-function useWater(){ if(inv.water>0 && thirst<100){ inv.water--; thirst=Math.min(100,thirst+34); snd(600,"sine",0.15,0.08); updInv(); } }
-function useFood(){ if(inv.food>0 && hunger<100){ inv.food--; hunger=Math.min(100,hunger+40); snd(300,"square",0.15,0.08); updInv(); } }
-function chargeFlash(){ if(inv.batt>0 && flashBatt<100){ inv.batt--; flashBatt=Math.min(100,flashBatt+55); snd(720,"triangle",0.15,0.08); updInv(); showStory("🔦 Linterna recargada"); } }
-function placeWood(){ if(!running||gameOver||placeCd>0) return; placeCd=0.28; jStatWood++;   // madera INFINITA
+function useWater(){ if(jPaused) return; if(inv.water>0 && thirst<100){ inv.water--; thirst=Math.min(100,thirst+34); snd(600,"sine",0.15,0.08); updInv(); } }
+function useFood(){ if(jPaused) return; if(inv.food>0 && hunger<100){ inv.food--; hunger=Math.min(100,hunger+40); snd(300,"square",0.15,0.08); updInv(); } }
+function chargeFlash(){ if(jPaused) return; if(inv.batt>0 && flashBatt<100){ inv.batt--; flashBatt=Math.min(100,flashBatt+55); snd(720,"triangle",0.15,0.08); updInv(); showStory("🔦 Linterna recargada"); } }   // 🐛FIX ronda2: consumibles bloqueados en pausa
+function placeWood(){ if(!running||gameOver||jPaused||placeCd>0) return; placeCd=0.28; jStatWood++;   // madera INFINITA
   const fwd=new THREE.Vector3(); camera.getWorldDirection(fwd); fwd.y=0; if(fwd.lengthSq()<0.01){ return; } fwd.normalize();
   const bx=P.x+fwd.x*2.3, bz=P.z+fwd.z*2.3; if(inLake(bx,bz,0)) return;
   box(bx,0.6,bz,1.2,1.2,1.2,new THREE.MeshStandardMaterial({map:barkTex,roughness:1})); addWall(bx-0.6,bx+0.6,bz-0.6,bz+0.6);
   snd(200,"square",0.1,0.08); showStory("🪵 Bloque colocado"); }
 $("sWater").onclick=useWater; $("sFood").onclick=useFood; $("sBatt").onclick=chargeFlash; $("sWood").onclick=placeWood;
 function updAmmo(){ $("ammo").textContent="💉 DARDOS: ∞"; }
-function fireDart(){ if(!running||gameOver||dartCd>0) return; jStatDarts++;
+function fireDart(){ if(!running||gameOver||jPaused||dartCd>0) return; jStatDarts++;
   dartCd=0.3; snd(320,"square",0.07,0.08);   // dardos INFINITOS
   const fwd=new THREE.Vector3(); camera.getWorldDirection(fwd); const origin=new THREE.Vector3(P.x,P.y-0.1,P.z);
   let best=null,bd=1e9; for(const d of dinos){ if(d.sleep>0) continue; const to=new THREE.Vector3(d.grp.position.x-origin.x,(d.grp.position.y+2.6)-origin.y,d.grp.position.z-origin.z); const dist=to.length(); if(dist>75) continue; to.normalize(); if(to.dot(fwd)>0.983 && dist<bd){ bd=dist; best=d; } }
