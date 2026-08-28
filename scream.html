@@ -614,6 +614,7 @@ function toggleNV(){ if(!running) return; if(!nvOn && visorBatt<10){ snd(150,"sq
   $("nv").classList.toggle("on",nvOn); $("nvln").classList.toggle("on",nvOn); $("nvui").classList.toggle("on",nvOn);
   camera.fov=nvOn?40:78; camera.updateProjectionMatrix(); }
 let mapOpen=false, noteTimer, flares=3, panicWarned=false, helpOpen=false, webWarned=false, paused=false; const activeFlares=[];
+let tutOn=false, tutStep=0, tutT=0;   // 🎓 mini-tutorial de primera vez (solo si nunca jugaste)
 // 📊 estadísticas de la partida
 let statFlares=0, statDist=0, lastPX=null, lastPZ=0; const statFloors=new Set();
 function toggleHelp(){ if(!running) return; helpOpen=!helpOpen; $("help").classList.toggle("on",helpOpen); snd(helpOpen?500:300,"square",0.05,0.05); }
@@ -732,6 +733,7 @@ function start(){ $("start").classList.add("hide"); $("end").classList.add("hide
   if(touchUI){ $("touch").classList.remove("hide"); $("touch").classList.add("on"); $("tflash").classList.remove("hide"); $("tnv").classList.remove("hide"); $("sprint").classList.remove("hide"); $("tmap").classList.remove("hide"); $("tflare").classList.remove("hide"); $("thelp").classList.remove("hide"); $("tpause").classList.remove("hide"); }   // 🐛FIX auditoría: el joystick táctil nunca se mostraba (quedaba con .hide)
   helpOpen=false; $("help").classList.remove("on");
   mapOpen=false; $("map").classList.remove("on");
+  try{ tutOn=!localStorage.getItem("scream_tut1"); }catch(e){ tutOn=false; }  tutStep=0; tutT=5;   // 🎓 tutorial solo la primera vez
   P.x=0; P.z=HH-7; yaw=Math.PI; pitch=0; running=true; gameOver=false; tPrev=performance.now(); flashOn=true; curFloor=0; floorCd=0;
   if(nvOn) toggleNV();
   const D=DIFFS[diff]; hpMax=D.hp; invDur=D.inv; ambushInt=D.amb; gameTime=D.time;
@@ -780,6 +782,15 @@ function update(dt){
   const mm=Math.floor(timeLeft/60), ss=Math.floor(timeLeft%60); const tel=$("timer"); if(tel){ tel.textContent="⏱ "+mm+":"+String(ss).padStart(2,"0"); tel.classList.toggle("warn",timeLeft<120); }
   // 🏢 indicador de piso fijo (clave para seguir las pistas del teléfono)
   const fInd=$("floorInd"); if(fInd) fInd.textContent="🏢 PISO "+(curFloor+1)+"/7";
+  // 🎓 mini-tutorial de primera vez: 4 consejos espaciados en los primeros ~40s, luego nunca más
+  if(tutOn && running && !gameOver && !paused){ tutT-=dt;
+    if(tutT<=0){ const TUT=[
+      "🎓 CLIC IZQ o F = LINTERNA 🔦 · ¡la araña SOLO se teletransporta si la tienes PRENDIDA!",
+      "🎓 CLIC DER = VISIÓN NOCTURNA 🥽 · ve en la oscuridad sin delatarte",
+      "🎓 G = BENGALA 🧨 · la araña le TEME al fuego y huye · M = mapa del edificio",
+      "🎓 Junta 4 válvulas 🟢 + 3 muestras 🟣 y fabrica el ANTÍDOTO en la zona segura 🛡️ ¡Suerte, agente!"];
+      if(tutStep<TUT.length){ showStory(TUT[tutStep]); snd(980,"triangle",0.15,0.06); tutStep++; tutT=9.5; }
+      else { tutOn=false; try{ localStorage.setItem("scream_tut1","1"); }catch(e){} } } }
   // 📊 pisos visitados y metros recorridos
   statFloors.add(curFloor);
   if(lastPX!==null) statDist+=Math.hypot(P.x-lastPX,P.z-lastPZ);
