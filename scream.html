@@ -375,7 +375,7 @@ function buildFloor(fl){
 function inSafe(x,z,fl){ return fl===safeZone.f && Math.hypot(x-safeZone.x,z-safeZone.z)<safeZone.r; }
 
 // ---------- ARAÑA ----------
-let spider=null,spiderFloor=0,spiderDead=false,hbT=0,droneT=0;
+let spider=null,spiderFloor=0,spiderDead=false,hbT=0,droneT=0,lightT=25;
 function makeSpider(){
   const g=new THREE.Group(); const bodyMats=[];
   // gris-marrón METÁLICO con brillo (como la araña de la foto)
@@ -601,6 +601,10 @@ function update(dt){
   for(let i=activeFlares.length-1;i>=0;i--){ const fr=activeFlares[i]; fr.life-=dt;
     if(fr.life<=0){ fr.parent.remove(fr.glow); fr.parent.remove(fr.light); activeFlares.splice(i,1); }
     else fr.light.intensity = (fr.life<3?2.6*(fr.life/3):2.6)*(0.8+0.2*Math.random()); }
+  // ⛈️ RELÁMPAGO ocasional: doble destello blanco + trueno grave retumbando
+  lightT-=dt; if(lightT<=0){ lightT=40+Math.random()*30; const sf2=$("sflash");
+    if(sf2){ sf2.style.opacity="0.34"; setTimeout(()=>{ sf2.style.opacity="0"; },70); setTimeout(()=>{ sf2.style.opacity="0.5"; },160); setTimeout(()=>{ sf2.style.opacity="0"; },290); }
+    setTimeout(()=>{ snd(42,"sawtooth",1.6,0.16); snd(30,"sine",2.2,0.12); },500+Math.random()*700); }
   // zumbido ominoso + goteras (ambiente de terror)
   droneT-=dt; if(droneT<=0){ droneT=2.5+Math.random()*2.5; snd(38+Math.random()*8,"sawtooth",1.1,0.03); }
   if(Math.random()<dt*0.35) snd(760+Math.random()*500,"sine",0.07,0.02);   // gotera lejana
