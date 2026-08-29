@@ -1272,7 +1272,9 @@ function update(dt){
   const fb=flashBatt/100;
   flash.intensity = want * (flashBatt>0 ? (0.25+0.75*fb) : 0.06);   // sin batería queda casi apagada
   $("flF").style.width=flashBatt+"%"; $("flTxt").textContent="🔦 LINTERNA "+Math.round(flashBatt)+"%";
-  $("clock").textContent="DÍA "+Math.min(day,7)+" — "+String(hh).padStart(2,"0")+":"+String(mm).padStart(2,"0")+(isNight?" 🌙":" ☀️");
+  { const dusk=(!isNight && df<0.5 && (0.5-df)*DAY_LEN<=8) ? Math.ceil((0.5-df)*DAY_LEN) : 0;   // 🌇 cuenta atrás de 8 s al anochecer
+    const ck=$("clock"); ck.textContent="DÍA "+Math.min(day,7)+" — "+String(hh).padStart(2,"0")+":"+String(mm).padStart(2,"0")+(isNight?" 🌙":(dusk?" 🌇 -"+dusk+"s":" ☀️"));
+    ck.style.color=dusk?"#ffb020":""; }
   // radio intermitente (una vez por día aprox)
   if(day!==lastRadio){ lastRadio=day; if(day>1 && day<=7){ const msg=radioMsgs[(day-2)%radioMsgs.length]; showStory("📻 "+msg); radioSay(msg); }   // 🐛FIX ronda2: al llegar al "día 8" (victoria) sonaba un mensaje de radio espurio sobre la pantalla de rescate
     const dtl=$("dayTitle"); if(dtl && day<=7){ dtl.textContent=day===7?"⚠ DÍA 7 — ÚLTIMO DÍA":"DÍA "+day; dtl.classList.add("on"); clearTimeout(dtl._t); dtl._t=setTimeout(()=>dtl.classList.remove("on"),day===7?2600:1400);
