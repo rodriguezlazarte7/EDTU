@@ -1,8 +1,8 @@
 # 🛰️ EDTU — Resumen de la sesión autónoma (2026-08-28)
 
-**Bucle de mejora continua mientras David estaba fuera** — dos tandas: la primera (~iter 205 → 302) y, tras el "sigue sin parar" de David, de la segunda a la trigésima (iter 303 → 625 y sigue, ya con David durmiendo 😴 — ¡las iteraciones 500 y 600 se celebraron de madrugada!). **593 commits desde el 26/8** (~510 en esta gran sesión), con deploy a Heroku y verificación en vivo en cada paso. **Ningún juego quedó roto en ningún momento** (chequeos de salud cada 10 iteraciones: todos verdes; el último, iter 625, Heroku v1601).
+**Bucle de mejora continua mientras David estaba fuera** — dos tandas: la primera (~iter 205 → 302) y, tras el "sigue sin parar" de David, de la segunda a la trigesimoprimera (iter 303 → 635 y sigue, ya con David durmiendo 😴 — ¡las iteraciones 500 y 600 se celebraron de madrugada!). **602 commits desde el 26/8** (~519 en esta gran sesión), con deploy a Heroku y verificación en vivo en cada paso. **Ningún juego quedó roto en ningún momento** (chequeos de salud cada 10 iteraciones: todos verdes; el último, iter 635, Heroku v1608).
 
-**Números actuales**: 🕷️ SCREAM **137** 🏆 · 🦖 JURASSIC **140** 🏆 · 🧟 NOT A GAME **131** 🏆 · 🏎️ F1 **99** · 🧩 CUBO **83** · **tres juegos superaron las 100 features** · 625 iteraciones de bucle verificadas sanas 🎉 · páginas en vivo todas HTTP 200.
+**Números actuales**: 🕷️ SCREAM **137** 🏆 · 🦖 JURASSIC **140** 🏆 · 🧟 NOT A GAME **131** 🏆 · 🏎️ F1 **100** 🏆 · 🧩 CUBO **83** · 🕹️ minijuegos con récords · **cuatro juegos superaron las 100 features** · 635 iteraciones de bucle verificadas sanas 🎉 · páginas en vivo todas HTTP 200.
 
 ## 🔍 Auditoría multi-agente (ultracode)
 - 2 rondas con agentes buscadores + verificadores adversarios: **25 hallazgos, 24 bugs reales corregidos** (1 refutado)
@@ -303,6 +303,14 @@
 - 🧩 **CUBO**: el mensaje de derrota también lleva el enlace "🤖 pregúntale a WALLY cómo mejorar"
 - 📄 RESUMEN con la Vigesimonovena tanda
 - 🩺 Chequeo de salud en 625: todo verde (Heroku v1601, 593 commits desde el 26/8)
+
+## 🆕 Trigesimoprimera tanda (iter 626-635) — sorpréndeme y minijuegos
+- 🎲 **SORPRÉNDEME**: botón en el menú que abre uno de los 22 juegos al azar (sin repetir el último); WALLY chat "sorpréndeme / al azar / tú eliges" hace lo mismo
+- 🕹️ **Minijuegos con récord**: Breakout (puntos), Memoria (menos movimientos), Pong (victorias contra la máquina) y Simon (niveles) ahora guardan récord y lo celebran ("🏆 ¡RÉCORD!"); la Sala tiene el bloque 🕹️ MINIJUEGOS (Rush, Snake, 2048, Flappy, Invaders, Breakout, Simon, Memoria, Pong); WALLY chat "minijuegos / snake / 2048 / …" los cuenta con un truco corto de cada uno
+- 🎮 **Racha de días jugando**: los minijuegos también apuntan el día jugado al terminar (window.edtuPlayDay)
+- 🏎️ **F1**: "whoosh" de dos notas al entrar en zona DRS (¡F1 llega a 100 mejoras! 🏆)
+- 📄 RESUMEN con la Trigésima tanda
+- 🩺 Chequeo de salud en 635: todo verde (Heroku v1608, 602 commits desde el 26/8)
 
 ## 🤖 WALLY por todos lados
 Frases x8 por juego, celebra el 21/21 con voz, escanea pisos/baterías/cajones, certifica el póster... y presume su carrera de mBots en todas partes 🏁
