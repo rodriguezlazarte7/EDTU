@@ -7255,10 +7255,10 @@ function buildTrophies(){ try{
     const rdt=e=>{ if(!e||!e.ts) return e?e.date:""; const d=Math.floor((Date.now()-e.ts)/86400000); return d<=0?"hoy":d===1?"ayer":"hace "+d+" días"; };   // 📆 fecha relativa
     const jd=rd("jurassic_diary"), sd=rd("scream_diary"), nd=rd("nag_diary"); const la=[];
     if(jd) la.push(LNK("jurassic.html","🦖 "+rdt(jd)+": "+jd.days+" días"+(jd.fish?" · 🐟 "+jd.fish:"")+(jd.pack?" · 🐾 manada":"")+(jd.egg?" · 🥚":"")+(jd.radio?" · 📻":"")+" · "+(jd.hits?"🩹 "+jd.hits:"🛡️ sin heridas")+(jd.daily?" · 📅":"")+(jd.win?" ✓":"")));
-    if(sd) la.push(LNK("scream.html","🕷️ "+rdt(sd)+": "+fmtMS(sd.t)+" · 🔧 "+sd.v+"/4 · 🧪 "+sd.s+"/3 · 👁️ "+sd.spot+" apariciones · "+(sd.bites?"🩸 "+sd.bites:"🛡️ sin mordidas")+(sd.daily?" · 📅":"")+(sd.win?" ✓":"")));
-    if(nd) la.push(LNK("notagame.html","🧟 "+rdt(nd)+": "+nd.kills+" kills · 📜 "+nd.clues+"/7 · 🌙 "+nd.nights+(nd.drvz?" · 🧪 Dr. VZ":"")+(nd.cat?" · 🐱":"")+(nd.daily?" · 📅":"")+(nd.win?" ✓":"")));
-    const fd=rd("edtu_f1_diary"); if(fd) la.push(LNK("#f1","🏎️ "+rdt(fd)+": "+fd.m+" m · ⏱️ "+fd.sec+" sectores · 🔧 "+fd.pit+" pit"+(fd.drs?" · 🟢 DRS ×"+fd.drs:"")+(fd.spd?" · ⚡ "+fd.spd+" km/h":"")+(fd.ov?" · 🏁 "+fd.ov:"")+(fd.kondor==="W"?" · 🦅 vencido":fd.kondor==="L"?" · 🦅 escapó":"")+(fd.daily?" · 📅":"")+(fd.mirror?" · 🪞":"")));
-    const cd=rd("rubik_diary"); if(cd) la.push(LNK("rubik.html","🧩 "+rdt(cd)+": "+cd.diff+" · "+cd.t+"s · 🔄 "+cd.moves+" giros"+(cd.hints?" · 💡 "+cd.hints:"")+(cd.daily?" · 📅":"")+(cd.win?" ✓":" · 🤖 ganó la IA")));
+    if(sd) la.push(LNK("scream.html","🕷️ "+rdt(sd)+": "+fmtMS(sd.t)+" · 🔧 "+sd.v+"/4 · 🧪 "+sd.s+"/3 · 👁️ "+sd.spot+" apariciones · "+(sd.bites?"🩸 "+sd.bites:"🛡️ sin mordidas")+(sd.gen?" · ⚡":"")+(sd.vit?" · 🎶":"")+(sd.asc?" · 🛗":"")+(sd.daily?" · 📅":"")+(sd.win?" ✓":"")));
+    if(nd) la.push(LNK("notagame.html","🧟 "+rdt(nd)+": "+nd.kills+" kills · 📜 "+nd.clues+"/7 · 🌙 "+nd.nights+(nd.drvz?" · 🧪 Dr. VZ":"")+(nd.cat?" · 🐱":"")+(nd.daily?" · 📅":"")+(nd.win?" ✓ ⏱ "+fmtMS(nd.t||0):"")));
+    const fd=rd("edtu_f1_diary"); if(fd) la.push(LNK("#f1","🏎️ "+rdt(fd)+": "+fd.m+" m · ⏱️ "+fd.sec+" sectores · 🔧 "+fd.pit+" pit"+(fd.drs?" · 🟢 DRS ×"+fd.drs:"")+(fd.spd?" · ⚡ "+fd.spd+" km/h":"")+(fd.ov?" · 🏁 "+fd.ov:"")+(fd.kondor==="W"?" · 🦅 vencido":fd.kondor==="L"?" · 🦅 escapó":"")+(fd.daily?" · 📅":"")+(fd.night?" · 🌙":"")+(fd.rain?" · 🌧️":"")+(fd.mirror?" · 🪞":"")));
+    const cd=rd("rubik_diary"); if(cd) la.push(LNK("rubik.html","🧩 "+rdt(cd)+": "+cd.diff+" · "+cd.t+"s · 🔄 "+cd.moves+" giros"+(cd.hints?" · 💡 "+cd.hints:"")+(cd.daily?" · 📅":"")+((cd.stk||0)>=3?" · 🔥x"+cd.stk:"")+(cd.win?" ✓":" · 🤖 ganó la IA")));
     if(la.length) h+="<div style='margin-top:8px;color:#e8d9a8'><b>📖 ÚLTIMAS AVENTURAS</b></div>"+la.join("<br>"); }catch(e){}
   $("trophyBody").innerHTML=h;
   // 🔗 los enlaces #f1 abren F1 (cierran la Sala y pulsan el botón del menú)
