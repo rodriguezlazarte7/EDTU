@@ -48,6 +48,7 @@ const T=[
   ["trivia",/🧠 trivia: .* a\) /],["b",/CORRECTO|era [abc]\)/],
   ["quiz de mates",/🧮 ¿cuánto es \d+ [+\-×] \d+\?/],["me rindo",/😅 \d+ [+\-×] \d+ = -?\d+/],["quiz de mates fácil",/🧮 ¿cuánto es/],["0",/CORRECTO|casi/],
   ["me rindo",/era \d+|nada de qué rendirse/],["me rindo",/nada de qué rendirse/],
+  ["cuántos comandos sabes",/sé responder a unos \d+ tipos/],
   ["rekord",/quisiste decir 'récord'/],["adivinansa",/quisiste decir 'adivinanza'/],["asdfgh",/no entendí|circuitos|confundido/],
 ];
 let ok=0, bad=0;
