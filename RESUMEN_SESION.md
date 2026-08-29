@@ -1,8 +1,8 @@
 # 🛰️ EDTU — Resumen de la sesión autónoma (2026-08-28)
 
-**Bucle de mejora continua mientras David estaba fuera** — dos tandas: la primera (~iter 205 → 302) y, tras el "sigue sin parar" de David, de la segunda a la octava (iter 303 → 405 y sigue, ya con David durmiendo 😴). **398 commits desde el 26/8** (~315 en esta gran sesión), con deploy a Heroku y verificación en vivo en cada paso. **Ningún juego quedó roto en ningún momento** (chequeos de salud cada 10 iteraciones: todos verdes; el último, iter 405, Heroku v1259).
+**Bucle de mejora continua mientras David estaba fuera** — dos tandas: la primera (~iter 205 → 302) y, tras el "sigue sin parar" de David, de la segunda a la novena (iter 303 → 415 y sigue, ya con David durmiendo 😴). **407 commits desde el 26/8** (~325 en esta gran sesión), con deploy a Heroku y verificación en vivo en cada paso. **Ningún juego quedó roto en ningún momento** (chequeos de salud cada 10 iteraciones: todos verdes; el último, iter 415, Heroku v1276).
 
-**Números actuales**: 🕷️ SCREAM **110** 🏆 · 🦖 JURASSIC **114** 🏆 · 🧟 NOT A GAME **104** 🏆 · 🏎️ F1 **77** · 🧩 CUBO **63** · **tres juegos superaron las 100 features** · 405 iteraciones de bucle verificadas sanas 🎉 · páginas en vivo todas HTTP 200.
+**Números actuales**: 🕷️ SCREAM **111** 🏆 · 🦖 JURASSIC **117** 🏆 · 🧟 NOT A GAME **106** 🏆 · 🏎️ F1 **77** · 🧩 CUBO **64** · **tres juegos superaron las 100 features** · 415 iteraciones de bucle verificadas sanas 🎉 · páginas en vivo todas HTTP 200.
 
 ## 🔍 Auditoría multi-agente (ultracode)
 - 2 rondas con agentes buscadores + verificadores adversarios: **25 hallazgos, 24 bugs reales corregidos** (1 refutado)
@@ -117,6 +117,14 @@
 - 🦖 **JURASSIC**: la fogata avisa 10 s antes de apagarse; el chillido del ptero bebé ahora viene con texto
 - 🔗 **Sala de Trofeos con enlaces**: cada aventura y cada desafío pendiente te lleva al juego con un clic
 - 🩺 Chequeo de salud en 405: todo verde
+
+## 🆕 Novena tanda (iter 406-415) — memoria por todos lados
+- 🧟 **NAG**: la torreta del helipuerto cuenta sus kills (estadísticas y expediente) y WALLY te dice tu ritmo récord en kills/min
+- 🦖 **JURASSIC**: WALLY celebra tu racha sin heridas ("¡N días sin un rasguño! eres un fantasma para los dinos"), el diario marca "sin heridas (¡NINJA!)", la radio encendida queda en el diario y WALLY la recuerda; los avisos de anochecer y fogata ya no se pisan
+- 🕷️ **SCREAM**: el teléfono a veces **lee tu diario** ("...la última vez escapaste en 12:40... esta vez no será tan fácil...")
+- 🧩 **CUBO**: la racha perfecta aparece en la Sala de Trofeos
+- 📖 **ÚLTIMAS AVENTURAS** más detallada (tiempo del caso, noche/lluvia, generador/vitrola/ascensor, racha perfecta, radio) y WALLY chat *"aventura"* con fechas relativas
+- 🩺 Chequeo de salud en 415: todo verde
 
 ## 🤖 WALLY por todos lados
 Frases x8 por juego, celebra el 21/21 con voz, escanea pisos/baterías/cajones, certifica el póster... y presume su carrera de mBots en todas partes 🏁
