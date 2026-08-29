@@ -424,7 +424,7 @@ function finish(who){
     try{ if(window.speechSynthesis){ const u=new SpeechSynthesisUtterance("¡Le ganaste a la inteligencia artificial en "+t+" segundos! ¡Eres un crack del cubo!"); u.lang="es-ES"; u.pitch=1.25; u.rate=1.1; u.volume=0.9; speechSynthesis.cancel(); setTimeout(()=>{ try{ speechSynthesis.speak(u); }catch(e){} },700); } }catch(e){} }   // 🗣️ celebración
   else { const hadStk=loadStreak(); saveStreak(0); saveRDiary(false,parseFloat(t)); try{ localStorage.setItem("rubik_losses",String(loadRL()+1)); }catch(e){}   // 👑 se corta la racha + 📊 derrota anotada
     state="race";   // 🧩 puedes SEGUIR resolviendo de práctica aunque la IA haya ganado
-    showMsg("🤖 Ganó la IA"+(hadStk>=2?"\n👑 Adiós a tu racha de "+hadStk+"...":"")+"\nPuedes seguir resolviendo de práctica","#ff7ba3"); [400,300,220].forEach((f,i)=>setTimeout(()=>snd(f,"sawtooth",0.3,0.07),i*180));
+    showMsg("🤖 Ganó la IA"+(hadStk>=2?"\n👑 Adiós a tu racha de "+hadStk+"...":"")+"\nPuedes seguir resolviendo de práctica"+"\n<a href='index.html?wally=cubo' style='color:#8fd0ff;text-decoration:none;font-size:14px'>🤖 pregúntale a WALLY cómo mejorar</a>","#ff7ba3"); [400,300,220].forEach((f,i)=>setTimeout(()=>snd(f,"sawtooth",0.3,0.07),i*180));
     aiWinT=4.5; setTimeout(()=>aiSay("¡Gané! Inténtalo otra vez, humano."),700); }   // 🤖 vuelta de la victoria + burla
   updRW();
 }
