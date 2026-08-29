@@ -39,7 +39,7 @@ const T=[
   ["cuánto falta para navidad",/🎄/],["halloween",/🎃/],["cuánto falta para mi cumpleaños",/aún no sé tu cumpleaños/],["mi cumpleaños es el 14 de marzo",/apuntado/],["cuánto falta para mi cumpleaños",/🎂 (faltan|¡tu)/],
   ["cómo me llamo",/aún no sé tu nombre/],["me llamo david",/encantado, David/],["cómo me llamo",/te llamas David/],["olvida mi nombre",/agente/],
   ["marcador del chat",/🏅 marcador del chat/],["marcador",/adivinanzas resueltas/],
-  ["cómo estás",/batería|feliz|circuitos/],["qué haces",/vigilo|ordeno|trabalenguas/],["te quiero",/💛|mejor agente/],["eres genial",/💛|mejor agente/],["tienes hambre",/electricidad|despierto|miedo/],["bien",/me alegro|anotado|gracias por/],
+  ["cómo estás",/batería|feliz|circuitos/],["qué haces",/vigilo|ordeno|trabalenguas/],["te quiero",/💛|mejor espía/],["eres genial",/💛|mejor espía/],["tienes hambre",/electricidad|despierto|miedo/],["bien",/me alegro|anotado|gracias por/],
   ["mis estadísticas",/💬 chat/],
   ["sabías que",/🧠 ¿sabías que/],["dato curioso",/🧠 ¿sabías que/],
   ["cómo se dice araña en inglés",/spider/],["gato en inglés",/«cat»/],["el dinosaurio en inglés",/dinosaur/],["xyzq en inglés",/diccionario/],
