@@ -7266,11 +7266,11 @@ function buildTrophies(){ try{
     if(la.length) h+="<div style='margin-top:8px;color:#e8d9a8'><b>📖 ÚLTIMAS AVENTURAS</b></div>"+la.join("<br>"); }catch(e){}
   // 📚 TOTALES DE TODA LA VIDA: la suma de todas tus partidas en los 5 mundos (aparece cuando algún mundo tiene 2+ partidas)
   try{ const T=k=>{ try{ return JSON.parse(localStorage.getItem(k)||"null"); }catch(e){ return null; } }; const tj=T("jurassic_totals"), ts=T("scream_totals"), tn=T("nag_totals"), tf=T("edtu_f1_totals"), tc=T("rubik_totals"); const tl=[];
-    if(tj&&tj.games>=2) tl.push(LNK("jurassic.html","🦖 "+tj.games+" aventuras · 🗓️ "+tj.days+" días · 🎣 "+(tj.fish||0)+" · 🥥 "+(tj.cocos||0)+" · 🔥 "+(tj.fires||0)+(tj.wins?" · 🚁 "+tj.wins:"")));
-    if(ts&&ts.runs>=2) tl.push(LNK("scream.html","🕷️ "+ts.runs+" partidas · ⏱ "+Math.round((ts.t||0)/60)+" min · 🔧 "+(ts.v||0)+" · 🧪 "+(ts.s||0)+" · 👁️ "+(ts.spot||0)+(ts.wins?" · 🚁 "+ts.wins:"")));
-    if(tn&&tn.cases>=2) tl.push(LNK("notagame.html","🧟 "+tn.cases+" casos · "+(tn.kills||0)+" kills · 📜 "+(tn.clues||0)+" · 🌙 "+(tn.nights||0)+(tn.wins?" · ✓ "+tn.wins:"")));
-    if(tf&&tf.races>=2) tl.push(LNK("#f1","🏎️ "+tf.races+" carreras · 📏 "+((tf.m||0)>=1000?((tf.m||0)/1000).toFixed(1)+" km":(tf.m||0)+" m")+" · 🏁 "+(tf.ov||0)+(tf.kw?" · 🦅 ×"+tf.kw:"")+(tf.gw?" · 👻 ×"+tf.gw:"")));
-    if(tc&&tc.races>=2) tl.push(LNK("rubik.html","🧩 "+tc.races+" carreras · ⏱ "+Math.round(tc.t||0)+" s · 🔄 "+(tc.moves||0)+(tc.wins?" · ✓ "+tc.wins:"")));
+    if(tj&&tj.games>=2) tl.push(LNK("jurassic.html","🦖 "+tj.games+" aventuras · 🗓️ "+tj.days+" días · 🎣 "+(tj.fish||0)+" · 🥥 "+(tj.cocos||0)+" · 🔥 "+(tj.fires||0)+(tj.wins?" · 🚁 "+tj.wins:"")+" · 📊 media "+(tj.days/tj.games).toFixed(1)+" días"));
+    if(ts&&ts.runs>=2) tl.push(LNK("scream.html","🕷️ "+ts.runs+" partidas · ⏱ "+Math.round((ts.t||0)/60)+" min · 🔧 "+(ts.v||0)+" · 🧪 "+(ts.s||0)+" · 👁️ "+(ts.spot||0)+(ts.wins?" · 🚁 "+ts.wins:"")+" · 📊 media "+Math.floor((ts.t||0)/ts.runs/60)+":"+String(Math.round(((ts.t||0)/ts.runs)%60)).padStart(2,"0")));
+    if(tn&&tn.cases>=2) tl.push(LNK("notagame.html","🧟 "+tn.cases+" casos · "+(tn.kills||0)+" kills · 📜 "+(tn.clues||0)+" · 🌙 "+(tn.nights||0)+(tn.wins?" · ✓ "+tn.wins:"")+" · 📊 media "+Math.round((tn.kills||0)/tn.cases)+" kills"));
+    if(tf&&tf.races>=2) tl.push(LNK("#f1","🏎️ "+tf.races+" carreras · 📏 "+((tf.m||0)>=1000?((tf.m||0)/1000).toFixed(1)+" km":(tf.m||0)+" m")+" · 🏁 "+(tf.ov||0)+(tf.kw?" · 🦅 ×"+tf.kw:"")+(tf.gw?" · 👻 ×"+tf.gw:"")+" · 📊 media "+Math.round((tf.m||0)/tf.races)+" m"));
+    if(tc&&tc.races>=2) tl.push(LNK("rubik.html","🧩 "+tc.races+" carreras · ⏱ "+Math.round(tc.t||0)+" s · 🔄 "+(tc.moves||0)+(tc.wins?" · ✓ "+tc.wins:"")+" · 📊 media "+((tc.t||0)/tc.races).toFixed(1)+"s"));
     if(tl.length){ const tot=(tj?tj.games||0:0)+(ts?ts.runs||0:0)+(tn?tn.cases||0:0)+(tf?tf.races||0:0)+(tc?tc.races||0:0); h+="<div style='margin-top:8px;color:#e8d9a8'><b>📚 TOTALES DE TODA LA VIDA</b> <span style='color:#6a86a8;font-weight:400'>("+tot+" partidas en EDTU)</span></div>"+tl.join("<br>"); } }catch(e){}
   $("trophyBody").innerHTML=h;
   // 🔗 los enlaces #f1 abren F1 (cierran la Sala y pulsan el botón del menú)
