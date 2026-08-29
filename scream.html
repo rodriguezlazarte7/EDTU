@@ -607,7 +607,7 @@ function ascTick(dt){ if(ascWait<=0) return;
   if(Math.hypot(P.x-ASC.x,P.z-ASC.z)>4){ ascWait=0; showStory("🛗 te alejaste... el ascensor se fue sin ti"); return; }
   if(ascWait<=0){ const dest=curFloor<FLOORS-1?curFloor+1:curFloor-1;
     floorCd=1.5; snd(700,"triangle",0.3,0.08);
-    fade(()=>{ curFloor=dest; floorCd=1.2; sDiary.asc++; const sp=safeSpotF(ASC.x+3,ASC.z+3,dest); P.x=sp.x; P.z=sp.z; $("floor").textContent=FLOORNAME[dest]; showStory("🛗 "+FLOORNAME[dest]);
+    fade(()=>{ curFloor=dest; floorCd=1.2; updObj(); sDiary.asc++; const sp=safeSpotF(ASC.x+3,ASC.z+3,dest); P.x=sp.x; P.z=sp.z; $("floor").textContent=FLOORNAME[dest]; showStory("🛗 "+FLOORNAME[dest]);
       const ft3=$("floorTitle"); if(ft3){ ft3.textContent=FLOORNAME[dest]; ft3.classList.add("on"); clearTimeout(ft3._t); ft3._t=setTimeout(()=>ft3.classList.remove("on"),1100); } }); } }
 // 🎵 VITROLA: tocadiscos viejo en un piso al azar — actívala con E y la araña queda HIPNOTIZADA yendo hacia la música (25s, un uso)
 const vit=new THREE.Group();
@@ -814,7 +814,7 @@ function crackSVG(){ let p="";
   return "data:image/svg+xml;utf8,"+encodeURIComponent(svg); }
 function doCrack(){ const c=$("crack"); if(!c) return; c.style.transition="none"; c.style.backgroundImage="url(\""+crackSVG()+"\")"; c.style.opacity="0.95";
   requestAnimationFrame(()=>{ c.style.transition="opacity 0.8s"; c.style.opacity="0"; }); }
-function updObj(){ const done=valvesGot>=4&&samplesGot>=3; $("obj").textContent = done ? "🧪 ¡Todo listo! Ve a la MÁQUINA en tu ZONA SEGURA (planta baja) y fabrica el antídoto" : ("🧪 ANTÍDOTO — válvulas "+valvesGot+"/4 · muestras "+samplesGot+"/3 (en los 7 pisos)");
+function updObj(){ const done=valvesGot>=4&&samplesGot>=3; $("obj").textContent = done ? "🧪 ¡Todo listo! Ve a la MÁQUINA en tu ZONA SEGURA (planta baja) y fabrica el antídoto" : ("🧪 ANTÍDOTO — válvulas "+valvesGot+"/4 · muestras "+samplesGot+"/3 (en los 7 pisos)"+(function(){ /* 🏢 lo que queda en ESTE piso */ try{ const v=valves.filter(x=>!x.got&&x.f===curFloor).length, s2=samples.filter(x=>!x.got&&x.f===curFloor).length; return (v||s2)?" · en este piso: "+(v?v+"🔧":"")+(v&&s2?" + ":"")+(s2?s2+"🧪":""):" · en este piso: ✔ nada, cambia de piso"; }catch(e){ return ""; } })());
   // 🗣️ LA MÁQUINA TE LLAMA: al juntar todo, habla una sola vez con fanfarria épica
   if(done && !allAnn){ allAnn=true;
     [523,659,784,1047,1319].forEach((fq,k)=>setTimeout(()=>snd(fq,"triangle",0.22,0.09),k*110)); vib([0,60,40,60,40,120]);
@@ -824,7 +824,7 @@ function fade(fn){ const f=$("fade"); f.style.opacity="1"; setTimeout(()=>{ fn&&
 function goFloor(nf){ if(nf<0||nf>=FLOORS) return;
   floorCd=1.5;   // 🐛FIX auditoría: cooldown INMEDIATO (antes se fijaba 250ms después en el callback y goFloor se disparaba ~15 veces por frame apilando sonidos y fades)
   [0,140,290,450].forEach((ms,k)=>setTimeout(()=>snd(90+k*8,"triangle",0.09,0.05),ms));   // 🪜 eco metálico de escalones
-  fade(()=>{ curFloor=nf; floorCd=1.2; const sp=safeSpotF(STAIRX-5,STAIRZ,nf); P.x=sp.x; P.z=sp.z; $("floor").textContent=FLOORNAME[nf]; showStory("Subiste a "+FLOORNAME[nf]);
+  fade(()=>{ curFloor=nf; floorCd=1.2; updObj(); const sp=safeSpotF(STAIRX-5,STAIRZ,nf); P.x=sp.x; P.z=sp.z; $("floor").textContent=FLOORNAME[nf]; showStory("Subiste a "+FLOORNAME[nf]);
     const ft2=$("floorTitle"); if(ft2){ ft2.textContent=FLOORNAME[nf]; ft2.classList.add("on"); clearTimeout(ft2._t); ft2._t=setTimeout(()=>ft2.classList.remove("on"),1100); } }); }   // 👻 título fantasma
 
 // 🎲 posiciones aleatorias (evita paredes, zona segura y la escalera)
