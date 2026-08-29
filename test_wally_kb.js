@@ -67,7 +67,13 @@ try{
 }catch(err){ console.log("ℹ️  sin kb-preguntas.json, me salto la prueba de ejemplos"); }
 if(probadas) console.log("🎯 "+probadas+" preguntas de ejemplo comprobadas");
 
-/* 5) rendimiento del peor caso: una pregunta que no está en ninguna parte */
+/* 5) la URL del script lleva la versión correcta (si no, el navegador se queda con la tabla vieja) */
+{ const m=html.match(/wally-kb\.js\?v=(\d+)/);
+  if(!m) F("index.html no carga wally-kb.js con versión");
+  else if(+m[1]!==KB.length) F("la versión del script dice v="+m[1]+" pero la tabla tiene "+KB.length+" entradas: quien ya la cacheó no verá las nuevas");
+  else console.log("🔖 versión del script al día: v="+m[1]); }
+
+/* 6) rendimiento del peor caso: una pregunta que no está en ninguna parte */
 const m2=motor(true).fn; const N=300, t0=Date.now();
 for(let i=0;i<N;i++) m2("zzz pregunta inexistente qwerty "+i);
 const ms=(Date.now()-t0)/N;
