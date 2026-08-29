@@ -43,6 +43,7 @@ const T=[
   ["mis estadísticas",/💬 chat/],
   ["sabías que",/🧠 ¿sabías que/],["dato curioso",/🧠 ¿sabías que/],
   ["cómo se dice araña en inglés",/spider/],["gato en inglés",/«cat»/],["el dinosaurio en inglés",/dinosaur/],["xyzq en inglés",/diccionario/],
+  ["qué más sabes",/💡/],["dame un consejo",/💡/],
   ["rekord",/quisiste decir 'récord'/],["adivinansa",/quisiste decir 'adivinanza'/],["asdfgh",/no entendí|circuitos|confundido/],
 ];
 let ok=0, bad=0;
