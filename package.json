@@ -1,17 +1,18 @@
 {
   "name": "edtu",
   "version": "1.0.0",
-  "description": "EDTU — Espías De Tecnología Universal",
+  "description": "EDTU — el cuartel de juegos de David",
   "main": "server.js",
   "scripts": {
     "start": "node server.js",
-    "test": "node test_wally_chat.js"
+    "test": "node test_wally_chat.js && node test_wally_kb.js"
   },
   "engines": {
     "node": "20.x"
   },
   "dependencies": {
-    "express": "^4.19.2"
+    "express": "^4.19.2",
+    "compression": "^1.7.4"
   },
   "license": "MIT"
 }
