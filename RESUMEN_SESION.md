@@ -1,8 +1,8 @@
 # 🛰️ EDTU — Resumen de la sesión autónoma (2026-08-28)
 
-**Bucle de mejora continua mientras David estaba fuera** — dos tandas: la primera (~iter 205 → 302) y, tras el "sigue sin parar" de David, de la segunda a la decimocuarta (iter 303 → 465 y sigue, ya con David durmiendo 😴). **452 commits desde el 26/8** (~369 en esta gran sesión), con deploy a Heroku y verificación en vivo en cada paso. **Ningún juego quedó roto en ningún momento** (chequeos de salud cada 10 iteraciones: todos verdes; el último, iter 465, Heroku v1360).
+**Bucle de mejora continua mientras David estaba fuera** — dos tandas: la primera (~iter 205 → 302) y, tras el "sigue sin parar" de David, de la segunda a la decimoquinta (iter 303 → 475 y sigue, ya con David durmiendo 😴). **461 commits desde el 26/8** (~378 en esta gran sesión), con deploy a Heroku y verificación en vivo en cada paso. **Ningún juego quedó roto en ningún momento** (chequeos de salud cada 10 iteraciones: todos verdes; el último, iter 475, Heroku v1376).
 
-**Números actuales**: 🕷️ SCREAM **118** 🏆 · 🦖 JURASSIC **125** 🏆 · 🧟 NOT A GAME **113** 🏆 · 🏎️ F1 **84** · 🧩 CUBO **68** · **tres juegos superaron las 100 features** · 465 iteraciones de bucle verificadas sanas 🎉 · páginas en vivo todas HTTP 200.
+**Números actuales**: 🕷️ SCREAM **120** 🏆 · 🦖 JURASSIC **126** 🏆 · 🧟 NOT A GAME **114** 🏆 · 🏎️ F1 **86** · 🧩 CUBO **69** · **tres juegos superaron las 100 features** · 475 iteraciones de bucle verificadas sanas 🎉 · páginas en vivo todas HTTP 200.
 
 ## 🔍 Auditoría multi-agente (ultracode)
 - 2 rondas con agentes buscadores + verificadores adversarios: **25 hallazgos, 24 bugs reales corregidos** (1 refutado)
@@ -168,6 +168,15 @@
 - 🧟 **NAG**: WALLY (E) dice cuánto falta para amanecer o anochecer ("🌅 amanece en 1:20, aguanta")
 - 📄 RESUMEN con la Decimotercera tanda
 - 🩺 Chequeo de salud en 465: todo verde (Heroku v1360, 452 commits desde el 26/8)
+
+## 🆕 Decimoquinta tanda (iter 466-475) — medias por todos lados
+- 📊 **"vs tu media" completo en los 5 juegos**: ahora también 🕷️ SCREAM (tiempo aguantado: "tu media: 6:40 en el edificio → hoy +1:12 ⬆️") y 🏎️ F1 (metros en el choque: "tu media: 2840 m → hoy +410 m ⬆️ ¡mejor que tu media!")
+- 🏠 **La media en la portada de cada juego** junto a los totales ("📊 media 3.2 días" · "📊 media 6:40" · "📊 media 34 kills" · "📊 media 48.3s")
+- 🏆 **Sala de Trofeos**: cada línea de TOTALES DE TODA LA VIDA lleva tu media por partida
+- 🤖 **WALLY chat**: "media / promedio / normalmente / sueles" cuenta tus medias de los 5 mundos; "ayuda" lista "media 📊"
+- 📻 **F1**: la radio del ingeniero nota cuando superas tu media en +15 % ("Por encima de tu media, piloto. Así se hace.")
+- 📄 RESUMEN con la Decimocuarta tanda
+- 🩺 Chequeo de salud en 475: todo verde (Heroku v1376, 461 commits desde el 26/8)
 
 ## 🤖 WALLY por todos lados
 Frases x8 por juego, celebra el 21/21 con voz, escanea pisos/baterías/cajones, certifica el póster... y presume su carrera de mBots en todas partes 🏁
