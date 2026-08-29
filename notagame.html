@@ -308,6 +308,7 @@ function talkWallyN(){ if(wallyNTalkCd>0||!running||gameOver||level!=="surface")
   wallyNTalkCd=5; [880,1175,1320].forEach((fq,k)=>setTimeout(()=>snd(fq,"square",0.07,0.06),k*100));
   if(wallyLegend()){ showStory("🤖 WALLY: «¡21/21! Eres LEYENDA de EDTU, agente 👑»"); return; }
   { const mem=wallyMemN(); if(mem){ showStory("🤖 WALLY: «"+mem+"»"); return; } }   // 🧠 recuerda tu último caso
+  { if(cluesGot===0 && !nFirstClueSaid){ try{ const b1=parseInt(localStorage.getItem("nag_best_first_clue")||"0",10)||0; const t=Math.round(performance.now()/1000-startT); if(b1>0 && t<b1){ nFirstClueSaid=true; showStory("🤖 WALLY: «tu récord de primera pista es "+b1+" s ⚡ — llevas "+t+", ¡corre al cajón más cercano!»"); return; } }catch(e){} } }   /* ⚡ reta tu primera pista */
   const q=WQUIPS_N[Math.floor(Math.random()*WQUIPS_N.length)];
   let best=null,bd=1e9; drawers.forEach(d=>{ if(d.open)return; const d2=Math.hypot(P.x-d.cx,P.z-d.cz); if(d2<bd){ bd=d2; best=d; } });
   if(!best){ showStory("🤖 WALLY: «"+q+"» · ya tienes TODAS las pistas. ¡Resuelve el caso!"); return; }
@@ -955,7 +956,7 @@ function collide(nx,nz){ const pr=0.35; for(const w of walls){ if(nx>w.x0-pr&&nx
 
 function startGame(){
   P.x=0;P.z=ARENA-5;P.y=1.7;P.vy=0;P.onGround=true;P.hp=100; yaw=0;pitch=0;
-  cluesGot=0; gameOver=false; muzzle=0; shootCd=0; radioT=45; radioClueN=0; clueArrowT=0; c50Said=false; cAvgSaid=false; nWasNight=false; nDiaryReset(); setTimeout(()=>{ try{ if(!running||gameOver) return; const T=JSON.parse(localStorage.getItem("nag_totals")||"null"); if(T&&T.cases>=3){ try{ radioStatic(); }catch(e){} showStory("📻 CENTRAL: «tu media es "+Math.round((T.kills||0)/T.cases)+" eliminados por caso, agente. Supérala. 📊»"); } }catch(e){} },9000);   /* 📊 la Central te recuerda tu media al empezar */ nMemSaid=false; nWMemSaid=false;   // 📻 radio, 📁 expediente y 🐕 memoria del perro desde cero
+  cluesGot=0; gameOver=false; muzzle=0; shootCd=0; radioT=45; radioClueN=0; clueArrowT=0; c50Said=false; cAvgSaid=false; nWasNight=false; nFirstClueSaid=false; nDiaryReset(); setTimeout(()=>{ try{ if(!running||gameOver) return; const T=JSON.parse(localStorage.getItem("nag_totals")||"null"); if(T&&T.cases>=3){ try{ radioStatic(); }catch(e){} showStory("📻 CENTRAL: «tu media es "+Math.round((T.kills||0)/T.cases)+" eliminados por caso, agente. Supérala. 📊»"); } }catch(e){} },9000);   /* 📊 la Central te recuerda tu media al empezar */ nMemSaid=false; nWMemSaid=false;   // 📻 radio, 📁 expediente y 🐕 memoria del perro desde cero
   startT=performance.now()/1000;   // reinicia el ciclo día/noche (empieza de noche)
   zombies.forEach(z=>scene.remove(z.grp)); zombies.length=0; spawnZombies(12); kills=0; heliMode=false;
   comboN=0; comboT=0; comboPop=0; maxCombo=0; document.getElementById("combo").style.opacity="0";
@@ -1026,7 +1027,7 @@ nRainGeo.setAttribute("position",new THREE.BufferAttribute(nRainPos,3));
 const nRainMat=new THREE.PointsMaterial({color:0x8ab4de,size:0.1,transparent:true,opacity:0,fog:false});
 const nRain=new THREE.Points(nRainGeo,nRainMat); nRain.visible=false; scene.add(nRain);
 let nRainOn=false, nRainF=0, nRainNoise=null;
-let nWasNight=false, nNightK0=0, nNightC0=0;   // 🌅 resumen de la noche al amanecer (kills y pistas de esa noche)
+let nWasNight=false, nNightK0=0, nNightC0=0, nFirstClueSaid=false;   // 🌅 resumen de la noche al amanecer (kills y pistas de esa noche)
 function setNRainSnd(on){ try{ AC=AC||new (window.AudioContext||window.webkitAudioContext)();
   if(on&&!nRainNoise){ const len=AC.sampleRate*2, buf=AC.createBuffer(1,len,AC.sampleRate), dch=buf.getChannelData(0);
     for(let i=0;i<len;i++) dch[i]=(Math.random()*2-1)*0.35;
