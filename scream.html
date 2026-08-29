@@ -650,6 +650,7 @@ function talkWally(){ if(wallyTalkCd>0||!running||gameOver) return;
   wallyTalkCd=5; [880,1175,1320].forEach((fq,k)=>setTimeout(()=>snd(fq,"square",0.07,0.06),k*100));
   if(wallyLegend()){ showStory("🤖 WALLY: «¡21/21! Eres LEYENDA de EDTU, agente 👑»"); vib(80); return; }
   { const mem=wallyMemS(); if(mem){ showStory("🤖 WALLY: «"+mem+"»"); vib(40); return; } }   // 🧠 recuerda tu escape anterior
+  { if(sDiary.spot>=3 && Math.random()<0.5){ showStory("🤖 WALLY: «la araña ya se te apareció "+sDiary.spot+" veces... con la linterna apagada no te ve 🔦»"); vib(40); return; } }   /* 🕷️ consejo según tus apariciones */
   const v=valves.filter(x=>!x.got&&x.f===curFloor).length, s2=samples.filter(x=>!x.got&&x.f===curFloor).length,
         c3=clocks.filter(x=>!x.got&&x.f===curFloor).length, m2=medkits.filter(x=>!x.got&&x.f===curFloor).length;
   const parts=[]; if(v)parts.push(v+" válvula"+(v>1?"s":"")); if(s2)parts.push(s2+" muestra"+(s2>1?"s":"")); if(c3)parts.push(c3+" reloj"+(c3>1?"es":"")); if(m2)parts.push(m2+" botiquín"+(m2>1?"es":""));
