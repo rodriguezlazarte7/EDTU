@@ -1,8 +1,8 @@
 # 🛰️ EDTU — Resumen de la sesión autónoma (2026-08-28)
 
-**Bucle de mejora continua mientras David estaba fuera** — dos tandas: la primera (~iter 205 → 302) y, tras el "sigue sin parar" de David, de la segunda a la novena (iter 303 → 415 y sigue, ya con David durmiendo 😴). **407 commits desde el 26/8** (~325 en esta gran sesión), con deploy a Heroku y verificación en vivo en cada paso. **Ningún juego quedó roto en ningún momento** (chequeos de salud cada 10 iteraciones: todos verdes; el último, iter 415, Heroku v1276).
+**Bucle de mejora continua mientras David estaba fuera** — dos tandas: la primera (~iter 205 → 302) y, tras el "sigue sin parar" de David, de la segunda a la décima (iter 303 → 425 y sigue, ya con David durmiendo 😴). **416 commits desde el 26/8** (~333 en esta gran sesión), con deploy a Heroku y verificación en vivo en cada paso. **Ningún juego quedó roto en ningún momento** (chequeos de salud cada 10 iteraciones: todos verdes; el último, iter 425, Heroku v1293).
 
-**Números actuales**: 🕷️ SCREAM **111** 🏆 · 🦖 JURASSIC **117** 🏆 · 🧟 NOT A GAME **106** 🏆 · 🏎️ F1 **77** · 🧩 CUBO **64** · **tres juegos superaron las 100 features** · 415 iteraciones de bucle verificadas sanas 🎉 · páginas en vivo todas HTTP 200.
+**Números actuales**: 🕷️ SCREAM **112** 🏆 · 🦖 JURASSIC **118** 🏆 · 🧟 NOT A GAME **108** 🏆 · 🏎️ F1 **79** · 🧩 CUBO **65** · **tres juegos superaron las 100 features** · 425 iteraciones de bucle verificadas sanas 🎉 · páginas en vivo todas HTTP 200.
 
 ## 🔍 Auditoría multi-agente (ultracode)
 - 2 rondas con agentes buscadores + verificadores adversarios: **25 hallazgos, 24 bugs reales corregidos** (1 refutado)
@@ -125,6 +125,15 @@
 - 🧩 **CUBO**: la racha perfecta aparece en la Sala de Trofeos
 - 📖 **ÚLTIMAS AVENTURAS** más detallada (tiempo del caso, noche/lluvia, generador/vitrola/ascensor, racha perfecta, radio) y WALLY chat *"aventura"* con fechas relativas
 - 🩺 Chequeo de salud en 415: todo verde
+
+## 🆕 Décima tanda (iter 416-425) — radios y consejos
+- 🏎️ **F1**: la radio del ingeniero avisa "Kóndor a la vista, ¡a pelear, piloto!" y felicita "Mejor de la semana, piloto. Sigue empujando."
+- 🧟 **NAG**: la Central felicita por radio a los 50 kills ("cincuenta eliminados, agente. Sigue así.") y el perro ladra cuando la central señala una pista
+- 🧩 **CUBO**: fanfarria de 5 notas al batir tu marca del día
+- 🕷️ **SCREAM**: WALLY aconseja según cuántas veces se te apareció la araña ("con la linterna apagada no te ve")
+- 🦖 **JURASSIC**: WALLY aconseja de noche ("los depredadores cazan más — quédate cerca del refugio o de una fogata")
+- 🏆 **Sala**: DESAFÍOS DE HOY dice en cuántas horas se renuevan
+- 🩺 Chequeo de salud en 425: todo verde
 
 ## 🤖 WALLY por todos lados
 Frases x8 por juego, celebra el 21/21 con voz, escanea pisos/baterías/cajones, certifica el póster... y presume su carrera de mBots en todas partes 🏁
