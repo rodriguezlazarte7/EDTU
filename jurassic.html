@@ -458,6 +458,7 @@ function talkWallyJ(){ if(petBCd>0) return false;
   if(wallyLegend()){ toast2("🤖 WALLY: «¡21/21! Eres LEYENDA de EDTU, agente 👑»"); return true; }
   { const mem=wallyMemJ(); if(mem){ toast2("🤖 WALLY: «"+mem+"»"); return true; } }   // 🧠 recuerda tu aventura anterior
   { const dfN=(elapsed%DAY_LEN)/DAY_LEN; if(dfN>=0.5 && Math.random()<0.34){ toast2("🤖 WALLY: «es de noche 🌙: los depredadores cazan más — quédate cerca del refugio 🏠 o de una fogata 🔥»"); return true; } }   /* 🌙 consejo nocturno */
+  { if(fireT>0 && campfire.visible && !jFireSaid){ const fd=Math.hypot(campfire.position.x-P.x,campfire.position.z-P.z); if(fd>8){ jFireSaid=true; toast2("🤖 WALLY: «tu fogata 🔥 sigue viva a "+Math.round(fd)+" m y le quedan "+Math.max(1,Math.round(fireT))+" s — junto a ella te curas y los dinos no se acercan»"); return true; } } }   /* 🔥 recuerda tu fogata (una vez por fogata) */
   { const dSin=elapsed/DAY_LEN; if(jDiary.hits===0 && dSin>=2 && !jCleanSaid){ jCleanSaid=true; toast2("🤖 WALLY: «¡"+Math.floor(dSin)+" días sin un rasguño! eres un fantasma para los dinos 🛡️»"); return true; } }   // 🛡️ celebra tu racha sin heridas (una vez por partida)
   const q=WQUIPS_J[Math.floor(Math.random()*WQUIPS_J.length)];
   if(inv.batt>=3){ toast2("🤖 WALLY: «"+q+"» · ¡ya tienes las 3 baterías, a la torre de radio!"); return true; }
@@ -705,14 +706,14 @@ const campfire=new THREE.Group();
   const core=new THREE.Mesh(new THREE.ConeGeometry(0.15,0.5,6),new THREE.MeshBasicMaterial({color:0xffe08a,transparent:true,opacity:0.95})); core.position.y=0.45; campfire.add(core);
   const fl=new THREE.PointLight(0xff9a3a,1.5,16); fl.position.y=1.1; campfire.add(fl); campfire.userData.light=fl; }
 campfire.visible=false; scene.add(campfire);
-let fireT=0, fireCd=0, fireWarned=false;   // 🔥 fireWarned: aviso único de que la fogata se apaga
+let fireT=0, fireCd=0, fireWarned=false, jFireSaid=false;   // 🔥 fireWarned: aviso único de que la fogata se apaga
 function buildFire(){ if(!running||gameOver||jPaused) return;
   if(fireT>0){ toast2("🔥 tu fogata sigue encendida"); return; }
   if(fireCd>0){ toast2("🔥 las brasas aún humean... espera "+Math.ceil(fireCd)+"s"); return; }
   const fwd=new THREE.Vector3(); camera.getWorldDirection(fwd); fwd.y=0; if(fwd.lengthSq()<0.01) return; fwd.normalize();
   const fx=P.x+fwd.x*2.2, fz=P.z+fwd.z*2.2;
   if(inLake(fx,fz,1)){ toast2("💧 ahí no: está mojado"); return; }
-  campfire.position.set(fx,0,fz); campfire.visible=true; fireT=45; fireWarned=false;
+  campfire.position.set(fx,0,fz); campfire.visible=true; fireT=45; fireWarned=false; jFireSaid=false;
   safeZones.push({x:fx,z:fz,r:8,fire:true}); jDiary.fires++;
   snd(180,"sawtooth",0.25,0.06); snd(760,"triangle",0.2,0.05);
   toast2("🔥 FOGATA encendida (45s): espanta a los dinos y cura a su lado"); }
