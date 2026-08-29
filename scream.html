@@ -711,7 +711,7 @@ let statFlares=0, statDist=0, lastPX=null, lastPZ=0; const statFloors=new Set();
 // 📖 DIARIO DEL SOBREVIVIENTE: hitos del escape (apariciones de la araña, mordidas, botiquines, generador, vitrola, ascensor); últimas 3 en scream_diary
 const sDiary={spot:0,bites:0,med:0,gen:false,vit:false,asc:0};
 function sDiaryReset(){ sDiary.spot=0; sDiary.bites=0; sDiary.med=0; sDiary.gen=false; sDiary.vit=false; sDiary.asc=0; }
-function sDiaryLine(e){ const p=[]; p.push("🕷️ "+e.spot+" apariciones"); p.push(e.bites?("🩸 "+e.bites+" mordidas"):"🛡️ sin mordidas"); if(e.med) p.push("❤️ "+e.med+" botiquines"); if(e.gen) p.push("⚡ generador"); if(e.vit) p.push("🎶 vitrola"); if(e.asc) p.push("🛗 ascensor ×"+e.asc); return p.join(" · "); }
+function sDiaryLine(e){ const p=[]; p.push((e.spot===0&&e.win)?"👻 ESCAPE FANTASMA (la araña nunca te encontró)":"🕷️ "+e.spot+" apariciones"); p.push(e.bites?("🩸 "+e.bites+" mordidas"):"🛡️ sin mordidas"); if(e.med) p.push("❤️ "+e.med+" botiquines"); if(e.gen) p.push("⚡ generador"); if(e.vit) p.push("🎶 vitrola"); if(e.asc) p.push("🛗 ascensor ×"+e.asc); return p.join(" · "); }
 function sDiaryEnd(win,surv){ const e=Object.assign({},sDiary); e.win=!!win; e.daily=!!dailyS; e.t=surv; e.v=valvesGot; e.s=samplesGot; e.fl=statFloors.size; const d=new Date(); e.date=d.getDate()+"/"+(d.getMonth()+1); e.ts=Date.now();
   try{ const arr=JSON.parse(localStorage.getItem("scream_diary")||"[]"); arr.unshift(e); localStorage.setItem("scream_diary",JSON.stringify(arr.slice(0,3))); }catch(err){}
   return "<div style='margin-top:6px;font-size:13px;color:#d9c8e8;line-height:1.8'>📖 <b>DIARIO DEL SOBREVIVIENTE</b><br>"+sDiaryLine(e)+"</div>"; }
@@ -794,7 +794,7 @@ function updBest(){ updSDiary(); const b=loadBest(), w=loadWins(), el=$("bestT")
     return DIFFS[k].lbl.split(" ")[0]+(got?"✔":"–"); }).join(" ");
   let crown=""; try{ if(localStorage.getItem("scream_win_pesadillaplus")==="1") crown="  ·  👑 PESADILLA+ VENCIDA"; }catch(e){}
   const sw=loadSWeek();
-  el.textContent = (b==null?"🏆 Aún sin récord — ¡sé el primero en escapar!":("🏆 Mejor escape: "+fmtT(b))) + (sw>0?"  ·  📅 esta semana: "+fmtT(sw):"") + (function(){ const dv=loadSDaily(); return dv>0?"  ·  📅 mejor de HOY: "+fmtT(dv):""; })() + (w>0?"  ·  🚁 Escapes: "+w:"") + "  ·  🏅 "+med + crown; }
+  el.textContent = (b==null?"🏆 Aún sin récord — ¡sé el primero en escapar!":("🏆 Mejor escape: "+fmtT(b))) + (sw>0?"  ·  📅 esta semana: "+fmtT(sw):"") + (function(){ const dv=loadSDaily(); return dv>0?"  ·  📅 mejor de HOY: "+fmtT(dv):""; })() + (w>0?"  ·  🚁 Escapes: "+w:"") + (function(){ try{ const ge=parseInt(localStorage.getItem("scream_ghost_escapes")||"0",10)||0; return ge>0?"  ·  👻 "+ge+" escape"+(ge>1?"s":"")+" fantasma":""; }catch(e){ return ""; } })() + "  ·  🏅 "+med + crown; }
 // 💥 grietas de vidrio roto para el jumpscare
 function crackSVG(){ let p="";
   for(let i=0;i<12;i++){ const a=i/12*6.283+Math.random()*0.4; let x=200,y=200,d="M200 200"; const steps=6, len=140+Math.random()*200;
@@ -1318,6 +1318,7 @@ function update(dt){
     craftT+=dt; cbar.style.display="block"; cbar.firstElementChild.style.width=Math.min(100,craftT/8*100)+"%";
     if(Math.random()<dt*3) snd(360+Math.random()*300,"square",0.06,0.05);
     if(craftT>=8){ won=true; running=false; const elapsed=gameTime+clockBonus-timeLeft; let best=loadBest(); const isNew=(best==null||elapsed<best); if(isNew){ best=elapsed; saveBest(best); } addWin();
+      if(sDiary.spot===0){ try{ localStorage.setItem("scream_ghost_escapes",String((parseInt(localStorage.getItem("scream_ghost_escapes")||"0",10)||0)+1)); }catch(e){} setTimeout(()=>{ showStory("👻 ¡ESCAPE FANTASMA! La araña nunca te encontró — nivel sigilo máximo"); [880,1175,1568].forEach((fq,k)=>setTimeout(()=>snd(fq,"sine",0.2,0.07),k*120)); },1500); }   // 👻 sin una sola aparición
       try{ const sw=loadSWeek(); if(!sw||elapsed<sw) localStorage.setItem("scream_week_"+weekKey(),String(elapsed)); }catch(e){}   // 📅 mejor escape de la semana
       if(dailyS){ try{ const dv=loadSDaily(); if(!dv||elapsed<dv) localStorage.setItem("scream_daily_"+dailyKeyS(),String(elapsed)); }catch(e){} }   // 📅 mejor del DESAFÍO DEL DÍA
       const bd=loadBestD(diff), isNewD=(bd==null||elapsed<bd); if(isNewD) saveBestD(diff,elapsed); buildDiffs();   // 🏆 récord de esta dificultad
