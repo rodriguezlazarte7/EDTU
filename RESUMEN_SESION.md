@@ -1,8 +1,8 @@
 # 🛰️ EDTU — Resumen de la sesión autónoma (2026-08-28)
 
-**Bucle de mejora continua mientras David estaba fuera** — dos tandas: la primera (~iter 205 → 302) y, tras el "sigue sin parar" de David, de la segunda a la cuadragésima cuarta (iter 303 → 765 y sigue, ya con David durmiendo 😴 — ¡las iteraciones 500, 600 y 700 se celebraron de madrugada!). **718 commits desde el 26/8** (~635 en esta gran sesión), con deploy a Heroku y verificación en vivo en cada paso. **Ningún juego quedó roto en ningún momento** (chequeos de salud cada 10 iteraciones: todos verdes; el último, iter 765, Heroku v1692).
+**Bucle de mejora continua mientras David estaba fuera** — dos tandas: la primera (~iter 205 → 302) y, tras el "sigue sin parar" de David, de la segunda a la cuadragésima quinta (iter 303 → 775 y sigue, ya con David durmiendo 😴 — ¡las iteraciones 500, 600 y 700 se celebraron de madrugada!). **727 commits desde el 26/8** (~644 en esta gran sesión), con deploy a Heroku y verificación en vivo en cada paso. **Ningún juego quedó roto en ningún momento** (chequeos de salud cada 10 iteraciones: todos verdes; el último, iter 775, Heroku v1698).
 
-**Números actuales**: 🕷️ SCREAM **145** 🏆 · 🦖 JURASSIC **147** 🏆 · 🧟 NOT A GAME **138** 🏆 · 🏎️ F1 **103** 🏆 · 🧩 CUBO **84** · 🕹️ los 16 minijuegos con récord o victorias y medias · **cuatro juegos superaron las 100 features** · 765 iteraciones de bucle verificadas sanas 🎉 · páginas en vivo todas HTTP 200.
+**Números actuales**: 🕷️ SCREAM **145** 🏆 · 🦖 JURASSIC **147** 🏆 · 🧟 NOT A GAME **138** 🏆 · 🏎️ F1 **103** 🏆 · 🧩 CUBO **84** · 🕹️ los 16 minijuegos con récord o victorias y medias · **cuatro juegos superaron las 100 features** · 775 iteraciones de bucle verificadas sanas 🎉 · páginas en vivo todas HTTP 200.
 
 ## 🔍 Auditoría multi-agente (ultracode)
 - 2 rondas con agentes buscadores + verificadores adversarios: **25 hallazgos, 24 bugs reales corregidos** (1 refutado)
@@ -424,6 +424,15 @@
 - 🧪 Test del chat: **97 preguntas** (todas verdes)
 - 📄 RESUMEN con la Cuadragésima tercera tanda
 - 🩺 Chequeo de salud en 765: todo verde (Heroku v1692, 718 commits desde el 26/8, test 97/97)
+
+## 🆕 Cuadragésima quinta tanda (iter 766-775) — WALLY, profe de mates
+- 🧮 **"quiz de mates"** (fácil / normal / difícil; sumas, restas y multiplicaciones; "pregúntame una suma"): revisa tu respuesta, aciertos y racha 🔥
+- 🎓 **"mis notas / cómo voy en mates|inglés|trivia"**: aciertos/intentos, porcentaje y estrellas por materia; mates también en "marcador del chat", "estadísticas" y el bloque JUEGOS DEL CHAT de la Sala
+- 🏳️ **"me rindo"** en adivina revela el número y sin juego activo sugiere uno · 🤖 **"cuántos comandos sabes"** cuenta sus propios handlers (¡103!)
+- 💡 6 trucos más en el truco del día · 🙋 frases donde "agente" es sustantivo pasan a "espía" para que no suenen raras con tu nombre
+- 🧪 Test del chat: **106 preguntas + fuzz de 60 entradas aleatorias** (todo verde); el test atrapó 3 choques más antes de publicar
+- 📄 RESUMEN con la Cuadragésima cuarta tanda
+- 🩺 Chequeo de salud en 775: todo verde (Heroku v1698, 727 commits desde el 26/8, test 106/106 + fuzz 60/60)
 
 ## 🤖 WALLY por todos lados
 Frases x8 por juego, celebra el 21/21 con voz, escanea pisos/baterías/cajones, certifica el póster... y presume su carrera de mBots en todas partes 🏁
