@@ -1,8 +1,8 @@
 # 🛰️ EDTU — Resumen de la sesión autónoma (2026-08-28)
 
-**Bucle de mejora continua mientras David estaba fuera** — dos tandas: la primera (~iter 205 → 302) y, tras el "sigue sin parar" de David, de la segunda a la quincuagésima quinta (iter 303 → 875 y sigue, ya con David durmiendo 😴 — ¡las iteraciones 500, 600, 700 y 800 se celebraron de madrugada!). **805 commits desde el 26/8** (~722 en esta gran sesión), con deploy a Heroku y verificación en vivo en cada paso. **Ningún juego quedó roto en ningún momento** (chequeos de salud cada 10 iteraciones: todos verdes; el último, iter 875, Heroku v1813).
+**Bucle de mejora continua mientras David estaba fuera** — dos tandas: la primera (~iter 205 → 302) y, tras el "sigue sin parar" de David, de la segunda a la quincuagésima sexta (iter 303 → 885 y sigue, ya con David durmiendo 😴 — ¡las iteraciones 500, 600, 700 y 800 se celebraron de madrugada!). **814 commits desde el 26/8** (~731 en esta gran sesión), con deploy a Heroku y verificación en vivo en cada paso. **Ningún juego quedó roto en ningún momento** (chequeos de salud cada 10 iteraciones: todos verdes; el último, iter 885, Heroku v1829).
 
-**Números actuales**: 🕷️ SCREAM **145** 🏆 · 🦖 JURASSIC **147** 🏆 · 🧟 NOT A GAME **138** 🏆 · 🏎️ F1 **103** 🏆 · 🧩 CUBO **84** · 🕹️ los 16 minijuegos con récord o victorias y medias · **cuatro juegos superaron las 100 features** · 875 iteraciones de bucle verificadas sanas 🎉 · páginas en vivo todas HTTP 200.
+**Números actuales**: 🕷️ SCREAM **145** 🏆 · 🦖 JURASSIC **147** 🏆 · 🧟 NOT A GAME **138** 🏆 · 🏎️ F1 **103** 🏆 · 🧩 CUBO **84** · 🕹️ los 16 minijuegos con récord o victorias y medias · **cuatro juegos superaron las 100 features** · 885 iteraciones de bucle verificadas sanas 🎉 · páginas en vivo todas HTTP 200.
 
 ## 🔍 Auditoría multi-agente (ultracode)
 - 2 rondas con agentes buscadores + verificadores adversarios: **25 hallazgos, 24 bugs reales corregidos** (1 refutado)
@@ -532,6 +532,19 @@
 - 🐛 Bugs cazados: llave perdida en "WALLYs escondidos", "cómo desbloqueo el cubo de oro" caía en "modo imposible", el tema del chiste se busca por palabra · **745 preguntas + fuzz 60**
 - 📄 RESUMEN con la Quincuagésima cuarta tanda
 - 🩺 Chequeo de salud en 875: todo verde (Heroku v1813, 805 commits desde el 26/8, test 745/745 + fuzz 60/60)
+
+## 🆕 Quincuagésima sexta tanda (iter 876-885) — WALLY profe particular, chistes por tema y consejero
+- 🤖 Ronda 43: **"¿sabes X?"** — el prefijo se quita o responde por habilidad (contar, leer, escribir, dibujar, inglés, dinos, fútbol, mates, historia, cuentos, mi edad, dónde vivo, todo/nada), qué NO sabe, sus miedos, debilidades y emociones
+- 😂 Ronda 44: **chistes** — 20 temas nuevos (terror, piratas, espacio, navidad, halloween, números, computadores, internet, celulares, YouTube, TikTok, Messi, chileno…), chiste del día, corto/largo, favorito, "ya me lo contaste" (rota uno nuevo), "te cuento un chiste" (escucha y se ríe del tuyo), "tengo un secreto"; bug: "piratas" contenía "ara" → chiste de araña
+- 🤖 Ronda 45: **cuerpo e identidad** — cómo funciona, de qué está hecho, batería, dormir, comer, llorar/reír, apellido, por qué se llama WALLY, niño o niña ("beep" y "boop"), cuánto mide, ojos LED
+- 🗣️ Ronda 46: **opiniones sobre los mundos** — "me encanta/odio X", "X es difícil/fácil/aburrido/imposible" con truco y alternativa, "es muy fácil" sube la dificultad, aburrido/me cansé, "se me cerró el juego"
+- 📐 Ronda 47: **ayuda escolar** — fracciones, porcentajes, primos, múltiplos y divisores, perímetro y área calculados, grados y ángulos, **separador de sílabas**, sinónimo/antónimo/párrafo, ciencias (mamífero, reptil, insecto, célula, átomo, H₂O, estados de la materia, ecosistema…)
+- 🌍 Ronda 48: **enciclopedia** — planetas, nubes, arcoíris, huracán, fases de la luna, distancias, huesos y dientes, bostezar y soñar, ballena, pingüinos y osos polares, calentamiento global, reciclaje con colores de basureros, ahorrar agua
+- 💛 Ronda 49: **situaciones sociales** — me pegaron, pelea con el mejor amigo, hermano, prueba mañana / cómo estudio (plan de espía), no quiero ir al colegio, timidez y valentía, pedir perdón, me gusta alguien, burlas, profe, perdí el celular, rompí algo / mentí (honestidad), rabia, celos, cambio de casa
+- 📏 Ronda 50: **unidades y conversiones** — tiempo, metros/km, gramos, litros, resto, MCD/mcm, romanos y binario ida y vuelta, millas, °C/°F, la tercera parte de N, **fracciones exactas** (1/2 + 1/3 = 5/6); el divisor de dos pedidos respeta "y media"
+- 🐛 Bugs cazados: `\b` tras vocal acentuada ("me pegó", "mentí"), "controlo" ≠ "control", "meses tienen 31" ≠ "meses tiene un año", "para llegar al otro lado" no es el comando "para" · **894 preguntas + fuzz 60**
+- 📄 RESUMEN con la Quincuagésima quinta tanda
+- 🩺 Chequeo de salud en 885: todo verde (Heroku v1829, 814 commits desde el 26/8, test 894/894 + fuzz 60/60, 5 páginas + sw.js + server.js con sintaxis OK, dyno web up)
 
 ## 🤖 WALLY por todos lados
 Frases x8 por juego, celebra el 21/21 con voz, escanea pisos/baterías/cajones, certifica el póster... y presume su carrera de mBots en todas partes 🏁
