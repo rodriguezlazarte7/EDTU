@@ -1,8 +1,8 @@
 # 🛰️ EDTU — Resumen de la sesión autónoma (2026-08-28)
 
-**Bucle de mejora continua mientras David estaba fuera** — dos tandas: la primera (~iter 205 → 302) y, tras el "sigue sin parar" de David, de la segunda a la cuadragésima octava (iter 303 → 805 y sigue, ya con David durmiendo 😴 — ¡las iteraciones 500, 600, 700 y 800 se celebraron de madrugada!). **751 commits desde el 26/8** (~668 en esta gran sesión), con deploy a Heroku y verificación en vivo en cada paso. **Ningún juego quedó roto en ningún momento** (chequeos de salud cada 10 iteraciones: todos verdes; el último, iter 805, Heroku v1723).
+**Bucle de mejora continua mientras David estaba fuera** — dos tandas: la primera (~iter 205 → 302) y, tras el "sigue sin parar" de David, de la segunda a la cuadragésima novena (iter 303 → 815 y sigue, ya con David durmiendo 😴 — ¡las iteraciones 500, 600, 700 y 800 se celebraron de madrugada!). **758 commits desde el 26/8** (~675 en esta gran sesión), con deploy a Heroku y verificación en vivo en cada paso. **Ningún juego quedó roto en ningún momento** (chequeos de salud cada 10 iteraciones: todos verdes; el último, iter 815, Heroku v1734).
 
-**Números actuales**: 🕷️ SCREAM **145** 🏆 · 🦖 JURASSIC **147** 🏆 · 🧟 NOT A GAME **138** 🏆 · 🏎️ F1 **103** 🏆 · 🧩 CUBO **84** · 🕹️ los 16 minijuegos con récord o victorias y medias · **cuatro juegos superaron las 100 features** · 805 iteraciones de bucle verificadas sanas 🎉 · páginas en vivo todas HTTP 200.
+**Números actuales**: 🕷️ SCREAM **145** 🏆 · 🦖 JURASSIC **147** 🏆 · 🧟 NOT A GAME **138** 🏆 · 🏎️ F1 **103** 🏆 · 🧩 CUBO **84** · 🕹️ los 16 minijuegos con récord o victorias y medias · **cuatro juegos superaron las 100 features** · 815 iteraciones de bucle verificadas sanas 🎉 · páginas en vivo todas HTTP 200.
 
 ## 🔍 Auditoría multi-agente (ultracode)
 - 2 rondas con agentes buscadores + verificadores adversarios: **25 hallazgos, 24 bugs reales corregidos** (1 refutado)
@@ -463,6 +463,14 @@
 - 📚 Corrector, "ayuda" y trucos del día al día · 🧪 Test del chat: **225 preguntas + fuzz 60** (todo verde; atrapó 3 choques más y una llave perdida antes de publicar)
 - 📄 RESUMEN con la Cuadragésima séptima tanda
 - 🩺 Chequeo de salud en 805: todo verde (Heroku v1723, 751 commits desde el 26/8, test 225/225 + fuzz 60/60)
+
+## 🆕 Cuadragésima novena tanda (iter 806-815) — WALLY enciclopedia y anfitrión
+- 🎲 Ronda 8: la adivinanza y el quiz de inglés **ya no se tragan comandos**, chistes por tema (dinos, arañas, zombies, F1, robots, cubo, gato, espías, fútbol), trivia por tema, tabla del 0 al 20, números en palabras ("cero por cero"), potencias con ^, pi e infinito, "dime un número del 1 al 10", "elige entre X y Y", escondidas, **veo veo** (con pista y "me rindo"), arranque de piedra-papel-tijera, "de nuevo / otra ronda / reintentar"
+- 📚 Ronda 9: **enciclopedia de bolsillo** — 32 respuestas de animales, dinos, espacio, geografía, Chile, inventos y programación (qué es un robot / internet / JavaScript / una variable / un bug, cómo se hace un videojuego); 🐛 "qué animal es el más rápido" activaba los ajustes de voz
+- 🚀 Ronda 10: **onboarding** ("soy nuevo", "tutorial", "por dónde empiezo"), "soy niño/niña" ya no es un nombre, "tengo N años", "adivina mi edad / mi nombre", **descripciones de cada mundo** ("de qué se trata F1", "qué es NOT A GAME"), juego más fácil/difícil, "dime algo", "shhh" apaga la voz; y el saludo ofrece la guía a los recién llegados (una vez)
+- 📚 "ayuda", "juegos del chat", trucos del día y corrector al día · 🧪 Test del chat: **275 preguntas + fuzz 60** (todo verde; atrapó 4 choques más)
+- 📄 RESUMEN con la Cuadragésima octava tanda
+- 🩺 Chequeo de salud en 815: todo verde (Heroku v1734, 758 commits desde el 26/8, test 275/275 + fuzz 60/60)
 
 ## 🤖 WALLY por todos lados
 Frases x8 por juego, celebra el 21/21 con voz, escanea pisos/baterías/cajones, certifica el póster... y presume su carrera de mBots en todas partes 🏁
