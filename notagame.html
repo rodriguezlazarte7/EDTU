@@ -998,7 +998,7 @@ function fmtCase(s){ return Math.floor(s/60)+":"+String(s%60).padStart(2,"0"); }
 function updNagMedals(){ updNDiary(); const el=document.getElementById("nagMedals"); if(el){ const bc=loadNCase();
   let bn=0; try{ bn=parseInt(localStorage.getItem("nag_best_nights")||"0",10)||0; }catch(e){}
   const nw=loadNWeek();
-  el.textContent="🎖️ Hitos de una partida: "+killMedals()+(bc!=null?"  ·  ⏱ Caso más rápido: "+fmtCase(bc):"")+(bn>0?"  ·  🌙 Récord: "+bn+" noche"+(bn>1?"s":""):"")+(nw>0?"  ·  📅 esta semana: "+nw+" kills":"")+(function(){ const dv=loadNDaily(); return dv>0?"  ·  📅 HOY: "+dv+" kills":""; })(); } }
+  el.textContent="🎖️ Hitos de una partida: "+killMedals()+(bc!=null?"  ·  ⏱ Caso más rápido: "+fmtCase(bc):"")+(bn>0?"  ·  🌙 Récord: "+bn+" noche"+(bn>1?"s":""):"")+(nw>0?"  ·  📅 esta semana: "+nw+" kills":"")+(function(){ try{ const kr=parseFloat(localStorage.getItem("nag_best_kpm")||"0")||0; return kr>0?"  ·  ⚡ ritmo récord: "+kr.toFixed(1)+" kills/min":""; }catch(e){ return ""; } })()+(function(){ const dv=loadNDaily(); return dv>0?"  ·  📅 HOY: "+dv+" kills":""; })(); } }
 // 📅 botón DESAFÍO DEL DÍA (cambia el flag y recarga: la ciudad se genera al cargar)
 { const nb=document.getElementById("nagDailyBtn"); if(nb){ nb.textContent="📅 DESAFÍO DEL DÍA: "+(dailyN?"SÍ ✔ — la misma ciudad para todos hoy":"NO"); nb.onclick=()=>{ try{ localStorage.setItem("nag_daily_on",dailyN?"0":"1"); }catch(e){} location.reload(); }; } }
 // ⚔️ aviso de RETO recibido en la portada (misma ciudad que tu amigo) y limpieza de la URL
@@ -1094,8 +1094,9 @@ function endGame(win,customInfo){ try{ const tc0=document.getElementById("toClue
   try{ if(kills>loadNWeek()) localStorage.setItem("nag_week_"+weekKey(),String(kills)); }catch(e){}   // 📅 mejor de la semana
   if(dailyN){ try{ if(kills>loadNDaily()) localStorage.setItem("nag_daily_"+dailyKeyN(),String(kills)); }catch(e){} }   // 📅 mejor del DESAFÍO DEL DÍA (más kills en la ciudad de hoy)
   let bestN=0; try{ bestN=parseInt(localStorage.getItem("nag_best_nights")||"0",10)||0; if(nightsSurv>bestN){ bestN=nightsSurv; localStorage.setItem("nag_best_nights",String(nightsSurv)); } }catch(e){}
+  let kpmRec=0, kpmNew=false; try{ kpmRec=parseFloat(localStorage.getItem("nag_best_kpm")||"0")||0; if(survS>=60){ const kpm=kills/(survS/60); if(kpm>kpmRec){ kpmRec=kpm; kpmNew=true; localStorage.setItem("nag_best_kpm",kpm.toFixed(1)); } } }catch(e){}   // ⚡ ritmo: kills por minuto (récord solo con partidas de 1 min o más)
   const recTxt="<br>🧟 Eliminados: <b>"+kills+"</b>"+(isRec?" 🏆 ¡RÉCORD!":" · Récord: <b>"+prevK+"</b>")+(maxCombo>=2?"<br>🔥 Mejor racha: <b>x"+maxCombo+"</b> · Récord: <b>x"+loadNCombo()+"</b>":"")+"<br>🌙 Noches sobrevividas: <b>"+nightsSurv+"</b> · Récord: <b>"+bestN+"</b>"
-    +"<div style='margin-top:8px;font-size:13px;color:#9fb6c9;line-height:1.9'>📊 <b>ESTADÍSTICAS</b><br>⏱ Jugaste "+svm+":"+String(svs).padStart(2,"0")+" · 🚶 "+Math.round(nStatDist)+" m recorridos<br>🛡️ Escudos recogidos: "+nStatShields+" · 👹 Gigantes derribados: "+nStatBoss+"<br>🎖️ "+killMedals()+"</div>"+nDiaryEnd(win,nightsSurv,survS);
+    +"<div style='margin-top:8px;font-size:13px;color:#9fb6c9;line-height:1.9'>📊 <b>ESTADÍSTICAS</b><br>⏱ Jugaste "+svm+":"+String(svs).padStart(2,"0")+" · 🚶 "+Math.round(nStatDist)+" m recorridos · ⚡ "+(survS>=30?(kills/(survS/60)).toFixed(1):"—")+" kills/min"+(kpmNew?" 🏆":(kpmRec>0?" (récord "+kpmRec.toFixed(1)+")":""))+"<br>🛡️ Escudos recogidos: "+nStatShields+" · 👹 Gigantes derribados: "+nStatBoss+"<br>🎖️ "+killMedals()+"</div>"+nDiaryEnd(win,nightsSurv,survS);
   if(win){ t.textContent="✓ CASO RESUELTO"; t.className="big win";
     // ⏱ speedrun: ¿resolviste el caso más rápido que nunca?
     let caseTxt=""; { const pc=loadNCase(); const isCR=(pc==null||survS<pc);
