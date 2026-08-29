@@ -698,14 +698,14 @@ const campfire=new THREE.Group();
   const core=new THREE.Mesh(new THREE.ConeGeometry(0.15,0.5,6),new THREE.MeshBasicMaterial({color:0xffe08a,transparent:true,opacity:0.95})); core.position.y=0.45; campfire.add(core);
   const fl=new THREE.PointLight(0xff9a3a,1.5,16); fl.position.y=1.1; campfire.add(fl); campfire.userData.light=fl; }
 campfire.visible=false; scene.add(campfire);
-let fireT=0, fireCd=0;
+let fireT=0, fireCd=0, fireWarned=false;   // 🔥 fireWarned: aviso único de que la fogata se apaga
 function buildFire(){ if(!running||gameOver||jPaused) return;
   if(fireT>0){ toast2("🔥 tu fogata sigue encendida"); return; }
   if(fireCd>0){ toast2("🔥 las brasas aún humean... espera "+Math.ceil(fireCd)+"s"); return; }
   const fwd=new THREE.Vector3(); camera.getWorldDirection(fwd); fwd.y=0; if(fwd.lengthSq()<0.01) return; fwd.normalize();
   const fx=P.x+fwd.x*2.2, fz=P.z+fwd.z*2.2;
   if(inLake(fx,fz,1)){ toast2("💧 ahí no: está mojado"); return; }
-  campfire.position.set(fx,0,fz); campfire.visible=true; fireT=45;
+  campfire.position.set(fx,0,fz); campfire.visible=true; fireT=45; fireWarned=false;
   safeZones.push({x:fx,z:fz,r:8,fire:true}); jDiary.fires++;
   snd(180,"sawtooth",0.25,0.06); snd(760,"triangle",0.2,0.05);
   toast2("🔥 FOGATA encendida (45s): espanta a los dinos y cura a su lado"); }
@@ -713,6 +713,7 @@ function fireTick(dt){
   if(fireCd>0) fireCd-=dt;
   if(fireT<=0) return;
   fireT-=dt;
+  if(fireT>0 && fireT<=10 && !fireWarned){ fireWarned=true; toast2("🔥 La fogata se apaga en 10 s — pon otra (C) o vuelve al refugio 🏠"); snd(330,"triangle",0.25,0.07); setTimeout(()=>snd(262,"triangle",0.25,0.06),260); }   // ⏳ aviso único
   const fA=campfire.userData.flame, fL=campfire.userData.light;
   if(fA){ const fs=0.85+Math.random()*0.35; fA.scale.set(fs,fs*(0.9+Math.random()*0.3),fs); }
   if(fL) fL.intensity=(fireT<6?fireT/6:1)*(1.25+Math.random()*0.5);
@@ -935,7 +936,7 @@ function start(){ $("start").classList.add("hide"); $("end").classList.add("hide
   jPaused=false; const po3=$("jPauseOv"); if(po3) po3.style.display="none";
   try{ jTutOn=!localStorage.getItem("jur_tut1"); }catch(e){ jTutOn=false; }  jTutStep=0; jTutT=5;   // 🎓 tutorial solo la primera vez
   rainOn=false; setRainSnd(false); rainF=0; rain.visible=false; rainT=80+Math.random()*100;   // 🌧️ clima desde cero
-  fireT=0; fireCd=0; campfire.visible=false; { const iF=safeZones.findIndex(s2=>s2.fire); if(iF>=0) safeZones.splice(iF,1); }   // 🔥 fogata desde cero
+  fireT=0; fireCd=0; fireWarned=false; campfire.visible=false; { const iF=safeZones.findIndex(s2=>s2.fire); if(iF>=0) safeZones.splice(iF,1); }   // 🔥 fogata desde cero
   ptState="circle"; ptT=45; ptA=Math.random()*6.28; ptero.position.set(85,26,0);   // 🦅 pterodáctilo desde cero
   jRng=dailyJ?mulberry32(dailyKeyJ()):null;   // 📅 DESAFÍO DEL DÍA: desde aquí huevo, pickups y dinos salen de la semilla de la fecha
   eggPlace();   // 🥚 huevo dorado en un escondite nuevo
