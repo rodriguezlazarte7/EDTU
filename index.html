@@ -5913,7 +5913,8 @@ const F1={
             const fl2=a.createBiquadFilter(); fl2.type="bandpass"; fl2.frequency.value=1400; const g2=a.createGain(); g2.gain.value=.14;
             n.buffer=buf; n.connect(fl2); fl2.connect(g2); g2.connect(a.destination); n.start(); } }catch(e){} } }
       if(c.z<this.dist-12){
-        if(c.kondor && !this._kDone){ this._kDone=true; this._kBeat=true; this._kBanTxt="⚔️ ¡VENCISTE A KÓNDOR!"; this._kBanT=3.4;
+        if(c.kondor && !this._kDone){ this._kDone=true; this._kBeat=true; this._kBanTxt="⚔️ ¡VENCISTE A KÓNDOR!"+this.kHH(1,0); this._kBanT=3.4;
+          try{ if(window.speechSynthesis){ const hh=this.kHH(1,0).replace(/[()]/g,"").trim().replace("-"," a "); const uK=new SpeechSynthesisUtterance("¡Kóndor derrotado! Van "+hh); uK.lang="es-ES"; uK.pitch=1.3; uK.rate=1.15; uK.volume=0.9; speechSynthesis.speak(uK); } }catch(e){}   // 🎙️ locutor (sin cancel: no corta otras voces)
           try{ localStorage.setItem("edtu_f1_kondor_w",String((parseInt(localStorage.getItem("edtu_f1_kondor_w")||"0",10)||0)+1)); }catch(e){}
           try{ const a=this.actx(); if(a){ [523,659,784,1047].forEach((fq,j)=>{ const o=a.createOscillator(),g=a.createGain(); o.type="triangle"; o.frequency.value=fq; g.gain.value=0.09; o.connect(g); g.connect(a.destination); o.start(a.currentTime+j*0.11); o.stop(a.currentTime+j*0.11+0.15); }); } }catch(e){}
           try{ if(navigator.vibrate) navigator.vibrate([0,60,40,60,40,160]); }catch(e){} }
@@ -5926,7 +5927,7 @@ const F1={
             g.gain.exponentialRampToValueAtTime(0.0001,a.currentTime+0.14); o.stop(a.currentTime+0.15); } }catch(e){} }
         continue; }
       if(c.z>this.dist+600){
-        if(c.kondor && !this._kDone){ this._kDone=true; this._kBanTxt="🦅 KÓNDOR se escapó... revancha en la próxima"; this._kBanT=3;
+        if(c.kondor && !this._kDone){ this._kDone=true; this._kBanTxt="🦅 KÓNDOR se escapó... revancha en la próxima"+this.kHH(0,1); this._kBanT=3;
           try{ localStorage.setItem("edtu_f1_kondor_l",String((parseInt(localStorage.getItem("edtu_f1_kondor_l")||"0",10)||0)+1)); }catch(e){} }
         this.cars.splice(i,1); continue; }
       if(Math.abs(c.z-this.dist)<4.4 && Math.abs(c.x-this.x)<(c.moto?0.24:0.36) && !this._crashSlowDone){ this._crashSlowDone=true; this._crashSlow=0.6;   // 🎬 arranca la cámara lenta
@@ -5993,6 +5994,8 @@ const F1={
         car.x=Math.max(-0.8,Math.min(0.8,car.x+(car.x>=px?0.22:-0.22))); moved++; } });
     if(moved){ setTimeout(()=>{ try{ const a2=this.actx(); if(a2&&Math.random()<0.6){ const o2=a2.createOscillator(),g2=a2.createGain(); o2.type="square"; o2.frequency.value=330; g2.gain.value=0.05; o2.connect(g2); g2.connect(a2.destination); o2.start(); o2.stop(a2.currentTime+0.18); } }catch(e){} },420); } },
   // 📅 clave de la semana actual (misma fórmula que el progreso semanal del menú)
+  // 🦅 head-to-head vs KÓNDOR " (W-L)" (extraW/extraL: el resultado de AHORA que se guarda justo después)
+  kHH(extraW,extraL){ try{ const w=(parseInt(localStorage.getItem("edtu_f1_kondor_w")||"0",10)||0)+(extraW||0), l=(parseInt(localStorage.getItem("edtu_f1_kondor_l")||"0",10)||0)+(extraL||0); return " ("+w+"-"+l+")"; }catch(e){ return ""; } },
   wkKey(){ const d=new Date(), j=new Date(d.getFullYear(),0,1); return d.getFullYear()+"-"+Math.floor(((d-j)/86400000+j.getDay())/7); },
   saveWeek(m){ this.saveDiary(m); if(this._mirror) return; try{ const k="edtu_f1_week_"+this.wkKey(); const pw=parseFloat(localStorage.getItem(k)||"0")||0; if(m>pw) localStorage.setItem(k,String(m)); }catch(e){}
     if(this._daily){ try{ const k2="edtu_f1_daily_"+this.dailyKey(); const pd=parseFloat(localStorage.getItem(k2)||"0")||0; if(m>pd) localStorage.setItem(k2,String(m)); }catch(e){} } },   // 📅 más metros de HOY
