@@ -7388,7 +7388,7 @@ function buildPoster(){ try{
     const hasDay=k=>["rubik_daily_","scream_daily_","jurassic_daily_","nag_daily_","edtu_f1_daily_"].some(p=>(parseFloat(g(p+k))||0)>0);
     let st=0; for(let i=hasDay(keyOf(0))?0:1;i<60;i++){ if(hasDay(keyOf(i))) st++; else break; }
     const re=parseInt(g("edtu_retos_enviados")||"0",10)||0, rr=parseInt(g("edtu_retos_recibidos")||"0",10)||0, ge=parseInt(g("scream_ghost_escapes")||"0",10)||0;
-    const px=[]; if(st>0) px.push("🔥 racha "+st+" día"+(st>1?"s":"")); if(re||rr) px.push("⚔️ "+re+" reto"+(re===1?"":"s")+" enviado"+(re===1?"":"s")+(rr?" · "+rr+" recibido"+(rr===1?"":"s"):"")); if(ge>0) px.push("👻 "+ge+" escape"+(ge>1?"s":"")+" fantasma");
+    const px=[]; try{ const mgp=parseInt(g("edtu_mini_games")||"0",10)||0; if(mgp>0) px.push("🕹️ "+mgp+" partida"+(mgp>1?"s":"")+" de minijuegos"); }catch(e){} if(st>0) px.push("🔥 racha "+st+" día"+(st>1?"s":"")); if(re||rr) px.push("⚔️ "+re+" reto"+(re===1?"":"s")+" enviado"+(re===1?"":"s")+(rr?" · "+rr+" recibido"+(rr===1?"":"s"):"")); if(ge>0) px.push("👻 "+ge+" escape"+(ge>1?"s":"")+" fantasma");
     if(px.length){ const yL=(y0+84>762)?762:y0+84; c.fillStyle="#c9a8ff"; c.font="700 12px Consolas,monospace"; c.fillText(px.join("  ·  "),300,yL); } }catch(e){}
   c.fillStyle="#6a86a8"; c.font="700 12px Consolas,monospace"; c.fillText(new Date().toLocaleDateString("es-CL")+" · www.edtu.cl",300,780);
   $("posterImg").src=cv.toDataURL("image/png");
