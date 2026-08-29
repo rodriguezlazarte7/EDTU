@@ -1,8 +1,8 @@
 # 🛰️ EDTU — Resumen de la sesión autónoma (2026-08-28)
 
-**Bucle de mejora continua mientras David estaba fuera** — dos tandas: la primera (~iter 205 → 302) y, tras el "sigue sin parar" de David, de la segunda a la trigesimosegunda (iter 303 → 645 y sigue, ya con David durmiendo 😴 — ¡las iteraciones 500 y 600 se celebraron de madrugada!). **611 commits desde el 26/8** (~528 en esta gran sesión), con deploy a Heroku y verificación en vivo en cada paso. **Ningún juego quedó roto en ningún momento** (chequeos de salud cada 10 iteraciones: todos verdes; el último, iter 645, Heroku v1615).
+**Bucle de mejora continua mientras David estaba fuera** — dos tandas: la primera (~iter 205 → 302) y, tras el "sigue sin parar" de David, de la segunda a la trigesimotercera (iter 303 → 655 y sigue, ya con David durmiendo 😴 — ¡las iteraciones 500 y 600 se celebraron de madrugada!). **619 commits desde el 26/8** (~536 en esta gran sesión), con deploy a Heroku y verificación en vivo en cada paso. **Ningún juego quedó roto en ningún momento** (chequeos de salud cada 10 iteraciones: todos verdes; el último, iter 655, Heroku v1622).
 
-**Números actuales**: 🕷️ SCREAM **137** 🏆 · 🦖 JURASSIC **140** 🏆 · 🧟 NOT A GAME **131** 🏆 · 🏎️ F1 **100** 🏆 · 🧩 CUBO **83** · 🕹️ minijuegos con récords y contados en la Sala · **cuatro juegos superaron las 100 features** · 645 iteraciones de bucle verificadas sanas 🎉 · páginas en vivo todas HTTP 200.
+**Números actuales**: 🕷️ SCREAM **137** 🏆 · 🦖 JURASSIC **140** 🏆 · 🧟 NOT A GAME **131** 🏆 · 🏎️ F1 **100** 🏆 · 🧩 CUBO **83** · 🕹️ los 14 minijuegos con récord o victorias · **cuatro juegos superaron las 100 features** · 655 iteraciones de bucle verificadas sanas 🎉 · páginas en vivo todas HTTP 200.
 
 ## 🔍 Auditoría multi-agente (ultracode)
 - 2 rondas con agentes buscadores + verificadores adversarios: **25 hallazgos, 24 bugs reales corregidos** (1 refutado)
@@ -317,6 +317,13 @@
 - 🤖 **WALLY**: chat "total" y "hito" incluyen los minijuegos; chip 🕹️ minijuegos en las preguntas rápidas; el saludo recuerda el minijuego que jugaste hoy
 - 📄 RESUMEN con la Trigesimoprimera tanda
 - 🩺 Chequeo de salud en 645: todo verde (Heroku v1615, 611 commits desde el 26/8)
+
+## 🆕 Trigesimotercera tanda (iter 646-655) — tableros con victorias
+- 🏆 **Los tableros cuentan victorias contra la máquina**: Buscaminas, Ahorcado, Gato, Ajedrez, 4 en línea y Piedra-papel-tijera (rondas) guardan edtu_*_wins y apuntan la partida y el día (también al perder); con esto los 14 minijuegos del menú tienen récord o victorias
+- 🕹️ **Sala 🕹️ MINIJUEGOS**: los incluye a todos y suma "🏆 N victorias en tableros"; WALLY chat "minijuegos" (y ahora también "gato / ajedrez / piedra / fútbol") los cuenta con un truco corto de cada uno
+- 🤖 **WALLY saludo**: celebra los hitos de 10 / 25 / 50 victorias en tableros una vez por hito
+- 📄 RESUMEN con la Trigesimosegunda tanda
+- 🩺 Chequeo de salud en 655: todo verde (Heroku v1622, 619 commits desde el 26/8)
 
 ## 🤖 WALLY por todos lados
 Frases x8 por juego, celebra el 21/21 con voz, escanea pisos/baterías/cajones, certifica el póster... y presume su carrera de mBots en todas partes 🏁
