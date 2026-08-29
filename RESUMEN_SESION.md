@@ -1,8 +1,8 @@
 # 🛰️ EDTU — Resumen de la sesión autónoma (2026-08-28)
 
-**Bucle de mejora continua mientras David estaba fuera** — dos tandas: la primera (~iter 205 → 302) y, tras el "sigue sin parar" de David, de la segunda a la trigesimocuarta (iter 303 → 665 y sigue, ya con David durmiendo 😴 — ¡las iteraciones 500 y 600 se celebraron de madrugada!). **628 commits desde el 26/8** (~545 en esta gran sesión), con deploy a Heroku y verificación en vivo en cada paso. **Ningún juego quedó roto en ningún momento** (chequeos de salud cada 10 iteraciones: todos verdes; el último, iter 665, Heroku v1629).
+**Bucle de mejora continua mientras David estaba fuera** — dos tandas: la primera (~iter 205 → 302) y, tras el "sigue sin parar" de David, de la segunda a la trigesimoquinta (iter 303 → 675 y sigue, ya con David durmiendo 😴 — ¡las iteraciones 500 y 600 se celebraron de madrugada!). **637 commits desde el 26/8** (~554 en esta gran sesión), con deploy a Heroku y verificación en vivo en cada paso. **Ningún juego quedó roto en ningún momento** (chequeos de salud cada 10 iteraciones: todos verdes; el último, iter 675, Heroku v1635).
 
-**Números actuales**: 🕷️ SCREAM **137** 🏆 · 🦖 JURASSIC **140** 🏆 · 🧟 NOT A GAME **131** 🏆 · 🏎️ F1 **100** 🏆 · 🧩 CUBO **83** · 🕹️ los 16 minijuegos con récord o victorias y medias · **cuatro juegos superaron las 100 features** · 665 iteraciones de bucle verificadas sanas 🎉 · páginas en vivo todas HTTP 200.
+**Números actuales**: 🕷️ SCREAM **138** 🏆 · 🦖 JURASSIC **141** 🏆 · 🧟 NOT A GAME **132** 🏆 · 🏎️ F1 **102** 🏆 · 🧩 CUBO **84** · 🕹️ los 16 minijuegos con récord o victorias y medias · **cuatro juegos superaron las 100 features** · 675 iteraciones de bucle verificadas sanas 🎉 · páginas en vivo todas HTTP 200.
 
 ## 🔍 Auditoría multi-agente (ultracode)
 - 2 rondas con agentes buscadores + verificadores adversarios: **25 hallazgos, 24 bugs reales corregidos** (1 refutado)
@@ -331,6 +331,13 @@
 - 🖼️ **Póster**: la línea extra incluye tus partidas de minijuegos (el lienzo 600×800 no admite más filas)
 - 📄 RESUMEN con la Trigesimotercera tanda
 - 🩺 Chequeo de salud en 665: todo verde (Heroku v1629, 628 commits desde el 26/8)
+
+## 🆕 Trigesimoquinta tanda (iter 666-675) — medias en las portadas
+- 📊 **Medias por partida en cada portada**: 🕷️ SCREAM apariciones por partida, 🦖 JURASSIC peces por aventura, 🧟 NAG noches por caso, 🏎️ F1 media de km/h (los totales acumulan la velocidad máxima) y 🧩 CUBO giros por carrera
+- 🏎️ **F1**: la portada muestra tu velocidad máxima con fecha ("⚡ máx 312 km/h (hace 2 días)")
+- 🤖 **WALLY chat**: "minijuegos" responde también a "swarm / enjambre"; los trucos de JURASSIC añaden tus peces y cocos totales y la media por aventura
+- 📄 RESUMEN con la Trigesimocuarta tanda
+- 🩺 Chequeo de salud en 675: todo verde (Heroku v1635, 637 commits desde el 26/8)
 
 ## 🤖 WALLY por todos lados
 Frases x8 por juego, celebra el 21/21 con voz, escanea pisos/baterías/cajones, certifica el póster... y presume su carrera de mBots en todas partes 🏁
