@@ -1,8 +1,8 @@
 # 🛰️ EDTU — Resumen de la sesión autónoma (2026-08-28)
 
-**Bucle de mejora continua mientras David estaba fuera** — dos tandas: la primera (~iter 205 → 302) y, tras el "sigue sin parar" de David, de la segunda a la cuadragésima quinta (iter 303 → 775 y sigue, ya con David durmiendo 😴 — ¡las iteraciones 500, 600 y 700 se celebraron de madrugada!). **727 commits desde el 26/8** (~644 en esta gran sesión), con deploy a Heroku y verificación en vivo en cada paso. **Ningún juego quedó roto en ningún momento** (chequeos de salud cada 10 iteraciones: todos verdes; el último, iter 775, Heroku v1698).
+**Bucle de mejora continua mientras David estaba fuera** — dos tandas: la primera (~iter 205 → 302) y, tras el "sigue sin parar" de David, de la segunda a la cuadragésima sexta (iter 303 → 785 y sigue, ya con David durmiendo 😴 — ¡las iteraciones 500, 600 y 700 se celebraron de madrugada!). **735 commits desde el 26/8** (~652 en esta gran sesión), con deploy a Heroku y verificación en vivo en cada paso. **Ningún juego quedó roto en ningún momento** (chequeos de salud cada 10 iteraciones: todos verdes; el último, iter 785, Heroku v1704).
 
-**Números actuales**: 🕷️ SCREAM **145** 🏆 · 🦖 JURASSIC **147** 🏆 · 🧟 NOT A GAME **138** 🏆 · 🏎️ F1 **103** 🏆 · 🧩 CUBO **84** · 🕹️ los 16 minijuegos con récord o victorias y medias · **cuatro juegos superaron las 100 features** · 775 iteraciones de bucle verificadas sanas 🎉 · páginas en vivo todas HTTP 200.
+**Números actuales**: 🕷️ SCREAM **145** 🏆 · 🦖 JURASSIC **147** 🏆 · 🧟 NOT A GAME **138** 🏆 · 🏎️ F1 **103** 🏆 · 🧩 CUBO **84** · 🕹️ los 16 minijuegos con récord o victorias y medias · **cuatro juegos superaron las 100 features** · 785 iteraciones de bucle verificadas sanas 🎉 · páginas en vivo todas HTTP 200.
 
 ## 🔍 Auditoría multi-agente (ultracode)
 - 2 rondas con agentes buscadores + verificadores adversarios: **25 hallazgos, 24 bugs reales corregidos** (1 refutado)
@@ -433,6 +433,15 @@
 - 🧪 Test del chat: **106 preguntas + fuzz de 60 entradas aleatorias** (todo verde); el test atrapó 3 choques más antes de publicar
 - 📄 RESUMEN con la Cuadragésima cuarta tanda
 - 🩺 Chequeo de salud en 775: todo verde (Heroku v1698, 727 commits desde el 26/8, test 106/106 + fuzz 60/60)
+
+## 🆕 Cuadragésima sexta tanda (iter 776-785) — rondas y notas
+- 🏁 **"ronda de mates / inglés / trivia"** (o "5 preguntas de X"): 5 preguntas seguidas, cada respuesta trae la siguiente y al final la nota (N/5 con estrellas); en inglés una respuesta equivocada pasa a la siguiente; **mejor ronda** por materia ("¡MEJOR RONDA!") en "mis notas" y en la Sala
+- 🎓 El bloque JUEGOS DEL CHAT de la Sala muestra el **porcentaje de aciertos** (con estrellas) de inglés, trivia y mates
+- 🧠 Enlace **"trivia con WALLY"** en las pantallas finales de SCREAM, JURASSIC, NOT A GAME y CUBO · 🏎️ en F1, **T en pausa** abre la trivia (W los trucos)
+- 💬 Chips 🏁 ronda de mates y 🎓 notas
+- 🧪 Test del chat: **121 preguntas + fuzz 60** (todo verde)
+- 📄 RESUMEN con la Cuadragésima quinta tanda
+- 🩺 Chequeo de salud en 785: todo verde (Heroku v1704, 735 commits desde el 26/8, test 121/121 + fuzz 60/60)
 
 ## 🤖 WALLY por todos lados
 Frases x8 por juego, celebra el 21/21 con voz, escanea pisos/baterías/cajones, certifica el póster... y presume su carrera de mBots en todas partes 🏁
