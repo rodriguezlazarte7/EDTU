@@ -40,6 +40,7 @@ const T=[
   ["cómo me llamo",/aún no sé tu nombre/],["me llamo david",/encantado, David/],["cómo me llamo",/te llamas David/],["olvida mi nombre",/agente/],
   ["marcador del chat",/🏅 marcador del chat/],["marcador",/adivinanzas resueltas/],
   ["cómo estás",/batería|feliz|circuitos/],["qué haces",/vigilo|ordeno|trabalenguas/],["te quiero",/💛|mejor agente/],["eres genial",/💛|mejor agente/],["tienes hambre",/electricidad|despierto|miedo/],["bien",/me alegro|anotado|gracias por/],
+  ["mis estadísticas",/💬 chat/],
   ["rekord",/quisiste decir 'récord'/],["adivinansa",/quisiste decir 'adivinanza'/],["asdfgh",/no entendí|circuitos|confundido/],
 ];
 let ok=0, bad=0;
