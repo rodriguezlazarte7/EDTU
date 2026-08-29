@@ -6585,7 +6585,7 @@ const Snake={ cv:null,ctx:null,raf:null,run:false,N:17,cell:0,snake:[],dir:{x:1,
     this.snake.unshift(h);
     if(h.x===this.food.x&&h.y===this.food.y){ this.score++; this.speed=Math.min(15,7+this.score*0.3); this.placeFood(); gBeep(700); } else this.snake.pop();
     $("snakeHud").textContent="🍎 "+this.score+"  ·  Récord: "+this.best; this.draw(); },
-  dead(){ this.stop(); try{ edtuPlayDay("🐍 Snake",this.score+" 🍎",this.score); }catch(e){} if(this.score>this.best){this.best=this.score;localStorage.setItem("edtu_snake_best",this.score);} $("snakeOver").textContent="💀 Fin · "+this.score+" puntos"; },
+  dead(){ this.stop(); try{ edtuPlayDay("🐍 Snake",this.score+" 🍎",this.score); }catch(e){} if(this.score>this.best){this.best=this.score;localStorage.setItem("edtu_snake_best",this.score);} $("snakeOver").textContent="💀 Fin · "+this.score+" puntos"+(function(sc){ try{ return edtuMiniAvg("🐍 Snake",sc); }catch(e){ return ""; } })(this.score); },
   turn(x,y){ if(x===-this.dir.x&&y===-this.dir.y) return; this.nd={x,y}; },
   draw(){ const c=this.ctx,e=this.cell; c.fillStyle="#02040a"; c.fillRect(0,0,this.cv.width,this.cv.height);
     c.fillStyle="#ff3b5b"; c.fillRect(this.food.x*e+2,this.food.y*e+2,e-4,e-4);
@@ -6665,7 +6665,7 @@ const Break={ cv:null,ctx:null,raf:null,run:false,px:0,ball:null,bricks:[],score
   stop(){ this.run=false; if(this.raf){cancelAnimationFrame(this.raf);this.raf=null;} },
   tick(){ const b=this.ball; b.x+=b.vx; b.y+=b.vy; if(b.x<b.r||b.x>this.W-b.r)b.vx*=-1; if(b.y<b.r)b.vy*=-1;
     if(b.y>this.H-20&&b.y<this.H-6&&b.x>this.px&&b.x<this.px+this.pw){ b.vy=-Math.abs(b.vy); b.vx=(b.x-(this.px+this.pw/2))/8; }
-    if(b.y>this.H){ this.lives--; if(this.lives<=0){ this.stop(); try{ edtuPlayDay("🧱 Breakout",this.score+" pts",this.score); }catch(e){} let bb=0, nw=false; try{ bb=parseInt(localStorage.getItem("edtu_break_best")||"0",10)||0; if(this.score>bb){ nw=bb>0; bb=this.score; localStorage.setItem("edtu_break_best",String(bb)); } }catch(e){} $("breakOver").textContent="💀 Fin · "+this.score+" pts"+(nw?" · 🏆 ¡RÉCORD!":(bb?" · Récord: "+bb:"")); return; } b.x=this.W/2;b.y=this.H-40;b.vx=3;b.vy=-4; }
+    if(b.y>this.H){ this.lives--; if(this.lives<=0){ this.stop(); try{ edtuPlayDay("🧱 Breakout",this.score+" pts",this.score); }catch(e){} let bb=0, nw=false; try{ bb=parseInt(localStorage.getItem("edtu_break_best")||"0",10)||0; if(this.score>bb){ nw=bb>0; bb=this.score; localStorage.setItem("edtu_break_best",String(bb)); } }catch(e){} $("breakOver").textContent="💀 Fin · "+this.score+" pts"+(nw?" · 🏆 ¡RÉCORD!":(bb?" · Récord: "+bb:""))+(function(sc){ try{ return edtuMiniAvg("🧱 Breakout",sc); }catch(e){ return ""; } })(this.score); return; } b.x=this.W/2;b.y=this.H-40;b.vx=3;b.vy=-4; }
     for(const br of this.bricks){ if(!br.on)continue; if(b.x>br.x&&b.x<br.x+br.w&&b.y>br.y&&b.y<br.y+br.h){ br.on=false; b.vy*=-1; this.score+=10; gBeep(600); } }
     if(this.bricks.every(br=>!br.on)){ this.stop(); $("breakOver").textContent="🎉 ¡GANASTE! "+this.score+" pts"; }
     $("breakHud").textContent="🧱 "+this.score+" · ❤️"+this.lives; this.draw(); },
