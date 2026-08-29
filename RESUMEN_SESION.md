@@ -1,8 +1,8 @@
 # 🛰️ EDTU — Resumen de la sesión autónoma (2026-08-28)
 
-**Bucle de mejora continua mientras David estaba fuera** — dos tandas: la primera (~iter 205 → 302) y, tras el "sigue sin parar" de David, de la segunda a la vigesimoquinta (iter 303 → 575 y sigue, ya con David durmiendo 😴 — ¡la iteración 500 se celebró de madrugada!). **549 commits desde el 26/8** (~466 en esta gran sesión), con deploy a Heroku y verificación en vivo en cada paso. **Ningún juego quedó roto en ningún momento** (chequeos de salud cada 10 iteraciones: todos verdes; el último, iter 575, Heroku v1540).
+**Bucle de mejora continua mientras David estaba fuera** — dos tandas: la primera (~iter 205 → 302) y, tras el "sigue sin parar" de David, de la segunda a la vigesimosexta (iter 303 → 585 y sigue, ya con David durmiendo 😴 — ¡la iteración 500 se celebró de madrugada!). **558 commits desde el 26/8** (~475 en esta gran sesión), con deploy a Heroku y verificación en vivo en cada paso. **Ningún juego quedó roto en ningún momento** (chequeos de salud cada 10 iteraciones: todos verdes; el último, iter 585, Heroku v1557).
 
-**Números actuales**: 🕷️ SCREAM **135** 🏆 · 🦖 JURASSIC **138** 🏆 · 🧟 NOT A GAME **129** 🏆 · 🏎️ F1 **97** · 🧩 CUBO **79** · **tres juegos superaron las 100 features** · 575 iteraciones de bucle verificadas sanas 🎉 · páginas en vivo todas HTTP 200.
+**Números actuales**: 🕷️ SCREAM **135** 🏆 · 🦖 JURASSIC **138** 🏆 · 🧟 NOT A GAME **129** 🏆 · 🏎️ F1 **97** · 🧩 CUBO **80** · **tres juegos superaron las 100 features** · 585 iteraciones de bucle verificadas sanas 🎉 · páginas en vivo todas HTTP 200.
 
 ## 🔍 Auditoría multi-agente (ultracode)
 - 2 rondas con agentes buscadores + verificadores adversarios: **25 hallazgos, 24 bugs reales corregidos** (1 refutado)
@@ -266,6 +266,13 @@
 - 🕷️ **SCREAM**: la voz del teléfono te dice cuántos minutos te quedan junto a la pista
 - 📄 RESUMEN con la Vigesimocuarta tanda
 - 🩺 Chequeo de salud en 575: todo verde (Heroku v1540, 549 commits desde el 26/8)
+
+## 🆕 Vigesimosexta tanda (iter 576-585) — podio, horas y más WALLY
+- 🎮 **Racha de días jugando**: récord (edtu_play_streak_best) en la Sala ("🏆 mejor: 9" / "¡tu mejor racha!") y WALLY celebra los hitos de 7 / 14 / 30 días una vez por hito
+- 🏆 **Sala de Trofeos**: podio 🥇🥈🥉 del cubo (rubik_top3_<dif>, que ya existía en el juego), ÚLTIMAS AVENTURAS con el momento del día de cada partida ("ayer 🌃 por la noche") y el póster incluye los récords nuevos (👁️ sigilo, 🌙 mejor noche, 🔄 menos giros)
+- 🤖 **WALLY chat**: "podio / top 3", "noche / amanecer" (tus noches en NAG y JURASSIC), "fogata / fuego" (cómo funciona + tus fogatas totales) y "vida / botiquín / curar" (cómo recuperar vida en cada mundo); "ayuda" los lista
+- 📄 RESUMEN con la Vigesimoquinta tanda
+- 🩺 Chequeo de salud en 585: todo verde (Heroku v1557, 558 commits desde el 26/8)
 
 ## 🤖 WALLY por todos lados
 Frases x8 por juego, celebra el 21/21 con voz, escanea pisos/baterías/cajones, certifica el póster... y presume su carrera de mBots en todas partes 🏁
