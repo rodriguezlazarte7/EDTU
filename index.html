@@ -5810,7 +5810,7 @@ const F1={
       this._lcMsg="📅 ¡MEJOR DE LA SEMANA!"; this._lcMsgT=2.6; this._lcGood=true;
       try{ const a=this.actx(); if(a){ [784,988].forEach((fq,i)=>{ const o=a.createOscillator(),g=a.createGain(); o.type="triangle"; o.frequency.value=fq; g.gain.value=0.08; o.connect(g); g.connect(a.destination); o.start(a.currentTime+i*0.1); o.stop(a.currentTime+i*0.1+0.14); }); } }catch(e){} }
     // 🦅 KÓNDOR: el rival con nombre — aparece UNA vez por carrera a los 1500 m, 200 m por delante
-    if(!this._kSpawned && this.dist>=1500 && !this._mirror && !this._spectate){ this._kSpawned=true;   // 🪞 KÓNDOR no corre en espejo
+    if(!this._kSpawned && this.dist>=1500 && !this._mirror && !this._spectate){ this._kSpawned=true; this.radioSay("Kóndor a la vista. ¡A pelear, piloto!",0.75);   // 📻 el ingeniero avisa   // 🪞 KÓNDOR no corre en espejo
       this.cars.push({ x:[-0.66,-0.22,0.22,0.66][Math.floor(Math.random()*4)], z:this.dist+200, v:Math.max(22,this.speed/3.6-1.2), col:["#0d0d12","#ffd12e"], moto:false, kondor:true });
       this._kBanTxt="🦅 ¡KÓNDOR EN PISTA! 200 m adelante — ¡atrápalo!"; this._kBanT=3;
       try{ const a=this.actx(); if(a){ [220,330,220].forEach((fq,i)=>{ const o=a.createOscillator(),g=a.createGain(); o.type="sawtooth"; o.frequency.value=fq; g.gain.value=0.07; o.connect(g); g.connect(a.destination); o.start(a.currentTime+i*0.14); o.stop(a.currentTime+i*0.14+0.16); }); } }catch(e){} }
