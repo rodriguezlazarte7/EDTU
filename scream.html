@@ -638,6 +638,7 @@ function wallyLegend(){ if(legendSaid||!edtuLegend()) return false; legendSaid=t
 // 🧠 WALLY RECUERDA tu escape anterior (scream_diary[0]) la primera vez que hablas con él en cada partida
 let sMemSaid=false;
 function wallyMemS(){ if(sMemSaid) return null; sMemSaid=true; try{ const a=JSON.parse(localStorage.getItem("scream_diary")||"[]"); if(!a.length) return null; const e=a[0]; const opts=[];
+  if(e.spot===0 && e.win) opts.push("la última vez hiciste un ESCAPE FANTASMA 👻 — la araña nunca te vio... ¿repites, ninja?");
   if(e.spot) opts.push("la última vez la araña te apareció "+e.spot+(e.spot>1?" veces":" vez")+"... con la linterna apagada no te encuentra 🔦");
   if(e.bites===0) opts.push("la última vez saliste sin mordidas, ¡crack! 🛡️"); else opts.push("la última vez te mordió "+e.bites+(e.bites>1?" veces":" vez")+"... los botiquines te esperan ❤️");
   if(e.gen) opts.push("la última vez usaste el generador: la araña se congela 20 s ⚡");
