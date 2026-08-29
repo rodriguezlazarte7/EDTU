@@ -1464,6 +1464,7 @@
     <button class="btn pickgame" id="pickJp" style="background:linear-gradient(90deg,#0a1a06,#183a10);border-color:#7dff5a">🦖 JURASSIC (sobrevive 7 días)</button>
     <button class="btn pickgame" id="pickScr" style="background:linear-gradient(90deg,#1a0308,#3a0810);border-color:#ff2b3a">🕷️ SCREAM (la araña · terror)</button>
     <button class="btn pickgame" id="pickTrophies" style="background:linear-gradient(90deg,#1a1406,#3a2c08);border-color:#ffd12e;color:#ffd12e">🏆 SALA DE TROFEOS</button>
+    <button class="btn pickgame" id="pickRandom" style="border-color:#8fd0ff;color:#8fd0ff">🎲 SORPRÉNDEME</button>
     <button class="btn btn-ghost btn-sm" id="pickClose">Cerrar</button>
   </div>
 </div>
@@ -7335,6 +7336,8 @@ function buildTrophies(){ try{
     if(ws) ws.textContent = memMsg ? "«"+memMsg+"»" : wallys>=4 ? "«¡Encontraste TODOS mis escondites! Esta sala brilla gracias a ti»" : (seasMsg?"«"+seasMsg+"»":"«Bienvenido a tu sala, agente. Yo cuido tus trofeos»"); }
 }catch(e){ $("trophyBody").textContent="(error cargando trofeos)"; } }
 $("pickTrophies").onclick=()=>{ buildTrophies(); $("trophyFs").style.display="flex"; };
+// 🎲 SORPRÉNDEME: un juego al azar de todo el menú (sin repetir el último)
+{ const rb=$("pickRandom"); if(rb) rb.onclick=()=>{ const ids=["pickRush","pickFoot","pickMon","pickF1","pickGato","pickChess","pickSnake","pickC4","pickMem","pick2048","pickMines","pickBreak","pickInv","pickFlap","pickPong","pickRps","pickSimon","pickHang","pickNag","pickRk","pickJp","pickScr"].filter(id=>$(id)); let last=""; try{ last=localStorage.getItem("edtu_random_last")||""; }catch(e){} const pool=ids.filter(id=>id!==last); const id=pool[Math.floor(Math.random()*pool.length)]; try{ localStorage.setItem("edtu_random_last",id); }catch(e){} const b=$(id); if(b) b.click(); }; }
 $("trophyClose").onclick=()=>{ $("trophyFs").style.display="none"; };
 $("trophyFs").addEventListener("click",e=>{ if(e.target===$("trophyFs")) $("trophyFs").style.display="none"; });
 // 📸 PÓSTER DE RÉCORDS: imagen 600x800 lista para captura de pantalla
