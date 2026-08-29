@@ -1096,7 +1096,7 @@ function update(dt){
           if(mc) hintTxt="...tic tac... piso "+(mc.f+1)+"...";
           else { const CREEPY=["...está detrás de ti... es broma... ¿o no?...","...no cuelgues... me siento solo...","...el maniquí me da miedo hasta a mí...","...¿escuchaste eso?... yo sí...","...las ratas saben más que tú...","...cuenta los pisos... siempre son siete... ¿verdad?...","...alguien más contesta este teléfono...","...ya lo tienes todo... CORRE..."];
             hintTxt=CREEPY[Math.floor(Math.random()*CREEPY.length)]; } }
-        setTimeout(()=>showStory("📞 una voz susurra: \""+hintTxt+"\""),400); } } }
+        setTimeout(()=>showStory("📞 una voz susurra: \""+hintTxt+" ...te quedan "+Math.max(0,Math.floor(timeLeft/60))+" minutos...\""),400); } } }
   // 🧍 el maniquí: congelado si lo miras; se acerca 3m cada vez que apartas la vista (para en 4m — puro susto)
   if(manqF===curFloor){ manq.visible=true;
     const mdx=P.x-manq.position.x, mdz=P.z-manq.position.z, md=Math.hypot(mdx,mdz);
