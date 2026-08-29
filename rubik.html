@@ -35,7 +35,7 @@
 </head>
 <body>
 <canvas id="c"></canvas>
-<div id="top"><div id="timer">0.0s</div><div id="mvs" style="font-family:Consolas,monospace;font-size:14px;font-weight:800;color:#8fd0ff;align-self:center">🔄 0</div><div id="faces" style="font-family:Consolas,monospace;font-size:14px;font-weight:800;color:#39ff14;align-self:center">✔ 0/6</div><div id="pstreak" style="font-family:Consolas,monospace;font-size:13px;font-weight:800;color:#ff9a3a;align-self:center;opacity:0;transition:opacity .3s"></div><div style="pointer-events:auto" id="diffs"></div></div>
+<div id="top"><div id="timer">0.0s</div><div id="goal" title="Tu mejor tiempo de hoy en el desafío del día: si el reloj lo pasa se pone rojo" style="display:none;font-family:Consolas,monospace;font-size:13px;font-weight:800;color:#ffd88a;align-self:center;margin-right:6px">🎯 hoy: —</div><div id="mvs" style="font-family:Consolas,monospace;font-size:14px;font-weight:800;color:#8fd0ff;align-self:center">🔄 0</div><div id="faces" style="font-family:Consolas,monospace;font-size:14px;font-weight:800;color:#39ff14;align-self:center">✔ 0/6</div><div id="pstreak" style="font-family:Consolas,monospace;font-size:13px;font-weight:800;color:#ff9a3a;align-self:center;opacity:0;transition:opacity .3s"></div><div style="pointer-events:auto" id="diffs"></div></div>
 <div id="labels"><div>🧑 TÚ</div><div class="ai">🤖 IA (en vivo)<div id="aibar" style="width:130px;height:8px;background:rgba(255,255,255,.12);border-radius:6px;margin-top:4px;overflow:hidden"><div id="aifill" style="width:0%;height:100%;background:linear-gradient(90deg,#ff7ba3,#ff2d6a);border-radius:6px;transition:width .3s"></div></div><div id="aipct" style="font-size:11px;color:#ff9bb8;margin-top:2px">🧩 0%</div></div></div>
 <div id="msg"></div>
 <div id="lastMvP" style="position:fixed;left:34%;bottom:32%;transform:translateX(-50%);z-index:5;font:900 42px Consolas,monospace;color:#8fd0ff;text-shadow:0 0 14px #2060ff;opacity:0;pointer-events:none;transition:opacity .45s"></div>
@@ -218,6 +218,7 @@ function startRace(){
     if(n>0){ showMsg(String(n),"#ffd12e"); snd(440,"square",0.12,0.06); setTimeout(step,700); }
     else { showMsg("¡YA!","#39ff14"); snd(880,"square",0.3,0.08); setTimeout(()=>{ if(state==="race") showMsg(""); },500);
       state="race"; newScramble(); raceStart=performance.now(); setTimeout(()=>{ drawNet(); updFaces(); },120);
+      { const g=document.getElementById("goal"); const dv=dailyMode?loadDaily():0; if(g){ if(dv>0){ g.textContent="🎯 hoy: "+dv.toFixed(1)+"s"; g.style.color="#ffd88a"; g.dataset.v=dv; g.style.display="block"; } else g.style.display="none"; } }   // 🎯 objetivo del día en el HUD
       histSolve.length=0; scramble.forEach(m=>histSolve.push({face:m.face,dir:m.dir})); hintsLeft=3;   // 💡 pistas listas
       streakP=0; streakPMax=0; { const ps=document.getElementById("pstreak"); if(ps) ps.style.opacity="0"; }   // 🔥 racha desde cero
       { const hb0=document.getElementById("hintBtn"); if(hb0) hb0.textContent="💡 PISTA x3"; }
@@ -236,7 +237,7 @@ function startPractice(){
   document.getElementById("intro").classList.add("hide");
   aiGen++; clearTimeout(aiTimer); aiWinT=0; camA.position.set(1000+5,5,7); camA.lookAt(1000,0,0);
   ended=false; state="practice"; practiceLast=true; moveCount=0; document.getElementById("mvs").textContent="🔄 0";
-  undoStack.length=0; document.getElementById("timer").textContent="🎓";
+  undoStack.length=0; document.getElementById("timer").textContent="🎓"; { const g=document.getElementById("goal"); if(g) g.style.display="none"; }
   newScramble();
   histSolve.length=0; scramble.forEach(m=>histSolve.push({face:m.face,dir:m.dir})); hintsLeft=Infinity;
   streakP=0; streakPMax=0; { const ps=document.getElementById("pstreak"); if(ps) ps.style.opacity="0"; }   // 🔥 racha desde cero
@@ -487,7 +488,8 @@ canvas.addEventListener("pointermove",e=>{ if(e.pointerId!==dragId) return; camY
 
 let aiWinT=0, lastTick=0;   // 🤖 giro de victoria de la IA · ⏰ tic-tac de tensión
 function loop(){
-  if(state==="race" && !ended){ document.getElementById("timer").textContent=((performance.now()-raceStart)/1000).toFixed(1)+"s";
+  if(state==="race" && !ended){ const curT=(performance.now()-raceStart)/1000; document.getElementById("timer").textContent=curT.toFixed(1)+"s";
+    { const g=document.getElementById("goal"); if(g && g.style.display!=="none"){ const dv=parseFloat(g.dataset.v)||0; g.style.color=(dv>0&&curT>dv)?"#ff5a5a":"#ffd88a"; } }   // 🎯 se pone rojo al superar la marca
     // ⏰ FINAL DE INFARTO: cuando la IA pasa el 75%, suena un tic-tac que se ACELERA a medida que se acerca al final
     if(aiTotal){ const done=(aiTotal-aiQueue.length)/aiTotal;
       if(done>=0.75){ const iv=1000-((done-0.75)/0.25)*650;
