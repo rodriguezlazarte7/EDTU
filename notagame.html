@@ -75,6 +75,7 @@
   </div>
 </div>
 <canvas id="nradar" width="104" height="104" style="position:fixed;top:118px;right:12px;opacity:.92;z-index:5;pointer-events:none"></canvas>
+<div id="toClue" style="position:fixed;top:92px;left:0;right:0;text-align:center;display:none;z-index:5;color:#ffd12e;font:800 13px Consolas,monospace;text-shadow:0 0 8px #000;pointer-events:none"><span class="arw" style="display:inline-block;font-size:20px;vertical-align:middle">▲</span> PISTA MÁS CERCANA <span class="dist"></span></div>
 <div id="toPad" style="position:fixed;top:64px;left:0;right:0;text-align:center;display:none;z-index:5;color:#33bbff;font:800 13px Consolas,monospace;text-shadow:0 0 8px #000;pointer-events:none"><span class="arw" style="display:inline-block;font-size:20px;vertical-align:middle">▲</span> HELICÓPTERO</div>
 <div id="nPauseOv" style="position:fixed;inset:0;z-index:60;display:none;background:rgba(5,0,10,.8);color:#c8d8ff;font:900 36px system-ui,sans-serif;align-items:center;justify-content:center;text-align:center;flex-direction:column">⏸ PAUSA<div style="font-size:16px;margin-top:10px;color:#7a86b8">pulsa P (o toca la pantalla) para seguir · los zombies también descansan</div></div>
 <button id="npauseBtn" title="Pausa (P)" style="position:fixed;right:24px;bottom:216px;z-index:6;width:58px;height:58px;border-radius:50%;background:rgba(120,120,120,.25);border:3px solid rgba(210,210,210,.5);color:#fff;font-size:22px;cursor:pointer;display:none">⏸</button>
@@ -934,7 +935,7 @@ function collide(nx,nz){ const pr=0.35; for(const w of walls){ if(nx>w.x0-pr&&nx
 
 function startGame(){
   P.x=0;P.z=ARENA-5;P.y=1.7;P.vy=0;P.onGround=true;P.hp=100; yaw=0;pitch=0;
-  cluesGot=0; gameOver=false; muzzle=0; shootCd=0; radioT=45; radioClueN=0; nDiaryReset(); nMemSaid=false;   // 📻 radio, 📁 expediente y 🐕 memoria del perro desde cero
+  cluesGot=0; gameOver=false; muzzle=0; shootCd=0; radioT=45; radioClueN=0; clueArrowT=0; nDiaryReset(); nMemSaid=false;   // 📻 radio, 📁 expediente y 🐕 memoria del perro desde cero
   startT=performance.now()/1000;   // reinicia el ciclo día/noche (empieza de noche)
   zombies.forEach(z=>scene.remove(z.grp)); zombies.length=0; spawnZombies(12); kills=0; heliMode=false;
   comboN=0; comboT=0; comboPop=0; maxCombo=0; document.getElementById("combo").style.opacity="0";
@@ -1028,7 +1029,7 @@ let nPaused=false;
 let nTutOn=false, nTutStep=0, nTutT=0;   // 🎓 mini-tutorial de primera vez
 let heartT=0;   // 💓 latido de corazón por cercanía
 // 📻 RADIO DE LA CENTRAL: si llevas 45s sin encontrar pista, la central te transmite (estática + voz) a qué distancia y hacia dónde está la más cercana
-let radioT=45, radioClueN=0;
+let radioT=45, radioClueN=0, clueArrowT=0;   // 📜 clueArrowT: segundos que queda visible la flecha a la pista tras un aviso de la central
 function radioStatic(){ try{ AC=AC||new (window.AudioContext||window.webkitAudioContext)(); const n=AC.createBufferSource(), b=AC.createBuffer(1,Math.floor(AC.sampleRate*0.5),AC.sampleRate), d=b.getChannelData(0);
   for(let j=0;j<d.length;j++) d[j]=(Math.random()*2-1)*((j<d.length*0.15||j>d.length*0.85)?1:0.25);
   const f=AC.createBiquadFilter(); f.type="bandpass"; f.frequency.value=1500; f.Q.value=0.8; const g=AC.createGain(); g.gain.value=0.12; n.buffer=b; n.connect(f); f.connect(g); g.connect(AC.destination); n.start(); }catch(e){} }
@@ -1042,7 +1043,7 @@ function radioTick(dt){ if(!running||gameOver||cluesGot>=7) return;
     else { const s2=Math.sin(yaw), c2=Math.cos(yaw), tx=best.cx-P.x, tz=best.cz-P.z; const a=Math.atan2(tx*c2-tz*s2, -tx*s2-tz*c2);   // misma fórmula que la flecha al helipuerto
       const dir=Math.abs(a)<0.5?"justo adelante":Math.abs(a)>2.6?"detrás de ti":(a>0?"a tu derecha":"a tu izquierda");
       msg="la pista más cercana está a "+Math.round(bd)+" metros, "+dir; } }
-  radioStatic(); showStory("📻 CENTRAL: «"+msg+"»");
+  radioStatic(); showStory("📻 CENTRAL: «"+msg+"»"); if(level==="surface") clueArrowT=8;   // 📜 y además te marca la pista 8 s
   setTimeout(()=>{ try{ if(window.speechSynthesis){ const u=new SpeechSynthesisUtterance("Central a agente: "+msg); u.lang="es-ES"; u.pitch=0.7; u.rate=1.05; u.volume=0.75; speechSynthesis.speak(u); } }catch(e){} },350); }
 let nPhoto=false;   // 📸 modo foto (F2)
 function togglePhotoN(){ nPhoto=!nPhoto; document.body.classList.toggle("photo",nPhoto); showStory(nPhoto?"📸 MODO FOTO — HUD oculto · F2 para volver":"📸 modo foto apagado"); }
@@ -1057,7 +1058,7 @@ function nShareBtn(win,inf){ try{ const d=new Date();
   const txt="📅 Desafío NAG del "+d.getDate()+"/"+(d.getMonth()+1)+": "+kills+" zombies y "+cluesGot+"/7 pistas"+(win?" (caso resuelto ✓)":"...")+" ¿me ganas? 👉 www.edtu.cl/notagame.html?reto=1";
   const lbl="📤 COMPARTIR MI DESAFÍO"; const sb=document.createElement("button"); sb.className="btn"; sb.style.cssText="margin-top:10px;font-size:12px;display:block;margin-left:auto;margin-right:auto"; sb.textContent=lbl; sb.onclick=()=>shareText(txt,sb,lbl);
   setTimeout(()=>{ try{ inf.appendChild(sb); }catch(e){} },0); }catch(e){} }   // al final, después del mapa de la investigación
-function endGame(win,customInfo){
+function endGame(win,customInfo){ try{ const tc0=document.getElementById("toClue"); if(tc0) tc0.style.display="none"; }catch(e){}
   running=false; gameOver=true; document.body.classList.remove("playing");
   // 🐛FIX auditoría: si pausabas durante el cierre cinematográfico, el overlay de PAUSA quedaba tapando la pantalla final (softlock en móvil)
   nPaused=false; const poE=document.getElementById("nPauseOv"); if(poE) poE.style.display="none";
@@ -1204,6 +1205,13 @@ function update(dt){
         const rgt=tx*c2-tz*s2, fw2=-tx*s2-tz*c2;
         tp.querySelector(".arw").style.transform="rotate("+(Math.atan2(rgt,fw2)*57.2958)+"deg)"; }
       else tp.style.display="none"; } }
+  // 📜 flecha DORADA a la PISTA más cercana de la ciudad durante 8 s tras cada aviso de la central
+  { const tc=document.getElementById("toClue"); if(tc){ if(clueArrowT>0 && level==="surface" && cluesGot<7){ clueArrowT-=dt; let bestC=null, bdC=1e9;
+        for(const d of drawers){ if(d.open||CLUE_NOTES.indexOf(d.note)>=5) continue; const ds=Math.hypot(P.x-d.cx,P.z-d.cz); if(ds<bdC){ bdC=ds; bestC=d; } }
+        if(bestC){ tc.style.display="block"; const s2=Math.sin(yaw), c2=Math.cos(yaw); const tx=bestC.cx-P.x, tz=bestC.cz-P.z; const rgt=tx*c2-tz*s2, fw2=-tx*s2-tz*c2;
+          tc.querySelector(".arw").style.transform="rotate("+(Math.atan2(rgt,fw2)*57.2958)+"deg)"; const dd=tc.querySelector(".dist"); if(dd) dd.textContent="· "+Math.round(bdC)+" m"; }
+        else tc.style.display="none"; }
+      else tc.style.display="none"; } }
   // hint con prioridad clara (antes podía quedar texto pegado)
   const hh=document.getElementById("hint");
   if(hh){ const tGame=performance.now()/1000-startT;
