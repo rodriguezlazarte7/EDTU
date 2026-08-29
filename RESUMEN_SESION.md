@@ -1,8 +1,8 @@
 # 🛰️ EDTU — Resumen de la sesión autónoma (2026-08-28)
 
-**Bucle de mejora continua mientras David estaba fuera** — dos tandas: la primera (~iter 205 → 302) y, tras el "sigue sin parar" de David, de la segunda a la cuadragésima (iter 303 → 725 y sigue, ya con David durmiendo 😴 — ¡las iteraciones 500, 600 y 700 se celebraron de madrugada!). **682 commits desde el 26/8** (~599 en esta gran sesión), con deploy a Heroku y verificación en vivo en cada paso. **Ningún juego quedó roto en ningún momento** (chequeos de salud cada 10 iteraciones: todos verdes; el último, iter 725, Heroku v1667).
+**Bucle de mejora continua mientras David estaba fuera** — dos tandas: la primera (~iter 205 → 302) y, tras el "sigue sin parar" de David, de la segunda a la cuadragésima primera (iter 303 → 735 y sigue, ya con David durmiendo 😴 — ¡las iteraciones 500, 600 y 700 se celebraron de madrugada!). **691 commits desde el 26/8** (~608 en esta gran sesión), con deploy a Heroku y verificación en vivo en cada paso. **Ningún juego quedó roto en ningún momento** (chequeos de salud cada 10 iteraciones: todos verdes; el último, iter 735, Heroku v1675).
 
-**Números actuales**: 🕷️ SCREAM **145** 🏆 · 🦖 JURASSIC **147** 🏆 · 🧟 NOT A GAME **138** 🏆 · 🏎️ F1 **103** 🏆 · 🧩 CUBO **84** · 🕹️ los 16 minijuegos con récord o victorias y medias · **cuatro juegos superaron las 100 features** · 725 iteraciones de bucle verificadas sanas 🎉 · páginas en vivo todas HTTP 200.
+**Números actuales**: 🕷️ SCREAM **145** 🏆 · 🦖 JURASSIC **147** 🏆 · 🧟 NOT A GAME **138** 🏆 · 🏎️ F1 **103** 🏆 · 🧩 CUBO **84** · 🕹️ los 16 minijuegos con récord o victorias y medias · **cuatro juegos superaron las 100 features** · 735 iteraciones de bucle verificadas sanas 🎉 · páginas en vivo todas HTTP 200.
 
 ## 🔍 Auditoría multi-agente (ultracode)
 - 2 rondas con agentes buscadores + verificadores adversarios: **25 hallazgos, 24 bugs reales corregidos** (1 refutado)
@@ -386,6 +386,15 @@
 - 🧪 **Test de regresión del chat en Node** (`test725.js`: extrae `wallyReply` de index.html y le hace 36 preguntas con stubs) — destapó 3 choques de handlers, corregidos en la 727
 - 📄 RESUMEN con la Trigesimonovena tanda
 - 🩺 Chequeo de salud en 725: todo verde (Heroku v1667, 682 commits desde el 26/8)
+
+## 🆕 Cuadragésima primera tanda (iter 726-735) — el chat de WALLY, probado
+- 🧪 **`test_wally_chat.js` en el repo** (`npm test`): extrae `wallyReply` de index.html, la ejecuta en Node con stubs y comprueba **62 preguntas y secuencias**; es la compuerta antes de cada commit del chat
+- 🐛 **6 choques de handlers corregidos gracias al test**: "adivinanza" caía en "adivina", "minijuegos" en "juego", "deletrea dino" en los trucos de JURASSIC, "4 al cubo" en los trucos del CUBO, "cuánto falta para el finde" en "hito", y "buenos días" no saludaba
+- 🧮 Calculadora: "al cuadrado", "al cubo", "raíz de", "% de"; 🎲 "d20/d6" tiran el dado; adivina acepta cualquier número y adivina/adivinanza caducan (5/3 min); el corrector conoce los comandos nuevos
+- 🚀 **"cuenta atrás desde N"** (¡DESPEGUE!), ✂️ **piedra / papel / tijera** contra WALLY con marcador, 🎮 **"juegos del chat / juguemos"**
+- 📚 **"ayuda" por categorías**: 📊 TUS DATOS · 🎮 TRUCOS · 🚀 HACER · 🎲 JUGAR CONMIGO · 🔊 VOZ
+- 📄 RESUMEN con la Cuadragésima tanda
+- 🩺 Chequeo de salud en 735: todo verde (Heroku v1675, 691 commits desde el 26/8, test 62/62)
 
 ## 🤖 WALLY por todos lados
 Frases x8 por juego, celebra el 21/21 con voz, escanea pisos/baterías/cajones, certifica el póster... y presume su carrera de mBots en todas partes 🏁
