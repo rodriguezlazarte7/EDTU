@@ -1,8 +1,8 @@
 # 🛰️ EDTU — Resumen de la sesión autónoma (2026-08-28)
 
-**Bucle de mejora continua mientras David estaba fuera** — dos tandas: la primera (~iter 205 → 302) y, tras el "sigue sin parar" de David, de la segunda a la séptima (iter 303 → 395 y sigue, ya con David durmiendo 😴). **389 commits desde el 26/8** (~305 en esta gran sesión), con deploy a Heroku y verificación en vivo en cada paso. **Ningún juego quedó roto en ningún momento** (chequeos de salud cada 10 iteraciones: todos verdes; el último, iter 395, Heroku v1242).
+**Bucle de mejora continua mientras David estaba fuera** — dos tandas: la primera (~iter 205 → 302) y, tras el "sigue sin parar" de David, de la segunda a la octava (iter 303 → 405 y sigue, ya con David durmiendo 😴). **398 commits desde el 26/8** (~315 en esta gran sesión), con deploy a Heroku y verificación en vivo en cada paso. **Ningún juego quedó roto en ningún momento** (chequeos de salud cada 10 iteraciones: todos verdes; el último, iter 405, Heroku v1259).
 
-**Números actuales**: 🕷️ SCREAM **109** 🏆 · 🦖 JURASSIC **112** 🏆 · 🧟 NOT A GAME **103** 🏆 · 🏎️ F1 **74** · 🧩 CUBO **62** · **tres juegos superaron las 100 features** · 400 iteraciones de bucle verificadas sanas 🎉 · páginas en vivo todas HTTP 200.
+**Números actuales**: 🕷️ SCREAM **110** 🏆 · 🦖 JURASSIC **114** 🏆 · 🧟 NOT A GAME **104** 🏆 · 🏎️ F1 **77** · 🧩 CUBO **63** · **tres juegos superaron las 100 features** · 405 iteraciones de bucle verificadas sanas 🎉 · páginas en vivo todas HTTP 200.
 
 ## 🔍 Auditoría multi-agente (ultracode)
 - 2 rondas con agentes buscadores + verificadores adversarios: **25 hallazgos, 24 bugs reales corregidos** (1 refutado)
@@ -108,6 +108,15 @@
 - 📸 El **póster** de récords incluye la racha, los retos enviados/recibidos y los escapes fantasma
 - 🩺 Chequeo de salud en 395: todo verde
 - 🎉 **Iteración 400** alcanzada de madrugada, con David durmiendo: WALLY chat "ayuda" (lista todo lo que sabe), delta vs tu marca al ganar el desafío del cubo, distancia a tu fantasma en el choque de F1
+
+## 🆕 Octava tanda (iter 396-405) — la madrugada de las 400
+- 🎉 **Iteración 400** alcanzada de madrugada: WALLY lo celebra en el chat y en la Sala
+- 🤖 WALLY chat **"ayuda"** lista todo lo que sabe responder (el placeholder del chat lo sugiere)
+- 🧩 **CUBO**: al ganar el desafío del día te dice "🎯 -1.3s vs tu marca" · 🏎️ **F1**: el choque te cuenta a cuánto quedaste de tu fantasma ("te faltaron 320 m" / "¡superaste a tu fantasma!") y la **radio del ingeniero** habla en el pit ("Box, box" / "Neumáticos nuevos, ¡a fondo!")
+- 🧟 **NAG**: ritmo "⚡ kills/min" en las estadísticas con récord · 🕷️ **SCREAM**: el mapa grande marca generador, vitrola, ascensor, botiquines y relojes
+- 🦖 **JURASSIC**: la fogata avisa 10 s antes de apagarse; el chillido del ptero bebé ahora viene con texto
+- 🔗 **Sala de Trofeos con enlaces**: cada aventura y cada desafío pendiente te lleva al juego con un clic
+- 🩺 Chequeo de salud en 405: todo verde
 
 ## 🤖 WALLY por todos lados
 Frases x8 por juego, celebra el 21/21 con voz, escanea pisos/baterías/cajones, certifica el póster... y presume su carrera de mBots en todas partes 🏁
