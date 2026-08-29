@@ -5126,7 +5126,7 @@ const Monster={
     try{ this.best=+(localStorage.getItem("swarm_best")||0)||0; }catch(e){ this.best=0; }
     if(this.best>0) $("monResult").innerHTML="🏆 Récord: <b>"+this.best+"</b> vencidos";
   },
-  saveBest(){ try{ edtuPlayDay(); }catch(e){} if(this.p && this.p.kills>this.best){ this.best=this.p.kills; try{ localStorage.setItem("swarm_best",this.best); }catch(e){} } },
+  saveBest(){ try{ edtuPlayDay("👾 Invaders",(this.p?this.p.kills:0)+" pts"); }catch(e){} if(this.p && this.p.kills>this.best){ this.best=this.p.kills; try{ localStorage.setItem("swarm_best",this.best); }catch(e){} } },
   takeHit(d,from){ const p=this.p; if(!p||this.buffShield>0) return; p.hp-=d; this._lastHitter=from; this.shake=Math.max(this.shake,5); Sfx.hurt(); if(p.hp<=0){ if(typeof MonNet!=="undefined") MonNet.sendFkill(this._lastHitter); this.gameOver(); } },
   ffaWin(){ this.saveBest(); this.ach("ffa","¡Último en pie!"); this.running=false; $("monOverlay").style.display="flex"; $("monMsg").textContent="🏆 ¡ÚLTIMO EN PIE!"; $("monResult").innerHTML="Ganaste el Todos vs Todos ⚔️ · <b>"+this.p.kills+"</b> eliminaciones · 🏆 Récord: <b>"+this.best+"</b>"; $("monStart").textContent="▶ JUGAR OTRA VEZ"; },
   throwGrenade(){ if(!this.running||this.shopping||this.labOpen||this.grenCd>0) return; this.grenCd=3; const p=this.p,a=p.aimAng; this.grenades.push({x:p.x+Math.cos(a)*p.r,y:p.y+Math.sin(a)*p.r,vx:Math.cos(a)*520,vy:Math.sin(a)*520,t:0.55}); Sfx.shoot(); },
@@ -6585,7 +6585,7 @@ const Snake={ cv:null,ctx:null,raf:null,run:false,N:17,cell:0,snake:[],dir:{x:1,
     this.snake.unshift(h);
     if(h.x===this.food.x&&h.y===this.food.y){ this.score++; this.speed=Math.min(15,7+this.score*0.3); this.placeFood(); gBeep(700); } else this.snake.pop();
     $("snakeHud").textContent="🍎 "+this.score+"  ·  Récord: "+this.best; this.draw(); },
-  dead(){ this.stop(); try{ edtuPlayDay(); }catch(e){} if(this.score>this.best){this.best=this.score;localStorage.setItem("edtu_snake_best",this.score);} $("snakeOver").textContent="💀 Fin · "+this.score+" puntos"; },
+  dead(){ this.stop(); try{ edtuPlayDay("🐍 Snake",this.score+" 🍎"); }catch(e){} if(this.score>this.best){this.best=this.score;localStorage.setItem("edtu_snake_best",this.score);} $("snakeOver").textContent="💀 Fin · "+this.score+" puntos"; },
   turn(x,y){ if(x===-this.dir.x&&y===-this.dir.y) return; this.nd={x,y}; },
   draw(){ const c=this.ctx,e=this.cell; c.fillStyle="#02040a"; c.fillRect(0,0,this.cv.width,this.cv.height);
     c.fillStyle="#ff3b5b"; c.fillRect(this.food.x*e+2,this.food.y*e+2,e-4,e-4);
@@ -6620,7 +6620,7 @@ const Mem={ EMO:["🚀","🛸","🤖","👾","🎮","🕹️","⭐","🔫"],card
   pick(i){ if(this.lock)return; const el=$("memBoard").children[i]; if(el.classList.contains("up")||el.classList.contains("done"))return;
     el.textContent=this.cards[i]; el.classList.add("up"); this.flip.push(i);
     if(this.flip.length===2){ this.moves++; $("memHud").textContent="Movimientos: "+this.moves; this.lock=true; const a=this.flip[0],b=this.flip[1];
-      if(this.cards[a]===this.cards[b]){ gBeep(800); setTimeout(()=>{ [a,b].forEach(k=>{const e=$("memBoard").children[k];e.classList.remove("up");e.classList.add("done");}); this.flip=[]; this.lock=false; this.done+=2; if(this.done===this.cards.length){ try{ edtuPlayDay(); }catch(e){} let bm=0, nw=false; try{ bm=parseInt(localStorage.getItem("edtu_mem_best")||"0",10)||0; if(!bm||this.moves<bm){ nw=bm>0; bm=this.moves; localStorage.setItem("edtu_mem_best",String(bm)); } }catch(e){} $("memOver").textContent="🎉 ¡Ganaste en "+this.moves+" movimientos!"+(nw?" · 🏆 ¡RÉCORD!":(bm?" · Récord: "+bm:"")); } },420); }
+      if(this.cards[a]===this.cards[b]){ gBeep(800); setTimeout(()=>{ [a,b].forEach(k=>{const e=$("memBoard").children[k];e.classList.remove("up");e.classList.add("done");}); this.flip=[]; this.lock=false; this.done+=2; if(this.done===this.cards.length){ try{ edtuPlayDay("🃏 Memoria",this.moves+" mov."); }catch(e){} let bm=0, nw=false; try{ bm=parseInt(localStorage.getItem("edtu_mem_best")||"0",10)||0; if(!bm||this.moves<bm){ nw=bm>0; bm=this.moves; localStorage.setItem("edtu_mem_best",String(bm)); } }catch(e){} $("memOver").textContent="🎉 ¡Ganaste en "+this.moves+" movimientos!"+(nw?" · 🏆 ¡RÉCORD!":(bm?" · Récord: "+bm:"")); } },420); }
       else { setTimeout(()=>{ [a,b].forEach(k=>{const e=$("memBoard").children[k];e.classList.remove("up");e.textContent="";}); this.flip=[]; this.lock=false; },720); } } } };
 
 /* 🔢 2048 */
@@ -6635,7 +6635,7 @@ const G2048={ g:[],score:0,best:0,COL:{2:"#eee4da",4:"#ede0c8",8:"#f2b179",16:"#
   move(dir){ const old=this.g.join(","); const ng=this.g.slice(); const get=(r,c)=>ng[r*4+c], set=(r,c,v)=>{ng[r*4+c]=v;};
     for(let k=0;k<4;k++){ const line=[]; for(let j=0;j<4;j++){ line.push(dir<2?get(k,dir===0?j:3-j):get(dir===2?j:3-j,k)); } const s=this.slide(line);
       for(let j=0;j<4;j++){ const v=s[j]; if(dir===0)set(k,j,v); else if(dir===1)set(k,3-j,v); else if(dir===2)set(j,k,v); else set(3-j,k,v); } }
-    this.g=ng; if(this.g.join(",")!==old){ this.add(); this.render(); gBeep(500); if(this.score>this.best){this.best=this.score;localStorage.setItem("edtu_2048_best",this.score);} if(!this.canMove()){ try{ edtuPlayDay(); }catch(e){} } if(!this.canMove()) $("g2048Over").textContent="💀 Sin movimientos · "+this.score+" pts"; } },
+    this.g=ng; if(this.g.join(",")!==old){ this.add(); this.render(); gBeep(500); if(this.score>this.best){this.best=this.score;localStorage.setItem("edtu_2048_best",this.score);} if(!this.canMove()){ try{ edtuPlayDay("🔢 2048",this.score+" pts"); }catch(e){} } if(!this.canMove()) $("g2048Over").textContent="💀 Sin movimientos · "+this.score+" pts"; } },
   canMove(){ for(let i=0;i<16;i++){ if(!this.g[i])return true; const r=(i/4)|0,c=i%4; if(c<3&&this.g[i]===this.g[i+1])return true; if(r<3&&this.g[i]===this.g[i+4])return true; } return false; } };
 
 /* 💣 BUSCAMINAS */
@@ -6665,7 +6665,7 @@ const Break={ cv:null,ctx:null,raf:null,run:false,px:0,ball:null,bricks:[],score
   stop(){ this.run=false; if(this.raf){cancelAnimationFrame(this.raf);this.raf=null;} },
   tick(){ const b=this.ball; b.x+=b.vx; b.y+=b.vy; if(b.x<b.r||b.x>this.W-b.r)b.vx*=-1; if(b.y<b.r)b.vy*=-1;
     if(b.y>this.H-20&&b.y<this.H-6&&b.x>this.px&&b.x<this.px+this.pw){ b.vy=-Math.abs(b.vy); b.vx=(b.x-(this.px+this.pw/2))/8; }
-    if(b.y>this.H){ this.lives--; if(this.lives<=0){ this.stop(); try{ edtuPlayDay(); }catch(e){} let bb=0, nw=false; try{ bb=parseInt(localStorage.getItem("edtu_break_best")||"0",10)||0; if(this.score>bb){ nw=bb>0; bb=this.score; localStorage.setItem("edtu_break_best",String(bb)); } }catch(e){} $("breakOver").textContent="💀 Fin · "+this.score+" pts"+(nw?" · 🏆 ¡RÉCORD!":(bb?" · Récord: "+bb:"")); return; } b.x=this.W/2;b.y=this.H-40;b.vx=3;b.vy=-4; }
+    if(b.y>this.H){ this.lives--; if(this.lives<=0){ this.stop(); try{ edtuPlayDay("🧱 Breakout",this.score+" pts"); }catch(e){} let bb=0, nw=false; try{ bb=parseInt(localStorage.getItem("edtu_break_best")||"0",10)||0; if(this.score>bb){ nw=bb>0; bb=this.score; localStorage.setItem("edtu_break_best",String(bb)); } }catch(e){} $("breakOver").textContent="💀 Fin · "+this.score+" pts"+(nw?" · 🏆 ¡RÉCORD!":(bb?" · Récord: "+bb:"")); return; } b.x=this.W/2;b.y=this.H-40;b.vx=3;b.vy=-4; }
     for(const br of this.bricks){ if(!br.on)continue; if(b.x>br.x&&b.x<br.x+br.w&&b.y>br.y&&b.y<br.y+br.h){ br.on=false; b.vy*=-1; this.score+=10; gBeep(600); } }
     if(this.bricks.every(br=>!br.on)){ this.stop(); $("breakOver").textContent="🎉 ¡GANASTE! "+this.score+" pts"; }
     $("breakHud").textContent="🧱 "+this.score+" · ❤️"+this.lives; this.draw(); },
@@ -6708,7 +6708,7 @@ const Flap={ cv:null,ctx:null,raf:null,run:false,W:0,H:0,by:0,vy:0,pipes:[],scor
     this.pipes.forEach(p=>p.x-=2.4); this.pipes=this.pipes.filter(p=>p.x>-60);
     for(const p of this.pipes){ if(!p.scored&&p.x<40){ p.scored=true; this.score++; gBeep(700); } if(40>p.x-26&&40<p.x+26&&(this.by<p.top||this.by>p.top+this.gap)) return this.dead(); }
     if(this.by>this.H||this.by<0) return this.dead(); $("flapHud").textContent="🐤 "+this.score+" · Récord: "+this.best; this.draw(); },
-  dead(){ this.stop(); if(this.score>this.best){this.best=this.score;localStorage.setItem("edtu_flap_best",this.score);} try{ edtuPlayDay(); }catch(e){} $("flapOver").textContent="💀 Fin · "+this.score+" pts"; },
+  dead(){ this.stop(); if(this.score>this.best){this.best=this.score;localStorage.setItem("edtu_flap_best",this.score);} try{ edtuPlayDay("🐤 Flappy",this.score+" pts"); }catch(e){} $("flapOver").textContent="💀 Fin · "+this.score+" pts"; },
   draw(){ const c=this.ctx; c.fillStyle="#0b1330"; c.fillRect(0,0,this.W,this.H); c.fillStyle="#39ff14"; this.pipes.forEach(p=>{ c.fillRect(p.x-26,0,52,p.top); c.fillRect(p.x-26,p.top+this.gap,52,this.H); });
     c.font="26px serif"; c.textAlign="center"; c.fillText("🐤",40,this.by); } };
 
@@ -6727,7 +6727,7 @@ const Pong={ cv:null,ctx:null,raf:null,run:false,W:0,H:0,mode:"cpu",l:0,r:0,ball
     if(b.x<18&&b.y>this.l&&b.y<this.l+this.ph){ b.vx=Math.abs(b.vx)*1.05; b.vy+=(b.y-(this.l+this.ph/2))/12; gBeep(500); }
     if(b.x>this.W-18&&b.y>this.r&&b.y<this.r+this.ph){ b.vx=-Math.abs(b.vx)*1.05; b.vy+=(b.y-(this.r+this.ph/2))/12; gBeep(500); }
     if(b.x<0){ this.sr++; this.serve(1); } if(b.x>this.W){ this.sl++; this.serve(-1); }
-    if(this.sl>=5||this.sr>=5){ this.stop(); try{ edtuPlayDay(); }catch(e){} if(this.sl>=5&&this.mode==="cpu"){ try{ localStorage.setItem("edtu_pong_wins",String((parseInt(localStorage.getItem("edtu_pong_wins")||"0",10)||0)+1)); }catch(e){} } $("pongOver").textContent=this.sl>=5?(this.mode==="cpu"?"🎉 ¡GANASTE!":"🎉 ¡Ganó Izquierda!"):(this.mode==="cpu"?"🤖 Ganó la máquina":"🎉 ¡Ganó Derecha!"); }
+    if(this.sl>=5||this.sr>=5){ this.stop(); try{ edtuPlayDay("🏓 Pong",this.sl+"-"+this.sr); }catch(e){} if(this.sl>=5&&this.mode==="cpu"){ try{ localStorage.setItem("edtu_pong_wins",String((parseInt(localStorage.getItem("edtu_pong_wins")||"0",10)||0)+1)); }catch(e){} } $("pongOver").textContent=this.sl>=5?(this.mode==="cpu"?"🎉 ¡GANASTE!":"🎉 ¡Ganó Izquierda!"):(this.mode==="cpu"?"🤖 Ganó la máquina":"🎉 ¡Ganó Derecha!"); }
     $("pongHud").textContent=this.sl+"  ·  "+this.sr; this.draw(); },
   draw(){ const c=this.ctx; c.fillStyle="#02040a"; c.fillRect(0,0,this.W,this.H); c.strokeStyle="rgba(255,255,255,.2)"; c.setLineDash([6,8]); c.beginPath(); c.moveTo(this.W/2,0); c.lineTo(this.W/2,this.H); c.stroke(); c.setLineDash([]);
     c.fillStyle="#33bbff"; c.fillRect(8,this.l,8,this.ph); c.fillStyle="#ff3b5b"; c.fillRect(this.W-16,this.r,8,this.ph); c.fillStyle="#fff"; c.fillRect(this.ball.x-5,this.ball.y-5,10,10); },
@@ -6749,7 +6749,7 @@ const Simon={ seq:[],idx:0,level:0,accept:false,
   next(){ this.level++; $("simonHud").textContent="Nivel "+this.level; this.seq.push((Math.random()*4)|0); this.idx=0; this.accept=false; this.playback(); },
   playback(){ let i=0; const step=()=>{ if(i>=this.seq.length){ this.accept=true; return; } this.lite(this.seq[i]); i++; setTimeout(step,650); }; setTimeout(step,500); },
   lite(s){ const p=document.querySelectorAll("#simonPad .spad")[s]; p.classList.add("lit"); gBeep(300+s*140); setTimeout(()=>p.classList.remove("lit"),350); },
-  press(s){ if(!this.accept)return; this.lite(s); if(s===this.seq[this.idx]){ this.idx++; if(this.idx>=this.seq.length){ this.accept=false; setTimeout(()=>this.next(),700); } } else { this.accept=false; try{ edtuPlayDay(); }catch(e){} let bs=0, nw=false; try{ bs=parseInt(localStorage.getItem("edtu_simon_best")||"0",10)||0; if(this.level>bs){ nw=bs>0; bs=this.level; localStorage.setItem("edtu_simon_best",String(bs)); } }catch(e){} $("simonOver").textContent="💀 Fallaste · llegaste al nivel "+this.level+(nw?" · 🏆 ¡RÉCORD!":(bs?" · Récord: "+bs:"")); } } };
+  press(s){ if(!this.accept)return; this.lite(s); if(s===this.seq[this.idx]){ this.idx++; if(this.idx>=this.seq.length){ this.accept=false; setTimeout(()=>this.next(),700); } } else { this.accept=false; try{ edtuPlayDay("🎵 Simon","nivel "+this.level); }catch(e){} let bs=0, nw=false; try{ bs=parseInt(localStorage.getItem("edtu_simon_best")||"0",10)||0; if(this.level>bs){ nw=bs>0; bs=this.level; localStorage.setItem("edtu_simon_best",String(bs)); } }catch(e){} $("simonOver").textContent="💀 Fallaste · llegaste al nivel "+this.level+(nw?" · 🏆 ¡RÉCORD!":(bs?" · Récord: "+bs:"")); } } };
 
 /* 🪝 AHORCADO */
 const Hang={ WORDS:["ESPIA","ROBOT","GALAXIA","MISION","CAMARA","SECRETO","NEBULOSA","COHETE","PLANETA","AGENTE","CODIGO","ESCUDO","LASER","SATELITE","ANDROIDE","BOVEDA","RADAR","NITRO"],word:"",guessed:[],wrong:0,MAX:6,over:false,
@@ -7530,7 +7530,7 @@ try{ const lv=parseInt(localStorage.getItem("edtu_last_visit")||"0",10)||0;
   localStorage.setItem("edtu_last_visit",String(Date.now())); }catch(e){}
 // ⚔️ RECIBIR UN RETO: link compartido con ?reto=1 (desafíos de hoy) o ?reto=f1 (F1: activa su desafío del día); WALLY cruza avisando y se limpia la URL
 // 🤖 PREGÚNTALE A WALLY desde cualquier juego: index.html?wally=pregunta abre la Sala y WALLY responde (askWally(t) también sirve para botones)
-window.edtuPlayDay=function(){ try{ const d0=new Date(), dk=d0.getFullYear()*10000+(d0.getMonth()+1)*100+d0.getDate(); const pdA=JSON.parse(localStorage.getItem("edtu_play_days")||"[]"); if(pdA[pdA.length-1]!==dk){ pdA.push(dk); localStorage.setItem("edtu_play_days",JSON.stringify(pdA.slice(-90))); } }catch(e){} };   // 🎮 día jugado (minijuegos)
+window.edtuPlayDay=function(gname,sc){ try{ const d0=new Date(), dk=d0.getFullYear()*10000+(d0.getMonth()+1)*100+d0.getDate(); const pdA=JSON.parse(localStorage.getItem("edtu_play_days")||"[]"); if(pdA[pdA.length-1]!==dk){ pdA.push(dk); localStorage.setItem("edtu_play_days",JSON.stringify(pdA.slice(-90))); } if(gname){ localStorage.setItem("edtu_mini_games",String((parseInt(localStorage.getItem("edtu_mini_games")||"0",10)||0)+1)); localStorage.setItem("edtu_mini_last",JSON.stringify({g:gname,score:(sc==null?"":sc),ts:Date.now()})); } }catch(e){} };   // 🎮 día jugado (minijuegos)
 window.askWally=function(t){ try{ const pb=$("pickTrophies"); if(pb) pb.click(); setTimeout(()=>{ const inp=$("wallyIn"), sb=$("wallySend"); if(inp&&sb){ inp.value=t; sb.click(); } },700); }catch(e){} };
 try{ const wq=(location.search.match(/[?&]wally=([^&]+)/)||[])[1]; if(wq){ const txt=decodeURIComponent(wq.replace(/\+/g," ")); setTimeout(()=>{ window.askWally(txt); try{ history.replaceState(null,"",location.pathname); }catch(e){} },600); } }catch(e){}
 try{ const rq=(location.search.match(/[?&]reto=([a-z0-9]+)/i)||[])[1];
