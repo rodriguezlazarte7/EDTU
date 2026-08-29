@@ -7299,6 +7299,9 @@ function buildTrophies(){ try{
       const cd2=rd2("rubik_diary"); if(cd2) cand.push(when(cd2)+" armaste el cubo en "+cd2.t+"s 🧩"+(cd2.win?" ganándole a la IA":""));
       if(streakToday && streakNow>=3 && Math.random()<0.6) memMsg=(streakNow>=7?"🔥 ¡"+streakNow+" días seguidos con desafíos! eres IMPARABLE, agente 🏅":"🔥 ¡"+streakNow+" días seguidos con desafíos! sigue así — a los 7 te espera una sorpresa");   // 🔥 la racha tiene prioridad en el saludo
       else if(cand.length && Math.random()<0.5) memMsg=cand[Math.floor(Math.random()*cand.length)];
+      // 🏅 HITO DE PARTIDAS TOTALES (10/25/50/100 en los 5 mundos): WALLY lo celebra una sola vez por hito
+      if(!memMsg){ try{ const T=k=>{ try{ return JSON.parse(g(k)||"null"); }catch(e){ return null; } }; const tj=T("jurassic_totals"), ts=T("scream_totals"), tn=T("nag_totals"), tf=T("edtu_f1_totals"), tc=T("rubik_totals"); const tot=(tj?tj.games||0:0)+(ts?ts.runs||0:0)+(tn?tn.cases||0:0)+(tf?tf.races||0:0)+(tc?tc.races||0:0); const hs=[100,50,25,10].find(x=>tot>=x);
+        if(hs && g("edtu_hito_partidas")!==String(hs)){ localStorage.setItem("edtu_hito_partidas",String(hs)); memMsg="🏅 ¡"+tot+" partidas en EDTU! "+(hs>=100?"cien... ya eres parte de la historia de esta agencia":hs>=50?"medio centenar: agente veterano":hs>=25?"veinticinco aventuras y contando":"diez partidas: ya eres de la casa")+" 🎉"; } }catch(e){} }
       if(!memMsg && Math.random()<0.33) memMsg="🎉 ¡más de 440 mejoras seguidas mientras dormías! gracias por confiar en mí, agente"; }catch(e){}   // 🎉 iteración 400
     if(ws) ws.textContent = memMsg ? "«"+memMsg+"»" : wallys>=4 ? "«¡Encontraste TODOS mis escondites! Esta sala brilla gracias a ti»" : (seasMsg?"«"+seasMsg+"»":"«Bienvenido a tu sala, agente. Yo cuido tus trofeos»"); }
 }catch(e){ $("trophyBody").textContent="(error cargando trofeos)"; } }
