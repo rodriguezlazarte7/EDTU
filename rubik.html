@@ -409,10 +409,10 @@ function finish(who){
     const bm=loadBM(diff), isBM=!bm||moveCount<bm; if(isBM) saveBM(diff,moveCount);   // 🔄 ¿menos movimientos que nunca?
     const podPos=pushTop3(diff,tf);   // 🏁 ¿entra al podio?
     saveRDiary(true,tf);   // 📓 bitácora
-    let dailyNew=false; if(dailyMode){ try{ const dv=loadDaily(); if(!dv||tf<dv){ localStorage.setItem("rubik_daily_"+dailyKey(),String(tf)); dailyNew=true; } }catch(e){} updDaily(); }   // 📅 mejor del día
+    let dailyNew=false, dvPrev=0; if(dailyMode){ try{ const dv=loadDaily(); dvPrev=dv||0; if(!dv||tf<dv){ localStorage.setItem("rubik_daily_"+dailyKey(),String(tf)); dailyNew=true; } }catch(e){} updDaily(); }   // 📅 mejor del día (dvPrev = tu marca anterior de hoy)
     const stk=loadStreak()+1; saveStreak(stk);   // 👑 sigue la racha
     if(diff==="imposible") setTimeout(()=>{ try{ if(window.speechSynthesis){ const u2=new SpeechSynthesisUtterance("¡¿Qué?! ¡Nadie me había ganado en imposible! Eres una leyenda."); u2.lang="es-ES"; u2.pitch=1.6; u2.rate=1.15; u2.volume=0.8; speechSynthesis.speak(u2); } }catch(e){} },1500);   // 💀 shock de la IA (🐛FIX ronda2: sin cancel(), se ENCOLA tras la celebración en vez de cortarla a mitad de frase)
-    showMsg("🎉 ¡GANASTE!\n"+t+"s · 🔄 "+moveCount+" movs · 🏆 victorias: "+loadRW()+(stk>=2?"\n👑 ¡"+stk+" victorias SEGUIDAS!":"")+(isBT?"\n⏱️ ¡MEJOR TIEMPO en "+diff+"!":"\n⏱️ Tu mejor: "+bt.toFixed(1)+"s")+(isBM?"\n🔄 ¡MENOS MOVIMIENTOS QUE NUNCA!":"\n🔄 Récord movs: "+bm)+"\n🏁 "+podiumTxt(diff)+(podPos===0?" — ¡ORO!":podPos===1?" — ¡PLATA!":podPos===2?" — ¡BRONCE!":"")+(streakPMax>=3?"\n🔥 mejor racha perfecta: x"+streakPMax:"")+(dailyMode?"\n📅 DESAFÍO DEL DÍA: "+tf.toFixed(1)+"s"+(dailyNew?" ¡tu mejor de hoy!":""):""),"#39ff14");
+    showMsg("🎉 ¡GANASTE!\n"+t+"s · 🔄 "+moveCount+" movs · 🏆 victorias: "+loadRW()+(stk>=2?"\n👑 ¡"+stk+" victorias SEGUIDAS!":"")+(isBT?"\n⏱️ ¡MEJOR TIEMPO en "+diff+"!":"\n⏱️ Tu mejor: "+bt.toFixed(1)+"s")+(isBM?"\n🔄 ¡MENOS MOVIMIENTOS QUE NUNCA!":"\n🔄 Récord movs: "+bm)+"\n🏁 "+podiumTxt(diff)+(podPos===0?" — ¡ORO!":podPos===1?" — ¡PLATA!":podPos===2?" — ¡BRONCE!":"")+(streakPMax>=3?"\n🔥 mejor racha perfecta: x"+streakPMax:"")+(dailyMode?"\n📅 DESAFÍO DEL DÍA: "+tf.toFixed(1)+"s"+(dailyNew?" ¡tu mejor de hoy!":"")+(dvPrev>0?" · 🎯 "+(tf<dvPrev?"-":"+")+Math.abs(tf-dvPrev).toFixed(1)+"s vs tu marca":""):""),"#39ff14");
     buildDiffs(document.getElementById("diffs")); buildDiffs(document.getElementById("introDiffs"));
     confetti();   // 🎉 lluvia de papelitos
     victoryTune(false);   // 🎼 Oda a la Alegría completa

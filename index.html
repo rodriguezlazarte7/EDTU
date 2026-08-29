@@ -5968,7 +5968,8 @@ const F1={
     try{ const pom=+(localStorage.getItem("edtu_f1_ovmax")||0); const isOM=!this._mirror&&(this._ovMax||0)>pom;
       if(isOM) localStorage.setItem("edtu_f1_ovmax",String(this._ovMax));
       if((this._ovMax||0)>=2||pom>=2) histTxt+="<br>🔥 Racha de adelantamientos: <b>x"+(this._ovMax||0)+"</b> · Récord: <b>x"+Math.max(pom,this._ovMax||0)+"</b>"+(isOM?" 🆕":""); }catch(e){}
-    $("f1Result").innerHTML=(rec?"🏆 ¡NUEVO RÉCORD!<br>":"")+"Distancia: <b>"+m+"</b> m · Adelantados: <b>"+this.overt+"</b> · 😅 Casi-choques: <b>"+(this._nearN||0)+"</b> · ⚡ Vel. máx: <b>"+Math.round(this.maxSpd||0)+"</b> km/h · Récord: <b>"+Math.round(this.best)+"</b> m"+histTxt;
+    $("f1Result").innerHTML=(rec?"🏆 ¡NUEVO RÉCORD!<br>":"")+"Distancia: <b>"+m+"</b> m · Adelantados: <b>"+this.overt+"</b> · 😅 Casi-choques: <b>"+(this._nearN||0)+"</b> · ⚡ Vel. máx: <b>"+Math.round(this.maxSpd||0)+"</b> km/h · Récord: <b>"+Math.round(this.best)+"</b> m"+histTxt
+      +(function(F){ try{ if(F._ghost && F._ghost.length>1 && !F._spectate && !F._mirror){ const gx=F._ghost[F._ghost.length-1][0]; if(m<gx) return "<br>👻 tu récord llegó a <b>"+gx+"</b> m — te faltaron <b>"+(gx-m)+"</b> m"; if(F._ghBeat) return "<br>👻 ¡superaste a tu fantasma por <b>"+(m-gx)+"</b> m!"; } }catch(e){} return ""; })(this);   // 👻 distancia al fantasma
     $("f1Start").textContent="▶ CORRER OTRA VEZ";
     if(this.raf){ cancelAnimationFrame(this.raf); this.raf=null; }
   },
