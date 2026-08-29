@@ -5678,7 +5678,7 @@ const F1={
     // 🐛FIX auditoría: salir con ✕/Escape en plena carrera perdía récord, históricos y medallas aunque ya los habías superado
     try{ if(this.running && this.dist>0 && !this._mirror){ const m=Math.round(this.dist); this.saveWeek(m);
       if(m>this.best){ this.best=m; localStorage.setItem("edtu_f1_best",String(m)); try{ localStorage.setItem("edtu_f1_best_ts",String(Date.now())); }catch(e){} /* 📅 fecha del récord */ }
-      const pms=+(localStorage.getItem("edtu_f1_maxspd")||0); if(Math.round(this.maxSpd||0)>pms) localStorage.setItem("edtu_f1_maxspd",String(Math.round(this.maxSpd||0)));
+      const pms=+(localStorage.getItem("edtu_f1_maxspd")||0); if(Math.round(this.maxSpd||0)>pms){ localStorage.setItem("edtu_f1_maxspd",String(Math.round(this.maxSpd||0))); localStorage.setItem("edtu_f1_maxspd_ts",String(Date.now())); }
       const pov=+(localStorage.getItem("edtu_f1_overt")||0); if(this.overt>pov) localStorage.setItem("edtu_f1_overt",String(this.overt));
       this.markMedals(); } }catch(e){}
     this.stop(); $("f1Fs").classList.remove("open"); window.removeEventListener("resize",this._rs); },
@@ -5961,7 +5961,7 @@ const F1={
     let histTxt="";
     try{ const pms=+(localStorage.getItem("edtu_f1_maxspd")||0), pov=+(localStorage.getItem("edtu_f1_overt")||0);
       const isMS=!this._mirror&&Math.round(this.maxSpd||0)>pms, isOV=!this._mirror&&this.overt>pov;
-      if(isMS) localStorage.setItem("edtu_f1_maxspd",String(Math.round(this.maxSpd||0)));
+      if(isMS){ localStorage.setItem("edtu_f1_maxspd",String(Math.round(this.maxSpd||0))); localStorage.setItem("edtu_f1_maxspd_ts",String(Date.now())); }
       if(isOV) localStorage.setItem("edtu_f1_overt",String(this.overt));
       histTxt="<br>📈 Históricos: ⚡ <b>"+Math.max(pms,Math.round(this.maxSpd||0))+"</b> km/h"+(isMS?" 🆕":"")+" · 🏁 <b>"+Math.max(pov,this.overt)+"</b> adelantados"+(isOV?" 🆕":""); }catch(e){}
     if(!this._mirror) this.markMedals(); histTxt+="<br>🎖️ "+this.medals()+(this._mirror?"<br>🪞 carrera en ESPEJO — récords desactivados":"");
@@ -7211,7 +7211,7 @@ function buildTrophies(){ try{
   h+=[25,50,100,200].map(k=>med(g("nag_kills_"+k)==="1")+k).join(" ")+"<br>";
   // F1
   const fb=parseFloat(g("edtu_f1_best")), fms=parseInt(g("edtu_f1_maxspd")||"0",10)||0, fov=parseInt(g("edtu_f1_overt")||"0",10)||0;
-  h+="<div style='color:#4fc3ff'><b>🏎️ F1 RB RUSH</b></div>"+((fb&&fb>0)?"📏 Récord: <b>"+Math.round(fb)+" m</b>":"— sin récord aún")+(fms?" · ⚡ "+fms+" km/h":"")+(fov?" · 🏁 "+fov:"")+"<br>";
+  h+="<div style='color:#4fc3ff'><b>🏎️ F1 RB RUSH</b></div>"+((fb&&fb>0)?"📏 Récord: <b>"+Math.round(fb)+" m</b>":"— sin récord aún")+(fms?" · ⚡ "+fms+" km/h"+(function(){ /* 📅 cuándo */ const ts=parseInt(g("edtu_f1_maxspd_ts")||"0",10)||0; if(!ts) return ""; const d=Math.floor((Date.now()-ts)/86400000); return " <small style='opacity:.7'>("+(d<=0?"hoy":d===1?"ayer":"hace "+d+" días")+")</small>"; })():"")+(fov?" · 🏁 "+fov:"")+"<br>";
   h+=[1000,3000,5000,10000].map(k=>med(g("edtu_f1_km_"+k)==="1")+(k/1000)+"km").join(" ")+"<br>";
   // RUBIK
   const rw=parseInt(g("rubik_wins")||"0",10)||0, rl=parseInt(g("rubik_losses")||"0",10)||0, rs=parseInt(g("rubik_streak")||"0",10)||0;
