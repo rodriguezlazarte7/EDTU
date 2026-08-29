@@ -711,7 +711,7 @@ let statFlares=0, statDist=0, lastPX=null, lastPZ=0; const statFloors=new Set();
 const sDiary={spot:0,bites:0,med:0,gen:false,vit:false,asc:0};
 function sDiaryReset(){ sDiary.spot=0; sDiary.bites=0; sDiary.med=0; sDiary.gen=false; sDiary.vit=false; sDiary.asc=0; }
 function sDiaryLine(e){ const p=[]; p.push("🕷️ "+e.spot+" apariciones"); p.push(e.bites?("🩸 "+e.bites+" mordidas"):"🛡️ sin mordidas"); if(e.med) p.push("❤️ "+e.med+" botiquines"); if(e.gen) p.push("⚡ generador"); if(e.vit) p.push("🎶 vitrola"); if(e.asc) p.push("🛗 ascensor ×"+e.asc); return p.join(" · "); }
-function sDiaryEnd(win,surv){ const e=Object.assign({},sDiary); e.win=!!win; e.daily=!!dailyS; e.t=surv; e.v=valvesGot; e.s=samplesGot; e.fl=statFloors.size; const d=new Date(); e.date=d.getDate()+"/"+(d.getMonth()+1);
+function sDiaryEnd(win,surv){ const e=Object.assign({},sDiary); e.win=!!win; e.daily=!!dailyS; e.t=surv; e.v=valvesGot; e.s=samplesGot; e.fl=statFloors.size; const d=new Date(); e.date=d.getDate()+"/"+(d.getMonth()+1); e.ts=Date.now();
   try{ const arr=JSON.parse(localStorage.getItem("scream_diary")||"[]"); arr.unshift(e); localStorage.setItem("scream_diary",JSON.stringify(arr.slice(0,3))); }catch(err){}
   return "<div style='margin-top:6px;font-size:13px;color:#d9c8e8;line-height:1.8'>📖 <b>DIARIO DEL SOBREVIVIENTE</b><br>"+sDiaryLine(e)+"</div>"; }
 // 📤 COMPARTIR el resultado del DESAFÍO DEL DÍA desde la pantalla de fin: share nativo en móvil; si no, portapapeles (fallback textarea)
@@ -723,8 +723,9 @@ function sShareBtn(win,smm,sss){ try{ const d=new Date(), tt=smm+":"+String(sss)
   const txt="📅 Desafío SCREAM del "+d.getDate()+"/"+(d.getMonth()+1)+": "+(win?("escapé en "+tt+" ("+valvesGot+"/4 válvulas, "+samplesGot+"/3 muestras)"):("aguanté "+tt+" con "+valvesGot+"/4 válvulas y "+samplesGot+"/3 muestras... ¿tú llegas?"))+" ¿me ganas? 👉 www.edtu.cl/scream.html?reto=1";
   const lbl="📤 COMPARTIR MI DESAFÍO"; const sb=document.createElement("button"); sb.className="btn"; sb.style.cssText="margin-top:10px;font-size:12px;display:block;margin-left:auto;margin-right:auto"; sb.textContent=lbl; sb.onclick=()=>shareText(txt,sb,lbl);
   setTimeout(()=>{ try{ $("endInfo").appendChild(sb); }catch(e){} },0); }catch(e){} }   // se agrega al final (después del mapa y el diario)
+function relDate(e){ if(!e||!e.ts) return e?e.date:""; const d=Math.floor((Date.now()-e.ts)/86400000); return d<=0?"hoy":d===1?"ayer":"hace "+d+" días"; }   // 📆 fecha relativa del diario
 function updSDiary(){ const el=$("sdiary"); if(!el) return; try{ const arr=JSON.parse(localStorage.getItem("scream_diary")||"[]"); if(!arr.length){ el.textContent=""; return; }
-  const e=arr[0]; el.textContent="📖 Último escape ("+e.date+"): ⏱ "+Math.floor(e.t/60)+":"+String(e.t%60).padStart(2,"0")+" · 🔧 "+e.v+"/4 · 🧪 "+e.s+"/3 · 🏢 "+e.fl+"/7 · "+sDiaryLine(e)+(e.win?" · ✓ sobreviviste":""); }catch(err){ el.textContent=""; } }
+  const e=arr[0]; el.textContent="📖 Último escape ("+relDate(e)+"): ⏱ "+Math.floor(e.t/60)+":"+String(e.t%60).padStart(2,"0")+" · 🔧 "+e.v+"/4 · 🧪 "+e.s+"/3 · 🏢 "+e.fl+"/7 · "+sDiaryLine(e)+(e.win?" · ✓ sobreviviste":""); }catch(err){ el.textContent=""; } }
 function toggleHelp(){ if(!running) return; helpOpen=!helpOpen; $("help").classList.toggle("on",helpOpen); snd(helpOpen?500:300,"square",0.05,0.05); }
 function updFlareHUD(){ const el=$("flareC"); if(el) el.textContent="🧨 x"+flares; }
 function throwFlare(){ if(!running||gameOver||flares<=0) return; flares--; statFlares++; updFlareHUD();

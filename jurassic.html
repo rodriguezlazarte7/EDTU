@@ -964,7 +964,7 @@ function loadJWeek(){ try{ return parseFloat(localStorage.getItem("jurassic_week
 function saveJBest(v){ try{ localStorage.setItem("jurassic_best",String(v)); }catch(e){} }
 // 📖 DIARIO DEL EXPLORADOR: resumen de hitos al final + últimas 3 aventuras guardadas (jurassic_diary) + "Última aventura" en la portada
 function jDiaryLine(e){ const p=[]; if(e.fish) p.push("🐟 "+e.fish+" peces"); if(e.cocos) p.push("🥥 "+e.cocos); if(e.berries) p.push("🫐 "+e.berries); if(e.fires) p.push("🔥 "+e.fires+(e.fires>1?" fogatas":" fogata")); if(e.ptero) p.push("🦅 "+e.ptero+" picadas"); if(e.pack) p.push("🐾 la manada te aceptó"); if(e.egg) p.push("🥚 huevo dorado"); p.push(e.hits?("🩹 "+e.hits+" ataques"):"🛡️ sin heridas"); return p.join(" · "); }
-function jDiaryEnd(win,days){ const e=Object.assign({},jDiary); e.days=+days.toFixed(1); e.win=!!win; e.diff=jdiff; e.daily=!!dailyJ; const d=new Date(); e.date=d.getDate()+"/"+(d.getMonth()+1);
+function jDiaryEnd(win,days){ const e=Object.assign({},jDiary); e.days=+days.toFixed(1); e.win=!!win; e.diff=jdiff; e.daily=!!dailyJ; const d=new Date(); e.date=d.getDate()+"/"+(d.getMonth()+1); e.ts=Date.now();
   try{ const arr=JSON.parse(localStorage.getItem("jurassic_diary")||"[]"); arr.unshift(e); localStorage.setItem("jurassic_diary",JSON.stringify(arr.slice(0,3))); }catch(err){}
   return "<div style='margin-top:6px;font-size:13px;color:#e8d9a8;line-height:1.8'>📖 <b>DIARIO DEL EXPLORADOR</b><br>"+jDiaryLine(e)+"</div>"; }
 // 📤 COMPARTIR el resultado del DESAFÍO DEL DÍA desde la pantalla de fin: share nativo en móvil; si no, portapapeles (fallback textarea)
@@ -976,8 +976,9 @@ function jShareBtn(win,days){ try{ const d=new Date();
   const txt="📅 Desafío JURASSIC del "+d.getDate()+"/"+(d.getMonth()+1)+": sobreviví "+days.toFixed(1)+" días en la isla"+(win?" y me rescataron 🚁":"...")+" ¿me ganas? 👉 www.edtu.cl/jurassic.html?reto=1";
   const lbl="📤 COMPARTIR MI DESAFÍO"; const sb=document.createElement("button"); sb.className="btn"; sb.style.cssText="margin-top:10px;font-size:12px;display:block;margin-left:auto;margin-right:auto"; sb.textContent=lbl; sb.onclick=()=>shareText(txt,sb,lbl);
   setTimeout(()=>{ try{ $("endInfo").appendChild(sb); }catch(e){} },0); }catch(e){} }   // se agrega al final (después del mapa y el diario)
+function relDate(e){ if(!e||!e.ts) return e?e.date:""; const d=Math.floor((Date.now()-e.ts)/86400000); return d<=0?"hoy":d===1?"ayer":"hace "+d+" días"; }   // 📆 fecha relativa del diario
 function updJDiary(){ const el=$("jdiary"); if(!el) return; try{ const arr=JSON.parse(localStorage.getItem("jurassic_diary")||"[]"); if(!arr.length){ el.textContent=""; return; }
-  const e=arr[0]; el.textContent="📖 Última aventura ("+e.date+"): 🗓️ "+e.days+" días · "+jDiaryLine(e)+(e.win?" · ✓ rescatado":""); }catch(err){ el.textContent=""; } }
+  const e=arr[0]; el.textContent="📖 Última aventura ("+relDate(e)+"): 🗓️ "+e.days+" días · "+jDiaryLine(e)+(e.win?" · ✓ rescatado":""); }catch(err){ el.textContent=""; } }
 function updJBest(){ updJDiary(); const b=loadJBest(), el=$("jbest"); if(!el) return;
   // 🏅 medallas de RESCATE: una por dificultad en la que lograste que te rescaten
   const med=["facil","normal","dificil","extincion"].map(k=>{ let got=false; try{ got=localStorage.getItem("jurassic_win_"+k)==="1"; }catch(e){}

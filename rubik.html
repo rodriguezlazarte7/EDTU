@@ -372,10 +372,11 @@ function saveBT(d,t){ try{ localStorage.setItem("rubik_bt_"+d,String(t)); }catch
 function loadTop3(d){ try{ const v=JSON.parse(localStorage.getItem("rubik_top3_"+d)||"[]"); return Array.isArray(v)?v.filter(x=>typeof x==="number"):[]; }catch(e){ return []; } }
 function pushTop3(d,t){ const a=loadTop3(d); a.push(t); a.sort((x,y)=>x-y); const b=a.slice(0,3); try{ localStorage.setItem("rubik_top3_"+d,JSON.stringify(b)); }catch(e){} return b.indexOf(t); }
 // 📓 BITÁCORA DE CUBERO: últimas 3 carreras vs IA (dificultad, tiempo, giros, pistas, desafío del día, racha perfecta) en rubik_diary + "Última carrera" en el intro
-function saveRDiary(win,t){ try{ const d=new Date(); const e={date:d.getDate()+"/"+(d.getMonth()+1), diff:diff, t:+t.toFixed(1), win:!!win, moves:moveCount, hints:Math.max(0,3-(isFinite(hintsLeft)?hintsLeft:3)), daily:!!dailyMode, stk:streakPMax};
+function saveRDiary(win,t){ try{ const d=new Date(); const e={date:d.getDate()+"/"+(d.getMonth()+1), ts:Date.now(), diff:diff, t:+t.toFixed(1), win:!!win, moves:moveCount, hints:Math.max(0,3-(isFinite(hintsLeft)?hintsLeft:3)), daily:!!dailyMode, stk:streakPMax};
   const a=JSON.parse(localStorage.getItem("rubik_diary")||"[]"); a.unshift(e); localStorage.setItem("rubik_diary",JSON.stringify(a.slice(0,3))); }catch(err){} }
 function rDiaryLine(e){ return "🧩 "+e.diff+" · ⏱ "+e.t+"s · 🔄 "+e.moves+" giros"+(e.hints?" · 💡 "+e.hints+(e.hints>1?" pistas":" pista"):" · 💡 sin pistas")+(e.daily?" · 📅 desafío del día":"")+(e.stk>=3?" · 🔥 x"+e.stk:"")+(e.win?" · ✓ ganaste":" · 🤖 ganó la IA"); }
-function updRDiary(){ const el=document.getElementById("rdiary"); if(!el) return; try{ const a=JSON.parse(localStorage.getItem("rubik_diary")||"[]"); if(!a.length){ el.textContent=""; return; } el.textContent="📓 Última carrera ("+a[0].date+"): "+rDiaryLine(a[0]); }catch(err){ el.textContent=""; } }
+function relDate(e){ if(!e||!e.ts) return e?e.date:""; const d=Math.floor((Date.now()-e.ts)/86400000); return d<=0?"hoy":d===1?"ayer":"hace "+d+" días"; }   // 📆 fecha relativa del diario
+function updRDiary(){ const el=document.getElementById("rdiary"); if(!el) return; try{ const a=JSON.parse(localStorage.getItem("rubik_diary")||"[]"); if(!a.length){ el.textContent=""; return; } el.textContent="📓 Última carrera ("+relDate(a[0])+"): "+rDiaryLine(a[0]); }catch(err){ el.textContent=""; } }
 function podiumTxt(d){ const a=loadTop3(d); if(!a.length) return ""; return a.map((t,i)=>["🥇","🥈","🥉"][i]+" "+t.toFixed(1)+"s").join("  "); }
 function updPodium(){ const el=document.getElementById("rpodium"); if(!el) return; const p=podiumTxt(diff); el.textContent=p?("🏁 PODIO "+(DIFF[diff]&&DIFF[diff].lbl?DIFF[diff].lbl:diff)+": "+p):""; }
 // 🔄 récord de MENOS movimientos por dificultad

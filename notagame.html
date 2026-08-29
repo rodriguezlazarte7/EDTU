@@ -1019,11 +1019,12 @@ let sirenOn=0, sirenDone=false;
 const nDiary={cat:0,drvz:false,heli:0,tunnel:0,graves:0,siren:false};
 function nDiaryReset(){ nDiary.cat=0; nDiary.drvz=false; nDiary.heli=0; nDiary.tunnel=0; nDiary.graves=0; nDiary.siren=false; }
 function nDiaryLine(e){ const p=["🧟 "+e.kills+" kills","📜 "+e.clues+"/7","🌙 "+e.nights+(e.nights===1?" noche":" noches")]; if(e.boss) p.push("👹 "+e.boss); if(e.cat) p.push("🐱 gato"); if(e.drvz) p.push("🧪 Dr. VZ"); if(e.heli) p.push("🚁 ×"+e.heli); if(e.tunnel) p.push("🕳️ túnel"); if(e.graves) p.push("🪦 "+e.graves); if(e.siren) p.push("🚨 sirena"); return p.join(" · "); }
-function nDiaryEnd(win,nights,survS){ const e=Object.assign({},nDiary); e.win=!!win; e.daily=!!dailyN; e.kills=kills; e.clues=cluesGot; e.nights=nights; e.boss=nStatBoss; e.t=survS; const d=new Date(); e.date=d.getDate()+"/"+(d.getMonth()+1);
+function nDiaryEnd(win,nights,survS){ const e=Object.assign({},nDiary); e.win=!!win; e.daily=!!dailyN; e.kills=kills; e.clues=cluesGot; e.nights=nights; e.boss=nStatBoss; e.t=survS; const d=new Date(); e.date=d.getDate()+"/"+(d.getMonth()+1); e.ts=Date.now();
   try{ const arr=JSON.parse(localStorage.getItem("nag_diary")||"[]"); arr.unshift(e); localStorage.setItem("nag_diary",JSON.stringify(arr.slice(0,3))); }catch(err){}
   return "<div style='margin-top:6px;font-size:13px;color:#c9d8e8;line-height:1.8'>📁 <b>EXPEDIENTE DEL CASO</b><br>"+nDiaryLine(e)+"</div>"; }
+function relDate(e){ if(!e||!e.ts) return e?e.date:""; const d=Math.floor((Date.now()-e.ts)/86400000); return d<=0?"hoy":d===1?"ayer":"hace "+d+" días"; }   // 📆 fecha relativa del diario
 function updNDiary(){ const el=document.getElementById("ndiary"); if(!el) return; try{ const arr=JSON.parse(localStorage.getItem("nag_diary")||"[]"); if(!arr.length){ el.textContent=""; return; }
-  const e=arr[0]; el.textContent="📁 Último caso ("+e.date+"): ⏱ "+Math.floor(e.t/60)+":"+String(e.t%60).padStart(2,"0")+" · "+nDiaryLine(e)+(e.win?" · ✓ resuelto":""); }catch(err){ el.textContent=""; } }
+  const e=arr[0]; el.textContent="📁 Último caso ("+relDate(e)+"): ⏱ "+Math.floor(e.t/60)+":"+String(e.t%60).padStart(2,"0")+" · "+nDiaryLine(e)+(e.win?" · ✓ resuelto":""); }catch(err){ el.textContent=""; } }
 // ⏸ pausa con P
 let nPaused=false;
 let nTutOn=false, nTutStep=0, nTutT=0;   // 🎓 mini-tutorial de primera vez
