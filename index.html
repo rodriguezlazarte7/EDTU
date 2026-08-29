@@ -7199,7 +7199,7 @@ function buildTrophies(){ try{
   h+="<div style='text-align:center;font-size:18px;color:#ffd12e;margin-bottom:8px'>"+(tot>=21?"🏆 21/21 — ¡ERES LEYENDA DE EDTU!":"🏅 "+tot+"/21 logros")+"</div>";
   // SCREAM
   const sb=parseFloat(g("scream_best")), sw=parseInt(g("scream_wins")||"0",10)||0;
-  h+="<div style='color:#ff6a7a'><b>🕷️ SCREAM"+(g("scream_win_pesadillaplus")==="1"?" 👑":"")+"</b></div>"+(isNaN(sb)?"— sin escape aún":"⏱ Mejor escape: <b>"+fmtMS(sb)+"</b> · 🚁 x"+sw)+(function(){ /* 👁️ escape más sigiloso */ const bs=g("scream_best_spot"); return bs!=null?" · 👁️ sigilo: <b>"+bs+"</b> aparición"+(bs==="1"?"":"es"):""; })()+"<br>";
+  h+="<div style='color:#ff6a7a'><b>🕷️ SCREAM"+(g("scream_win_pesadillaplus")==="1"?" 👑":"")+"</b></div>"+(isNaN(sb)?"— sin escape aún":"⏱ Mejor escape: <b>"+fmtMS(sb)+"</b> · 🚁 x"+sw)+(function(){ /* 🚁 mejor racha de escapes */ const bw=parseInt(g("scream_best_win_streak")||"0",10)||0; return bw>=2?" · 🚁 mejor racha: <b>"+bw+"</b>":""; })()+(function(){ /* 👁️ escape más sigiloso */ const bs=g("scream_best_spot"); return bs!=null?" · 👁️ sigilo: <b>"+bs+"</b> aparición"+(bs==="1"?"":"es"):""; })()+"<br>";
   h+=["facil","normal","pesadilla","infierno"].map(k=>med(g("scream_win_"+k)==="1")).join(" ")+" <small>(🟢🟡🔴🔥)</small><br>";
   // JURASSIC
   const jb=parseFloat(g("jurassic_best"));
