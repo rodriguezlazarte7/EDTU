@@ -7209,7 +7209,7 @@ function buildTrophies(){ try{
   h+=[1000,3000,5000,10000].map(k=>med(g("edtu_f1_km_"+k)==="1")+(k/1000)+"km").join(" ")+"<br>";
   // RUBIK
   const rw=parseInt(g("rubik_wins")||"0",10)||0, rl=parseInt(g("rubik_losses")||"0",10)||0, rs=parseInt(g("rubik_streak")||"0",10)||0;
-  h+="<div style='color:#00e0ff'><b>🧩 CUBO 3x3</b></div>🏆 "+rw+" victorias · 🤖 "+rl+" derrotas"+((rw+rl)>=3?" · 📊 "+Math.round(rw/(rw+rl)*100)+"%":"")+(rs>=2?" · 👑 racha "+rs:"")+"<br>";
+  h+="<div style='color:#00e0ff'><b>🧩 CUBO 3x3</b></div>🏆 "+rw+" victorias · 🤖 "+rl+" derrotas"+((rw+rl)>=3?" · 📊 "+Math.round(rw/(rw+rl)*100)+"%":"")+(rs>=2?" · 👑 racha "+rs:"")+(function(){ const sp=parseInt(g("rubik_best_streakP")||"0",10)||0; return sp>=3?" · 🔥 racha perfecta "+sp:""; })()+"<br>";
   h+=["facil","medio","dificil","imposible"].map(k=>{ const t2=parseFloat(g("rubik_bt_"+k)||"0"); return t2?("⏱"+k[0].toUpperCase()+":"+t2.toFixed(1)+"s"):"▫️"+k[0].toUpperCase(); }).join("  ")
     +(function(){ try{ const d=new Date(), dk=d.getFullYear()*10000+(d.getMonth()+1)*100+d.getDate(); const dv=parseFloat(g("rubik_daily_"+dk)||"0")||0; return dv>0?"  · 📅 hoy: <b>"+dv.toFixed(1)+"s</b>":"  · 📅 desafío de hoy pendiente"; }catch(e){ return ""; } })()+"<br>";
   // WALLY

@@ -301,6 +301,7 @@ function wallyMemN(){ if(nWMemSaid) return null; nWMemSaid=true; try{ const a=JS
   if(e.heli) opts.push("subiste al helicóptero "+e.heli+(e.heli>1?" veces":" vez")+" la última vez (yo me mareo ahí arriba) 🚁");
   if(e.cat) opts.push("el gato te ayudó la última vez... yo también escaneo, ¿eh? 🐱");
   if(e.win) opts.push("la última vez RESOLVISTE el caso, ¡hoy repítelo, agente! ✓");
+  try{ const kr=parseFloat(localStorage.getItem("nag_best_kpm")||"0")||0; if(kr>0) opts.push("tu ritmo récord es "+kr.toFixed(1)+" kills por minuto... ¿lo superas hoy? ⚡"); }catch(err){}
   return opts[Math.floor(Math.random()*opts.length)]; }catch(err){ return null; } }
 function talkWallyN(){ if(wallyNTalkCd>0||!running||gameOver||level!=="surface") return;
   if(Math.hypot(P.x-wallyN.position.x,P.z-wallyN.position.z)>3) return;
