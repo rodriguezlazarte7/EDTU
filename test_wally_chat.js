@@ -91,6 +91,7 @@ const T=[
   ["cómo se juega el cubo",/guía del CUBO/],["cómo armo el cubo",/capa por capa/],["cuántas caras tiene",/6 caras/],["cómo giro el cubo",/🔄 para girar/],["qué es una revoltura",/🔀/],["qué dificultades hay",/🎚️/],["pista del cubo",/💡 en el CUBO/],["cuál es el mínimo de giros",/número de Dios/],
   ["reglas del ajedrez",/JAQUE MATE/],["cómo mueve el caballo",/en L/],["cómo hago un gol",/⚽/],["cómo gano en 2048",/esquina/],["qué significan los números del buscaminas",/8 casillas/],["cómo se juega conecta 4",/CONECTA 4/],["cuál minijuego es más difícil",/😈/],["cuál minijuego me recomiendas",/😊 para empezar/],["hay ia en el gato",/🤖 sí/],["el ajedrez es muy difícil",/♟️ AJEDREZ/],["récord de snake",/🕹️/],["cómo se juega snake",/Snake|SNAKE/],
   ["cuáles son los 21 logros",/los 21 logros de EDTU/],["lista de logros",/llevas \d+ de 21/],["qué logros me faltan",/te faltan \d+/],["logro de f1",/logros de F1/],["cómo se juega conecta 4",/CONECTA 4/],
+  ["dónde están los wallys",/4 WALLYs escondidos/],["cuántos wallys encontré",/\d de 4/],["cómo consigo el huevo",/🥚/],["soy leyenda",/LEYENDA de EDTU/],["cómo desbloqueo el cubo de oro",/👑/],["hay más secretos",/🤫 secretos de EDTU/],["qué esconde el logo",/logo de EDTU/],["dificultades de scream",/PESADILLA/],["qué es extinción",/EXTINCIÓN/],["cómo desbloqueo infierno",/🎚️/],
   ["rekord",/quisiste decir 'récord'/],["adivinansa",/quisiste decir 'adivinanza'/],["asdfgh",/no entendí|circuitos|confundido/],
 ];
 let ok=0, bad=0;
