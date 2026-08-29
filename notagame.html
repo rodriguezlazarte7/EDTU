@@ -314,7 +314,7 @@ function talkWallyN(){ if(wallyNTalkCd>0||!running||gameOver||level!=="surface")
   const tx=best.cx-P.x, tz=best.cz-P.z, s2=Math.sin(yaw), c2=Math.cos(yaw);
   const rgt=tx*c2-tz*s2, fw=-tx*s2-tz*c2;
   const dirTxt=Math.abs(fw)>=Math.abs(rgt)?(fw>0?"ADELANTE":"ATRÁS tuyo"):(rgt>0?"a tu DERECHA":"a tu IZQUIERDA");
-  showStory("🤖 WALLY: «"+q+"» · escaneo: pista a "+Math.round(bd)+"m "+dirTxt+" · faltan "+(7-cluesGot)); }
+  showStory("🤖 WALLY: «"+q+"» · escaneo: pista a "+Math.round(bd)+"m "+dirTxt+" · faltan "+(7-cluesGot)+(function(){ /* 🌅 WALLY dice cuánto falta para amanecer / anochecer (ciclo 360 s) */ try{ const ph2=(((performance.now()/1000-startT)%360)+360)%360/360; const night=!(ph2>0.47&&ph2<0.97); const tgt=night?(ph2<0.5?0.5:1.5):1; const sg=Math.max(0,Math.round((tgt-ph2)*360)); const mmss=Math.floor(sg/60)+":"+String(sg%60).padStart(2,"0"); return night?" · 🌅 amanece en "+mmss+", aguanta":" · 🌙 anochece en "+mmss+", aprovecha la luz"; }catch(e){ return ""; } })()); }
 // 🐕 PERRO CALLEJERO: te sigue fiel por la superficie y LADRA cuando un zombie se acerca (alerta temprana)
 const dog=new THREE.Group(); const dogM=new THREE.MeshStandardMaterial({color:0x8a6a42,roughness:.85});
 let dogTail=null, dogBarkCd=0, petCd=0, dogHappy=0, petTaught=false;
