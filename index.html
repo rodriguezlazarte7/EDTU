@@ -7505,6 +7505,9 @@ try{ const lv=parseInt(localStorage.getItem("edtu_last_visit")||"0",10)||0;
   if(lv && Date.now()-lv>4*3600*1000){ setTimeout(()=>{ try{ if(window._wallyCross) window._wallyCross("¡VOLVISTE! te tengo MUCHAS sorpresas nuevas 🎁"); }catch(e){} },1500); }
   localStorage.setItem("edtu_last_visit",String(Date.now())); }catch(e){}
 // ⚔️ RECIBIR UN RETO: link compartido con ?reto=1 (desafíos de hoy) o ?reto=f1 (F1: activa su desafío del día); WALLY cruza avisando y se limpia la URL
+// 🤖 PREGÚNTALE A WALLY desde cualquier juego: index.html?wally=pregunta abre la Sala y WALLY responde (askWally(t) también sirve para botones)
+window.askWally=function(t){ try{ const pb=$("pickTrophies"); if(pb) pb.click(); setTimeout(()=>{ const inp=$("wallyIn"), sb=$("wallySend"); if(inp&&sb){ inp.value=t; sb.click(); } },700); }catch(e){} };
+try{ const wq=(location.search.match(/[?&]wally=([^&]+)/)||[])[1]; if(wq){ const txt=decodeURIComponent(wq.replace(/\+/g," ")); setTimeout(()=>{ window.askWally(txt); try{ history.replaceState(null,"",location.pathname); }catch(e){} },600); } }catch(e){}
 try{ const rq=(location.search.match(/[?&]reto=([a-z0-9]+)/i)||[])[1];
   if(rq){ try{ localStorage.setItem("edtu_retos_recibidos",String((parseInt(localStorage.getItem("edtu_retos_recibidos")||"0",10)||0)+1)); }catch(e){} if(rq==="f1"){ try{ localStorage.setItem("edtu_f1_daily_on","1"); }catch(e){} const fb=document.getElementById("f1Daily"); if(fb) fb.textContent="📅 DESAFÍO DEL DÍA: SÍ ✔"; }
     setTimeout(()=>{ try{ if(window._wallyCross) window._wallyCross(rq==="f1"?"⚔️ ¡TE RETARON en F1! el DESAFÍO DEL DÍA quedó activado 🏎️ ¡supera sus metros!":"⚔️ ¡TE RETARON! juega los DESAFÍOS DEL DÍA 📅 y supera sus marcas"); }catch(e){} },1500);
