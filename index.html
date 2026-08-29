@@ -6749,7 +6749,7 @@ const Simon={ seq:[],idx:0,level:0,accept:false,
   next(){ this.level++; $("simonHud").textContent="Nivel "+this.level; this.seq.push((Math.random()*4)|0); this.idx=0; this.accept=false; this.playback(); },
   playback(){ let i=0; const step=()=>{ if(i>=this.seq.length){ this.accept=true; return; } this.lite(this.seq[i]); i++; setTimeout(step,650); }; setTimeout(step,500); },
   lite(s){ const p=document.querySelectorAll("#simonPad .spad")[s]; p.classList.add("lit"); gBeep(300+s*140); setTimeout(()=>p.classList.remove("lit"),350); },
-  press(s){ if(!this.accept)return; this.lite(s); if(s===this.seq[this.idx]){ this.idx++; if(this.idx>=this.seq.length){ this.accept=false; setTimeout(()=>this.next(),700); } } else { this.accept=false; $("simonOver").textContent="💀 Fallaste · llegaste al nivel "+this.level; } } };
+  press(s){ if(!this.accept)return; this.lite(s); if(s===this.seq[this.idx]){ this.idx++; if(this.idx>=this.seq.length){ this.accept=false; setTimeout(()=>this.next(),700); } } else { this.accept=false; let bs=0, nw=false; try{ bs=parseInt(localStorage.getItem("edtu_simon_best")||"0",10)||0; if(this.level>bs){ nw=bs>0; bs=this.level; localStorage.setItem("edtu_simon_best",String(bs)); } }catch(e){} $("simonOver").textContent="💀 Fallaste · llegaste al nivel "+this.level+(nw?" · 🏆 ¡RÉCORD!":(bs?" · Récord: "+bs:"")); } } };
 
 /* 🪝 AHORCADO */
 const Hang={ WORDS:["ESPIA","ROBOT","GALAXIA","MISION","CAMARA","SECRETO","NEBULOSA","COHETE","PLANETA","AGENTE","CODIGO","ESCUDO","LASER","SATELITE","ANDROIDE","BOVEDA","RADAR","NITRO"],word:"",guessed:[],wrong:0,MAX:6,over:false,
