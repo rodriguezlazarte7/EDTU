@@ -551,7 +551,7 @@ let yaw=Math.PI,pitch=0,running=false,gameOver=false,tPrev=0,flashOn=true,nvOn=f
 const spTrail=[]; let trailT=0, trailIdx=0, trailHint=false;
 for(let i=0;i<24;i++){ const m=new THREE.Mesh(new THREE.PlaneGeometry(0.5,0.7),new THREE.MeshBasicMaterial({color:0x66ff99,transparent:true,opacity:0}));
   m.rotation.x=-Math.PI/2; scene.add(m); spTrail.push({m,life:0,f:-1}); }
-let hp=3, hpMax=3, hurtCd=0, stam=100, sprintHeld=false, safeTime=0, visorBatt=100, stepT=0, breathT=0.3;
+let hp=3, hpMax=3, hurtCd=0, stam=100, sprintHeld=false, safeTime=0, visorBatt=100, stepT=0, breathT=0.3, heartT=0;   // 💓 heartT: latido del "último aliento"
 // 🎵 cajita musical de la zona segura (melodía antigua, dulce y siniestra)
 let mbT=0, mbI=0; const MB_NOTES=[659,622,659,622,659,494,587,523,440,0,262,330,440,494,0,330,415,494,523,0,0];
 // 🚪 portazos fantasma
@@ -1005,6 +1005,12 @@ function update(dt){
   visorBatt = Math.max(0, Math.min(100, visorBatt + (nvOn?-dt*7:dt*5)));
   if(nvOn && visorBatt<=0){ toggleNV(); showStory("🥽 ¡Visor agotado!"); }
   { const vb=$("visorB"), vi=vb&&vb.querySelector("i"); if(vi){ vi.style.width=visorBatt+"%"; vi.style.background=visorBatt<25?"#ff5a5a":"linear-gradient(90deg,#2affc0,#bfffe0)"; } }
+  // 💓 ÚLTIMO ALIENTO: con 1 ❤️ y la araña a menos de 9 m en tu piso, el corazón late (tum-tum grave, más rápido cuanto más cerca) — no suena en pausa (el update ya retorna)
+  if(hp===1 && !gameOver && spider && !spiderDead && spiderFloor===curFloor && !inSafe(P.x,P.z,curFloor)){
+    const dsp=Math.hypot(P.x-spider.grp.position.x,P.z-spider.grp.position.z);
+    if(dsp<9){ heartT-=dt; if(heartT<=0){ heartT=0.4+Math.max(0,Math.min(1,(dsp-1.5)/7.5))*0.8; snd(55,"sine",0.12,0.16); setTimeout(()=>snd(48,"sine",0.1,0.12),130); vib(15); } }
+    else heartT=0; }
+  else heartT=0;
   // 🎥 SOLO se renderiza el piso actual (rendimiento) + luces de ese piso
   for(let i=0;i<FLOORS;i++){ const fgv=floorGroups[i]; if(fgv) fgv.visible=(i===curFloor); }
   for(const L of floorLights) L.visible = (L.userData.fl===curFloor);
