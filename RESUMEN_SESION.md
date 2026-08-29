@@ -1,8 +1,8 @@
 # 🛰️ EDTU — Resumen de la sesión autónoma (2026-08-28)
 
-**Bucle de mejora continua mientras David estaba fuera** — dos tandas: la primera (~iter 205 → 302) y, tras el "sigue sin parar" de David, de la segunda a la quinta (iter 303 → 375 y sigue, ya con David durmiendo 😴). **371 commits desde el 26/8** (~285 en esta gran sesión), con deploy a Heroku y verificación en vivo en cada paso. **Ningún juego quedó roto en ningún momento** (chequeos de salud cada 10 iteraciones: todos verdes; el último, iter 375, Heroku v1208).
+**Bucle de mejora continua mientras David estaba fuera** — dos tandas: la primera (~iter 205 → 302) y, tras el "sigue sin parar" de David, de la segunda a la sexta (iter 303 → 385 y sigue, ya con David durmiendo 😴). **380 commits desde el 26/8** (~295 en esta gran sesión), con deploy a Heroku y verificación en vivo en cada paso. **Ningún juego quedó roto en ningún momento** (chequeos de salud cada 10 iteraciones: todos verdes; el último, iter 385, Heroku v1225).
 
-**Números actuales**: 🕷️ SCREAM **106** 🏆 · 🦖 JURASSIC **109** 🏆 · 🧟 NOT A GAME **100** 🏆 · 🏎️ F1 **72** · 🧩 CUBO **61** · **tres juegos superaron las 100 features** · 375 iteraciones de bucle verificadas sanas · páginas en vivo todas HTTP 200.
+**Números actuales**: 🕷️ SCREAM **107** 🏆 · 🦖 JURASSIC **111** 🏆 · 🧟 NOT A GAME **101** 🏆 · 🏎️ F1 **73** · 🧩 CUBO **62** · **tres juegos superaron las 100 features** · 385 iteraciones de bucle verificadas sanas · páginas en vivo todas HTTP 200.
 
 ## 🔍 Auditoría multi-agente (ultracode)
 - 2 rondas con agentes buscadores + verificadores adversarios: **25 hallazgos, 24 bugs reales corregidos** (1 refutado)
@@ -88,6 +88,16 @@
 - 🤖 WALLY chat *"rostro"/"cámara"/"no me deja entrar"* explica cómo funciona y qué hacer
 
 > 📌 **Para David — registrar tu rostro en un celular nuevo**: el rostro se guarda en cada dispositivo. Escribe **HOLA** en la portada → **25062015** en la bóveda → cara seria y luego **sonríe** al escáner. Si no te reconoce: más luz, sin gorro ni lentes, o **4567** borra el rostro para registrarlo de nuevo. Necesita **https://www.edtu.cl** y permiso de cámara.
+
+## 🆕 Sexta tanda (iter 376-385) — pulido con cariño
+- 💾 **Respaldo del rostro en IndexedDB**: si iOS borra el localStorage a los 7 días, las huellas se restauran solas al abrir el escáner
+- 🦖 **JURASSIC**: las flechas a la torre de radio y a tu casa muestran la **distancia en metros**; al recoger la 3ª batería te manda a seguir la flecha; 🌇 **aviso "anochece en 8 s"** (el día dura 24 s) para volver al refugio o prender la fogata
+- 🧟 **NAG**: **flecha dorada a la pista más cercana** durante 8 s cada vez que la Radio de la Central avisa (con metros)
+- 🕷️ **SCREAM**: **ÚLTIMO ALIENTO** — con 1 ❤️ y la araña a menos de 9 m, el corazón late (tum-tum grave + vibración, más rápido cuanto más cerca)
+- 🧩 **CUBO**: en el desafío del día el HUD muestra tu objetivo "🎯 hoy: 48.2s" y se pone rojo si el reloj lo pasa
+- 🏎️ **F1**: el diario de carrera guarda también velocidad máxima y adelantamientos ("⚡ 312 km/h · 🏁 14 adelant.")
+- 📆 **Fechas relativas** en los 5 diarios y en la Sala: "hoy", "ayer", "hace N días"
+- 🩺 Chequeo de salud en 385: todo verde
 
 ## 🤖 WALLY por todos lados
 Frases x8 por juego, celebra el 21/21 con voz, escanea pisos/baterías/cajones, certifica el póster... y presume su carrera de mBots en todas partes 🏁
