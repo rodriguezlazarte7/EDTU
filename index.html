@@ -5777,7 +5777,7 @@ const F1={
     // ⏸ PAUSA: se dibuja la escena congelada con el cartel encima
     if(this.paused){ this.draw(); const c=this.ctx; if(c){ c.save(); c.fillStyle="rgba(0,0,12,.55)"; c.fillRect(0,0,this.W,this.H);
       c.fillStyle="#c8d8ff"; c.font="900 40px system-ui,sans-serif"; c.textAlign="center"; c.fillText("⏸ PAUSA",this.W/2,this.H*0.45);
-      c.font="700 16px system-ui,sans-serif"; c.fillStyle="#7a86b8"; c.fillText("pulsa P para seguir",this.W/2,this.H*0.45+34); c.restore(); }
+      c.font="700 16px system-ui,sans-serif"; c.fillStyle="#7a86b8"; c.fillText("pulsa P para seguir",this.W/2,this.H*0.45+34); c.fillStyle="#8fd0ff"; c.font="700 14px system-ui,sans-serif"; c.fillText("W → pregúntale a WALLY los trucos",this.W/2,this.H*0.45+60); c.restore(); }
       $("f1Hud").textContent="⏸ PAUSA"; return; }
     // 🚦 largada: mientras corre la cuenta el auto está detenido; beep por luz y beep agudo en ¡GO!
     if(this.cdT>0){ this.cdT-=dt;
@@ -6851,6 +6851,7 @@ $("f1Canvas").addEventListener("pointercancel",()=>{ F1._touchX=null; });   // �
 document.addEventListener("keydown",e=>{ if(!$("f1Fs").classList.contains("open")) return; F1.keys[e.key]=true; if(e.key===" ") e.preventDefault(); if(e.key==="Escape") F1.close(); if(e.key==="h"||e.key==="H") F1.horn();
   // ⏸ pausa de carrera con P (motor incluido)
   if(e.key==="p"||e.key==="P") F1.togglePause();
+  if((e.key==="w"||e.key==="W") && F1.paused){ try{ askWally("nitro"); }catch(err){} }   /* 🤖 W en pausa: pregúntale a WALLY */
   if(e.key==="Enter" && !F1.running) F1.start(); });   // ↩ correr otra vez al instante
 $("f1Pause").addEventListener("click",()=>F1.togglePause());   // ⏸ botón táctil
 document.addEventListener("keyup",e=>{ F1.keys[e.key]=false; });
