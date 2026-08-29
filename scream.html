@@ -823,6 +823,7 @@ function crackSVG(){ let p="";
   return "data:image/svg+xml;utf8,"+encodeURIComponent(svg); }
 function doCrack(){ const c=$("crack"); if(!c) return; c.style.transition="none"; c.style.backgroundImage="url(\""+crackSVG()+"\")"; c.style.opacity="0.95";
   requestAnimationFrame(()=>{ c.style.transition="opacity 0.8s"; c.style.opacity="0"; }); }
+function floorCleanMsg(){ /* ✔ última pieza del piso recogida → apunta al piso con más piezas (1.5 s después) */ try{ const rem=valves.filter(x=>!x.got&&x.f===curFloor).length+samples.filter(x=>!x.got&&x.f===curFloor).length; if(rem) return; if(valvesGot>=4&&samplesGot>=3) return; let bf=-1,bc=0; for(let f2=0;f2<FLOORS;f2++){ const c=valves.filter(x=>!x.got&&x.f===f2).length+samples.filter(x=>!x.got&&x.f===f2).length; if(c>bc){ bc=c; bf=f2; } } if(bf<0) return; setTimeout(()=>{ showStory("✔ ¡Piso limpio! → ⭐ "+(bf===0?"la planta baja":"P"+bf)+" tiene "+bc+" pieza"+(bc>1?"s":"")+(bf>curFloor?" ⬆️ sube":" ⬇️ baja")); snd(660,"triangle",0.15,0.06); },1500); }catch(e){} }
 function updObj(){ const done=valvesGot>=4&&samplesGot>=3; $("obj").textContent = done ? "🧪 ¡Todo listo! Ve a la MÁQUINA en tu ZONA SEGURA (planta baja) y fabrica el antídoto" : ("🧪 ANTÍDOTO — válvulas "+valvesGot+"/4 · muestras "+samplesGot+"/3 (en los 7 pisos)"+(function(){ /* 🏢 lo que queda en ESTE piso */ try{ const v=valves.filter(x=>!x.got&&x.f===curFloor).length, s2=samples.filter(x=>!x.got&&x.f===curFloor).length; return (v||s2)?" · en este piso: "+(v?v+"🔧":"")+(v&&s2?" + ":"")+(s2?s2+"🧪":""):" · en este piso: ✔ nada"+(function(){ /* ⭐ piso con más piezas */ try{ let bf=-1,bc=0; for(let f2=0;f2<FLOORS;f2++){ const c=valves.filter(x=>!x.got&&x.f===f2).length+samples.filter(x=>!x.got&&x.f===f2).length; if(c>bc){ bc=c; bf=f2; } } return bf<0?"":" → ⭐ "+(bf===0?"PB":"P"+bf)+" ("+bc+")"+(bf>curFloor?" ⬆️":" ⬇️"); }catch(e){ return ", cambia de piso"; } })(); }catch(e){ return ""; } })());
   // 🗣️ LA MÁQUINA TE LLAMA: al juntar todo, habla una sola vez con fanfarria épica
   if(done && !allAnn){ allAnn=true;
@@ -1042,9 +1043,9 @@ function update(dt){
 
   // válvulas y muestras (solo del piso actual)
   for(const v of valves){ if(v.got||v.f!==curFloor) continue; v.grp.rotation.y+=dt*1.6;
-    if(Math.hypot(P.x-v.x,P.z-v.z)<1.9){ v.got=true; v.grp.visible=false; if(v.light){ v.light.visible=false; v.light.userData.fl=-1; } valvesGot++; [392,494,587].forEach((fq,k)=>setTimeout(()=>snd(fq,"triangle",0.18,0.08),k*90)); showStory("🔧 Válvula "+valvesGot+"/4"); updObj(); } }   // 🎵 arpegio metálico
+    if(Math.hypot(P.x-v.x,P.z-v.z)<1.9){ v.got=true; v.grp.visible=false; if(v.light){ v.light.visible=false; v.light.userData.fl=-1; } valvesGot++; [392,494,587].forEach((fq,k)=>setTimeout(()=>snd(fq,"triangle",0.18,0.08),k*90)); showStory("🔧 Válvula "+valvesGot+"/4"); updObj(); floorCleanMsg(); } }   // 🎵 arpegio metálico
   for(const v of samples){ if(v.got||v.f!==curFloor) continue; v.grp.rotation.y+=dt*1.8; v.grp.position.y=curFloor*FLOOR_H+1+Math.sin(now*3)*0.15;
-    if(Math.hypot(P.x-v.x,P.z-v.z)<1.9){ v.got=true; v.grp.visible=false; if(v.light){ v.light.visible=false; v.light.userData.fl=-1; } samplesGot++; [523,659,880].forEach((fq,k)=>setTimeout(()=>snd(fq,"sine",0.2,0.08),k*90)); showStory("🧪 Muestra de antídoto "+samplesGot+"/3"); updObj(); } }   // 🎵 arpegio cristalino
+    if(Math.hypot(P.x-v.x,P.z-v.z)<1.9){ v.got=true; v.grp.visible=false; if(v.light){ v.light.visible=false; v.light.userData.fl=-1; } samplesGot++; [523,659,880].forEach((fq,k)=>setTimeout(()=>snd(fq,"sine",0.2,0.08),k*90)); showStory("🧪 Muestra de antídoto "+samplesGot+"/3"); updObj(); floorCleanMsg(); } }   // 🎵 arpegio cristalino
   // 🤖 WALLY en la oscuridad: balizas alternando visibles siempre; al hallarlo beep-boop y ánimo
   if(wSBalR){ const wp3=Math.sin(now*7); wSBalR.material.color.setHex(wp3>0?0xff4040:0x551010); wSBalB.material.color.setHex(wp3<0?0x4080ff:0x102055); }
   wallyS.visible=(wallySF===curFloor);
