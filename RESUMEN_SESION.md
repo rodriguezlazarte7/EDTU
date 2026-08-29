@@ -1,8 +1,8 @@
 # 🛰️ EDTU — Resumen de la sesión autónoma (2026-08-28)
 
-**Bucle de mejora continua mientras David estaba fuera** — dos tandas: la primera (~iter 205 → 302) y, tras el "sigue sin parar" de David, de la segunda a la cuadragésima primera (iter 303 → 735 y sigue, ya con David durmiendo 😴 — ¡las iteraciones 500, 600 y 700 se celebraron de madrugada!). **691 commits desde el 26/8** (~608 en esta gran sesión), con deploy a Heroku y verificación en vivo en cada paso. **Ningún juego quedó roto en ningún momento** (chequeos de salud cada 10 iteraciones: todos verdes; el último, iter 735, Heroku v1675).
+**Bucle de mejora continua mientras David estaba fuera** — dos tandas: la primera (~iter 205 → 302) y, tras el "sigue sin parar" de David, de la segunda a la cuadragésima segunda (iter 303 → 745 y sigue, ya con David durmiendo 😴 — ¡las iteraciones 500, 600 y 700 se celebraron de madrugada!). **700 commits desde el 26/8** (~617 en esta gran sesión), con deploy a Heroku y verificación en vivo en cada paso. **Ningún juego quedó roto en ningún momento** (chequeos de salud cada 10 iteraciones: todos verdes; el último, iter 745, Heroku v1682).
 
-**Números actuales**: 🕷️ SCREAM **145** 🏆 · 🦖 JURASSIC **147** 🏆 · 🧟 NOT A GAME **138** 🏆 · 🏎️ F1 **103** 🏆 · 🧩 CUBO **84** · 🕹️ los 16 minijuegos con récord o victorias y medias · **cuatro juegos superaron las 100 features** · 735 iteraciones de bucle verificadas sanas 🎉 · páginas en vivo todas HTTP 200.
+**Números actuales**: 🕷️ SCREAM **145** 🏆 · 🦖 JURASSIC **147** 🏆 · 🧟 NOT A GAME **138** 🏆 · 🏎️ F1 **103** 🏆 · 🧩 CUBO **84** · 🕹️ los 16 minijuegos con récord o victorias y medias · **cuatro juegos superaron las 100 features** · 745 iteraciones de bucle verificadas sanas 🎉 · páginas en vivo todas HTTP 200.
 
 ## 🔍 Auditoría multi-agente (ultracode)
 - 2 rondas con agentes buscadores + verificadores adversarios: **25 hallazgos, 24 bugs reales corregidos** (1 refutado)
@@ -395,6 +395,16 @@
 - 📚 **"ayuda" por categorías**: 📊 TUS DATOS · 🎮 TRUCOS · 🚀 HACER · 🎲 JUGAR CONMIGO · 🔊 VOZ
 - 📄 RESUMEN con la Cuadragésima tanda
 - 🩺 Chequeo de salud en 735: todo verde (Heroku v1675, 691 commits desde el 26/8, test 62/62)
+
+## 🆕 Cuadragésima segunda tanda (iter 736-745) — WALLY te conoce
+- 🙋 **WALLY te llama por tu nombre**: "me llamo X" lo guarda (`edtu_agent_name`; o usa el nombre del agente logueado) y desde entonces sustituye "agente" en el chat, en el saludo de la Sala y en los avisos de SCREAM, JURASSIC y NOT A GAME; "cómo me llamo / quién soy", "olvida mi nombre"
+- 🎂 **Cumpleaños**: "mi cumpleaños es el 14 de marzo" lo guarda, "cuánto falta para mi cumpleaños" cuenta los días y el día señalado WALLY te felicita al abrir la Sala (una vez por año)
+- 🎄 **"cuánto falta para navidad / año nuevo / halloween / las fiestas patrias"** (días exactos; "navidad" y "fiestas patrias" a secas conservan sus respuestas 🎅🇨🇱)
+- 🤖 **"quién eres / quién te creó / preséntate"**: WALLY se presenta (lo creó David, vive en edtu.cl, lo que sabe hacer)
+- 📖 **"cuéntame un cuento"**: cuento aleatorio con héroes, lugares, problemas y finales de los mundos de EDTU · ✖️ **"tabla del N"**
+- 🧪 El test del chat crece a **75 preguntas** (y destapó que "me llamo david" caía en el handler de "david": los handlers de nombre van al inicio absoluto)
+- 📄 RESUMEN con la Cuadragésima primera tanda
+- 🩺 Chequeo de salud en 745: todo verde (Heroku v1682, **700 commits** desde el 26/8, test 75/75)
 
 ## 🤖 WALLY por todos lados
 Frases x8 por juego, celebra el 21/21 con voz, escanea pisos/baterías/cajones, certifica el póster... y presume su carrera de mBots en todas partes 🏁
