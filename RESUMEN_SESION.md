@@ -1,8 +1,8 @@
 # 🛰️ EDTU — Resumen de la sesión autónoma (2026-08-28)
 
-**Bucle de mejora continua mientras David estaba fuera** — dos tandas: la primera (~iter 205 → 302) y, tras el "sigue sin parar" de David, de la segunda a la trigesimoctava (iter 303 → 705 y sigue, ya con David durmiendo 😴 — ¡las iteraciones 500, 600 y 700 se celebraron de madrugada!). **664 commits desde el 26/8** (~581 en esta gran sesión), con deploy a Heroku y verificación en vivo en cada paso. **Ningún juego quedó roto en ningún momento** (chequeos de salud cada 10 iteraciones: todos verdes; el último, iter 705, Heroku v1659).
+**Bucle de mejora continua mientras David estaba fuera** — dos tandas: la primera (~iter 205 → 302) y, tras el "sigue sin parar" de David, de la segunda a la trigesimonovena (iter 303 → 715 y sigue, ya con David durmiendo 😴 — ¡las iteraciones 500, 600 y 700 se celebraron de madrugada!). **673 commits desde el 26/8** (~590 en esta gran sesión), con deploy a Heroku y verificación en vivo en cada paso. **Ningún juego quedó roto en ningún momento** (chequeos de salud cada 10 iteraciones: todos verdes; el último, iter 715, Heroku v1664).
 
-**Números actuales**: 🕷️ SCREAM **145** 🏆 · 🦖 JURASSIC **147** 🏆 · 🧟 NOT A GAME **138** 🏆 · 🏎️ F1 **103** 🏆 · 🧩 CUBO **84** · 🕹️ los 16 minijuegos con récord o victorias y medias · **cuatro juegos superaron las 100 features** · 705 iteraciones de bucle verificadas sanas 🎉 · páginas en vivo todas HTTP 200.
+**Números actuales**: 🕷️ SCREAM **145** 🏆 · 🦖 JURASSIC **147** 🏆 · 🧟 NOT A GAME **138** 🏆 · 🏎️ F1 **103** 🏆 · 🧩 CUBO **84** · 🕹️ los 16 minijuegos con récord o victorias y medias · **cuatro juegos superaron las 100 features** · 715 iteraciones de bucle verificadas sanas 🎉 · páginas en vivo todas HTTP 200.
 
 ## 🔍 Auditoría multi-agente (ultracode)
 - 2 rondas con agentes buscadores + verificadores adversarios: **25 hallazgos, 24 bugs reales corregidos** (1 refutado)
@@ -364,6 +364,16 @@
 - ➕ **"otro / otra / más / siguiente"**: WALLY vuelve a responder la pregunta anterior (otro chiste, otra sorpresa, otro truco…)
 - 📄 RESUMEN con la Trigesimoséptima tanda
 - 🩺 Chequeo de salud en 705: todo verde (Heroku v1659, 664 commits desde el 26/8)
+
+## 🆕 Trigesimonovena tanda (iter 706-715) — 🎤 háblale a WALLY y WALLY asistente
+- 🎤 **HÁBLALE A WALLY**: botón de micrófono junto al ➤ (SpeechRecognition es-ES): escribe lo que dices y lo envía; 🔴 mientras escucha, avisa si falta permiso, se oculta si el navegador no lo soporta; WALLY lo anuncia una vez en el saludo y "micrófono/dictado" lo explica
+- 🚀 **"abre X / juega X / vamos a X"**: abre cualquiera de los 22 juegos (o "sorpréndeme") cerrando la Sala — ideal por voz
+- 🧮 **Calculadora**: "cuánto es 12 por 7", "2+2", "100 entre 4" (solo dígitos y operadores validados)
+- ⏰ **Temporizador**: "avísame en 5 minutos" → al terminar toast, vibración, voz y aviso escrito
+- 🎵 **"canta"**: WALLY canta su himno en 4 frases a distintos tonos
+- 🎲 **"adivina"**: piensa un número del 1 al 100, más alto/más bajo, 10 intentos y récord de intentos; chips 🎲 adivina · 🎵 canta
+- 📄 RESUMEN con la Trigesimoctava tanda
+- 🩺 Chequeo de salud en 715: todo verde (Heroku v1664, 673 commits desde el 26/8)
 
 ## 🤖 WALLY por todos lados
 Frases x8 por juego, celebra el 21/21 con voz, escanea pisos/baterías/cajones, certifica el póster... y presume su carrera de mBots en todas partes 🏁
