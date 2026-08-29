@@ -1,8 +1,8 @@
 # 🛰️ EDTU — Resumen de la sesión autónoma (2026-08-28)
 
-**Bucle de mejora continua mientras David estaba fuera** — dos tandas: la primera (~iter 205 → 302) y, tras el "sigue sin parar" de David, de la segunda a la decimoséptima (iter 303 → 495 y sigue, ya con David durmiendo 😴). **479 commits desde el 26/8** (~396 en esta gran sesión), con deploy a Heroku y verificación en vivo en cada paso. **Ningún juego quedó roto en ningún momento** (chequeos de salud cada 10 iteraciones: todos verdes; el último, iter 495, Heroku v1410).
+**Bucle de mejora continua mientras David estaba fuera** — dos tandas: la primera (~iter 205 → 302) y, tras el "sigue sin parar" de David, de la segunda a la decimoctava (iter 303 → 505 y sigue, ya con David durmiendo 😴 — ¡la iteración 500 se celebró de madrugada!). **488 commits desde el 26/8** (~405 en esta gran sesión), con deploy a Heroku y verificación en vivo en cada paso. **Ningún juego quedó roto en ningún momento** (chequeos de salud cada 10 iteraciones: todos verdes; el último, iter 505, Heroku v1427).
 
-**Números actuales**: 🕷️ SCREAM **123** 🏆 · 🦖 JURASSIC **129** 🏆 · 🧟 NOT A GAME **117** 🏆 · 🏎️ F1 **90** · 🧩 CUBO **71** · **tres juegos superaron las 100 features** · 495 iteraciones de bucle verificadas sanas 🎉 · páginas en vivo todas HTTP 200.
+**Números actuales**: 🕷️ SCREAM **124** 🏆 · 🦖 JURASSIC **130** 🏆 · 🧟 NOT A GAME **118** 🏆 · 🏎️ F1 **90** · 🧩 CUBO **72** · **tres juegos superaron las 100 features** · 505 iteraciones de bucle verificadas sanas 🎉 · páginas en vivo todas HTTP 200.
 
 ## 🔍 Auditoría multi-agente (ultracode)
 - 2 rondas con agentes buscadores + verificadores adversarios: **25 hallazgos, 24 bugs reales corregidos** (1 refutado)
@@ -198,6 +198,15 @@
 - 🤖 **WALLY chat**: "récord" cuenta también tus récords con fecha ("🏎️ 4210 m (hace 3 días) · 🦖 6.5 días (ayer) · 🧟 4.2 kills/min")
 - 📄 RESUMEN con la Decimosexta tanda
 - 🩺 Chequeo de salud en 495: todo verde (Heroku v1410, 479 commits desde el 26/8)
+
+## 🆕 Decimoctava tanda (iter 496-505) — ¡500 mejoras! 🎉
+- 🎉 **Iteración 500** alcanzada de madrugada (29/8): WALLY chat "mejoras" y el saludo celebran las quinientas mejoras ("¡500 MEJORAS! quinientas, agente — y seguimos sin parar")
+- 🏆 **Sala**: bajo TOTALES DE TODA LA VIDA aparece el próximo hito ("🏅 próximo hito: 4 partidas más para llegar a 25"); 🧩 CUBO lo muestra también en su portada
+- 🤖 **WALLY saludo**: echa de menos el mundo que llevas 3+ días sin visitar ("hace 5 días que no visitas la isla 🦖... ¡te echan de menos!"); **chat** "visitas / abandonado / cuánto hace" cuenta tus últimas visitas a los 5 mundos
+- 📊 **Metas al empezar**: 🦖 WALLY (E) te recuerda tu media de días como meta antes de superarla; 🧟 la Central te dice tu media de kills por caso a los 9 s de empezar
+- 🕷️ **SCREAM**: al recoger la última pieza del piso, aviso "✔ ¡Piso limpio! → ⭐ P4 tiene 3 piezas ⬆️ sube" con campanita
+- 📄 RESUMEN con la Decimoséptima tanda
+- 🩺 Chequeo de salud en 505: todo verde (Heroku v1427, 488 commits desde el 26/8)
 
 ## 🤖 WALLY por todos lados
 Frases x8 por juego, celebra el 21/21 con voz, escanea pisos/baterías/cajones, certifica el póster... y presume su carrera de mBots en todas partes 🏁
