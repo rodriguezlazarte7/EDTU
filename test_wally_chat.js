@@ -10,7 +10,8 @@ for(let j=s.indexOf("{",st); j<s.length; j++){ const c=s[j]; if(c==="{") depth++
 const src=s.slice(st,end+1);
 const store={};
 const localStorage={getItem:k=>(k in store?store[k]:null),setItem:(k,v)=>{store[k]=String(v);},removeItem:k=>{delete store[k];}};
-const window={localStorage,_wallyPrevQ:""}; window.wallyName=()=>localStorage.getItem("edtu_agent_name")||"";   /* stub del nombre (se define fuera de wallyReply) */
+const window={localStorage,_wallyPrevQ:""};
+try{ const kb=fs.readFileSync(path.join(__dirname,"wally-kb.js"),"utf8"); new Function("window",kb)(window); console.log("📚 base de conocimiento: "+(window.EDTU_KB||[]).length+" entradas"); }catch(e){ console.error("❌ wally-kb.js no carga:",e.message); process.exit(2); }   /* 📚 el KB vive aparte */ window.wallyName=()=>localStorage.getItem("edtu_agent_name")||"";   /* stub del nombre (se define fuera de wallyReply) */
 const $=()=>null; const g=k=>localStorage.getItem(k); const pick=a=>a[0]; const toast=()=>{}; const wallyType=()=>{};
 const navigator={userAgent:"node"}; const document={getElementById:()=>null,querySelectorAll:()=>[]};
 const fmtMS=t=>Math.floor(t/60)+":"+String(Math.floor(t%60)).padStart(2,"0");
