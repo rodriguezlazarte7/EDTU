@@ -6853,6 +6853,7 @@ document.addEventListener("keydown",e=>{ if(!$("f1Fs").classList.contains("open"
   // ⏸ pausa de carrera con P (motor incluido)
   if(e.key==="p"||e.key==="P") F1.togglePause();
   if((e.key==="w"||e.key==="W") && F1.paused){ try{ askWally("nitro"); }catch(err){} }   /* 🤖 W en pausa: pregúntale a WALLY */
+  if((e.key==="t"||e.key==="T") && F1.paused){ try{ askWally("trivia"); }catch(err){} }   /* 🧠 T en pausa: trivia con WALLY */
   if(e.key==="Enter" && !F1.running) F1.start(); });   // ↩ correr otra vez al instante
 $("f1Pause").addEventListener("click",()=>F1.togglePause());   // ⏸ botón táctil
 document.addEventListener("keyup",e=>{ F1.keys[e.key]=false; });
