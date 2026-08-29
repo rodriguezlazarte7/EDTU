@@ -7236,9 +7236,10 @@ function buildTrophies(){ try{
   }catch(e){}
   let shareTxt="";   // 📤 texto para COMPARTIR los desafíos de hoy (se enlaza tras pintar la sala)
   let streakNow=0, streakToday=false;   // 🔥 racha de días (la usa el saludo de WALLY)
+  const LNK=(h,t)=>'<a href="'+h+'" style="color:inherit;text-decoration:underline dotted" title="ir al juego">'+t+'</a>';   // 🔗 enlaces al juego (#f1 abre F1)
   // 📅 DESAFÍOS DE HOY: mejores tiempos del día en el cubo (misma revoltura) y en SCREAM (mismo edificio)
   try{ const dd=new Date(), dk=dd.getFullYear()*10000+(dd.getMonth()+1)*100+dd.getDate(); const dv=parseFloat(g("rubik_daily_"+dk)||"0")||0, sv=parseFloat(g("scream_daily_"+dk)||"0")||0, jv=parseFloat(g("jurassic_daily_"+dk)||"0")||0, nv=parseInt(g("nag_daily_"+dk)||"0",10)||0, fv=parseFloat(g("edtu_f1_daily_"+dk)||"0")||0; const dp=[], miss=[];
-    if(dv>0) dp.push("🧩 "+dv.toFixed(1)+"s"); else miss.push("🧩 el cubo"); if(sv>0) dp.push("🕷️ "+fmtMS(sv)); else miss.push("🕷️ SCREAM"); if(jv>0) dp.push("🦖 "+jv.toFixed(1)+" días"); else miss.push("🦖 JURASSIC"); if(nv>0) dp.push("🧟 "+nv+" kills"); else miss.push("🧟 NAG"); if(fv>0) dp.push("🏎️ "+Math.round(fv)+" m"); else miss.push("🏎️ F1");
+    if(dv>0) dp.push("🧩 "+dv.toFixed(1)+"s"); else miss.push(LNK("rubik.html","🧩 el cubo")); if(sv>0) dp.push("🕷️ "+fmtMS(sv)); else miss.push(LNK("scream.html","🕷️ SCREAM")); if(jv>0) dp.push("🦖 "+jv.toFixed(1)+" días"); else miss.push(LNK("jurassic.html","🦖 JURASSIC")); if(nv>0) dp.push("🧟 "+nv+" kills"); else miss.push(LNK("notagame.html","🧟 NAG")); if(fv>0) dp.push("🏎️ "+Math.round(fv)+" m"); else miss.push(LNK("#f1","🏎️ F1"));
     // 🔥 RACHA: días seguidos (hasta 60 hacia atrás) con al menos un desafío del día jugado; si hoy aún no, la racha de ayer queda "en riesgo"
     const hasDay=k=>["rubik_daily_","scream_daily_","jurassic_daily_","nag_daily_","edtu_f1_daily_"].some(p=>(parseFloat(g(p+k))||0)>0);
     const keyOf=(y,m,d)=>{ const t=new Date(y,m,d); return t.getFullYear()*10000+(t.getMonth()+1)*100+t.getDate(); };
@@ -7253,13 +7254,15 @@ function buildTrophies(){ try{
   try{ const rd=k=>{ try{ const a=JSON.parse(g(k)||"[]"); return a.length?a[0]:null; }catch(e){ return null; } };
     const rdt=e=>{ if(!e||!e.ts) return e?e.date:""; const d=Math.floor((Date.now()-e.ts)/86400000); return d<=0?"hoy":d===1?"ayer":"hace "+d+" días"; };   // 📆 fecha relativa
     const jd=rd("jurassic_diary"), sd=rd("scream_diary"), nd=rd("nag_diary"); const la=[];
-    if(jd) la.push("🦖 "+rdt(jd)+": "+jd.days+" días"+(jd.fish?" · 🐟 "+jd.fish:"")+(jd.pack?" · 🐾 manada":"")+(jd.egg?" · 🥚":"")+" · "+(jd.hits?"🩹 "+jd.hits:"🛡️ sin heridas")+(jd.daily?" · 📅":"")+(jd.win?" ✓":""));
-    if(sd) la.push("🕷️ "+rdt(sd)+": "+fmtMS(sd.t)+" · 🔧 "+sd.v+"/4 · 🧪 "+sd.s+"/3 · 👁️ "+sd.spot+" apariciones · "+(sd.bites?"🩸 "+sd.bites:"🛡️ sin mordidas")+(sd.daily?" · 📅":"")+(sd.win?" ✓":""));
-    if(nd) la.push("🧟 "+rdt(nd)+": "+nd.kills+" kills · 📜 "+nd.clues+"/7 · 🌙 "+nd.nights+(nd.drvz?" · 🧪 Dr. VZ":"")+(nd.cat?" · 🐱":"")+(nd.daily?" · 📅":"")+(nd.win?" ✓":""));
-    const fd=rd("edtu_f1_diary"); if(fd) la.push("🏎️ "+rdt(fd)+": "+fd.m+" m · ⏱️ "+fd.sec+" sectores · 🔧 "+fd.pit+" pit"+(fd.drs?" · 🟢 DRS ×"+fd.drs:"")+(fd.spd?" · ⚡ "+fd.spd+" km/h":"")+(fd.ov?" · 🏁 "+fd.ov:"")+(fd.kondor==="W"?" · 🦅 vencido":fd.kondor==="L"?" · 🦅 escapó":"")+(fd.daily?" · 📅":"")+(fd.mirror?" · 🪞":""));
-    const cd=rd("rubik_diary"); if(cd) la.push("🧩 "+rdt(cd)+": "+cd.diff+" · "+cd.t+"s · 🔄 "+cd.moves+" giros"+(cd.hints?" · 💡 "+cd.hints:"")+(cd.daily?" · 📅":"")+(cd.win?" ✓":" · 🤖 ganó la IA"));
+    if(jd) la.push(LNK("jurassic.html","🦖 "+rdt(jd)+": "+jd.days+" días"+(jd.fish?" · 🐟 "+jd.fish:"")+(jd.pack?" · 🐾 manada":"")+(jd.egg?" · 🥚":"")+" · "+(jd.hits?"🩹 "+jd.hits:"🛡️ sin heridas")+(jd.daily?" · 📅":"")+(jd.win?" ✓":"")));
+    if(sd) la.push(LNK("scream.html","🕷️ "+rdt(sd)+": "+fmtMS(sd.t)+" · 🔧 "+sd.v+"/4 · 🧪 "+sd.s+"/3 · 👁️ "+sd.spot+" apariciones · "+(sd.bites?"🩸 "+sd.bites:"🛡️ sin mordidas")+(sd.daily?" · 📅":"")+(sd.win?" ✓":"")));
+    if(nd) la.push(LNK("notagame.html","🧟 "+rdt(nd)+": "+nd.kills+" kills · 📜 "+nd.clues+"/7 · 🌙 "+nd.nights+(nd.drvz?" · 🧪 Dr. VZ":"")+(nd.cat?" · 🐱":"")+(nd.daily?" · 📅":"")+(nd.win?" ✓":"")));
+    const fd=rd("edtu_f1_diary"); if(fd) la.push(LNK("#f1","🏎️ "+rdt(fd)+": "+fd.m+" m · ⏱️ "+fd.sec+" sectores · 🔧 "+fd.pit+" pit"+(fd.drs?" · 🟢 DRS ×"+fd.drs:"")+(fd.spd?" · ⚡ "+fd.spd+" km/h":"")+(fd.ov?" · 🏁 "+fd.ov:"")+(fd.kondor==="W"?" · 🦅 vencido":fd.kondor==="L"?" · 🦅 escapó":"")+(fd.daily?" · 📅":"")+(fd.mirror?" · 🪞":"")));
+    const cd=rd("rubik_diary"); if(cd) la.push(LNK("rubik.html","🧩 "+rdt(cd)+": "+cd.diff+" · "+cd.t+"s · 🔄 "+cd.moves+" giros"+(cd.hints?" · 💡 "+cd.hints:"")+(cd.daily?" · 📅":"")+(cd.win?" ✓":" · 🤖 ganó la IA")));
     if(la.length) h+="<div style='margin-top:8px;color:#e8d9a8'><b>📖 ÚLTIMAS AVENTURAS</b></div>"+la.join("<br>"); }catch(e){}
   $("trophyBody").innerHTML=h;
+  // 🔗 los enlaces #f1 abren F1 (cierran la Sala y pulsan el botón del menú)
+  try{ $("trophyBody").querySelectorAll('a[href="#f1"]').forEach(a=>{ a.onclick=(ev)=>{ ev.preventDefault(); $("trophyFs").style.display="none"; const pb=$("pickF1"); if(pb) pb.click(); }; }); }catch(e){}
   // 📤 COMPARTIR desafío: share nativo en móvil; si no, portapapeles (con fallback a textarea)
   { const sb=$("shareDaily"); if(sb&&shareTxt){ sb.onclick=async()=>{ const done=()=>{ sb.textContent="✅ COPIADO"; try{ localStorage.setItem("edtu_retos_enviados",String((parseInt(localStorage.getItem("edtu_retos_enviados")||"0",10)||0)+1)); }catch(e){} setTimeout(()=>{ sb.textContent="📤 COMPARTIR"; },2000); const ws2=document.getElementById("wallySpeech"); if(ws2) ws2.textContent="«¡enviado! que tiemblen tus amigos 😎»"; };
       try{ if(navigator.share){ await navigator.share({text:shareTxt}); done(); return; } }catch(e){ if(e&&e.name==="AbortError") return; }
