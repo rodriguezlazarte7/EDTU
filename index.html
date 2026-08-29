@@ -7227,6 +7227,7 @@ function buildTrophies(){ try{
       if(wr.length) h+="<br><span style='color:#9fd8c0'>Récords de la semana: "+wr.join(" · ")+"</span>"; }
   }catch(e){}
   let shareTxt="";   // 📤 texto para COMPARTIR los desafíos de hoy (se enlaza tras pintar la sala)
+  let streakNow=0, streakToday=false;   // 🔥 racha de días (la usa el saludo de WALLY)
   // 📅 DESAFÍOS DE HOY: mejores tiempos del día en el cubo (misma revoltura) y en SCREAM (mismo edificio)
   try{ const dd=new Date(), dk=dd.getFullYear()*10000+(dd.getMonth()+1)*100+dd.getDate(); const dv=parseFloat(g("rubik_daily_"+dk)||"0")||0, sv=parseFloat(g("scream_daily_"+dk)||"0")||0, jv=parseFloat(g("jurassic_daily_"+dk)||"0")||0, nv=parseInt(g("nag_daily_"+dk)||"0",10)||0, fv=parseFloat(g("edtu_f1_daily_"+dk)||"0")||0; const dp=[], miss=[];
     if(dv>0) dp.push("🧩 "+dv.toFixed(1)+"s"); else miss.push("🧩 el cubo"); if(sv>0) dp.push("🕷️ "+fmtMS(sv)); else miss.push("🕷️ SCREAM"); if(jv>0) dp.push("🦖 "+jv.toFixed(1)+" días"); else miss.push("🦖 JURASSIC"); if(nv>0) dp.push("🧟 "+nv+" kills"); else miss.push("🧟 NAG"); if(fv>0) dp.push("🏎️ "+Math.round(fv)+" m"); else miss.push("🏎️ F1");
@@ -7234,6 +7235,7 @@ function buildTrophies(){ try{
     const hasDay=k=>["rubik_daily_","scream_daily_","jurassic_daily_","nag_daily_","edtu_f1_daily_"].some(p=>(parseFloat(g(p+k))||0)>0);
     const keyOf=(y,m,d)=>{ const t=new Date(y,m,d); return t.getFullYear()*10000+(t.getMonth()+1)*100+t.getDate(); };
     const today=hasDay(dk); let streak=0; { const y=dd.getFullYear(), mo=dd.getMonth(), da=dd.getDate(); for(let i=today?0:1;i<60;i++){ if(hasDay(keyOf(y,mo,da-i))) streak++; else break; } }
+    streakNow=streak; streakToday=today;
     let sbest=parseInt(g("edtu_daily_streak_best")||"0",10)||0; if(today && streak>sbest){ sbest=streak; try{ localStorage.setItem("edtu_daily_streak_best",String(streak)); }catch(e){} }
     if(dp.length||streak>0){ h+="<div style='margin-top:8px;color:#ffd88a'><b>📅 DESAFÍOS DE HOY</b></div>"+(dp.length?dp.join(" · ")+(miss.length?"<span style='color:#9fb6c9'> · te falta"+(miss.length>1?"n":"")+" "+miss.join(", ")+"</span>":" · ¡los cinco! 🏅"):"<span style='color:#9fb6c9'>aún ninguno hoy...</span>")+(dp.length?" <button id='shareDaily' class='btn btn-ghost' style='margin-left:6px;padding:2px 10px;font-size:12px;vertical-align:middle' title='Copia tus marcas de hoy para retar a tus amigos'>📤 COMPARTIR</button>":"");
       if(dp.length) shareTxt="📅 Desafío EDTU del "+dd.getDate()+"/"+(dd.getMonth()+1)+" — "+dp.join(" · ")+(streak>1?" · 🔥 racha "+streak+" días":"")+" · ¿me ganas? 👉 www.edtu.cl/?reto=1";
@@ -7272,7 +7274,8 @@ function buildTrophies(){ try{
       const nd2=rd2("nag_diary"); if(nd2) cand.push("tu último caso: "+nd2.kills+" zombies eliminados 🧟"+(nd2.win?" y caso resuelto":"... la ciudad te necesita"));
       const fd2=rd2("edtu_f1_diary"); if(fd2) cand.push(when(fd2)+" corriste "+fd2.m+" m 🏎️"+(fd2.kondor==="W"?" y venciste a KÓNDOR":""));
       const cd2=rd2("rubik_diary"); if(cd2) cand.push(when(cd2)+" armaste el cubo en "+cd2.t+"s 🧩"+(cd2.win?" ganándole a la IA":""));
-      if(cand.length && Math.random()<0.5) memMsg=cand[Math.floor(Math.random()*cand.length)]; }catch(e){}
+      if(streakToday && streakNow>=3 && Math.random()<0.6) memMsg=(streakNow>=7?"🔥 ¡"+streakNow+" días seguidos con desafíos! eres IMPARABLE, agente 🏅":"🔥 ¡"+streakNow+" días seguidos con desafíos! sigue así — a los 7 te espera una sorpresa");   // 🔥 la racha tiene prioridad en el saludo
+      else if(cand.length && Math.random()<0.5) memMsg=cand[Math.floor(Math.random()*cand.length)]; }catch(e){}
     if(ws) ws.textContent = memMsg ? "«"+memMsg+"»" : wallys>=4 ? "«¡Encontraste TODOS mis escondites! Esta sala brilla gracias a ti»" : (seasMsg?"«"+seasMsg+"»":"«Bienvenido a tu sala, agente. Yo cuido tus trofeos»"); }
 }catch(e){ $("trophyBody").textContent="(error cargando trofeos)"; } }
 $("pickTrophies").onclick=()=>{ buildTrophies(); $("trophyFs").style.display="flex"; };
