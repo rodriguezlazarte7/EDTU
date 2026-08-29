@@ -1,8 +1,8 @@
 # 🛰️ EDTU — Resumen de la sesión autónoma (2026-08-28)
 
-**Bucle de mejora continua mientras David estaba fuera** — dos tandas: la primera (~iter 205 → 302) y, tras el "sigue sin parar" de David, de la segunda a la quincuagésima segunda (iter 303 → 845 y sigue, ya con David durmiendo 😴 — ¡las iteraciones 500, 600, 700 y 800 se celebraron de madrugada!). **780 commits desde el 26/8** (~697 en esta gran sesión), con deploy a Heroku y verificación en vivo en cada paso. **Ningún juego quedó roto en ningún momento** (chequeos de salud cada 10 iteraciones: todos verdes; el último, iter 845, Heroku v1770).
+**Bucle de mejora continua mientras David estaba fuera** — dos tandas: la primera (~iter 205 → 302) y, tras el "sigue sin parar" de David, de la segunda a la quincuagésima tercera (iter 303 → 855 y sigue, ya con David durmiendo 😴 — ¡las iteraciones 500, 600, 700 y 800 se celebraron de madrugada!). **787 commits desde el 26/8** (~704 en esta gran sesión), con deploy a Heroku y verificación en vivo en cada paso. **Ningún juego quedó roto en ningún momento** (chequeos de salud cada 10 iteraciones: todos verdes; el último, iter 855, Heroku v1784).
 
-**Números actuales**: 🕷️ SCREAM **145** 🏆 · 🦖 JURASSIC **147** 🏆 · 🧟 NOT A GAME **138** 🏆 · 🏎️ F1 **103** 🏆 · 🧩 CUBO **84** · 🕹️ los 16 minijuegos con récord o victorias y medias · **cuatro juegos superaron las 100 features** · 845 iteraciones de bucle verificadas sanas 🎉 · páginas en vivo todas HTTP 200.
+**Números actuales**: 🕷️ SCREAM **145** 🏆 · 🦖 JURASSIC **147** 🏆 · 🧟 NOT A GAME **138** 🏆 · 🏎️ F1 **103** 🏆 · 🧩 CUBO **84** · 🕹️ los 16 minijuegos con récord o victorias y medias · **cuatro juegos superaron las 100 features** · 855 iteraciones de bucle verificadas sanas 🎉 · páginas en vivo todas HTTP 200.
 
 ## 🔍 Auditoría multi-agente (ultracode)
 - 2 rondas con agentes buscadores + verificadores adversarios: **25 hallazgos, 24 bugs reales corregidos** (1 refutado)
@@ -500,6 +500,17 @@
 - 🐛 El test atrapó una excepción real ("rima con gato": `match` nulo) antes de publicar · **465 preguntas + fuzz 60**
 - 📄 RESUMEN con la Quincuagésima primera tanda
 - 🩺 Chequeo de salud en 845: todo verde (Heroku v1770, 780 commits desde el 26/8, test 465/465 + fuzz 60/60)
+
+## 🆕 Quincuagésima tercera tanda (iter 846-855) — WALLY motivador, robot y compañero de juegos
+- 🌟 Ronda 23: **valores y motivación** — qué es el amor / la amistad / la felicidad / un sueño / la valentía, cómo hacer amigos / ser feliz / valiente / mejor en los juegos, frases motivadoras ("motívame", "tengo flojera", "frase del día"), tiempo de pantalla responsable, palabra y dato del día, plan de espía para hoy
+- 🤖 Ronda 24: **charla de robot** — cómo se hace un robot (sensores, cerebro, motores; mBot, Arduino, el LAFVIN de David), vida interior (cerebro, corazón, sentimientos, sueños), "qué piensas de mí", opiniones y "te equivocaste", verdad y promesas, cariño ("abrázame", "choca"), despedidas de espía ("cambio y fuera"), "apágate"
+- 🎮 Ronda 25: preguntas precisas de los mundos (el lago, "cómo escapo", la vitrola y la linterna, el Dr. VZ, los sectores de F1, ganar a la IA del CUBO)
+- 💬 Ronda 26: **jerga de chat** — letras alargadas (holaaaa, siiii), "porfa / plis", abreviaturas (xq, k, tqm, bn, ntp, tb, salu2, 100pre, d nada), "holiwis", "okk", "dalee", "xdxd"
+- 🔗 Ronda 27: **dos peticiones en una** ("la hora y un chiste", "2+2 y 3+3", "primero un chiste después la hora") y formato clave: valor ("nombre: david", "edad: 11", "cumpleaños: 14 de marzo")
+- 🪝 Ronda 28: **AHORCADO en el chat** (20 palabras de EDTU con pista, letras o palabra entera, 6 fallos, contador en la Sala y en "estadísticas"), colmos, "qué le dijo un X a otro", toc toc, veo veo al revés, Simón dice, lagarto/Spock, chistes por tema II
+- 📚 "ayuda", "juegos del chat", corrector y trucos del día al día · 🧪 Test del chat: **552 preguntas + fuzz 60**
+- 📄 RESUMEN con la Quincuagésima segunda tanda
+- 🩺 Chequeo de salud en 855: todo verde (Heroku v1784, 787 commits desde el 26/8, test 552/552 + fuzz 60/60)
 
 ## 🤖 WALLY por todos lados
 Frases x8 por juego, celebra el 21/21 con voz, escanea pisos/baterías/cajones, certifica el póster... y presume su carrera de mBots en todas partes 🏁
