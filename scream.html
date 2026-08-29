@@ -101,6 +101,7 @@
 <div id="hud" class="hide">
   <div id="obj">🧪 ANTÍDOTO — válvulas 0/4 · muestras 0/3</div>
   <div id="floor">PLANTA BAJA</div>
+  <div id="spotN" title="Veces que la araña se te apareció en esta partida" style="position:absolute;top:58px;left:14px;font-size:12px;font-weight:900;color:#ff6a8a;text-shadow:0 0 8px #000;display:none"></div>
   <div id="timer">⏱ 20:00</div>
   <div id="floorInd" style="position:absolute;top:38px;left:14px;font-size:14px;font-weight:900;color:#9fc8d8;text-shadow:0 0 8px #000">🏢 PISO 1/7</div>
   <div id="pauseOv" style="position:fixed;inset:0;z-index:60;display:none;background:rgba(0,0,10,.8);color:#9fc8d8;font:900 36px system-ui,sans-serif;align-items:center;justify-content:center;text-align:center;flex-direction:column">⏸ PAUSA<div style="font-size:16px;margin-top:10px;color:#6a86a8">pulsa P para seguir · la araña también descansa</div></div>
@@ -853,7 +854,7 @@ function start(){ $("start").classList.add("hide"); $("end").classList.add("hide
   const D=DIFFS[diff]; hpMax=D.hp; invDur=D.inv; ambushInt=D.amb; gameTime=D.time;
   spiderDead=false; valvesGot=0; samplesGot=0; craftT=0; timeLeft=gameTime; won=false; hbT=0; spiderFloor=0; allAnn=false; clockBonus=0;
   statFloors.clear(); statFlares=0; statDist=0; lastPX=null;   // 📊 estadísticas desde cero
-  sDiaryReset();   // 📖 diario en blanco
+  sDiaryReset(); { const spN=$("spotN"); if(spN){ spN.style.display="none"; spN.textContent=""; } }   // 📖 diario en blanco · 🕷️ contador de apariciones oculto
   sRng=dailyS?mulberry32(dailyKeyS()):null;   // 📅 DESAFÍO DEL DÍA: desde aquí, toda la colocación sale de la semilla de la fecha
   manqF=Math.floor(srnd()*FLOORS); placeManq(false); manqT=6; manqMoveT=25; manqSting=false;   // 🧍 maniquí nuevo
   genF=Math.floor(srnd()*FLOORS); { const gs=randSpotOnFloor(genF); genM.position.set(gs.x,genF*FLOOR_H,gs.z); }   // ⚡ generador nuevo
@@ -1146,7 +1147,7 @@ function update(dt){
       if(!spiderDead && sameFloor && sd<25){ spider.ambushT=Math.min(spider.ambushT,1.5);
         if(!glassWarned){ glassWarned=true; showStory("🍾 ¡Pisaste VIDRIOS! Te escuchó... ¡muévete!"); } } } }
   if(!spiderDead && flashOn && ceilAtk.phase===0 && genOn<=0){ spider.ambushT-=dt;   // 🔦 SOLO se teletransporta con la linterna PRENDIDA (🐛FIX: y nunca en pleno ataque del techo — daba sustos falsos) · ⚡ ni con el generador encendido
-    if(spider.ambushT<=0){ spider.ambushT=ambushInt*(1-panic*0.45); sDiary.spot++;   // se teletransporta más seguido con poco tiempo
+    if(spider.ambushT<=0){ spider.ambushT=ambushInt*(1-panic*0.45); sDiary.spot++; { const spN=$("spotN"); if(spN){ spN.style.display="block"; spN.textContent="🕷️ apariciones: "+sDiary.spot; } }   // se teletransporta más seguido con poco tiempo
       if(sameFloor){ const fx=-Math.sin(yaw), fz=-Math.cos(yaw), dist=7+Math.random()*2; const sp2=safeSpotF(P.x+fx*dist,P.z+fz*dist,curFloor);   // aparece ADELANTE
           spider.grp.position.x=sp2.x; spider.grp.position.z=sp2.z; spider.camo=1; screech(); snd(60,"sawtooth",0.7,0.18); const sf=$("sflash"); if(sf){ sf.style.opacity="0.55"; setTimeout(()=>sf.style.opacity="0",90);} doCrack(); vib([0,40,30,50]); showStory("🕷️ ¡APARECIÓ FRENTE A TI!"); }
       else { spiderFloor=curFloor; const sp2=safeSpotF(STAIRX,STAIRZ,curFloor); spider.grp.position.x=sp2.x; spider.grp.position.z=sp2.z; spider.camo=1; screech(); snd(80,"sawtooth",0.9,0.16); showStory("🕷️ ¡SUBIÓ POR LAS ESCALERAS a tu piso!"); } } }
