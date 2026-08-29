@@ -1,8 +1,8 @@
 # 🛰️ EDTU — Resumen de la sesión autónoma (2026-08-28)
 
-**Bucle de mejora continua mientras David estaba fuera** — dos tandas: la primera (~iter 205 → 302) y, tras el "sigue sin parar" de David, de la segunda a la decimonovena (iter 303 → 515 y sigue, ya con David durmiendo 😴 — ¡la iteración 500 se celebró de madrugada!). **497 commits desde el 26/8** (~414 en esta gran sesión), con deploy a Heroku y verificación en vivo en cada paso. **Ningún juego quedó roto en ningún momento** (chequeos de salud cada 10 iteraciones: todos verdes; el último, iter 515, Heroku v1444).
+**Bucle de mejora continua mientras David estaba fuera** — dos tandas: la primera (~iter 205 → 302) y, tras el "sigue sin parar" de David, de la segunda a la vigésima (iter 303 → 525 y sigue, ya con David durmiendo 😴 — ¡la iteración 500 se celebró de madrugada!). **506 commits desde el 26/8** (~423 en esta gran sesión), con deploy a Heroku y verificación en vivo en cada paso. **Ningún juego quedó roto en ningún momento** (chequeos de salud cada 10 iteraciones: todos verdes; el último, iter 525, Heroku v1460).
 
-**Números actuales**: 🕷️ SCREAM **126** 🏆 · 🦖 JURASSIC **131** 🏆 · 🧟 NOT A GAME **119** 🏆 · 🏎️ F1 **91** · 🧩 CUBO **72** · **tres juegos superaron las 100 features** · 515 iteraciones de bucle verificadas sanas 🎉 · páginas en vivo todas HTTP 200.
+**Números actuales**: 🕷️ SCREAM **127** 🏆 · 🦖 JURASSIC **132** 🏆 · 🧟 NOT A GAME **121** 🏆 · 🏎️ F1 **92** · 🧩 CUBO **75** · **tres juegos superaron las 100 features** · 525 iteraciones de bucle verificadas sanas 🎉 · páginas en vivo todas HTTP 200.
 
 ## 🔍 Auditoría multi-agente (ultracode)
 - 2 rondas con agentes buscadores + verificadores adversarios: **25 hallazgos, 24 bugs reales corregidos** (1 refutado)
@@ -214,6 +214,14 @@
 - 🕷️ **SCREAM**: WALLY (E) te recuerda tu media de tiempo en el edificio como meta antes de superarla ("tu media es 6:40 — llevas 2:10... ¡aguanta más!")
 - 📄 RESUMEN con la Decimoctava tanda
 - 🩺 Chequeo de salud en 515: todo verde (Heroku v1444, 497 commits desde el 26/8)
+
+## 🆕 Vigésima tanda (iter 516-525) — noches, patitas y giros
+- 🌅 **Resumen de la noche al amanecer**: 🦖 JURASSIC ("¡Noche 2 superada! 🛡️ sin heridas · 🔥 1 fogata — día 3 de 7") y 🧟 NAG ("¡Noche 1 superada! 🧟 14 kills · 📜 2 pistas"); el HUD de NAG cuenta los kills de ESTA noche
+- 🕷️ **SCREAM**: se oyen las patitas de la araña cuando está en tu piso a menos de 12 m — más rápidas y fuertes cuanto más cerca
+- 🏎️ **F1**: la radio celebra 5 / 10 / 20 adelantamientos en una misma carrera ("Cinco adelantamientos, piloto. Vas como un rayo.")
+- 🧩 **CUBO**: RÉCORD DE MENOS GIROS — se celebra al ganar, la portada y la Sala lo muestran, y el contador del HUD lo lleva al lado ("🔄 12 · 🏆38", ✗ si lo pasas)
+- 📄 RESUMEN con la Decimonovena tanda
+- 🩺 Chequeo de salud en 525: todo verde (Heroku v1460, 506 commits desde el 26/8)
 
 ## 🤖 WALLY por todos lados
 Frases x8 por juego, celebra el 21/21 con voz, escanea pisos/baterías/cajones, certifica el póster... y presume su carrera de mBots en todas partes 🏁
