@@ -1,8 +1,8 @@
 # 🛰️ EDTU — Resumen de la sesión autónoma (2026-08-28)
 
-**Bucle de mejora continua mientras David estaba fuera** — dos tandas: la primera (~iter 205 → 302) y, tras el "sigue sin parar" de David, la segunda, tercera y cuarta (iter 303 → 369 y sigue). **365 commits desde el 26/8** (~280 en esta gran sesión), con deploy a Heroku y verificación en vivo en cada paso. **Ningún juego quedó roto en ningún momento** (chequeos de salud cada 10 iteraciones: todos verdes; el último, iter 365, Heroku v1189).
+**Bucle de mejora continua mientras David estaba fuera** — dos tandas: la primera (~iter 205 → 302) y, tras el "sigue sin parar" de David, de la segunda a la quinta (iter 303 → 375 y sigue, ya con David durmiendo 😴). **371 commits desde el 26/8** (~285 en esta gran sesión), con deploy a Heroku y verificación en vivo en cada paso. **Ningún juego quedó roto en ningún momento** (chequeos de salud cada 10 iteraciones: todos verdes; el último, iter 375, Heroku v1208).
 
-**Números actuales**: 🕷️ SCREAM **106** 🏆 · 🦖 JURASSIC **109** 🏆 · 🧟 NOT A GAME **100** 🏆 · 🏎️ F1 **71** · 🧩 CUBO **61** · **tres juegos superaron las 100 features** · 369 iteraciones de bucle verificadas sanas · páginas en vivo todas HTTP 200.
+**Números actuales**: 🕷️ SCREAM **106** 🏆 · 🦖 JURASSIC **109** 🏆 · 🧟 NOT A GAME **100** 🏆 · 🏎️ F1 **72** · 🧩 CUBO **61** · **tres juegos superaron las 100 features** · 375 iteraciones de bucle verificadas sanas · páginas en vivo todas HTTP 200.
 
 ## 🔍 Auditoría multi-agente (ultracode)
 - 2 rondas con agentes buscadores + verificadores adversarios: **25 hallazgos, 24 bugs reales corregidos** (1 refutado)
@@ -80,6 +80,14 @@
 - 🤖 WALLY chat *"reto"/"amigo"* explica cómo retar y te arma el texto listo para copiar con tus 5 marcas del día; los desafíos quedan **persistentes** en los 5 juegos (recuerdan si los dejaste activados)
 - 🏆 **NOT A GAME llegó a 100 features** — el tercer juego en cruzar la barrera (con SCREAM y JURASSIC)
 - 🩺 Chequeo de salud en 365: todo verde
+
+## 🆕 Quinta tanda (iter 370-375) — retos contados, espectador y rostro
+- ⚔️ **Retos contados**: cada reto abierto por link y cada 📤 COMPARTIR se cuentan; la Sala muestra "retos: N enviados · M recibidos" y WALLY lo menciona
+- 👻 **F1 MODO ESPECTADOR**: botón "VER MI RÉCORD" en la portada de F1 (si hay fantasma grabado) — el auto corre solo siguiendo la trayectoria de tu récord y termina con "así corrió tu récord: N m — ahora véncelo tú" (sin tocar récords ni diario)
+- 🧬 **Arreglo del login facial** (lo reportaste antes de dormir: "no me deja entrar"): umbrales estándar de la IA (0.62 en vivo por promedio de 4 lecturas / 0.58 final; antes 0.55/0.50, más estricto de lo recomendado), aprendizaje adaptativo (cada verificación guarda el ángulo/luz nuevo), mensajes con el % de parecido y qué hacer, y aviso previo si el dispositivo no tiene rostro guardado. Además una auditoría encontró y se corrigieron **12 bugs**: el reloj de 25 s corría mientras bajaban ~7 MB de modelos (ahora corre desde que la IA carga), guardar la plantilla podía colgar la barra al 100 %, el botón desaparecía en Safari/Firefox antes de dar permiso, doble toque abría dos sesiones, el video no recibía play() (iOS), el rechazo de cámara no decía el motivo, la malla 3D rota dejaba la barra pegada al 70 %, la "cara seria" bloqueaba a quien ya venía sonriendo, un 404 de la red de expresiones bloqueaba todo, tamaño de detector distinto al del entrenamiento, la lista de agentes sin proteger y un bug del service worker que hacía pasar TODAS las descargas por él
+- 🤖 WALLY chat *"rostro"/"cámara"/"no me deja entrar"* explica cómo funciona y qué hacer
+
+> 📌 **Para David — registrar tu rostro en un celular nuevo**: el rostro se guarda en cada dispositivo. Escribe **HOLA** en la portada → **25062015** en la bóveda → cara seria y luego **sonríe** al escáner. Si no te reconoce: más luz, sin gorro ni lentes, o **4567** borra el rostro para registrarlo de nuevo. Necesita **https://www.edtu.cl** y permiso de cámara.
 
 ## 🤖 WALLY por todos lados
 Frases x8 por juego, celebra el 21/21 con voz, escanea pisos/baterías/cajones, certifica el póster... y presume su carrera de mBots en todas partes 🏁
