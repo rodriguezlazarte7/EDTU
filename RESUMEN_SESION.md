@@ -1,8 +1,8 @@
 # 🛰️ EDTU — Resumen de la sesión autónoma (2026-08-28)
 
-**Bucle de mejora continua mientras David estaba fuera** — dos tandas: la primera (~iter 205 → 302) y, tras el "sigue sin parar" de David, de la segunda a la decimosexta (iter 303 → 485 y sigue, ya con David durmiendo 😴). **470 commits desde el 26/8** (~387 en esta gran sesión), con deploy a Heroku y verificación en vivo en cada paso. **Ningún juego quedó roto en ningún momento** (chequeos de salud cada 10 iteraciones: todos verdes; el último, iter 485, Heroku v1393).
+**Bucle de mejora continua mientras David estaba fuera** — dos tandas: la primera (~iter 205 → 302) y, tras el "sigue sin parar" de David, de la segunda a la decimoséptima (iter 303 → 495 y sigue, ya con David durmiendo 😴). **479 commits desde el 26/8** (~396 en esta gran sesión), con deploy a Heroku y verificación en vivo en cada paso. **Ningún juego quedó roto en ningún momento** (chequeos de salud cada 10 iteraciones: todos verdes; el último, iter 495, Heroku v1410).
 
-**Números actuales**: 🕷️ SCREAM **122** 🏆 · 🦖 JURASSIC **128** 🏆 · 🧟 NOT A GAME **116** 🏆 · 🏎️ F1 **87** · 🧩 CUBO **70** · **tres juegos superaron las 100 features** · 485 iteraciones de bucle verificadas sanas 🎉 · páginas en vivo todas HTTP 200.
+**Números actuales**: 🕷️ SCREAM **123** 🏆 · 🦖 JURASSIC **129** 🏆 · 🧟 NOT A GAME **117** 🏆 · 🏎️ F1 **90** · 🧩 CUBO **71** · **tres juegos superaron las 100 features** · 495 iteraciones de bucle verificadas sanas 🎉 · páginas en vivo todas HTTP 200.
 
 ## 🔍 Auditoría multi-agente (ultracode)
 - 2 rondas con agentes buscadores + verificadores adversarios: **25 hallazgos, 24 bugs reales corregidos** (1 refutado)
@@ -187,6 +187,17 @@
 - 🧟 **NAG**: "geiger" de la pista señalada — un pitido que se acelera y se agudiza al acercarte (<15 m)
 - 📄 RESUMEN con la Decimoquinta tanda
 - 🩺 Chequeo de salud en 485: todo verde (Heroku v1393, 470 commits desde el 26/8)
+
+## 🆕 Decimoséptima tanda (iter 486-495) — fechas, ⭐ y avisos
+- 🏎️ **F1**: la radio avisa en plena carrera al pasar tu media ("Pasaste tu media, piloto. Sigue empujando."); la portada dice cuándo hiciste la mejor de esta semana
+- 🧩 **CUBO**: fuera del desafío del día, el HUD muestra tu media como objetivo ("📊 media: 48.3s") y se pone rojo si la pasas
+- 🕷️ **SCREAM**: si tu piso está limpio, el objetivo del HUD apunta al piso con más piezas ("✔ nada → ⭐ P4 (3) ⬆️")
+- 🦖 **JURASSIC**: la flecha 🏠 TU CASA aparece también de día si te alejaste más de 60 m
+- 🧟 **NAG**: el ritmo del expediente se compara con tu media de ritmo ("⚡ 4.2/min ⬆️ (media 3.1)")
+- 🏆 **Sala**: el texto de 📤 COMPARTIR lleva tus partidas totales ("📚 31 partidas en EDTU")
+- 🤖 **WALLY chat**: "récord" cuenta también tus récords con fecha ("🏎️ 4210 m (hace 3 días) · 🦖 6.5 días (ayer) · 🧟 4.2 kills/min")
+- 📄 RESUMEN con la Decimosexta tanda
+- 🩺 Chequeo de salud en 495: todo verde (Heroku v1410, 479 commits desde el 26/8)
 
 ## 🤖 WALLY por todos lados
 Frases x8 por juego, celebra el 21/21 con voz, escanea pisos/baterías/cajones, certifica el póster... y presume su carrera de mBots en todas partes 🏁
