@@ -88,8 +88,8 @@
   <div id="radio">📻 Radio: APAGADA<br>🔋 baterías: 0/3</div>
   <div id="ammo">💉 DARDOS: 6</div>
   <canvas id="jradar" width="104" height="104"></canvas>
-  <div id="toRadio"><span class="arw">▲</span> TORRE DE RADIO</div>
-  <div id="toHome"><span class="arw">▲</span> TU CASA</div>
+  <div id="toRadio"><span class="arw">▲</span> TORRE DE RADIO <span class="dist"></span></div>
+  <div id="toHome"><span class="arw">▲</span> TU CASA <span class="dist"></span></div>
   <div id="jPauseOv" style="position:fixed;inset:0;z-index:60;display:none;background:rgba(0,10,5,.8);color:#bfe3d8;font:900 36px system-ui,sans-serif;align-items:center;justify-content:center;text-align:center;flex-direction:column">⏸ PAUSA<div style="font-size:16px;margin-top:10px;color:#6a9a86">pulsa P para seguir · los dinos también descansan</div></div>
   <div id="jmap" style="position:fixed;inset:0;z-index:55;display:none;background:rgba(0,8,4,.93);align-items:center;justify-content:center;flex-direction:column">
     <canvas id="jmapCv" width="520" height="520" style="max-width:92vw;max-height:76vh"></canvas>
@@ -1294,7 +1294,7 @@ function update(dt){
   // pickups
   for(let i=pickups.length-1;i>=0;i--){ const p=pickups[i]; p.mesh.rotation.y+=dt*1.5; p.mesh.position.y=0.7+Math.sin(elapsed*2+i)*0.12;
     if(Math.hypot(P.x-p.mesh.position.x,P.z-p.mesh.position.z)<1.6){ if(p.kind==="dart"){ darts+=2; updAmmo(); } else inv[p.kind]++;
-      if(p.kind==="batt"){ [440,554,659,880].forEach((fq,k)=>setTimeout(()=>snd(fq,"triangle",0.18,0.09),k*90)); showStory("🔋 ¡Batería! ("+inv.batt+"/3 para la radio)"); }   // 🎵 arpegio especial
+      if(p.kind==="batt"){ [440,554,659,880].forEach((fq,k)=>setTimeout(()=>snd(fq,"triangle",0.18,0.09),k*90)); showStory(inv.batt>=3?"🔋 ¡3 BATERÍAS! Sigue la flecha 📻 hasta la TORRE DE RADIO y pide rescate":"🔋 ¡Batería! ("+inv.batt+"/3 para la radio)"); }   // 🎵 arpegio especial
       else { snd(880,"triangle",0.12,0.07); showStory("Recogiste "+KIND[p.kind].ic); }
       scene.remove(p.mesh); pickups.splice(i,1); updInv(); } }
   if(pickups.length<44 && Math.random()<dt*0.5){ const r=Math.random(); spawnPickup(r<0.42?"water":r<0.82?"food":"batt"); }
@@ -1378,12 +1378,12 @@ function update(dt){
   // 🧭 flecha a la TORRE DE RADIO cuando tienes las 3 baterías (y aún no enciendes la radio)
   { const tr=$("toRadio");
     if(!radioOn && inv.batt>=3){ tr.classList.add("on"); const s2=Math.sin(yaw),c2=Math.cos(yaw); const tx=RADIO.x-P.x, tz=RADIO.z-P.z;
-      const rgt=tx*c2-tz*s2, fw2=-tx*s2-tz*c2; tr.querySelector(".arw").style.transform="rotate("+(Math.atan2(rgt,fw2)*57.2958)+"deg)"; }
+      const rgt=tx*c2-tz*s2, fw2=-tx*s2-tz*c2; tr.querySelector(".arw").style.transform="rotate("+(Math.atan2(rgt,fw2)*57.2958)+"deg)"; const dd=tr.querySelector(".dist"); if(dd) dd.textContent="· "+Math.round(Math.hypot(tx,tz))+" m"; }   // 📏 distancia
     else tr.classList.remove("on"); }
   // 🏠 flecha a TU CASA: de noche y lejos del refugio (>25m), para volver sin perderte
   { const th=$("toHome"); const hd2=Math.hypot(SH.x-P.x,SH.z-P.z);
     if(isNight && hd2>25 && !(!radioOn && inv.batt>=3)){ th.classList.add("on"); const s2=Math.sin(yaw),c2=Math.cos(yaw); const tx=SH.x-P.x, tz=SH.z-P.z;
-      const rgt=tx*c2-tz*s2, fw2=-tx*s2-tz*c2; th.querySelector(".arw").style.transform="rotate("+(Math.atan2(rgt,fw2)*57.2958)+"deg)"; }
+      const rgt=tx*c2-tz*s2, fw2=-tx*s2-tz*c2; th.querySelector(".arw").style.transform="rotate("+(Math.atan2(rgt,fw2)*57.2958)+"deg)"; const dh=th.querySelector(".dist"); if(dh) dh.textContent="· "+Math.round(hd2)+" m"; }   // 📏 distancia
     else th.classList.remove("on"); }
   const hint=$("hint"); hint.textContent = danger?"⚠ ¡Un dinosaurio te persigue! ¡Corre o escóndete!":(safe?"🟢 Estás en una ZONA SEGURA (los dinos no entran)":(flashBatt<25&&isNight?(inv.batt>0?"🔦 ¡Batería baja! pulsa [3] o toca 🔋 para recargar":"🔦 ¡Batería baja! busca una 🔋"):(inv.batt>=3?"🔋 Lleva las baterías a la TORRE DE RADIO":"")));
 
