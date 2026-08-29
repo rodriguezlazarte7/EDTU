@@ -576,7 +576,7 @@ const wallyS=new THREE.Group(); let wallySF=0, wallySSeen=false, wSBalR=null, wS
 function placeWallyS(){ wallySF=Math.floor(srnd()*FLOORS); const s=randSpotOnFloor(wallySF); wallyS.position.set(s.x,wallySF*FLOOR_H,s.z); wallyS.rotation.y=srnd()*6.28; wallySSeen=false; }
 placeWallyS();
 // 🤖💬 HABLAR con WALLY (E cerca de él): escanea el piso y te dice qué objetos quedan aquí
-let wallyTalkCd=0, sAvgSaid=false, sAvgTold=false, sStealthSaid=false;
+let wallyTalkCd=0, sAvgSaid=false, sAvgTold=false, sStealthSaid=false, sTimeSaid=false;
 // ⚡ GENERADOR DE EMERGENCIA: en un piso al azar; quédate 3s a su lado y enciende TODO el edificio 20s (la araña se congela de miedo) — una vez por partida
 const genM=new THREE.Group();
 { const bx2=new THREE.Mesh(new THREE.BoxGeometry(0.9,0.7,0.6),new THREE.MeshStandardMaterial({color:0x7a1f1f,roughness:.6,metalness:.3})); bx2.position.y=0.35; genM.add(bx2);
@@ -651,6 +651,7 @@ function talkWally(){ if(wallyTalkCd>0||!running||gameOver) return;
   wallyTalkCd=5; [880,1175,1320].forEach((fq,k)=>setTimeout(()=>snd(fq,"square",0.07,0.06),k*100));
   if(wallyLegend()){ showStory("🤖 WALLY: «¡21/21! Eres LEYENDA de EDTU, agente 👑»"); vib(80); return; }
   { const mem=wallyMemS(); if(mem){ showStory("🤖 WALLY: «"+mem+"»"); vib(40); return; } }   // 🧠 recuerda tu escape anterior
+  { if(!sTimeSaid && timeLeft<=120 && timeLeft>0){ sTimeSaid=true; const done=valvesGot>=4&&samplesGot>=3; showStory("🤖 WALLY: «¡quedan "+Math.floor(timeLeft/60)+":"+String(Math.floor(timeLeft%60)).padStart(2,"0")+"! ⏰ "+(done?"¡corre a la MÁQUINA en la planta baja!":"te faltan "+(4-valvesGot)+"🔧 y "+(3-samplesGot)+"🧪 — ¡a por lo más cercano!")+"»"); vib(60); return; } }   /* ⏰ apuro final */
   { if(!sStealthSaid && sDiary.spot===0){ try{ const bs=localStorage.getItem("scream_best_spot"); const surv=Math.max(0,Math.floor(gameTime+clockBonus-timeLeft)); if(bs!=null && surv>=60 && Math.random()<0.5){ sStealthSaid=true; showStory("🤖 WALLY: «vas con 0 apariciones 🥷 — tu escape más sigiloso fue con "+bs+"... ¡sigue en silencio!»"); vib(40); return; } }catch(e){} } }   /* 🥷 sigilo */
   { if(hp===1){ let best=null,bd=1e9; medkits.forEach(mk=>{ if(mk.got) return; const d2=Math.hypot(P.x-mk.x,P.z-mk.z)+Math.abs(mk.f-curFloor)*40; if(d2<bd){ bd=d2; best=mk; } }); if(best){ const dd=Math.round(Math.hypot(P.x-best.x,P.z-best.z)); showStory("🤖 WALLY: «¡te queda 1 ❤️! el botiquín más cercano está "+(best.f===curFloor?"en ESTE piso, a "+dd+" m":"en "+(best.f===0?"la planta baja":"P"+best.f)+(best.f>curFloor?" ⬆️ sube":" ⬇️ baja"))+" ❤️‍🩹»"); vib(40); return; } } }   /* ❤️‍🩹 botiquín más cercano con 1 vida */
   { if(!sAvgSaid){ try{ const T=JSON.parse(localStorage.getItem("scream_totals")||"null"); if(T&&T.runs>=3){ const avg=(T.t||0)/T.runs, surv=Math.max(0,Math.floor(gameTime+clockBonus-timeLeft)); if(surv<avg && !sAvgTold && surv>=45 && Math.random()<0.5){ sAvgTold=true; showStory("🤖 WALLY: «tu media es "+Math.floor(avg/60)+":"+String(Math.round(avg%60)).padStart(2,"0")+" en el edificio 📊 — llevas "+Math.floor(surv/60)+":"+String(surv%60).padStart(2,"0")+"... ¡aguanta más!»"); vib(40); return; }   /* 📊 meta: tu media */
@@ -872,7 +873,7 @@ function start(){ $("start").classList.add("hide"); $("end").classList.add("hide
   helpOpen=false; $("help").classList.remove("on");
   mapOpen=false; $("map").classList.remove("on");
   try{ tutOn=!localStorage.getItem("scream_tut1"); }catch(e){ tutOn=false; }  tutStep=0; tutT=5;   // 🎓 tutorial solo la primera vez
-  P.x=0; P.z=HH-7; yaw=Math.PI; pitch=0; running=true; gameOver=false; tPrev=performance.now(); flashOn=true; curFloor=0; floorCd=0; sAvgSaid=false; sAvgTold=false; sStealthSaid=false;
+  P.x=0; P.z=HH-7; yaw=Math.PI; pitch=0; running=true; gameOver=false; tPrev=performance.now(); flashOn=true; curFloor=0; floorCd=0; sAvgSaid=false; sAvgTold=false; sStealthSaid=false; sTimeSaid=false;
   if(nvOn) toggleNV();
   const D=DIFFS[diff]; hpMax=D.hp; invDur=D.inv; ambushInt=D.amb; gameTime=D.time;
   spiderDead=false; valvesGot=0; samplesGot=0; craftT=0; timeLeft=gameTime; won=false; hbT=0; spiderFloor=0; allAnn=false; clockBonus=0;
