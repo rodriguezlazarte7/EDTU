@@ -1064,6 +1064,11 @@ function update(dt){
       if(_sd && Math.random()<0.2){ breath(0.09); const mm=Math.floor((_sd.t||0)/60)+":"+String((_sd.t||0)%60).padStart(2,"0");
         const line=_sd.win?("...la última vez escapaste en "+mm+"... esta vez no será tan fácil..."):("...la última vez aguantaste "+mm+"... y la viste "+(_sd.spot||0)+" veces... ¿cuántas hoy?...");
         snd(200,"sine",0.4,0.05); setTimeout(()=>showStory("📞 una voz que te conoce: \""+line+"\""),400); }
+      else if(Math.random()<0.3 && (valvesGot<4||samplesGot<3)){   // 🏢 a veces la voz susurra EN QUÉ PISO hay más piezas
+        let bf=-1,bc=0; for(let f2=0;f2<FLOORS;f2++){ const c=valves.filter(x=>!x.got&&x.f===f2).length+samples.filter(x=>!x.got&&x.f===f2).length; if(c>bc){ bc=c; bf=f2; } }
+        breath(0.09); snd(200,"sine",0.4,0.05);
+        const line=bf<0?"...ya tienes todo... baja a la máquina... antes de que te encuentre...":("...lo que buscas está en "+(bf===0?"la planta baja":"el piso "+bf)+"... "+bc+" pieza"+(bc>1?"s":"")+(bf===curFloor?"... aquí mismo, a tu lado...":"... date prisa...")+"...");
+        setTimeout(()=>showStory("📞 una voz que sabe dónde mirar: \""+line+"\""),400); }
       else if(Math.random()<0.25){   // 🕴️ a veces llama EL DIRECTOR de la agencia (voz grave, da ánimo)
         snd(440,"sine",0.12,0.04);
         const DIR_MSGS=["Agente, la central confía en usted. Cambio.","Buen trabajo, agente. Siga con vida. Cambio.","La agencia observa sus progresos. No nos falle.","Recuerde su entrenamiento, agente. Cambio y fuera."];
