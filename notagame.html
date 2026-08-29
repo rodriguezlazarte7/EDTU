@@ -955,7 +955,7 @@ function collide(nx,nz){ const pr=0.35; for(const w of walls){ if(nx>w.x0-pr&&nx
 
 function startGame(){
   P.x=0;P.z=ARENA-5;P.y=1.7;P.vy=0;P.onGround=true;P.hp=100; yaw=0;pitch=0;
-  cluesGot=0; gameOver=false; muzzle=0; shootCd=0; radioT=45; radioClueN=0; clueArrowT=0; c50Said=false; cAvgSaid=false; nDiaryReset(); setTimeout(()=>{ try{ if(!running||gameOver) return; const T=JSON.parse(localStorage.getItem("nag_totals")||"null"); if(T&&T.cases>=3){ try{ radioStatic(); }catch(e){} showStory("📻 CENTRAL: «tu media es "+Math.round((T.kills||0)/T.cases)+" eliminados por caso, agente. Supérala. 📊»"); } }catch(e){} },9000);   /* 📊 la Central te recuerda tu media al empezar */ nMemSaid=false; nWMemSaid=false;   // 📻 radio, 📁 expediente y 🐕 memoria del perro desde cero
+  cluesGot=0; gameOver=false; muzzle=0; shootCd=0; radioT=45; radioClueN=0; clueArrowT=0; c50Said=false; cAvgSaid=false; nWasNight=false; nDiaryReset(); setTimeout(()=>{ try{ if(!running||gameOver) return; const T=JSON.parse(localStorage.getItem("nag_totals")||"null"); if(T&&T.cases>=3){ try{ radioStatic(); }catch(e){} showStory("📻 CENTRAL: «tu media es "+Math.round((T.kills||0)/T.cases)+" eliminados por caso, agente. Supérala. 📊»"); } }catch(e){} },9000);   /* 📊 la Central te recuerda tu media al empezar */ nMemSaid=false; nWMemSaid=false;   // 📻 radio, 📁 expediente y 🐕 memoria del perro desde cero
   startT=performance.now()/1000;   // reinicia el ciclo día/noche (empieza de noche)
   zombies.forEach(z=>scene.remove(z.grp)); zombies.length=0; spawnZombies(12); kills=0; heliMode=false;
   comboN=0; comboT=0; comboPop=0; maxCombo=0; document.getElementById("combo").style.opacity="0";
@@ -1026,6 +1026,7 @@ nRainGeo.setAttribute("position",new THREE.BufferAttribute(nRainPos,3));
 const nRainMat=new THREE.PointsMaterial({color:0x8ab4de,size:0.1,transparent:true,opacity:0,fog:false});
 const nRain=new THREE.Points(nRainGeo,nRainMat); nRain.visible=false; scene.add(nRain);
 let nRainOn=false, nRainF=0, nRainNoise=null;
+let nWasNight=false, nNightK0=0, nNightC0=0;   // 🌅 resumen de la noche al amanecer (kills y pistas de esa noche)
 function setNRainSnd(on){ try{ AC=AC||new (window.AudioContext||window.webkitAudioContext)();
   if(on&&!nRainNoise){ const len=AC.sampleRate*2, buf=AC.createBuffer(1,len,AC.sampleRate), dch=buf.getChannelData(0);
     for(let i=0;i<len;i++) dch[i]=(Math.random()*2-1)*0.35;
@@ -1302,6 +1303,8 @@ function update(dt){
       [880,1175,880,1568].forEach((fq,k)=>setTimeout(()=>snd(fq,"square",0.09,0.06),k*120));
       try{ localStorage.setItem("wally_notagame","1"); }catch(e){}   // 🏅 cacería de WALLY
       showStory("🤖 ¡WALLY sobrevivió al brote! (beep-boop)"); }
+    if(dayF<=0.5 && !nWasNight){ nWasNight=true; nNightK0=kills; nNightC0=cluesGot; }   /* 🌙 empieza la noche: base */
+    else if(dayF>0.5 && nWasNight){ nWasNight=false; const nk=kills-nNightK0, nc=cluesGot-nNightC0; const nN=Math.floor((now-startT)/360)+1; showStory("🌅 ¡Noche "+nN+" superada! 🧟 "+nk+" kills · 📜 "+nc+" pista"+(nc!==1?"s":"")+" — de día los zombies aflojan, ¡busca pistas!"); [523,659,784].forEach((fq,k)=>setTimeout(()=>snd(fq,"triangle",0.18,0.07),k*150)); }   /* 🌅 amanece: resumen de la noche */
     if(dn){ const nightN=Math.floor((now-startT)/360)+1; dn.textContent = (dayF>0.5 ? "☀️ DÍA "+nightN : (bloodMoon?"🔴 LUNA DE SANGRE "+nightN:"🌙 NOCHE "+nightN))+(dayF<0.5?" · 🔋"+Math.round(fBatt)+"%":"")+(function(){ /* 🌅 cuenta atrás al amanecer / anochecer (ciclo de 360 s) */ try{ const ph2=(((now-startT)%360)+360)%360/360; const night=dayF<=0.5; const tgt=night?(ph2<0.5?0.5:1.5):1; const sg=Math.max(0,Math.round((tgt-ph2)*360)); return " · "+(night?"🌅 amanece en ":"🌙 anochece en ")+Math.floor(sg/60)+":"+String(sg%60).padStart(2,"0"); }catch(e){ return ""; } })(); }
     // 🏮 faroles: se encienden al anochecer (algunos titilan)
     for(const sl of streetLamps){ const base=(1-dayF)*1.4; sl.l.intensity=base*(Math.random()<0.06?0.2:1); sl.b.material.color.setHex(dayF>0.6?0x555550:0xffd890); }
