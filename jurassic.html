@@ -629,7 +629,7 @@ let jPhoto=false;   // 📸 modo foto (F2)
 function togglePhotoJ(){ jPhoto=!jPhoto; document.body.classList.toggle("photo",jPhoto); toast2(jPhoto?"📸 MODO FOTO — HUD oculto · F2 para volver":"📸 modo foto apagado"); }
 const inv={water:2,food:2,wood:0,batt:0}; let radioOn=false;
 const tracer=new THREE.Line(new THREE.BufferGeometry().setFromPoints([new THREE.Vector3(),new THREE.Vector3()]),new THREE.LineBasicMaterial({color:0x7fffd8,transparent:true,opacity:0})); scene.add(tracer); let tracerT=0;
-const DAY_LEN=48; let duskWarned=false;   // 🌇 aviso de anochecer (una vez por día)                       // seg por día (día+noche). 7 días ≈ 5.6 min
+const DAY_LEN=48; let duskWarned=false, jLastToastAt=0;   // jLastToastAt: para que dos avisos importantes no caigan juntos   // 🌇 aviso de anochecer (una vez por día)                       // seg por día (día+noche). 7 días ≈ 5.6 min
 const keys={}; const moveV={x:0,y:0};
 let touchUI = window.matchMedia && !matchMedia("(pointer:fine)").matches;
 
@@ -715,7 +715,8 @@ function fireTick(dt){
   if(fireCd>0) fireCd-=dt;
   if(fireT<=0) return;
   fireT-=dt;
-  if(fireT>0 && fireT<=10 && !fireWarned){ fireWarned=true; toast2("🔥 La fogata se apaga en 10 s — pon otra (C) o vuelve al refugio 🏠"); snd(330,"triangle",0.25,0.07); setTimeout(()=>snd(262,"triangle",0.25,0.06),260); }   // ⏳ aviso único
+  if(fireT>0 && fireT<=10 && !fireWarned){ fireWarned=true; const wait=(performance.now()-jLastToastAt<2500)?2600:0;   // ⏳ si acaba de salir otro aviso, este espera 2.6 s
+    setTimeout(()=>{ if(!campfire.visible) return; jLastToastAt=performance.now(); toast2("🔥 La fogata se apaga en "+Math.max(1,Math.round(fireT))+" s — pon otra (C) o vuelve al refugio 🏠"); snd(330,"triangle",0.25,0.07); setTimeout(()=>snd(262,"triangle",0.25,0.06),260); },wait); }   // ⏳ aviso único
   const fA=campfire.userData.flame, fL=campfire.userData.light;
   if(fA){ const fs=0.85+Math.random()*0.35; fA.scale.set(fs,fs*(0.9+Math.random()*0.3),fs); }
   if(fL) fL.intensity=(fireT<6?fireT/6:1)*(1.25+Math.random()*0.5);
@@ -1090,7 +1091,7 @@ function update(dt){
   const day=Math.floor(elapsed/DAY_LEN)+1;
   const df=(elapsed%DAY_LEN)/DAY_LEN;                 // 0..1 dentro del día
   // 🌇 AVISO DE ANOCHECER: 8 s antes de que caiga la noche (df=0.5), una sola vez por día; se rearma al amanecer
-  { const rem=(0.5-df)*DAY_LEN; if(running && df<0.5 && rem<=8 && !duskWarned){ duskWarned=true; showStory("🌇 ANOCHECE EN 8 SEGUNDOS — vuelve al refugio 🏠 o prende una fogata 🔥 (C)"); snd(330,"triangle",0.3,0.08); setTimeout(()=>snd(262,"triangle",0.35,0.08),320); vibJ(60); }
+  { const rem=(0.5-df)*DAY_LEN; if(running && df<0.5 && rem<=8 && !duskWarned){ duskWarned=true; jLastToastAt=performance.now(); showStory("🌇 ANOCHECE EN 8 SEGUNDOS — vuelve al refugio 🏠 o prende una fogata 🔥 (C)"); snd(330,"triangle",0.3,0.08); setTimeout(()=>snd(262,"triangle",0.35,0.08),320); vibJ(60); }
     if(df<0.05) duskWarned=false; }
   // 📊 metros recorridos
   if(jLastX!==null) jStatDist+=Math.hypot(P.x-jLastX,P.z-jLastZ);
