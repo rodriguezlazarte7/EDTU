@@ -7315,7 +7315,8 @@ function buildTrophies(){ try{
       else if(mo===2||mo===3){ seas="🍂"; seasMsg="hojitas de otoño chileno... ¡me encanta pisarlas! crunch-beep"; } }catch(e){}
     if(wb) wb.textContent=(wallys>=4?"👑":"")+seas+"🤖";
     // 🧠 1 de cada 2 veces WALLY saluda con un dato de tu diario más reciente (cualquiera de los 5 juegos)
-    let memMsg=""; try{ const rd2=k=>{ try{ const a=JSON.parse(g(k)||"[]"); return a.length?a[0]:null; }catch(e){ return null; } }; const dn=new Date(), today=dn.getDate()+"/"+(dn.getMonth()+1); const when=e=>e.date===today?"hoy":"el "+e.date; const cand=[];
+    let memMsg="";
+    try{ const b=localStorage.getItem("edtu_bday"); if(b){ const d=new Date(); const p=b.split("-"); if(parseInt(p[0],10)===d.getDate() && parseInt(p[1],10)===d.getMonth()+1){ const k=String(d.getFullYear()); if(localStorage.getItem("edtu_bday_said")!==k){ localStorage.setItem("edtu_bday_said",k); memMsg="🎂🎉 ¡FELIZ CUMPLEAÑOS, agente! hoy todos los trofeos brillan por ti — ¡pide un deseo y a jugar! 🎈"; } } } }catch(e){}   /* 🎂 cumpleaños */ try{ const rd2=k=>{ try{ const a=JSON.parse(g(k)||"[]"); return a.length?a[0]:null; }catch(e){ return null; } }; const dn=new Date(), today=dn.getDate()+"/"+(dn.getMonth()+1); const when=e=>e.date===today?"hoy":"el "+e.date; const cand=[];
       const jd2=rd2("jurassic_diary"); if(jd2) cand.push("vi que "+when(jd2)+" sobreviviste "+jd2.days+" días en la isla 🦖"+(jd2.win?" y te rescataron":"... ¡hoy más!"));
       const sd2=rd2("scream_diary"); if(sd2) cand.push(when(sd2)+" la araña te apareció "+sd2.spot+" veces 🕷️"+(sd2.win?" ¡y escapaste igual!":"... ¡hoy la burlas!"));
       const nd2=rd2("nag_diary"); if(nd2) cand.push("tu último caso: "+nd2.kills+" zombies eliminados 🧟"+(nd2.win?" y caso resuelto":"... la ciudad te necesita"));
