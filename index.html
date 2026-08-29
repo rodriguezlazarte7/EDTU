@@ -5706,7 +5706,7 @@ const F1={
     this._recPassed=false;   // 🏆 marcador de récord en la pista
     this._nearN=0; this._nearT=0;   // 😅 casi-choques
     this._touchX=null; this._cheered=-1; this._wallyBeeped=-1; this._curveWarn=-1;   // 🐛FIX ronda2: resetear one-shots y dirección táctil entre carreras
-    this._ghRec=[]; this._ghNext=0; this._ghI=0; this._ghBeat=false; this._avgPassed=false; try{ const T=JSON.parse(localStorage.getItem("edtu_f1_totals")||"null"); this._avgM=(T&&T.races>=3)?(T.m||0)/T.races:0; }catch(e){ this._avgM=0; }   /* 📊 tu media de metros, para avisarte al pasarla */   // 👻 fantasma: grabación nueva + índice + duelo
+    this._ghRec=[]; this._ghNext=0; this._ghI=0; this._ghBeat=false; this._avgPassed=false; this._recNear=false; try{ const T=JSON.parse(localStorage.getItem("edtu_f1_totals")||"null"); this._avgM=(T&&T.races>=3)?(T.m||0)/T.races:0; }catch(e){ this._avgM=0; }   /* 📊 tu media de metros, para avisarte al pasarla */   // 👻 fantasma: grabación nueva + índice + duelo
     try{ this._ghost=JSON.parse(localStorage.getItem("edtu_f1_ghost")||"null"); }catch(e){ this._ghost=null; }
     $("f1Overlay").style.display="none";
     this.engineOn();
@@ -5825,6 +5825,7 @@ const F1={
     // 👻 grabar el fantasma: muestra [dist, x] cada 20 m (cap 800 = 16 km)
     if(this._ghRec && !this._mirror && !this._spectate && this.dist>=this._ghNext && this._ghRec.length<800){ this._ghRec.push([Math.round(this.dist),Math.round(this.x*1000)/1000]); this._ghNext=this.dist+20; }
     // 👻⚔️ DUELO: al pasar la última huella del fantasma en plena carrera, anuncio único
+    if(!this._recNear && this.best>=300 && this.dist>this.best-100 && this.dist<this.best && !this._spectate && !this._mirror){ this._recNear=true; try{ this.radioSay("Cien metros para el récord, piloto. ¡A fondo!",0.9); }catch(e){} }   // 📻 a 100 m de tu récord
     if(!this._avgPassed && this._avgM>0 && this.dist>this._avgM && !this._spectate && !this._mirror){ this._avgPassed=true; try{ this.radioSay("Pasaste tu media, piloto. Sigue empujando.",0.8); }catch(e){} }   // 📊 aviso único al superar tu media de metros
     if(this._ghost && !this._mirror && !this._spectate && !this._ghBeat && this._ghost.length>1 && this.dist>this._ghost[this._ghost.length-1][0]){ this._ghBeat=true;
       try{ if(window.speechSynthesis){ const u=new SpeechSynthesisUtterance("¡Superaste a tu fantasma! ¡Nuevo récord en camino!"); u.lang="es-ES"; u.pitch=1.35; u.rate=1.12; u.volume=0.95; speechSynthesis.cancel(); speechSynthesis.speak(u); } }catch(e){}
