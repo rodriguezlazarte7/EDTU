@@ -68,10 +68,10 @@ const T=[
 ];
 let ok=0, bad=0;
 for(const [q,re] of T){ let r=""; try{ window._wallyPrevQ=store.edtu_wally_last||""; r=String(fn(q)); store.edtu_wally_last=q.slice(0,40); }catch(e){ r="❌ EXCEPCIÓN: "+e.message; }
-  const p=re.test(r); if(p) ok++; else bad++; console.log((p?"✅ ":"❌ ")+q.padEnd(30)+" → "+r.replace(/\n/g," ").slice(0,90)); }
+  const p=re.test(r) && !/error de circuitos/.test(r); if(p) ok++; else bad++; console.log((p?"✅ ":"❌ ")+q.padEnd(30)+" → "+r.replace(/\n/g," ").slice(0,90)); }
 for(const k of ["_wallyGuess","_wallyRiddle","_wallyEng","_wallyTrivia","_wallyMath","_wallyRound"]){ if(window[k]){ bad++; console.log("❌ estado activo al final de la lista: "+k+" (cierra la secuencia en el test)"); } }
 let fz=0; const AL="abcdefghijklmnñopqrstuvwxyzáéíóú0123456789 ?¿!¡+-*/.,'🎲🧠🦖  ";
-for(let i=0;i<60;i++){ const len=1+Math.floor(Math.random()*24); let q=""; for(let j=0;j<len;j++) q+=AL[Math.floor(Math.random()*AL.length)]; try{ window._wallyPrevQ=""; const r=fn(q); if(typeof r!=="string"||!r.length) throw new Error("respuesta vacía o no-string"); fz++; }catch(e){ bad++; console.log("❌ fuzz «"+q+"» → "+e.message); } }
+for(let i=0;i<60;i++){ const len=1+Math.floor(Math.random()*24); let q=""; for(let j=0;j<len;j++) q+=AL[Math.floor(Math.random()*AL.length)]; try{ window._wallyPrevQ=""; const r=fn(q); if(typeof r!=="string"||!r.length) throw new Error("respuesta vacía o no-string"); if(/error de circuitos/.test(r)) throw new Error("excepción interna (error de circuitos)"); fz++; }catch(e){ bad++; console.log("❌ fuzz «"+q+"» → "+e.message); } }
 console.log("🎲 fuzz: "+fz+"/60 entradas aleatorias sin excepciones");
 console.log("\n"+ok+" OK · "+bad+" fallos · "+T.length+" preguntas");
 process.exit(bad?1:0);
