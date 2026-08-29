@@ -6650,8 +6650,8 @@ const Mines={ N:9,M:10,b:[],rev:[],flag:[],over:false,flagMode:false,left:0,
   neigh(i){ const r=(i/this.N)|0,c=i%this.N,out=[]; for(let dr=-1;dr<=1;dr++)for(let dc=-1;dc<=1;dc++){ if(!dr&&!dc)continue; const rr=r+dr,cc=c+dc; if(rr>=0&&rr<this.N&&cc>=0&&cc<this.N)out.push(rr*this.N+cc); } return out; },
   toggleFlag(i){ if(this.over||this.rev[i])return; this.flag[i]=!this.flag[i]; $("mineBoard").children[i].textContent=this.flag[i]?"🚩":""; },
   dig(i){ if(this.over||this.rev[i]||this.flag[i])return; const c=$("mineBoard").children[i];
-    if(this.b[i]===-1){ this.over=true; c.classList.add("open","boom"); c.textContent="💥"; this.revealAll(); $("mineOver").textContent="💥 ¡BOOM! Perdiste"; return; }
-    this.flood(i); if(this.left<=0){ this.over=true; $("mineOver").textContent="🎉 ¡GANASTE!"; } },
+    if(this.b[i]===-1){ this.over=true; c.classList.add("open","boom"); c.textContent="💥"; this.revealAll(); try{ edtuPlayDay("💣 Buscaminas","💥 boom"); }catch(e){} $("mineOver").textContent="💥 ¡BOOM! Perdiste"; return; }
+    this.flood(i); if(this.left<=0){ this.over=true; try{ localStorage.setItem("edtu_mines_wins",String((parseInt(localStorage.getItem("edtu_mines_wins")||"0",10)||0)+1)); }catch(e){} try{ edtuPlayDay("💣 Buscaminas","victoria"); }catch(e){} $("mineOver").textContent="🎉 ¡GANASTE!"; } },
   flood(i){ if(this.rev[i]||this.flag[i])return; this.rev[i]=true; this.left--; const c=$("mineBoard").children[i]; c.classList.add("open"); if(this.b[i]>0){ c.textContent=this.b[i]; c.classList.add("mn"+this.b[i]); } else this.neigh(i).forEach(j=>{ if(!this.rev[j]&&this.b[j]!==-1) this.flood(j); }); },
   revealAll(){ for(let i=0;i<this.N*this.N;i++){ if(this.b[i]===-1&&!this.flag[i]){ const c=$("mineBoard").children[i]; c.classList.add("open"); c.textContent="💣"; } } } };
 
@@ -6756,7 +6756,7 @@ const Hang={ WORDS:["ESPIA","ROBOT","GALAXIA","MISION","CAMARA","SECRETO","NEBUL
   open(){ $("hangFs").classList.add("open"); this.reset(); }, close(){ $("hangFs").classList.remove("open"); },
   reset(){ this.word=this.WORDS[(Math.random()*this.WORDS.length)|0]; this.guessed=[]; this.wrong=0; this.over=false;
     const k=$("hangKeys"); k.innerHTML=""; "ABCDEFGHIJKLMNÑOPQRSTUVWXYZ".split("").forEach(ch=>{ const b=document.createElement("div"); b.className="hkey"; b.textContent=ch; b.onclick=()=>this.pick(ch,b); k.appendChild(b); }); $("hangOver").textContent=""; this.render(); },
-  pick(ch,el){ if(this.over)return; el.classList.add("used"); if(this.word.indexOf(ch)>=0){ this.guessed.push(ch); gBeep(700); if(this.word.split("").every(c=>this.guessed.indexOf(c)>=0)){ this.over=true; $("hangOver").textContent="🎉 ¡GANASTE! "+this.word; } } else { this.wrong++; gBeep(200); if(this.wrong>=this.MAX){ this.over=true; $("hangOver").textContent="💀 Perdiste · era "+this.word; } } this.render(); },
+  pick(ch,el){ if(this.over)return; el.classList.add("used"); if(this.word.indexOf(ch)>=0){ this.guessed.push(ch); gBeep(700); if(this.word.split("").every(c=>this.guessed.indexOf(c)>=0)){ this.over=true; try{ localStorage.setItem("edtu_hang_wins",String((parseInt(localStorage.getItem("edtu_hang_wins")||"0",10)||0)+1)); }catch(e){} try{ edtuPlayDay("🔤 Ahorcado","victoria: "+this.word); }catch(e){} $("hangOver").textContent="🎉 ¡GANASTE! "+this.word; } } else { this.wrong++; gBeep(200); if(this.wrong>=this.MAX){ this.over=true; try{ edtuPlayDay("🔤 Ahorcado","perdiste"); }catch(e){} $("hangOver").textContent="💀 Perdiste · era "+this.word; } } this.render(); },
   render(){ $("hangWord").textContent=this.word.split("").map(c=>(this.guessed.indexOf(c)>=0||this.over)?c:"_").join(" ");
     const faces=["🪢","😀","😟","😧","😨","😰","💀"]; $("hangMan").textContent=faces[Math.min(this.wrong,6)]; $("hangHud").textContent="Errores: "+this.wrong+"/"+this.MAX; } };
 
