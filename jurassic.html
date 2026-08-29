@@ -94,7 +94,7 @@
   <div id="toRadio"><span class="arw">▲</span> TORRE DE RADIO <span class="dist"></span></div>
   <div id="toHome"><span class="arw">▲</span> TU CASA <span class="dist"></span></div>
   <div id="toFire"><span class="arw">▲</span> TU FOGATA 🔥 <span class="dist"></span></div>
-  <div id="jPauseOv" style="position:fixed;inset:0;z-index:60;display:none;background:rgba(0,10,5,.8);color:#bfe3d8;font:900 36px system-ui,sans-serif;align-items:center;justify-content:center;text-align:center;flex-direction:column">⏸ PAUSA<div style="font-size:14px;margin-top:8px"><a href="index.html?wally=pescar" style="color:#8fd0ff;text-decoration:none;pointer-events:auto">🤖 pregúntale a WALLY los trucos</a></div><div style="font-size:16px;margin-top:10px;color:#6a9a86">pulsa P para seguir · los dinos también descansan</div></div>
+  <div id="jPauseOv" style="position:fixed;inset:0;z-index:60;display:none;background:rgba(0,10,5,.8);color:#bfe3d8;font:900 36px system-ui,sans-serif;align-items:center;justify-content:center;text-align:center;flex-direction:column">⏸ PAUSA<div style="font-size:14px;margin-top:8px"><a href="index.html?wally=pescar" style="color:#8fd0ff;text-decoration:none;pointer-events:auto">🤖 pregúntale a WALLY los trucos</a></div><div id="pauseInfo" style="font-size:15px;margin-top:8px;color:#e8e0ff"></div><div style="font-size:16px;margin-top:10px;color:#6a9a86">pulsa P para seguir · los dinos también descansan</div></div>
   <div id="jmap" style="position:fixed;inset:0;z-index:55;display:none;background:rgba(0,8,4,.93);align-items:center;justify-content:center;flex-direction:column">
     <canvas id="jmapCv" width="520" height="520" style="max-width:92vw;max-height:76vh"></canvas>
     <div style="color:#9adcb8;font:700 13px Consolas,monospace;margin-top:8px">🗺️ M para cerrar · 🔴 carnívoro 🟢 herbívoro 🏠 casa 📻 radio 🫐 bayas 🐣 nidos 🤖 WALLY</div>
@@ -692,7 +692,7 @@ function drawJMap(){ const cv=document.getElementById("jmapCv"); if(!cv) return;
   g.moveTo(px(P.x)+fx*14,pz(P.z)+fz*14); g.lineTo(px(P.x)-fz*8-fx*6,pz(P.z)+fx*8-fz*6); g.lineTo(px(P.x)+fz*8-fx*6,pz(P.z)-fx*8-fz*6); g.closePath(); g.fill(); }
 function toggleJMap(){ if(!running||gameOver) return; jMapOpen=!jMapOpen; const jm=$("jmap"); if(jm) jm.style.display=jMapOpen?"flex":"none"; if(jMapOpen) drawJMap(); snd(jMapOpen?500:280,"square",0.05,0.05); }
 // ⏸ pausa compartida: tecla P y botón táctil
-function togglePauseJ(){ if(!running||gameOver) return; jPaused=!jPaused; const po=$("jPauseOv"); if(po) po.style.display=jPaused?"flex":"none"; snd(jPaused?300:600,"square",0.08,0.06);
+function togglePauseJ(){ if(!running||gameOver) return; jPaused=!jPaused; const po=$("jPauseOv"); if(po) po.style.display=jPaused?"flex":"none"; try{ const pi=$("pauseInfo"); if(pi&&jPaused) pi.textContent="🗓️ día "+Math.min(day,7)+" de 7 · "+(((elapsed%DAY_LEN)/DAY_LEN>=0.5)?"🌙 noche":"☀️ día")+" · 🔋 "+inv.batt+"/3"+(fireT>0?" · 🔥 fogata viva":""); }catch(e){} snd(jPaused?300:600,"square",0.08,0.06);   /* ⏸ estado en la pausa */
   if(jPaused) setRainSnd(false); else if(rainOn) setRainSnd(true); }
 function useWater(){ if(jPaused) return; if(inv.water>0 && thirst<100){ inv.water--; thirst=Math.min(100,thirst+34); snd(600,"sine",0.15,0.08); updInv(); } }
 function useFood(){ if(jPaused) return; if(inv.food>0 && hunger<100){ inv.food--; hunger=Math.min(100,hunger+40); snd(300,"square",0.15,0.08); updInv(); } }
