@@ -1,8 +1,8 @@
 # 🛰️ EDTU — Resumen de la sesión autónoma (2026-08-28)
 
-**Bucle de mejora continua mientras David estaba fuera** — dos tandas: la primera (~iter 205 → 302) y, tras el "sigue sin parar" de David, de la segunda a la quincuagésima tercera (iter 303 → 855 y sigue, ya con David durmiendo 😴 — ¡las iteraciones 500, 600, 700 y 800 se celebraron de madrugada!). **787 commits desde el 26/8** (~704 en esta gran sesión), con deploy a Heroku y verificación en vivo en cada paso. **Ningún juego quedó roto en ningún momento** (chequeos de salud cada 10 iteraciones: todos verdes; el último, iter 855, Heroku v1784).
+**Bucle de mejora continua mientras David estaba fuera** — dos tandas: la primera (~iter 205 → 302) y, tras el "sigue sin parar" de David, de la segunda a la quincuagésima cuarta (iter 303 → 865 y sigue, ya con David durmiendo 😴 — ¡las iteraciones 500, 600, 700 y 800 se celebraron de madrugada!). **796 commits desde el 26/8** (~713 en esta gran sesión), con deploy a Heroku y verificación en vivo en cada paso. **Ningún juego quedó roto en ningún momento** (chequeos de salud cada 10 iteraciones: todos verdes; el último, iter 865, Heroku v1800).
 
-**Números actuales**: 🕷️ SCREAM **145** 🏆 · 🦖 JURASSIC **147** 🏆 · 🧟 NOT A GAME **138** 🏆 · 🏎️ F1 **103** 🏆 · 🧩 CUBO **84** · 🕹️ los 16 minijuegos con récord o victorias y medias · **cuatro juegos superaron las 100 features** · 855 iteraciones de bucle verificadas sanas 🎉 · páginas en vivo todas HTTP 200.
+**Números actuales**: 🕷️ SCREAM **145** 🏆 · 🦖 JURASSIC **147** 🏆 · 🧟 NOT A GAME **138** 🏆 · 🏎️ F1 **103** 🏆 · 🧩 CUBO **84** · 🕹️ los 16 minijuegos con récord o victorias y medias · **cuatro juegos superaron las 100 features** · 865 iteraciones de bucle verificadas sanas 🎉 · páginas en vivo todas HTTP 200.
 
 ## 🔍 Auditoría multi-agente (ultracode)
 - 2 rondas con agentes buscadores + verificadores adversarios: **25 hallazgos, 24 bugs reales corregidos** (1 refutado)
@@ -511,6 +511,16 @@
 - 📚 "ayuda", "juegos del chat", corrector y trucos del día al día · 🧪 Test del chat: **552 preguntas + fuzz 60**
 - 📄 RESUMEN con la Quincuagésima segunda tanda
 - 🩺 Chequeo de salud en 855: todo verde (Heroku v1784, 787 commits desde el 26/8, test 552/552 + fuzz 60/60)
+
+## 🆕 Quincuagésima cuarta tanda (iter 856-865) — WALLY guía de cada mundo, robótica y buzón de ideas
+- 🍎 Ronda 29: **vida sana y actividades** — a qué hora dormir, dulces, agua, dientes, ejercicio, ideas sin pantalla, manualidades y experimentos, recetas con un adulto, reglas de seguridad en casa, seguridad en internet (dirección, fotos, contraseña segura), el PIN; categoría "🍎 VIDA SANA" en "ayuda"
+- 🛰️ Ronda 30: quién lo mejora de noche (Claude, con David), cómo aprende, otros usuarios (privacidad) y el **centro de mando** (misiones, agentes, chat, PIN, reconocimiento facial, datos)
+- 🚗📮 Ronda 31: el carrito LAFVIN de David y cómo conectar un mando, robótica y electrónica (arduino, sensor, servo, led, scratch, python…), y el **BUZÓN DE IDEAS para David** ("idea: …", "dile a david que …") guardado en `edtu_ideas` y mostrado en la Sala
+- 🧭 Ronda 32: ver/vaciar el buzón, navegación ("volver al menú" cierra la Sala), chat de agentes y notificaciones, perfil y foto, permisos de cámara y micrófono
+- 🏎️🦖🕷️🧟🧩 Rondas 33-36: **guías detalladas de cada mundo** — F1 (pista infinita, RB18, curvas y adelantamientos, el KÓNDOR, fantasma y modo espectador), JURASSIC (día 1, refugio, comida, dinos, huir y curarse, cómo termina), SCREAM (guía, pisos y ascensor, la araña, esconderse, tiempo, reloj dorado, generador, escape fantasma), NOT A GAME (guía y cajones) y CUBO (capa por capa, caras, controles, revoltura, dificultades, pistas, número de Dios)
+- 🐛 Dos bugs cazados por el test: la abreviatura "k" rompía "kóndor" (`\b` y la ó) y "r[íi]e" del handler de chiste capturaba "muriendo" · **662 preguntas + fuzz 60**
+- 📄 RESUMEN con la Quincuagésima tercera tanda
+- 🩺 Chequeo de salud en 865: todo verde (Heroku v1800, 796 commits desde el 26/8, test 662/662 + fuzz 60/60)
 
 ## 🤖 WALLY por todos lados
 Frases x8 por juego, celebra el 21/21 con voz, escanea pisos/baterías/cajones, certifica el póster... y presume su carrera de mBots en todas partes 🏁
