@@ -743,7 +743,8 @@ const CLUE_NOTES=[
 for(let i=0;i<5;i++){ const s=freeSpot(6,ARENA-4,2.4); addDrawer(s.x,s.z,CLUE_NOTES[i]); }   // 5 pistas en la ciudad
 addDrawer(DRAINX-3,DRAINZ-14,CLUE_NOTES[5]); addDrawer(DRAINX+3,DRAINZ+14,CLUE_NOTES[6]);   // 2 pistas a lo largo del túnel
 function openDrawer(d){
-  if(d.open) return; d.open=true; cluesGot++; if(cluesGot===1){ try{ const t1=Math.max(1,Math.round(performance.now()/1000-startT)); const b1=parseInt(localStorage.getItem("nag_best_first_clue")||"0",10)||0; if(!b1||t1<b1){ localStorage.setItem("nag_best_first_clue",String(t1)); if(b1) setTimeout(()=>showStory("⚡ ¡RÉCORD: primera pista en "+t1+" s! (antes "+b1+" s)"),1800); } }catch(e){} }   /* ⚡ primera pista más rápida */
+  if(d.open) return; d.open=true; cluesGot++; if(cluesGot===6){ setTimeout(()=>{ try{ radioStatic(); }catch(e){} showStory("📻 CENTRAL: «una pista más y cierras el caso, agente. ¡Búscala!»"); },2200); }   /* 📻 penúltima pista */
+    if(cluesGot===1){ try{ const t1=Math.max(1,Math.round(performance.now()/1000-startT)); const b1=parseInt(localStorage.getItem("nag_best_first_clue")||"0",10)||0; if(!b1||t1<b1){ localStorage.setItem("nag_best_first_clue",String(t1)); if(b1) setTimeout(()=>showStory("⚡ ¡RÉCORD: primera pista en "+t1+" s! (antes "+b1+" s)"),1800); } }catch(e){} }   /* ⚡ primera pista más rápida */
   { const ce=document.getElementById("clues"); ce.textContent=cluesGot; ce.classList.add("flash"); setTimeout(()=>ce.classList.remove("flash"),2000); }   // ✨ el contador brilla dorado
   [523,659,784].forEach((fq,k)=>setTimeout(()=>snd(fq,"triangle",0.2,0.08),k*100)); snd(300,"square",0.12,0.06);   // 🎵 acorde de pista
   // 📜 papel desplegándose (ruido corto filtrado)
