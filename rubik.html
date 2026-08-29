@@ -280,7 +280,7 @@ function aiStep(gen){
 function playerMove(face,dir){ if((state!=="race"&&state!=="practice")||player.busy) return;
   try{ if(navigator.vibrate) navigator.vibrate(12); }catch(e){}   // 📳 tick háptico por giro
   const FN=FACE_NOTES[face]||440; snd(dir<0?FN*0.94:FN,"triangle",0.14,0.06); snd(FN/2,"sine",0.08,0.02);   // 🎵 nota de la cara (los ' suenan un pelín más graves)
-  moveCount++; document.getElementById("mvs").textContent="🔄 "+moveCount+(function(){ /* 🏆 récord de menos giros */ try{ if(state!=="count") return ""; const bm=parseInt(localStorage.getItem("rubik_best_moves")||"0",10)||0; return bm?(moveCount>bm?" · 🏆"+bm+" ✗":" · 🏆"+bm):""; }catch(e){ return ""; } })();   // contador de movimientos
+  moveCount++; document.getElementById("mvs").textContent="🔄 "+moveCount+(function(){ /* 🏆 récord de menos giros */ try{ if(state!=="count") return ""; const bm=((typeof loadBM==="function")?loadBM(diff):0)||parseInt(localStorage.getItem("rubik_best_moves")||"0",10)||0; /* 🏆 récord de esta dificultad (o global) */ return bm?(moveCount>bm?" · 🏆"+bm+" ✗":" · 🏆"+bm):""; }catch(e){ return ""; } })();   // contador de movimientos
   undoStack.push({face,dir});   // ↩ para poder deshacer
   { const hT=histSolve[histSolve.length-1]; if(hT&&hT.face===face&&hT.dir===-dir){ histSolve.pop(); updStreak(true); } else { histSolve.push({face,dir}); updStreak(false); } }   // 💡 seguir el camino a resuelto + 🔥 racha
   showMv("lastMvP",face,dir);   // 🔤 notación en grande
@@ -354,7 +354,7 @@ function hint(){ if((state!=="race"&&state!=="practice")||ended) return;
   setTimeout(()=>{ if(state==="race"||state==="practice") showMsg(""); },2400); }
 function undoMove(){ if((state!=="race"&&state!=="practice")||player.busy||!undoStack.length) return; const m=undoStack.pop();
   { const hU=histSolve[histSolve.length-1]; if(hU&&hU.face===m.face&&hU.dir===m.dir){ histSolve.pop(); updStreak(true); } else { histSolve.push({face:m.face,dir:-m.dir}); updStreak(false); } }   // 💡 el deshacer también cuenta
-  moveCount++; document.getElementById("mvs").textContent="🔄 "+moveCount+(function(){ /* 🏆 récord de menos giros */ try{ if(state!=="count") return ""; const bm=parseInt(localStorage.getItem("rubik_best_moves")||"0",10)||0; return bm?(moveCount>bm?" · 🏆"+bm+" ✗":" · 🏆"+bm):""; }catch(e){ return ""; } })(); snd(240,"square",0.06,0.05);
+  moveCount++; document.getElementById("mvs").textContent="🔄 "+moveCount+(function(){ /* 🏆 récord de menos giros */ try{ if(state!=="count") return ""; const bm=((typeof loadBM==="function")?loadBM(diff):0)||parseInt(localStorage.getItem("rubik_best_moves")||"0",10)||0; /* 🏆 récord de esta dificultad (o global) */ return bm?(moveCount>bm?" · 🏆"+bm+" ✗":" · 🏆"+bm):""; }catch(e){ return ""; } })(); snd(240,"square",0.06,0.05);
   move(player,m.face,-m.dir,150,()=>{ drawNet(); updFaces(); if(!ended && isSolved(player)){ if(state==="practice") practiceDone(); else finish("player"); }
     else if(ended && state==="race" && isSolved(player)){ state="done"; showMsg("✅ ¡Lo terminaste igual! (modo práctica)\n🔄 "+moveCount+" movs","#8fd0ff"); [523,659,784].forEach((f,i)=>setTimeout(()=>snd(f,"triangle",0.2,0.07),i*120)); } }); }   // 🐛FIX ronda2: resolver con DESHACER en modo práctica quedaba mudo
 
