@@ -7552,8 +7552,11 @@ const Secret={
     $("bioMsg").textContent = t.mode==="identify" ? "IDENTIFÍCATE — LA IA DIRÁ QUIÉN ERES"
       : t.mode==="agent" ? "VERIFICACIÓN DE "+((t.name||"AGENTE").toUpperCase())
       : "CONFIRMA TU IDENTIDAD, AGENTE";
-    if(t.mode==="identify"){ try{ const any=this._tplLoad().length || (typeof agents!=="undefined" && agents.some(a=>!a.blocked && this._tplLoad("edtu_face_"+a.id).length));
-      if(!any){ $("bioMsg").style.color="#ffb020"; $("bioMsg").textContent="🧬 EN ESTE DISPOSITIVO NO HAY NINGÚN ROSTRO GUARDADO · escribe 25062015 en la bóveda para registrar el tuyo (o entra con tu PIN y usa 🧬 Rostro)"; } }catch(e){} }
+    if(t.mode==="identify"){ (async()=>{ let rest=0; try{ rest=await this._tplRestore(); }catch(e){}   // 💾 primero intenta restaurar huellas desde IndexedDB
+      try{ const any=this._tplLoad().length || (typeof agents!=="undefined" && agents.some(a=>!a.blocked && this._tplLoad("edtu_face_"+a.id).length));
+        if(!any){ $("bioMsg").style.color="#ffb020"; $("bioMsg").textContent="🧬 EN ESTE DISPOSITIVO NO HAY NINGÚN ROSTRO GUARDADO · escribe 25062015 en la bóveda para registrar el tuyo (o entra con tu PIN y usa 🧬 Rostro)"; }
+        else if(rest){ $("bioMsg").textContent="💾 ROSTRO RESTAURADO DESDE EL RESPALDO · IDENTIFÍCATE"; } }catch(e){} })(); }
+    else { try{ this._tplRestore(); }catch(e){} }   // david/agente: restaurar en segundo plano (el escaneo tarda más de 1.5 s en empezar)
     $("bioStart").style.display="block"; $("bioFrame").classList.remove("scanning");
     $("bioFs").classList.add("show");
     this.loadFaceApi(); this.loadMesh();   // va cargando la IA de reconocimiento y la malla 3D mientras el usuario lee
@@ -7585,7 +7588,16 @@ const Secret={
   _tplLoad(key){ try{ const raw=JSON.parse(localStorage.getItem(key||"edtu_face_david")||"null"); if(!raw) return [];
     if(Array.isArray(raw) && typeof raw[0]==="number") return [raw];   // formato antiguo: 1 sola huella
     return Array.isArray(raw)?raw:[]; }catch(e){ return []; } },
-  _tplSave(tpls,key){ try{ localStorage.setItem(key||"edtu_face_david",JSON.stringify(tpls.slice(0,10))); }catch(e){} },   // 🐛 nunca debe tumbar el login (cuota llena / modo privado)
+  _tplSave(tpls,key){ const k=key||"edtu_face_david", v=JSON.stringify(tpls.slice(0,10)); try{ localStorage.setItem(k,v); }catch(e){} try{ this._idbSet(k,v); }catch(e){} },   // 🐛 nunca debe tumbar el login (cuota llena / modo privado) · 💾 copia en IndexedDB
+  // 💾 RESPALDO EN INDEXEDDB: iOS borra localStorage a los 7 días sin uso; las huellas también viven en IDB (edtu_face/kv) y se restauran solas
+  _idb(){ return new Promise(r=>{ try{ if(!window.indexedDB) return r(null); const q=indexedDB.open("edtu_face",1); q.onupgradeneeded=()=>{ try{ q.result.createObjectStore("kv"); }catch(e){} }; q.onsuccess=()=>r(q.result); q.onerror=()=>r(null); q.onblocked=()=>r(null); }catch(e){ r(null); } }); },
+  async _idbSet(k,v){ try{ const db=await this._idb(); if(!db) return; const tx=db.transaction("kv","readwrite"); tx.objectStore("kv").put(v,k); tx.oncomplete=()=>{ try{ db.close(); }catch(e){} }; }catch(e){} },
+  _idbGet(k){ return new Promise(async r=>{ try{ const db=await this._idb(); if(!db) return r(null); const rq=db.transaction("kv","readonly").objectStore("kv").get(k); rq.onsuccess=()=>{ r(rq.result==null?null:rq.result); try{ db.close(); }catch(e){} }; rq.onerror=()=>r(null); }catch(e){ r(null); } }); },
+  async _tplRestore(){ try{ const keys=["edtu_face_david"].concat(((typeof agents!=="undefined"&&Array.isArray(agents))?agents:[]).filter(a=>!a.blocked).map(a=>"edtu_face_"+a.id));
+      const wait=new Promise(r=>setTimeout(()=>r("__t"),1500)); let rest=0;
+      for(const k of keys){ let has=false; try{ has=!!localStorage.getItem(k); }catch(e){} if(has) continue;
+        const v=await Promise.race([this._idbGet(k),wait]); if(v && v!=="__t"){ try{ localStorage.setItem(k,v); rest++; }catch(e){} } }
+      return rest; }catch(e){ return 0; } },
   _minDist(desc,tpls){ let m=Infinity; for(const t of tpls){ const d=faceapi.euclideanDistance(t,desc); if(d<m) m=d; } return m; },
   // ---- MALLA 3D estilo EMOCA (MediaPipe Face Landmarker: 468 puntos con profundidad + emociones)
   loadMesh(){
