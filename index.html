@@ -5836,11 +5836,11 @@ const F1={
     // 🔧 PIT STOP: cada 3000 m hay una zona de boxes a la DERECHA; si te pegas al borde derecho entras: 2s lento y sales con nitro lleno + 5% de velocidad por 20s
     { let pitZ=Math.floor((this.dist-2500)/3000)*3000+2500; if(pitZ+60<this.dist) pitZ+=3000; this._pitZ=pitZ;
       const inZone=this.dist>=pitZ && this.dist<=pitZ+60;
-      if(inZone && this._pitOn<=0 && this._pitDoneZ!==pitZ && this.x>0.9 && this.x<1.1){ this._pitOn=2; this._pitDoneZ=pitZ; this._pitTick=0; this._pitN=(this._pitN||0)+1;
+      if(inZone && this._pitOn<=0 && this._pitDoneZ!==pitZ && this.x>0.9 && this.x<1.1){ this._pitOn=2; this._pitDoneZ=pitZ; this._pitTick=0; this._pitN=(this._pitN||0)+1; this.radioSay("Box, box. Entra a boxes.",0.7);
         this._pitMsg="🔧 ¡PIT STOP! cambiando neumáticos..."; this._pitMsgT=2; }
       if(this._pitOn>0){ this._pitOn-=dt; target=Math.min(target,80); this._pitTick-=dt;
         if(this._pitTick<=0){ this._pitTick=0.22; try{ const a=this.actx(); if(a){ const o=a.createOscillator(),g=a.createGain(); o.type="square"; o.frequency.value=900+Math.random()*300; g.gain.value=0.06; o.connect(g); g.connect(a.destination); o.start(); o.stop(a.currentTime+0.04); } }catch(e){} try{ if(navigator.vibrate) navigator.vibrate(12); }catch(e){} }
-        if(this._pitOn<=0){ this.fuel=100; this._pitBoostT=20; this._pitMsg="🔧 ¡NEUMÁTICOS NUEVOS! nitro lleno · +5% velocidad 20s"; this._pitMsgT=2.8;
+        if(this._pitOn<=0){ this.fuel=100; this._pitBoostT=20; this.radioSay("Neumáticos nuevos. ¡A fondo!",0.8); this._pitMsg="🔧 ¡NEUMÁTICOS NUEVOS! nitro lleno · +5% velocidad 20s"; this._pitMsgT=2.8;
           try{ const a=this.actx(); if(a){ [660,880,1175].forEach((fq,i)=>{ const o=a.createOscillator(),g=a.createGain(); o.type="triangle"; o.frequency.value=fq; g.gain.value=0.09; o.connect(g); g.connect(a.destination); o.start(a.currentTime+i*0.1); o.stop(a.currentTime+i*0.1+0.14); }); } }catch(e){} } }
       if(this._pitBoostT>0){ this._pitBoostT-=dt; target*=1.05; } }
     if(this.nitroOn){ target*=1.35; this.fuel=Math.max(0,this.fuel-26*dt); }
@@ -5995,6 +5995,10 @@ const F1={
         car.x=Math.max(-0.8,Math.min(0.8,car.x+(car.x>=px?0.22:-0.22))); moved++; } });
     if(moved){ setTimeout(()=>{ try{ const a2=this.actx(); if(a2&&Math.random()<0.6){ const o2=a2.createOscillator(),g2=a2.createGain(); o2.type="square"; o2.frequency.value=330; g2.gain.value=0.05; o2.connect(g2); g2.connect(a2.destination); o2.start(); o2.stop(a2.currentTime+0.18); } }catch(e){} },420); } },
   // 📅 clave de la semana actual (misma fórmula que el progreso semanal del menú)
+  // 📻 RADIO DEL INGENIERO: estática de radio (ruido filtrado 0.25 s) + voz grave; nunca cancela otras voces
+  radioSay(txt,pitch){ try{ const a=this.actx(); if(a){ const len=Math.floor(a.sampleRate*0.25), b=a.createBuffer(1,len,a.sampleRate), d=b.getChannelData(0); for(let j=0;j<len;j++) d[j]=(Math.random()*2-1)*((j<len*0.2||j>len*0.8)?1:0.3);
+      const src=a.createBufferSource(), fl=a.createBiquadFilter(), g=a.createGain(); fl.type="bandpass"; fl.frequency.value=1500; fl.Q.value=0.8; g.gain.value=0.09; src.buffer=b; src.connect(fl); fl.connect(g); g.connect(a.destination); src.start(); } }catch(e){}
+    try{ if(window.speechSynthesis){ const u=new SpeechSynthesisUtterance(txt); u.lang="es-ES"; u.pitch=pitch||0.7; u.rate=1.1; u.volume=0.8; setTimeout(()=>{ try{ speechSynthesis.speak(u); }catch(e){} },220); } }catch(e){} },
   // 🦅 head-to-head vs KÓNDOR " (W-L)" (extraW/extraL: el resultado de AHORA que se guarda justo después)
   kHH(extraW,extraL){ try{ const w=(parseInt(localStorage.getItem("edtu_f1_kondor_w")||"0",10)||0)+(extraW||0), l=(parseInt(localStorage.getItem("edtu_f1_kondor_l")||"0",10)||0)+(extraL||0); return " ("+w+"-"+l+")"; }catch(e){ return ""; } },
   wkKey(){ const d=new Date(), j=new Date(d.getFullYear(),0,1); return d.getFullYear()+"-"+Math.floor(((d-j)/86400000+j.getDay())/7); },
