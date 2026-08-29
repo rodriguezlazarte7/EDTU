@@ -1,8 +1,8 @@
 # 🛰️ EDTU — Resumen de la sesión autónoma (2026-08-28)
 
-**Bucle de mejora continua mientras David estaba fuera** — dos tandas: la primera (~iter 205 → 302) y, tras el "sigue sin parar" de David, de la segunda a la vigesimonovena (iter 303 → 615 y sigue, ya con David durmiendo 😴 — ¡las iteraciones 500 y 600 se celebraron de madrugada!). **584 commits desde el 26/8** (~501 en esta gran sesión), con deploy a Heroku y verificación en vivo en cada paso. **Ningún juego quedó roto en ningún momento** (chequeos de salud cada 10 iteraciones: todos verdes; el último, iter 615, Heroku v1594).
+**Bucle de mejora continua mientras David estaba fuera** — dos tandas: la primera (~iter 205 → 302) y, tras el "sigue sin parar" de David, de la segunda a la trigésima (iter 303 → 625 y sigue, ya con David durmiendo 😴 — ¡las iteraciones 500 y 600 se celebraron de madrugada!). **593 commits desde el 26/8** (~510 en esta gran sesión), con deploy a Heroku y verificación en vivo en cada paso. **Ningún juego quedó roto en ningún momento** (chequeos de salud cada 10 iteraciones: todos verdes; el último, iter 625, Heroku v1601).
 
-**Números actuales**: 🕷️ SCREAM **137** 🏆 · 🦖 JURASSIC **140** 🏆 · 🧟 NOT A GAME **131** 🏆 · 🏎️ F1 **99** · 🧩 CUBO **82** · **tres juegos superaron las 100 features** · 615 iteraciones de bucle verificadas sanas 🎉 · páginas en vivo todas HTTP 200.
+**Números actuales**: 🕷️ SCREAM **137** 🏆 · 🦖 JURASSIC **140** 🏆 · 🧟 NOT A GAME **131** 🏆 · 🏎️ F1 **99** · 🧩 CUBO **83** · **tres juegos superaron las 100 features** · 625 iteraciones de bucle verificadas sanas 🎉 · páginas en vivo todas HTTP 200.
 
 ## 🔍 Auditoría multi-agente (ultracode)
 - 2 rondas con agentes buscadores + verificadores adversarios: **25 hallazgos, 24 bugs reales corregidos** (1 refutado)
@@ -296,6 +296,13 @@
 - 🧠 **WALLY recuerda tu última pregunta** y cuenta cuántas le has hecho: hitos de 10/50/100/250 preguntas en el saludo y a veces retoma la última; **chat** "hora / qué hora es" dice la hora y cuánto falta para que se renueven los desafíos
 - 📄 RESUMEN con la Vigesimoctava tanda
 - 🩺 Chequeo de salud en 615: todo verde (Heroku v1594, 584 commits desde el 26/8)
+
+## 🆕 Trigésima tanda (iter 616-625) — calendario de días jugados
+- 🗓️ **Sala de Trofeos**: CALENDARIO de los últimos 14 días bajo la racha de días jugando (🟩 jugaste · 🟧 desafío · ⭐ récord · hoy con borde) y "📈 últimos 7 días: N días jugando · los 7 anteriores: M ⬆️/⬇️"; DESAFÍOS DE HOY muestra una fila ✅/▫️ por juego
+- 🤖 **WALLY**: chat "calendario / días jugados" (últimos 7 días con los días de la semana vs los 7 anteriores); saluda con "¡volviste! hace N días que no jugabas" tras 3+ días sin jugar; en "récord" las fechas llevan el día de la semana ("hace 3 días, un martes")
+- 🧩 **CUBO**: el mensaje de derrota también lleva el enlace "🤖 pregúntale a WALLY cómo mejorar"
+- 📄 RESUMEN con la Vigesimonovena tanda
+- 🩺 Chequeo de salud en 625: todo verde (Heroku v1601, 593 commits desde el 26/8)
 
 ## 🤖 WALLY por todos lados
 Frases x8 por juego, celebra el 21/21 con voz, escanea pisos/baterías/cajones, certifica el póster... y presume su carrera de mBots en todas partes 🏁
