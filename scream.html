@@ -552,7 +552,7 @@ let yaw=Math.PI,pitch=0,running=false,gameOver=false,tPrev=0,flashOn=true,nvOn=f
 const spTrail=[]; let trailT=0, trailIdx=0, trailHint=false;
 for(let i=0;i<24;i++){ const m=new THREE.Mesh(new THREE.PlaneGeometry(0.5,0.7),new THREE.MeshBasicMaterial({color:0x66ff99,transparent:true,opacity:0}));
   m.rotation.x=-Math.PI/2; scene.add(m); spTrail.push({m,life:0,f:-1}); }
-let hp=3, hpMax=3, hurtCd=0, stam=100, sprintHeld=false, safeTime=0, visorBatt=100, stepT=0, breathT=0.3, heartT=0;   // 💓 heartT: latido del "último aliento"
+let hp=3, hpMax=3, hurtCd=0, stam=100, sprintHeld=false, safeTime=0, visorBatt=100, stepT=0, breathT=0.3, heartT=0, scuttleT=0;   // 💓 heartT: latido del "último aliento"
 // 🎵 cajita musical de la zona segura (melodía antigua, dulce y siniestra)
 let mbT=0, mbI=0; const MB_NOTES=[659,622,659,622,659,494,587,523,440,0,262,330,440,494,0,330,415,494,523,0,0];
 // 🚪 portazos fantasma
@@ -1026,6 +1026,10 @@ function update(dt){
   visorBatt = Math.max(0, Math.min(100, visorBatt + (nvOn?-dt*7:dt*5)));
   if(nvOn && visorBatt<=0){ toggleNV(); showStory("🥽 ¡Visor agotado!"); }
   { const vb=$("visorB"), vi=vb&&vb.querySelector("i"); if(vi){ vi.style.width=visorBatt+"%"; vi.style.background=visorBatt<25?"#ff5a5a":"linear-gradient(90deg,#2affc0,#bfffe0)"; } }
+  // 🕷️ PATITAS DE LA ARAÑA: en tu piso a <12 m (fuera de zona segura) se oyen sus patas — más rápidas y fuertes cuanto más cerca, tengas la vida que tengas
+  if(!gameOver && spider && !spiderDead && spiderFloor===curFloor && !inSafe(P.x,P.z,curFloor)){ const dq=Math.hypot(P.x-spider.grp.position.x,P.z-spider.grp.position.z);
+    if(dq<12){ scuttleT-=dt; if(scuttleT<=0){ scuttleT=0.18+(dq/12)*0.7; const vol=0.02+0.06*(1-dq/12); snd(160+Math.random()*90,"square",0.025,vol); setTimeout(()=>snd(140+Math.random()*60,"square",0.02,vol*0.8),60); } } else scuttleT=0; }
+  else scuttleT=0;
   // 💓 ÚLTIMO ALIENTO: con 1 ❤️ y la araña a menos de 9 m en tu piso, el corazón late (tum-tum grave, más rápido cuanto más cerca) — no suena en pausa (el update ya retorna)
   if(hp===1 && !gameOver && spider && !spiderDead && spiderFloor===curFloor && !inSafe(P.x,P.z,curFloor)){
     const dsp=Math.hypot(P.x-spider.grp.position.x,P.z-spider.grp.position.z);
