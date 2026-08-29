@@ -107,7 +107,6 @@
 - 🏎️ **F1**: el cartel de KÓNDOR muestra el **marcador histórico** ("⚔️ ¡VENCISTE A KÓNDOR! (3-1)") y el locutor canta "¡Kóndor derrotado! Van 3 a 1"
 - 📸 El **póster** de récords incluye la racha, los retos enviados/recibidos y los escapes fantasma
 - 🩺 Chequeo de salud en 395: todo verde
-- 🎉 **Iteración 400** alcanzada de madrugada, con David durmiendo: WALLY chat "ayuda" (lista todo lo que sabe), delta vs tu marca al ganar el desafío del cubo, distancia a tu fantasma en el choque de F1
 
 ## 🆕 Octava tanda (iter 396-405) — la madrugada de las 400
 - 🎉 **Iteración 400** alcanzada de madrugada: WALLY lo celebra en el chat y en la Sala
