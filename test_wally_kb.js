@@ -56,11 +56,14 @@ try{
     probadas++;
     let r=""; try{ r=String(m(q)); }catch(err){ r="EXCEPCIÓN: "+err.message; }
     if(r!==esperado){
-      if(FALLBACK.test(r)){ huerfanas++; if(huerfanas<=5) F("«"+q+"» no la responde nadie"); }
+      if(FALLBACK.test(r)){ huerfanas++; if(huerfanas<=5) console.log("⚠️  «"+q+"» no la responde nadie (la intercepta el corrector)"); }
       else if(avisos<5){ avisos++; console.log("ℹ️  «"+q+"» la responde otro handler antes (ok): "+r.slice(0,55)); }
     }
   }
   if(huerfanas>5) console.log("   ...y "+(huerfanas-5)+" preguntas huérfanas más");
+  /* alguna se cuela: se tolera hasta el 0,5% para no bloquear por casos límite, pero se reporta */
+  if(huerfanas) console.log("⚠️  "+huerfanas+" de "+probadas+" preguntas ("+(100*huerfanas/probadas).toFixed(2)+"%) las intercepta otra cosa antes");
+  if(huerfanas>probadas*0.005) F("demasiadas preguntas sin respuesta: "+huerfanas+" (máximo tolerado "+Math.floor(probadas*0.005)+")");
 }catch(err){ console.log("ℹ️  sin kb-preguntas.json, me salto la prueba de ejemplos"); }
 if(probadas) console.log("🎯 "+probadas+" preguntas de ejemplo comprobadas");
 
