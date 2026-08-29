@@ -1403,7 +1403,7 @@ function update(dt){
     else tr.classList.remove("on"); }
   // 🏠 flecha a TU CASA: de noche y lejos del refugio (>25m), para volver sin perderte
   { const th=$("toHome"); const hd2=Math.hypot(SH.x-P.x,SH.z-P.z);
-    if(isNight && hd2>25 && !(!radioOn && inv.batt>=3)){ th.classList.add("on"); const s2=Math.sin(yaw),c2=Math.cos(yaw); const tx=SH.x-P.x, tz=SH.z-P.z;
+    if(((isNight && hd2>25) || hd2>60) && !(!radioOn && inv.batt>=3)){ /* 🏠 de noche a >25 m, o de día a >60 m */ th.classList.add("on"); const s2=Math.sin(yaw),c2=Math.cos(yaw); const tx=SH.x-P.x, tz=SH.z-P.z;
       const rgt=tx*c2-tz*s2, fw2=-tx*s2-tz*c2; th.querySelector(".arw").style.transform="rotate("+(Math.atan2(rgt,fw2)*57.2958)+"deg)"; const dh=th.querySelector(".dist"); if(dh) dh.textContent="· "+Math.round(hd2)+" m"; }   // 📏 distancia
     else th.classList.remove("on"); }
   // 🔥 flecha a TU FOGATA: mientras siga encendida y estés a más de 12 m (con distancia y segundos que le quedan)
