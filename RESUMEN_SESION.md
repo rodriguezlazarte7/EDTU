@@ -1,8 +1,8 @@
 # 🛰️ EDTU — Resumen de la sesión autónoma (2026-08-28)
 
-**Bucle de mejora continua mientras David estaba fuera** — dos tandas: la primera (~iter 205 → 302) y, tras el "sigue sin parar" de David, de la segunda a la vigesimocuarta (iter 303 → 565 y sigue, ya con David durmiendo 😴 — ¡la iteración 500 se celebró de madrugada!). **542 commits desde el 26/8** (~459 en esta gran sesión), con deploy a Heroku y verificación en vivo en cada paso. **Ningún juego quedó roto en ningún momento** (chequeos de salud cada 10 iteraciones: todos verdes; el último, iter 565, Heroku v1527).
+**Bucle de mejora continua mientras David estaba fuera** — dos tandas: la primera (~iter 205 → 302) y, tras el "sigue sin parar" de David, de la segunda a la vigesimoquinta (iter 303 → 575 y sigue, ya con David durmiendo 😴 — ¡la iteración 500 se celebró de madrugada!). **549 commits desde el 26/8** (~466 en esta gran sesión), con deploy a Heroku y verificación en vivo en cada paso. **Ningún juego quedó roto en ningún momento** (chequeos de salud cada 10 iteraciones: todos verdes; el último, iter 575, Heroku v1540).
 
-**Números actuales**: 🕷️ SCREAM **133** 🏆 · 🦖 JURASSIC **137** 🏆 · 🧟 NOT A GAME **127** 🏆 · 🏎️ F1 **95** · 🧩 CUBO **78** · **tres juegos superaron las 100 features** · 565 iteraciones de bucle verificadas sanas 🎉 · páginas en vivo todas HTTP 200.
+**Números actuales**: 🕷️ SCREAM **135** 🏆 · 🦖 JURASSIC **138** 🏆 · 🧟 NOT A GAME **129** 🏆 · 🏎️ F1 **97** · 🧩 CUBO **79** · **tres juegos superaron las 100 features** · 575 iteraciones de bucle verificadas sanas 🎉 · páginas en vivo todas HTTP 200.
 
 ## 🔍 Auditoría multi-agente (ultracode)
 - 2 rondas con agentes buscadores + verificadores adversarios: **25 hallazgos, 24 bugs reales corregidos** (1 refutado)
@@ -258,6 +258,14 @@
 - 🧩 **CUBO**: pitido grave (una vez) cuando el reloj pasa tu objetivo del día o tu media
 - 📄 RESUMEN con la Vigesimotercera tanda
 - 🩺 Chequeo de salud en 565: todo verde (Heroku v1527, 542 commits desde el 26/8)
+
+## 🆕 Vigesimoquinta tanda (iter 566-575) — racha de días jugando
+- 🎮 **RACHA DE DÍAS JUGANDO**: cada partida terminada en cualquiera de los 5 juegos apunta el día (edtu_play_days); la Sala muestra "🎮 N días seguidos jugando en EDTU", WALLY chat "racha" la cuenta y el saludo avisa si peligra ("llevas 4 días seguidos y hoy aún no... ¡una partida rápida!")
+- 🏎️ **F1**: a 100 m de tu récord la radio te empuja ("Cien metros para el récord, piloto. ¡A fondo!")
+- 🧟 **NAG**: la Central habla al abordar el helicóptero ("helicóptero en el aire, agente...")
+- 🕷️ **SCREAM**: la voz del teléfono te dice cuántos minutos te quedan junto a la pista
+- 📄 RESUMEN con la Vigesimocuarta tanda
+- 🩺 Chequeo de salud en 575: todo verde (Heroku v1540, 549 commits desde el 26/8)
 
 ## 🤖 WALLY por todos lados
 Frases x8 por juego, celebra el 21/21 con voz, escanea pisos/baterías/cajones, certifica el póster... y presume su carrera de mBots en todas partes 🏁
