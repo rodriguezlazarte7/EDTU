@@ -41,6 +41,7 @@ const T=[
   ["marcador del chat",/🏅 marcador del chat/],["marcador",/adivinanzas resueltas/],
   ["cómo estás",/batería|feliz|circuitos/],["qué haces",/vigilo|ordeno|trabalenguas/],["te quiero",/💛|mejor agente/],["eres genial",/💛|mejor agente/],["tienes hambre",/electricidad|despierto|miedo/],["bien",/me alegro|anotado|gracias por/],
   ["mis estadísticas",/💬 chat/],
+  ["sabías que",/🧠 ¿sabías que/],["dato curioso",/🧠 ¿sabías que/],
   ["rekord",/quisiste decir 'récord'/],["adivinansa",/quisiste decir 'adivinanza'/],["asdfgh",/no entendí|circuitos|confundido/],
 ];
 let ok=0, bad=0;
