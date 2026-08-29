@@ -10,7 +10,7 @@ for(let j=s.indexOf("{",st); j<s.length; j++){ const c=s[j]; if(c==="{") depth++
 const src=s.slice(st,end+1);
 const store={};
 const localStorage={getItem:k=>(k in store?store[k]:null),setItem:(k,v)=>{store[k]=String(v);},removeItem:k=>{delete store[k];}};
-const window={localStorage,_wallyPrevQ:""};
+const window={localStorage,_wallyPrevQ:""}; window.wallyName=()=>localStorage.getItem("edtu_agent_name")||"";   /* stub del nombre (se define fuera de wallyReply) */
 const $=()=>null; const g=k=>localStorage.getItem(k); const pick=a=>a[0]; const toast=()=>{}; const wallyType=()=>{};
 const navigator={userAgent:"node"}; const document={getElementById:()=>null,querySelectorAll:()=>[]};
 const fmtMS=t=>Math.floor(t/60)+":"+String(Math.floor(t%60)).padStart(2,"0");
@@ -37,6 +37,7 @@ const T=[
   ["mapa",/🧭/],["pausa",/⏸/],["fantasma",/👻/],["hora",/🕐/],["mejoras",/MEJORAS/],["chiste",/./],["estadísticas",/📈/],["calendario",/🗓️/],
   ["quién eres",/soy WALLY/],["quién te creó",/David/],["cuéntame un cuento",/érase una vez/],["tabla del 7",/7×7=49/],
   ["cuánto falta para navidad",/🎄/],["halloween",/🎃/],["cuánto falta para mi cumpleaños",/aún no sé tu cumpleaños/],["mi cumpleaños es el 14 de marzo",/apuntado/],["cuánto falta para mi cumpleaños",/🎂 (faltan|¡tu)/],
+  ["cómo me llamo",/aún no sé tu nombre/],["me llamo david",/encantado, David/],["cómo me llamo",/te llamas David/],["olvida mi nombre",/agente/],
   ["rekord",/quisiste decir 'récord'/],["adivinansa",/quisiste decir 'adivinanza'/],["asdfgh",/no entendí|circuitos|confundido/],
 ];
 let ok=0, bad=0;
