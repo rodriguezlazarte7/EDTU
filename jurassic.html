@@ -359,7 +359,8 @@ const berryBushes=[];
     berryBushes.push({g,x:bx,z:bz,berries,ripe:true,regrowT:0}); }
 })();
 // 🐣 NIDOS DE HUEVOS: si te acercas, un huevo ECLOSIONA y nace una cría que da vueltas al nido
-function toast2(txt){ let el=document.getElementById("toast2"); if(!el){ el=document.createElement("div"); el.id="toast2";
+function wallySpeakIf(txt){ try{ const t=String(txt); if(t.indexOf("🤖 WALLY")!==0) return; if(localStorage.getItem("edtu_wally_voice")!=="1"||!window.speechSynthesis) return; const m=t.match(/«([^»]+)»/); const plain=(m?m[1]:t).replace(/[\u{1F300}-\u{1FAFF}\u{2600}-\u{27BF}\u{FE0F}\u{200D}]/gu,"").replace(/\s+/g," ").trim().slice(0,220); if(!plain) return; const u=new SpeechSynthesisUtterance(plain); u.lang="es-ES"; u.pitch=1.3; u.rate=1.05; u.volume=0.9; speechSynthesis.cancel(); speechSynthesis.speak(u); }catch(e){} }   /* 🔊 la voz de WALLY (edtu_wally_voice, se activa en el chat de la Sala) */
+function toast2(txt){ wallySpeakIf(txt); let el=document.getElementById("toast2"); if(!el){ el=document.createElement("div"); el.id="toast2";
   el.style.cssText="position:fixed;top:22%;left:50%;transform:translateX(-50%);z-index:8;font-weight:900;font-size:22px;color:#ffe9a8;text-shadow:0 0 12px #000;opacity:0;transition:opacity .3s;pointer-events:none;font-family:inherit";
   document.body.appendChild(el); } el.textContent=txt; el.style.opacity="1"; clearTimeout(el._t); el._t=setTimeout(()=>{ el.style.opacity="0"; },2600); }
 const nests=[];
