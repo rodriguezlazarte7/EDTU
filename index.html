@@ -5919,7 +5919,7 @@ const F1={
           try{ localStorage.setItem("edtu_f1_kondor_w",String((parseInt(localStorage.getItem("edtu_f1_kondor_w")||"0",10)||0)+1)); }catch(e){}
           try{ const a=this.actx(); if(a){ [523,659,784,1047].forEach((fq,j)=>{ const o=a.createOscillator(),g=a.createGain(); o.type="triangle"; o.frequency.value=fq; g.gain.value=0.09; o.connect(g); g.connect(a.destination); o.start(a.currentTime+j*0.11); o.stop(a.currentTime+j*0.11+0.15); }); } }catch(e){}
           try{ if(navigator.vibrate) navigator.vibrate([0,60,40,60,40,160]); }catch(e){} }
-        this.cars.splice(i,1); this.overt++;
+        this.cars.splice(i,1); this.overt++; if(!this._spectate && (this.overt===5||this.overt===10||this.overt===20)){ try{ this.radioSay(this.overt===5?"Cinco adelantamientos, piloto. Vas como un rayo.":(this.overt===10?"Diez adelantamientos. Nadie te sigue el ritmo.":"Veinte adelantamientos, piloto. Eres imparable."),0.85); }catch(e){} }   /* 📻 hitos de adelantamientos */
         // 🔥 racha de adelantamientos: varios en <5s arman combo con tono ascendente
         this._ovCombo=(this._ovT>0)?this._ovCombo+1:1; this._ovT=5; if(this._ovCombo>(this._ovMax||0)) this._ovMax=this._ovCombo;
         if(this._ovCombo>=2){ this._ovMsgT=1;
