@@ -90,6 +90,7 @@ const T=[
   ["por dónde empiezo en scream",/guía de SCREAM/],["qué hago primero en scream",/guía de SCREAM/],["cuántos pisos hay",/7 pisos/],["el ascensor",/🛗/],["la araña me sigue",/🕷️ la araña/],["cómo me escondo",/🤫/],["cuánto tiempo me queda",/20 minutos/],["dónde está el reloj dorado",/\+60 segundos/],["se fue la luz",/⚡ el generador/],["qué es un escape fantasma",/0 apariciones/],["guía de nag",/guía de NOT A GAME/],["los cajones están vacíos",/🗄️/],
   ["cómo se juega el cubo",/guía del CUBO/],["cómo armo el cubo",/capa por capa/],["cuántas caras tiene",/6 caras/],["cómo giro el cubo",/🔄 para girar/],["qué es una revoltura",/🔀/],["qué dificultades hay",/🎚️/],["pista del cubo",/💡 en el CUBO/],["cuál es el mínimo de giros",/número de Dios/],
   ["reglas del ajedrez",/JAQUE MATE/],["cómo mueve el caballo",/en L/],["cómo hago un gol",/⚽/],["cómo gano en 2048",/esquina/],["qué significan los números del buscaminas",/8 casillas/],["cómo se juega conecta 4",/CONECTA 4/],["cuál minijuego es más difícil",/😈/],["cuál minijuego me recomiendas",/😊 para empezar/],["hay ia en el gato",/🤖 sí/],["el ajedrez es muy difícil",/♟️ AJEDREZ/],["récord de snake",/🕹️/],["cómo se juega snake",/Snake|SNAKE/],
+  ["cuáles son los 21 logros",/los 21 logros de EDTU/],["lista de logros",/llevas \d+ de 21/],["qué logros me faltan",/te faltan \d+/],["logro de f1",/logros de F1/],["cómo se juega conecta 4",/CONECTA 4/],
   ["rekord",/quisiste decir 'récord'/],["adivinansa",/quisiste decir 'adivinanza'/],["asdfgh",/no entendí|circuitos|confundido/],
 ];
 let ok=0, bad=0;
