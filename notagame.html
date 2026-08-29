@@ -922,7 +922,8 @@ function shoot(){
         const sm=new THREE.Mesh(new THREE.OctahedronGeometry(0.42),new THREE.MeshBasicMaterial({color:0x3fd0ff}));
         sm.position.set(best.grp.position.x,0.9,best.grp.position.z); scene.add(sm); shieldDrops.push({m:sm}); }
       else {
-        kills+=(sirenOn>0?2:1); document.getElementById("kills").textContent=kills; snd(70,"sawtooth",0.4,0.12); plusOne(sirenOn>0?"+2 🚨":"+1",sirenOn>0?"#ff5a5a":"#7dff5a"); dogCheer();
+        kills+=(sirenOn>0?2:1); document.getElementById("kills").textContent=kills; snd(70,"sawtooth",0.4,0.12);
+        if(kills>=50 && !c50Said){ c50Said=true; try{ radioStatic(); }catch(e){} showStory("📻 CENTRAL: «cincuenta eliminados, agente. Sigue así.»"); setTimeout(()=>{ try{ if(window.speechSynthesis){ const u=new SpeechSynthesisUtterance("Central a agente: cincuenta eliminados. Sigue así."); u.lang="es-ES"; u.pitch=0.7; u.rate=1.05; u.volume=0.75; speechSynthesis.speak(u); } }catch(e){} },350); }   // 📻 felicitación de la central a los 50 plusOne(sirenOn>0?"+2 🚨":"+1",sirenOn>0?"#ff5a5a":"#7dff5a"); dogCheer();
         // 🛡️ 10%: el zombie suelta un ESCUDO brillante donde cayó
         if(Math.random()<(bloodMoon?0.25:0.10)){ const sm=new THREE.Mesh(new THREE.OctahedronGeometry(0.42),new THREE.MeshBasicMaterial({color:0x3fd0ff}));
           sm.position.set(best.grp.position.x,0.9,best.grp.position.z); scene.add(sm); shieldDrops.push({m:sm}); }
@@ -952,7 +953,7 @@ function collide(nx,nz){ const pr=0.35; for(const w of walls){ if(nx>w.x0-pr&&nx
 
 function startGame(){
   P.x=0;P.z=ARENA-5;P.y=1.7;P.vy=0;P.onGround=true;P.hp=100; yaw=0;pitch=0;
-  cluesGot=0; gameOver=false; muzzle=0; shootCd=0; radioT=45; radioClueN=0; clueArrowT=0; nDiaryReset(); nMemSaid=false; nWMemSaid=false;   // 📻 radio, 📁 expediente y 🐕 memoria del perro desde cero
+  cluesGot=0; gameOver=false; muzzle=0; shootCd=0; radioT=45; radioClueN=0; clueArrowT=0; c50Said=false; nDiaryReset(); nMemSaid=false; nWMemSaid=false;   // 📻 radio, 📁 expediente y 🐕 memoria del perro desde cero
   startT=performance.now()/1000;   // reinicia el ciclo día/noche (empieza de noche)
   zombies.forEach(z=>scene.remove(z.grp)); zombies.length=0; spawnZombies(12); kills=0; heliMode=false;
   comboN=0; comboT=0; comboPop=0; maxCombo=0; document.getElementById("combo").style.opacity="0";
@@ -1047,7 +1048,7 @@ let nPaused=false;
 let nTutOn=false, nTutStep=0, nTutT=0;   // 🎓 mini-tutorial de primera vez
 let heartT=0;   // 💓 latido de corazón por cercanía
 // 📻 RADIO DE LA CENTRAL: si llevas 45s sin encontrar pista, la central te transmite (estática + voz) a qué distancia y hacia dónde está la más cercana
-let radioT=45, radioClueN=0, clueArrowT=0;   // 📜 clueArrowT: segundos que queda visible la flecha a la pista tras un aviso de la central
+let radioT=45, radioClueN=0, clueArrowT=0, c50Said=false;   // c50Said: la central ya felicitó por los 50 kills   // 📜 clueArrowT: segundos que queda visible la flecha a la pista tras un aviso de la central
 function radioStatic(){ try{ AC=AC||new (window.AudioContext||window.webkitAudioContext)(); const n=AC.createBufferSource(), b=AC.createBuffer(1,Math.floor(AC.sampleRate*0.5),AC.sampleRate), d=b.getChannelData(0);
   for(let j=0;j<d.length;j++) d[j]=(Math.random()*2-1)*((j<d.length*0.15||j>d.length*0.85)?1:0.25);
   const f=AC.createBiquadFilter(); f.type="bandpass"; f.frequency.value=1500; f.Q.value=0.8; const g=AC.createGain(); g.gain.value=0.12; n.buffer=b; n.connect(f); f.connect(g); g.connect(AC.destination); n.start(); }catch(e){} }
