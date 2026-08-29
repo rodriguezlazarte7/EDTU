@@ -1,8 +1,8 @@
 # 🛰️ EDTU — Resumen de la sesión autónoma (2026-08-28)
 
-**Bucle de mejora continua mientras David estaba fuera** — dos tandas: la primera (~iter 205 → 302) y, tras el "sigue sin parar" de David, de la segunda a la quincuagésima primera (iter 303 → 835 y sigue, ya con David durmiendo 😴 — ¡las iteraciones 500, 600, 700 y 800 se celebraron de madrugada!). **772 commits desde el 26/8** (~689 en esta gran sesión), con deploy a Heroku y verificación en vivo en cada paso. **Ningún juego quedó roto en ningún momento** (chequeos de salud cada 10 iteraciones: todos verdes; el último, iter 835, Heroku v1756).
+**Bucle de mejora continua mientras David estaba fuera** — dos tandas: la primera (~iter 205 → 302) y, tras el "sigue sin parar" de David, de la segunda a la quincuagésima segunda (iter 303 → 845 y sigue, ya con David durmiendo 😴 — ¡las iteraciones 500, 600, 700 y 800 se celebraron de madrugada!). **780 commits desde el 26/8** (~697 en esta gran sesión), con deploy a Heroku y verificación en vivo en cada paso. **Ningún juego quedó roto en ningún momento** (chequeos de salud cada 10 iteraciones: todos verdes; el último, iter 845, Heroku v1770).
 
-**Números actuales**: 🕷️ SCREAM **145** 🏆 · 🦖 JURASSIC **147** 🏆 · 🧟 NOT A GAME **138** 🏆 · 🏎️ F1 **103** 🏆 · 🧩 CUBO **84** · 🕹️ los 16 minijuegos con récord o victorias y medias · **cuatro juegos superaron las 100 features** · 835 iteraciones de bucle verificadas sanas 🎉 · páginas en vivo todas HTTP 200.
+**Números actuales**: 🕷️ SCREAM **145** 🏆 · 🦖 JURASSIC **147** 🏆 · 🧟 NOT A GAME **138** 🏆 · 🏎️ F1 **103** 🏆 · 🧩 CUBO **84** · 🕹️ los 16 minijuegos con récord o victorias y medias · **cuatro juegos superaron las 100 features** · 845 iteraciones de bucle verificadas sanas 🎉 · páginas en vivo todas HTTP 200.
 
 ## 🔍 Auditoría multi-agente (ultracode)
 - 2 rondas con agentes buscadores + verificadores adversarios: **25 hallazgos, 24 bugs reales corregidos** (1 refutado)
@@ -490,6 +490,16 @@
 - 📚 "ayuda", corrector, trucos del día y saludo al día · 🧪 Test del chat: **379 preguntas + fuzz 60**
 - 📄 RESUMEN con la Quincuagésima tanda
 - 🩺 Chequeo de salud en 835: todo verde (Heroku v1756, 772 commits desde el 26/8, test 379/379 + fuzz 60/60)
+
+## 🆕 Quincuagésima segunda tanda (iter 836-845) — WALLY profe de todo y amigo que cuida
+- 🧮 Ronda 18: **mates avanzadas** — "dividido en", "2 a la 5", "por ciento de", "un cuarto/tercio de", "la raíz de", factorial, millón y mil millones, "cuántos ceros tiene", **números en letras** (hasta 999.999.999), "qué número sigue", "cuenta de 2 en 2", "cuenta hacia atrás", "tabla del 7 hasta el 12", primo/par/impar, "redondea", "cuál es mayor", "ordena", "suma 1 2 3"
+- 📚 Ronda 19: **enciclopedia II** — 40 respuestas de geografía, ciencia, espacio, animales, inventos y cultura (continentes, océanos, volcanes, fotosíntesis, gravedad, eclipses, Marte, Burj Khalifa, Mona Lisa, Quijote, fútbol…)
+- 🎬 Ronda 20: **cultura pop** — espías de verdad, otros videojuegos (Minecraft, Roblox, Fortnite…), fútbol real (Messi, la Roja, mundial: honesto con lo que no sabe), superhéroes, favoritos II, cómo es WALLY (retrato) y "dibuja X" con emojis
+- 🔤 Ronda 21: **lengua e idiomas** — francés, portugués, italiano, alemán, japonés, chino y mapudungún (13 palabras), listas en inglés (números, colores, días, meses, abecedario), abecedario y vocales, gramática, sinónimos/antónimos, rimas, siglas (nag, drs, lol, xd, gg, npc, ia, html…) y ortografía (haber/a ver, hay/ahí, vaca/baca, tildes, b/v, h)
+- 💛 Ronda 22: **bienestar y seguridad** — si me pierdo / hay un extraño / bullying (Carabineros 133, Fono Niños 147), salud (avisa a un adulto; ambulancia 131), hambre y sed, tristeza y soledad, miedo de noche, duelo, papás que pelean, colegio nuevo, "odio las mates", mala nota o castigo, "necesito hablar" — siempre con un adulto de confianza; nueva categoría "💛 SI TE PASA ALGO" en "ayuda"
+- 🐛 El test atrapó una excepción real ("rima con gato": `match` nulo) antes de publicar · **465 preguntas + fuzz 60**
+- 📄 RESUMEN con la Quincuagésima primera tanda
+- 🩺 Chequeo de salud en 845: todo verde (Heroku v1770, 780 commits desde el 26/8, test 465/465 + fuzz 60/60)
 
 ## 🤖 WALLY por todos lados
 Frases x8 por juego, celebra el 21/21 con voz, escanea pisos/baterías/cajones, certifica el póster... y presume su carrera de mBots en todas partes 🏁
