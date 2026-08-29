@@ -1,8 +1,8 @@
 # 🛰️ EDTU — Resumen de la sesión autónoma (2026-08-28)
 
-**Bucle de mejora continua mientras David estaba fuera** — dos tandas: la primera (~iter 205 → 302) y, tras el "sigue sin parar" de David, de la segunda a la trigesimotercera (iter 303 → 655 y sigue, ya con David durmiendo 😴 — ¡las iteraciones 500 y 600 se celebraron de madrugada!). **619 commits desde el 26/8** (~536 en esta gran sesión), con deploy a Heroku y verificación en vivo en cada paso. **Ningún juego quedó roto en ningún momento** (chequeos de salud cada 10 iteraciones: todos verdes; el último, iter 655, Heroku v1622).
+**Bucle de mejora continua mientras David estaba fuera** — dos tandas: la primera (~iter 205 → 302) y, tras el "sigue sin parar" de David, de la segunda a la trigesimocuarta (iter 303 → 665 y sigue, ya con David durmiendo 😴 — ¡las iteraciones 500 y 600 se celebraron de madrugada!). **628 commits desde el 26/8** (~545 en esta gran sesión), con deploy a Heroku y verificación en vivo en cada paso. **Ningún juego quedó roto en ningún momento** (chequeos de salud cada 10 iteraciones: todos verdes; el último, iter 665, Heroku v1629).
 
-**Números actuales**: 🕷️ SCREAM **137** 🏆 · 🦖 JURASSIC **140** 🏆 · 🧟 NOT A GAME **131** 🏆 · 🏎️ F1 **100** 🏆 · 🧩 CUBO **83** · 🕹️ los 14 minijuegos con récord o victorias · **cuatro juegos superaron las 100 features** · 655 iteraciones de bucle verificadas sanas 🎉 · páginas en vivo todas HTTP 200.
+**Números actuales**: 🕷️ SCREAM **137** 🏆 · 🦖 JURASSIC **140** 🏆 · 🧟 NOT A GAME **131** 🏆 · 🏎️ F1 **100** 🏆 · 🧩 CUBO **83** · 🕹️ los 16 minijuegos con récord o victorias y medias · **cuatro juegos superaron las 100 features** · 665 iteraciones de bucle verificadas sanas 🎉 · páginas en vivo todas HTTP 200.
 
 ## 🔍 Auditoría multi-agente (ultracode)
 - 2 rondas con agentes buscadores + verificadores adversarios: **25 hallazgos, 24 bugs reales corregidos** (1 refutado)
@@ -324,6 +324,13 @@
 - 🤖 **WALLY saludo**: celebra los hitos de 10 / 25 / 50 victorias en tableros una vez por hito
 - 📄 RESUMEN con la Trigesimosegunda tanda
 - 🩺 Chequeo de salud en 655: todo verde (Heroku v1622, 619 commits desde el 26/8)
+
+## 🆕 Trigesimocuarta tanda (iter 656-665) — fútbol y medias de minijuegos
+- ⚽ **Fútbol** cuenta los partidos ganados y apunta cada partido; 👾 **Invaders** tenía un récord ajeno (swarm_best era de 🐝 SWARM, el enjambre): ahora tiene el suyo (edtu_inv_best) y SWARM queda bien etiquetado — los 16 minijuegos del menú tienen récord o victorias
+- 📊 **Medias de minijuegos**: edtuPlayDay(nombre, texto, número) acumula totales por minijuego y edtuMiniAvg muestra "📊 media X ⬆️/⬇️" al terminar Snake, Breakout, Flappy, 2048 e Invaders; la Sala y el chat enseñan la media junto al récord y ÚLTIMAS AVENTURAS marca ⬆️/⬇️ la última partida de minijuego
+- 🖼️ **Póster**: la línea extra incluye tus partidas de minijuegos (el lienzo 600×800 no admite más filas)
+- 📄 RESUMEN con la Trigesimotercera tanda
+- 🩺 Chequeo de salud en 665: todo verde (Heroku v1629, 628 commits desde el 26/8)
 
 ## 🤖 WALLY por todos lados
 Frases x8 por juego, celebra el 21/21 con voz, escanea pisos/baterías/cajones, certifica el póster... y presume su carrera de mBots en todas partes 🏁
