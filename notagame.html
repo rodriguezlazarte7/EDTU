@@ -1044,7 +1044,7 @@ function nDiaryEnd(win,nights,survS){ const e=Object.assign({},nDiary); e.win=!!
 function relDate(e){ if(!e||!e.ts) return e?e.date:""; const d=Math.floor((Date.now()-e.ts)/86400000); return d<=0?"hoy":d===1?"ayer":"hace "+d+" días"; }   // 📆 fecha relativa del diario
 function updNDiary(){ const el=document.getElementById("ndiary"); if(!el) return; try{ const arr=JSON.parse(localStorage.getItem("nag_diary")||"[]"); if(!arr.length){ el.textContent=""; return; }
   const e=arr[0]; el.textContent="📁 Último caso ("+relDate(e)+"): ⏱ "+Math.floor(e.t/60)+":"+String(e.t%60).padStart(2,"0")+" · "+nDiaryLine(e)+(e.win?" · ✓ resuelto":"");
-    try{ const T=JSON.parse(localStorage.getItem("nag_totals")||"null"); if(T&&T.cases>=2){ const hh=Math.floor((T.t||0)/3600), mm=Math.floor(((T.t||0)%3600)/60); el.textContent+="  ·  📚 en total: "+T.cases+" casos · 🧟 "+T.kills+" kills · 📜 "+T.clues+" pistas · 🌙 "+T.nights+" noches · ⏱ "+(hh?hh+" h ":"")+mm+" min"+(T.wins?" · ✓ "+T.wins+" resuelto"+(T.wins>1?"s":""):""); } }catch(err){}   // 📚 totales acumulados
+    try{ const T=JSON.parse(localStorage.getItem("nag_totals")||"null"); if(T&&T.cases>=2){ const hh=Math.floor((T.t||0)/3600), mm=Math.floor(((T.t||0)%3600)/60); el.textContent+="  ·  📚 en total: "+T.cases+" casos · 🧟 "+T.kills+" kills · 📜 "+T.clues+" pistas · 🌙 "+T.nights+" noches · ⏱ "+(hh?hh+" h ":"")+mm+" min"+(T.wins?" · ✓ "+T.wins+" resuelto"+(T.wins>1?"s":""):"")+" · 📊 media "+Math.round((T.kills||0)/T.cases)+" kills"; } }catch(err){}   // 📚 totales acumulados + media
   }catch(err){ el.textContent=""; } }
 // ⏸ pausa con P
 let nPaused=false;
