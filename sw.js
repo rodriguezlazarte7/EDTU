@@ -27,7 +27,7 @@ self.addEventListener("fetch", e => {
     return;
   }
   // Iconos/manifest: cache primero. El resto (Supabase, CDNs) pasa directo a la red.
-  if (SHELL.some(s => req.url.endsWith(s.replace("./", "")))) {
+  if (SHELL.some(s => { const p = s.replace("./", ""); return p && req.url.endsWith(p); })) {   // "./" daba "" y endsWith("") era siempre true: TODO pasaba por el SW
     e.respondWith(caches.match(req).then(c => c || fetch(req)));
   }
 });

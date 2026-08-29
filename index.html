@@ -7554,7 +7554,7 @@ const Secret={
       if(!any){ $("bioMsg").style.color="#ffb020"; $("bioMsg").textContent="🧬 EN ESTE DISPOSITIVO NO HAY NINGÚN ROSTRO GUARDADO · escribe 25062015 en la bóveda para registrar el tuyo (o entra con tu PIN y usa 🧬 Rostro)"; } }catch(e){} }
     $("bioStart").style.display="block"; $("bioFrame").classList.remove("scanning");
     $("bioFs").classList.add("show");
-    this.loadFaceApi();   // va cargando la IA de reconocimiento mientras el usuario lee
+    this.loadFaceApi(); this.loadMesh();   // va cargando la IA de reconocimiento y la malla 3D mientras el usuario lee
   },
   // ---- IA de reconocimiento facial (face-api): se carga 1 sola vez, desde CDN
   loadFaceApi(){
@@ -7566,7 +7566,7 @@ const Secret={
         await faceapi.nets.tinyFaceDetector.loadFromUri(M);
         await faceapi.nets.faceLandmark68TinyNet.loadFromUri(M);
         await faceapi.nets.faceRecognitionNet.loadFromUri(M);
-        await faceapi.nets.faceExpressionNet.loadFromUri(M);   // detector de SONRISA (prueba de vida)
+        try{ await faceapi.nets.faceExpressionNet.loadFromUri(M); this._expr=true; }catch(e){ this._expr=false; }   // detector de SONRISA de respaldo: si falla, la sonrisa la mide la malla 3D (no bloquea)
         this._fa=true; }catch(e){ this._fa=false; } res(this._fa); };
       if(window.faceapi){ done(); return; }
       const s=document.createElement("script"); s.src=BASE+"/dist/face-api.js";
@@ -7583,7 +7583,7 @@ const Secret={
   _tplLoad(key){ try{ const raw=JSON.parse(localStorage.getItem(key||"edtu_face_david")||"null"); if(!raw) return [];
     if(Array.isArray(raw) && typeof raw[0]==="number") return [raw];   // formato antiguo: 1 sola huella
     return Array.isArray(raw)?raw:[]; }catch(e){ return []; } },
-  _tplSave(tpls,key){ localStorage.setItem(key||"edtu_face_david",JSON.stringify(tpls.slice(0,10))); },
+  _tplSave(tpls,key){ try{ localStorage.setItem(key||"edtu_face_david",JSON.stringify(tpls.slice(0,10))); }catch(e){} },   // 🐛 nunca debe tumbar el login (cuota llena / modo privado)
   _minDist(desc,tpls){ let m=Infinity; for(const t of tpls){ const d=faceapi.euclideanDistance(t,desc); if(d<m) m=d; } return m; },
   // ---- MALLA 3D estilo EMOCA (MediaPipe Face Landmarker: 468 puntos con profundidad + emociones)
   loadMesh(){
@@ -7680,19 +7680,20 @@ const Secret={
       }
     }
   }catch(e){} },
-  bioStop(){ if(this._stream){ try{ this._stream.getTracks().forEach(t=>t.stop()); }catch(e){} this._stream=null; } try{ $("bioVideo").srcObject=null; }catch(e){} },
+  bioStop(){ this._starting=false; if(this._stream){ try{ this._stream.getTracks().forEach(t=>t.stop()); }catch(e){} this._stream=null; } try{ $("bioVideo").srcObject=null; }catch(e){} },
   bioClose(){ this.bioStop(); (this._ivs||[]).forEach(clearInterval); this._ivs=[]; this._faces=0; this._liveDist=null; this._liveMatch=null; $("bioFrame").classList.remove("scanning","ok","noface"); $("bioProg").style.display="none"; $("bioProgBar").style.width="0%"; $("bioDataL").textContent=""; $("bioDataR").textContent=""; const tc=$("bioTrack"); if(tc){ try{ tc.getContext("2d").clearRect(0,0,tc.width,tc.height); }catch(e){} } $("bioFs").classList.remove("show"); },
   bioScan(){
+    if(this._stream||this._starting) return; this._starting=true; try{ $("bioStart").style.display="none"; }catch(e){}   // 🐛 doble toque: una sola sesión de escaneo
     const md=navigator.mediaDevices;
     if(!md || !md.getUserMedia){ this.bioFail("SIN CÁMARA · ACCESO DENEGADO"); return; }
     md.getUserMedia({video:{facingMode:"user", width:{ideal:640}, height:{ideal:480}}, audio:false}).then(stream=>{
-      this._stream=stream; $("bioVideo").srcObject=stream;
+      this._stream=stream; this._starting=false; const bv0=$("bioVideo"); bv0.srcObject=stream; try{ const pp=bv0.play(); if(pp&&pp.catch) pp.catch(()=>{}); }catch(e){}   // #10 play() explícito (iOS ahorro de energía / autoplay bloqueado)
       // celular vertical: el marco se adapta a la forma de la cámara (así la mira queda alineada)
-      const bv=$("bioVideo"); bv.onloadedmetadata=()=>{ try{ $("bioFrame").style.aspectRatio=(bv.videoWidth>=bv.videoHeight)?"4 / 3":"3 / 4"; }catch(e){} };
+      const bv=$("bioVideo"); bv.onloadedmetadata=()=>{ try{ $("bioFrame").style.aspectRatio=(bv.videoWidth>=bv.videoHeight)?"4 / 3":"3 / 4"; }catch(e){} try{ const pp=bv.play(); if(pp&&pp.catch) pp.catch(()=>{}); }catch(e){} };
       $("bioStart").style.display="none"; $("bioFrame").classList.add("scanning");
       $("bioProg").style.display="block";
       const msg=$("bioMsg"), HEX="0123456789ABCDEF", video=$("bioVideo");
-      let p=0, tick=0; const t0=Date.now(); this._face=false; this._descs=[]; this._faces=0; this._liveDist=null; this._liveHist=[]; this._bestLive=null;
+      let p=0, tick=0; const t0=Date.now(); this._face=false; this._descs=[]; this._faces=0; this._liveDist=null; this._liveHist=[]; this._bestLive=null; this._meshErr=0; this._liveSince=0; this._readyAt=0;
       this._smiled=false; this._smiling=false; this._sawNeutral=false; this._tooFar=false; this._meshFaces=0; this._smilePct=0; this._liveMatch=null;
       // detector de rostro: IA (face-api) > nativo del navegador > casero (color de piel)
       let fd=null; try{ if("FaceDetector" in window) fd=new FaceDetector({fastMode:true,maxDetectedFaces:1}); }catch(e){ fd=null; }
@@ -7702,7 +7703,7 @@ const Secret={
         if(faReady && window.faceapi){   // IA: detecta TODAS las caras y mide la huella de la principal
           if(faBusy) return; faBusy=true;
           try{
-            const dets=await faceapi.detectAllFaces(video,new faceapi.TinyFaceDetectorOptions({inputSize:320,scoreThreshold:.4})).withFaceLandmarks(true).withFaceExpressions().withFaceDescriptors();
+            let q0=faceapi.detectAllFaces(video,new faceapi.TinyFaceDetectorOptions({inputSize:416,scoreThreshold:.4})).withFaceLandmarks(true); if(this._expr!==false) q0=q0.withFaceExpressions(); const dets=await q0.withFaceDescriptors();   // 416 = igual que al entrenar (huellas comparables)
             this._faces=dets.length;
             if(dets.length){
               const best=dets.reduce((a,b)=> (b.detection.box.area>a.detection.box.area?b:a));   // la cara más grande = la principal
@@ -7716,7 +7717,7 @@ const Secret={
                 if(tg0.mode==="agent") tpls=this._tplLoad("edtu_face_"+tg0.id);
                 else if(tg0.mode==="identify"){   // contra TODOS los rostros entrenados del dispositivo
                   tpls=this._tplLoad().slice();
-                  for(const a of agents){ if(!a.blocked) tpls=tpls.concat(this._tplLoad("edtu_face_"+a.id)); }
+                  for(const a of ((typeof agents!=="undefined"&&Array.isArray(agents))?agents:[])){ if(!a.blocked) tpls=tpls.concat(this._tplLoad("edtu_face_"+a.id)); }
                 } else tpls=this._tplLoad();
                 const dNow = tpls.length ? this._minDist(best.descriptor,tpls) : null;
                 if(dNow!=null){ (this._liveHist=this._liveHist||[]).push(dNow); if(this._liveHist.length>4) this._liveHist.shift(); if(this._bestLive==null||dNow<this._bestLive) this._bestLive=dNow; }
@@ -7751,8 +7752,8 @@ const Secret={
             if(s<0.2) this._sawNeutral=true;
             if(this._sawNeutral && s>0.5 && !this._smiled){ this._smiled=true; this.scanBeep(1250); }
           } else this._smilePct=0;
-          this._drawMesh(v,"bioTrack",res);
-        }catch(e){} },90);
+          this._drawMesh(v,"bioTrack",res); this._meshErr=0;
+        }catch(e){ this._meshErr=(this._meshErr||0)+1; this._meshFaces=0; if(this._meshErr>=3){ this._meshReady=false; try{ clearInterval(ivM); }catch(e2){} } } },90);   // 🐛 malla rota => respaldo clásico, sin quedarse pegado al 70%
         if(this._ivs) this._ivs.push(ivM);
       });
       const ivS=setInterval(()=>{
@@ -7768,7 +7769,10 @@ const Secret={
         const ok1=faReady && this._face && !multi && !this._tooFar && this._liveMatch!==false;   // rostro equivocado = barra CONGELADA
         if(ok1){ frame.classList.remove("noface");
           if(p<LIVE_AT) p=Math.min(LIVE_AT,p+3.4);                                   // fase 1: identificación
-          else if(this._smiled) p=Math.min(this._descs.length>=2?100:96, p+4.5);     // fase 2: sonrisa + mínimo 2 huellas buenas
+          else { if(!this._liveSince) this._liveSince=Date.now(); const lt=Date.now()-this._liveSince;
+            if(!this._sawNeutral && lt>2500) this._sawNeutral=true;                                   // 🐛 un niño que ya viene sonriendo no tenía "cara seria": se da por vista
+            if(!this._smiled && !this._meshReady && this._expr===false && lt>1500) this._smiled=true;   // sin detector de sonrisa disponible, no se bloquea
+            if(this._smiled) p=Math.min(this._descs.length>=2?100:96, p+4.5); }     // fase 2: sonrisa + mínimo 2 huellas buenas
         } else frame.classList.add("noface");
         const pi=Math.round(p);
         $("bioProgBar").style.width=pi+"%";
@@ -7786,7 +7790,7 @@ const Secret={
         const mReal = this._liveDist!=null ? Math.max(0,Math.min(99.9,(1-this._liveDist/0.8)*100)).toFixed(1)+"%" : "—";
         $("bioDataR").textContent="ID #25\nROSTROS "+(this._faces||0)+"\nMATCH "+mReal+"\nVIDA "+(this._smiled?"✔":"…")+"\nIA "+(faReady?"ACTIVA":"BÁSICA");
         if(this._face && ++tick%3===0) this.scanBeep(500+p*7);
-        if(p>=100){
+        if(p>=100){ try{
           clearInterval(ivS); clearInterval(ivF); if(ivM) clearInterval(ivM);
           // RECONOCIMIENTO según el objetivo: David (25062015) / agente (pin+rostro) / identificar (solo rostro)
           const tg=this._target||{mode:"david"};
@@ -7797,7 +7801,7 @@ const Secret={
               // ¿QUIÉN ERES? compara contra TODOS los rostros entrenados en este dispositivo
               let best=null, bd=Infinity;
               const cands=[{key:"edtu_face_david", who:{type:"admin"}, name:"DAVID", david:true}]
-                .concat(agents.filter(a=>!a.blocked).map(a=>({key:"edtu_face_"+a.id, who:{type:"agent",id:a.id}, name:(a.name||"AGENTE").toUpperCase()})));
+                .concat(((typeof agents!=="undefined"&&Array.isArray(agents))?agents:[]).filter(a=>!a.blocked).map(a=>({key:"edtu_face_"+a.id, who:{type:"agent",id:a.id}, name:(a.name||"AGENTE").toUpperCase()})));
               for(const cd of cands){ const t=this._tplLoad(cd.key); if(!t.length) continue;
                 const d=this._minDist(avg,t); if(d<bd){ bd=d; best=cd; } }
               if(best && bd<0.58){
@@ -7843,15 +7847,18 @@ const Secret={
           const who=loginAs||{type:"admin"};
           setTimeout(()=>{ this.bioClose(); accessGranted(who); },1100);
           return;
-        }
-        if(Date.now()-t0>25000 && p<100){   // 25 seg y no completó -> denegado (con el motivo real)
+        }catch(e){ this.bioStop(); frame.classList.remove("scanning","noface"); $("bioStart").style.display="block"; this.bioFail("ERROR INTERNO · "+((e&&e.message)||e)); return; } }   // 🐛 un error aquí dejaba la barra al 100% en silencio
+        if(!faReady && !faFailed && Date.now()-t0>90000){ clearInterval(ivS); clearInterval(ivF); if(ivM) clearInterval(ivM); this.bioStop(); frame.classList.remove("scanning","noface"); $("bioStart").style.display="block"; this.bioFail("LA IA NO TERMINÓ DE CARGAR (90 s) · REVISA INTERNET"); return; }
+        if(faReady && !this._readyAt) this._readyAt=Date.now();
+        if(faReady && Date.now()-this._readyAt>25000 && p<100){   // 25 seg DESDE que la IA cargó y no completó -> denegado (con el motivo real)
           clearInterval(ivS); clearInterval(ivF); if(ivM) clearInterval(ivM);
           this.bioStop(); frame.classList.remove("scanning","noface"); $("bioStart").style.display="block";
           this.bioFail(!faReady ? "LA IA NO CARGÓ · REVISA INTERNET" : this._liveMatch===false ? "ROSTRO NO COINCIDE (mejor parecido "+(this._bestLive!=null?Math.max(0,Math.min(99,(1-this._bestLive/0.8)*100)).toFixed(0):"?")+"%) · MÁS LUZ, SIN GORRO NI LENTES · O RE-REGÍSTRALO: 25062015" : this._face ? (this._tooFar ? "ESTÁS MUY LEJOS DE LA CÁMARA · ACÉRCATE" : !this._smiled ? "FALTÓ LA SONRISA (cara seria y luego sonríe 😐→😁) · ACCESO DENEGADO" : "TIEMPO AGOTADO · ACCESO DENEGADO") : "NINGÚN ROSTRO DETECTADO · ACCESO DENEGADO");
         }
       },100);
       this._ivs=[ivS,ivF];
-    }).catch(()=>{ this.bioFail("CÁMARA RECHAZADA · ACCESO DENEGADO"); });
+    }).catch(err=>{ this._starting=false; try{ $("bioStart").style.display="block"; }catch(e){} const nm=(err&&err.name)||"";   // #3 motivo real del rechazo de cámara
+      this.bioFail(nm==="NotAllowedError"?"CÁMARA RECHAZADA · PERMITE LA CÁMARA EN EL NAVEGADOR (candado de la barra de dirección)":nm==="NotFoundError"?"NO SE ENCONTRÓ CÁMARA EN ESTE DISPOSITIVO":nm==="NotReadableError"?"LA CÁMARA ESTÁ EN USO POR OTRA APP · CIÉRRALA":nm==="SecurityError"?"ABRE EDTU EN https://www.edtu.cl (la cámara no funciona por http)":"CÁMARA RECHAZADA"+(nm?" ("+nm+")":"")+" · si abriste EDTU desde el ícono de inicio, ábrela en el navegador"); });
   },
   // detector casero: cuenta píxeles color piel en la zona central (donde estaría la cara)
   faceLike(video,cv){ try{
@@ -8106,12 +8113,14 @@ setTimeout(()=>{ try{ if(Secret.landingVisible() && document.activeElement && do
 // ¿este dispositivo tiene cámara? Si NO: el acceso queda solo con PIN (sin biometría)
 Secret._camOk=true;
 try{
-  if(navigator.mediaDevices && navigator.mediaDevices.enumerateDevices){
-    navigator.mediaDevices.enumerateDevices().then(ds=>{
-      Secret._camOk=ds.some(d=>d.kind==="videoinput");
+  if(navigator.mediaDevices && navigator.mediaDevices.getUserMedia){
+    if(navigator.mediaDevices.enumerateDevices) navigator.mediaDevices.enumerateDevices().then(ds=>{
+      // 🐛 Safari/Firefox no listan cámaras hasta dar permiso: una lista VACÍA no significa "sin cámara" (solo se oculta si lista dispositivos y ninguno es cámara)
+      Secret._camOk = ds.length ? ds.some(d=>d.kind==="videoinput") : true;
       if(!Secret._camOk){ const b=$("vFace"); if(b) b.style.display="none"; }   // sin cámara no hay ENTRAR CON ROSTRO
-    }).catch(()=>{ Secret._camOk=false; });
-  } else Secret._camOk=false;
+    }).catch(()=>{ Secret._camOk=true; });   // si falla la consulta, que decida getUserMedia (pide permiso y da el error real)
+  } else { Secret._camOk=false; const b=$("vFace"); if(b) b.style.display="none";
+    if(!window.isSecureContext){ try{ const vm=$("vMsg"); if(vm) vm.textContent="🔒 EL ROSTRO SOLO FUNCIONA EN https://www.edtu.cl (aquí no hay cámara por http)"; }catch(e){} } }   // http en la red local: sin API de cámara
 }catch(e){ Secret._camOk=false; }
 // migración (1 sola vez por dispositivo): elimina el PIN antiguo (2012) — superadmin queda SOLO 1234, también en la nube
 try{
