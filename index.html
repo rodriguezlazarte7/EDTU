@@ -7318,6 +7318,13 @@ function buildPoster(){ try{
     y0+=90; }
   c.textAlign="center"; c.font="38px serif"; c.fillText("🤖",300,y0+36);
   c.fillStyle="#8fd0ff"; c.font="700 13px Consolas,monospace"; c.fillText("WALLY certifica estos récords",300,y0+60);
+  // 🔥⚔️👻 línea extra del póster: racha de días con desafíos, retos y escapes fantasma (se omite lo que esté en 0)
+  try{ const dd=new Date(), keyOf=(dy)=>{ const t=new Date(dd.getFullYear(),dd.getMonth(),dd.getDate()-dy); return t.getFullYear()*10000+(t.getMonth()+1)*100+t.getDate(); };
+    const hasDay=k=>["rubik_daily_","scream_daily_","jurassic_daily_","nag_daily_","edtu_f1_daily_"].some(p=>(parseFloat(g(p+k))||0)>0);
+    let st=0; for(let i=hasDay(keyOf(0))?0:1;i<60;i++){ if(hasDay(keyOf(i))) st++; else break; }
+    const re=parseInt(g("edtu_retos_enviados")||"0",10)||0, rr=parseInt(g("edtu_retos_recibidos")||"0",10)||0, ge=parseInt(g("scream_ghost_escapes")||"0",10)||0;
+    const px=[]; if(st>0) px.push("🔥 racha "+st+" día"+(st>1?"s":"")); if(re||rr) px.push("⚔️ "+re+" reto"+(re===1?"":"s")+" enviado"+(re===1?"":"s")+(rr?" · "+rr+" recibido"+(rr===1?"":"s"):"")); if(ge>0) px.push("👻 "+ge+" escape"+(ge>1?"s":"")+" fantasma");
+    if(px.length){ const yL=(y0+84>762)?762:y0+84; c.fillStyle="#c9a8ff"; c.font="700 12px Consolas,monospace"; c.fillText(px.join("  ·  "),300,yL); } }catch(e){}
   c.fillStyle="#6a86a8"; c.font="700 12px Consolas,monospace"; c.fillText(new Date().toLocaleDateString("es-CL")+" · www.edtu.cl",300,780);
   $("posterImg").src=cv.toDataURL("image/png");
   $("posterFs").style.display="flex";
