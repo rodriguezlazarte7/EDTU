@@ -291,10 +291,22 @@ let legendSaid=false;
 function wallyLegend(){ if(legendSaid||!edtuLegend()) return false; legendSaid=true;
   try{ if(window.speechSynthesis){ const u=new SpeechSynthesisUtterance("¡Veintiuno de veintiuno! ¡Eres leyenda de EDTU, agente!"); u.lang="es-ES"; u.pitch=1.6; u.rate=1.1; u.volume=0.9; speechSynthesis.speak(u); } }catch(e){}
   return true; }
+// 🧠 WALLY RECUERDA tu último caso (nag_diary[0]) la primera vez que hablas con él en cada partida
+let nWMemSaid=false;
+function wallyMemN(){ if(nWMemSaid) return null; nWMemSaid=true; try{ const a=JSON.parse(localStorage.getItem("nag_diary")||"[]"); if(!a.length) return null; const e=a[0]; const opts=[];
+  opts.push("la última vez eliminaste "+e.kills+" zombies... mis sensores dicen que hoy serán más 🧟");
+  opts.push("la última vez llegaste a "+e.clues+"/7 pistas — si te trabas, la central te orienta por radio 📻");
+  if(e.nights>=2) opts.push("sobreviviste "+e.nights+" noches la última vez... ¡las noches son mías! digo, tuyas 🌙");
+  if(e.drvz) opts.push("la última vez atrapaste al Dr. VZ, ¡qué detective! 🧪");
+  if(e.heli) opts.push("subiste al helicóptero "+e.heli+(e.heli>1?" veces":" vez")+" la última vez (yo me mareo ahí arriba) 🚁");
+  if(e.cat) opts.push("el gato te ayudó la última vez... yo también escaneo, ¿eh? 🐱");
+  if(e.win) opts.push("la última vez RESOLVISTE el caso, ¡hoy repítelo, agente! ✓");
+  return opts[Math.floor(Math.random()*opts.length)]; }catch(err){ return null; } }
 function talkWallyN(){ if(wallyNTalkCd>0||!running||gameOver||level!=="surface") return;
   if(Math.hypot(P.x-wallyN.position.x,P.z-wallyN.position.z)>3) return;
   wallyNTalkCd=5; [880,1175,1320].forEach((fq,k)=>setTimeout(()=>snd(fq,"square",0.07,0.06),k*100));
   if(wallyLegend()){ showStory("🤖 WALLY: «¡21/21! Eres LEYENDA de EDTU, agente 👑»"); return; }
+  { const mem=wallyMemN(); if(mem){ showStory("🤖 WALLY: «"+mem+"»"); return; } }   // 🧠 recuerda tu último caso
   const q=WQUIPS_N[Math.floor(Math.random()*WQUIPS_N.length)];
   let best=null,bd=1e9; drawers.forEach(d=>{ if(d.open)return; const d2=Math.hypot(P.x-d.cx,P.z-d.cz); if(d2<bd){ bd=d2; best=d; } });
   if(!best){ showStory("🤖 WALLY: «"+q+"» · ya tienes TODAS las pistas. ¡Resuelve el caso!"); return; }
@@ -935,7 +947,7 @@ function collide(nx,nz){ const pr=0.35; for(const w of walls){ if(nx>w.x0-pr&&nx
 
 function startGame(){
   P.x=0;P.z=ARENA-5;P.y=1.7;P.vy=0;P.onGround=true;P.hp=100; yaw=0;pitch=0;
-  cluesGot=0; gameOver=false; muzzle=0; shootCd=0; radioT=45; radioClueN=0; clueArrowT=0; nDiaryReset(); nMemSaid=false;   // 📻 radio, 📁 expediente y 🐕 memoria del perro desde cero
+  cluesGot=0; gameOver=false; muzzle=0; shootCd=0; radioT=45; radioClueN=0; clueArrowT=0; nDiaryReset(); nMemSaid=false; nWMemSaid=false;   // 📻 radio, 📁 expediente y 🐕 memoria del perro desde cero
   startT=performance.now()/1000;   // reinicia el ciclo día/noche (empieza de noche)
   zombies.forEach(z=>scene.remove(z.grp)); zombies.length=0; spawnZombies(12); kills=0; heliMode=false;
   comboN=0; comboT=0; comboPop=0; maxCombo=0; document.getElementById("combo").style.opacity="0";
