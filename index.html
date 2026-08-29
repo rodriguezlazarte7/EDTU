@@ -1464,6 +1464,7 @@
     <button class="btn pickgame" id="pickJp" style="background:linear-gradient(90deg,#0a1a06,#183a10);border-color:#7dff5a">🦖 JURASSIC (sobrevive 7 días)</button>
     <button class="btn pickgame" id="pickScr" style="background:linear-gradient(90deg,#1a0308,#3a0810);border-color:#ff2b3a">🕷️ SCREAM (la araña · terror)</button>
     <button class="btn pickgame" id="pickTrophies" style="background:linear-gradient(90deg,#1a1406,#3a2c08);border-color:#ffd12e;color:#ffd12e">🏆 SALA DE TROFEOS</button>
+    <button class="btn pickgame" id="pickWally" style="background:linear-gradient(90deg,#061a1e,#083a44);border-color:#38b6ff;color:#8fd0ff">🤖 HABLAR CON WALLY (🎤 o escribe)</button>
     <button class="btn pickgame" id="pickRandom" style="border-color:#8fd0ff;color:#8fd0ff">🎲 SORPRÉNDEME</button>
     <button class="btn btn-ghost btn-sm" id="pickClose">Cerrar</button>
   </div>
@@ -7353,6 +7354,7 @@ function buildTrophies(){ try{
     if(memMsg){ try{ if(localStorage.getItem("edtu_wally_voice")==="1" && window.speechSynthesis){ const plain=memMsg.replace(/[\u{1F300}-\u{1FAFF}\u{2600}-\u{27BF}\u{FE0F}\u{200D}]/gu,"").replace(/\s+/g," ").trim().slice(0,220); if(plain){ const u=new SpeechSynthesisUtterance(plain); u.lang="es-ES"; u.pitch=1.3; u.rate=1.05; u.volume=0.9; try{ const vs=speechSynthesis.getVoices().filter(x=>/^es[-_]?/i.test(x.lang)); const pv=vs.find(x=>/google|m[oó]nica|paulina|helena|elvira|luc[ií]a|sabina|laura/i.test(x.name))||vs[0]; if(pv) u.voice=pv; }catch(e){} speechSynthesis.cancel(); speechSynthesis.speak(u); } } }catch(e){} }   /* 🔊 saludo hablado */
     if(ws) ws.textContent = memMsg ? "«"+memMsg+"»" : wallys>=4 ? "«¡Encontraste TODOS mis escondites! Esta sala brilla gracias a ti»" : (seasMsg?"«"+seasMsg+"»":"«Bienvenido a tu sala, agente. Yo cuido tus trofeos»"); }
 }catch(e){ $("trophyBody").textContent="(error cargando trofeos)"; } }
+$("pickWally").onclick=()=>{ try{ $("pickTrophies").click(); setTimeout(()=>{ try{ const i=$("wallyIn"); if(i){ i.scrollIntoView({behavior:"smooth",block:"center"}); i.focus(); } }catch(e){} },450); }catch(e){} };   /* 🤖 hablar con WALLY desde el menú */
 $("pickTrophies").onclick=()=>{ buildTrophies(); $("trophyFs").style.display="flex"; };
 // 🎲 SORPRÉNDEME: un juego al azar de todo el menú (sin repetir el último)
 { const rb=$("pickRandom"); if(rb) rb.onclick=()=>{ const ids=["pickRush","pickFoot","pickMon","pickF1","pickGato","pickChess","pickSnake","pickC4","pickMem","pick2048","pickMines","pickBreak","pickInv","pickFlap","pickPong","pickRps","pickSimon","pickHang","pickNag","pickRk","pickJp","pickScr"].filter(id=>$(id)); let last=""; try{ last=localStorage.getItem("edtu_random_last")||""; }catch(e){} const pool=ids.filter(id=>id!==last); const id=pool[Math.floor(Math.random()*pool.length)]; try{ localStorage.setItem("edtu_random_last",id); }catch(e){} const b=$(id); if(b) b.click(); }; }
