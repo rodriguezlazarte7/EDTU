@@ -1,8 +1,8 @@
 # 🛰️ EDTU — Resumen de la sesión autónoma (2026-08-28)
 
-**Bucle de mejora continua mientras David estaba fuera** — dos tandas: la primera (~iter 205 → 302) y, tras el "sigue sin parar" de David, de la segunda a la decimoquinta (iter 303 → 475 y sigue, ya con David durmiendo 😴). **461 commits desde el 26/8** (~378 en esta gran sesión), con deploy a Heroku y verificación en vivo en cada paso. **Ningún juego quedó roto en ningún momento** (chequeos de salud cada 10 iteraciones: todos verdes; el último, iter 475, Heroku v1376).
+**Bucle de mejora continua mientras David estaba fuera** — dos tandas: la primera (~iter 205 → 302) y, tras el "sigue sin parar" de David, de la segunda a la decimosexta (iter 303 → 485 y sigue, ya con David durmiendo 😴). **470 commits desde el 26/8** (~387 en esta gran sesión), con deploy a Heroku y verificación en vivo en cada paso. **Ningún juego quedó roto en ningún momento** (chequeos de salud cada 10 iteraciones: todos verdes; el último, iter 485, Heroku v1393).
 
-**Números actuales**: 🕷️ SCREAM **120** 🏆 · 🦖 JURASSIC **126** 🏆 · 🧟 NOT A GAME **114** 🏆 · 🏎️ F1 **86** · 🧩 CUBO **69** · **tres juegos superaron las 100 features** · 475 iteraciones de bucle verificadas sanas 🎉 · páginas en vivo todas HTTP 200.
+**Números actuales**: 🕷️ SCREAM **122** 🏆 · 🦖 JURASSIC **128** 🏆 · 🧟 NOT A GAME **116** 🏆 · 🏎️ F1 **87** · 🧩 CUBO **70** · **tres juegos superaron las 100 features** · 485 iteraciones de bucle verificadas sanas 🎉 · páginas en vivo todas HTTP 200.
 
 ## 🔍 Auditoría multi-agente (ultracode)
 - 2 rondas con agentes buscadores + verificadores adversarios: **25 hallazgos, 24 bugs reales corregidos** (1 refutado)
@@ -177,6 +177,16 @@
 - 📻 **F1**: la radio del ingeniero nota cuando superas tu media en +15 % ("Por encima de tu media, piloto. Así se hace.")
 - 📄 RESUMEN con la Decimocuarta tanda
 - 🩺 Chequeo de salud en 475: todo verde (Heroku v1376, 461 commits desde el 26/8)
+
+## 🆕 Decimosexta tanda (iter 476-485) — avisos al superar tu media
+- 📊 **En plena partida te avisan cuando superas tu media**: 🦖 WALLY ("¡ya llevas 3.5 días, más que tu media de 3.2! esta aventura va para récord"), 🧟 la Central por radio ("38 eliminados: ya superaste tu media de 34 por caso, agente"), 🕷️ WALLY ("ya aguantaste 7:10, más que tu media de 6:40 ¡sigue así!") — una vez por partida
+- 🧩 **CUBO**: la IA se burla si tu última carrera fue más lenta que tu media ("¿estás oxidado?") o refunfuña si fue mejor ("suerte de principiante")
+- 🏎️ **F1**: la portada muestra tu media de metros por carrera junto al récord
+- 🕷️ **SCREAM**: en la franja del mapa grande, el piso con más piezas lleva ⭐
+- 🦖 **JURASSIC**: la flecha 🔥 TU FOGATA se pone roja y parpadea cuando le quedan 10 s
+- 🧟 **NAG**: "geiger" de la pista señalada — un pitido que se acelera y se agudiza al acercarte (<15 m)
+- 📄 RESUMEN con la Decimoquinta tanda
+- 🩺 Chequeo de salud en 485: todo verde (Heroku v1393, 470 commits desde el 26/8)
 
 ## 🤖 WALLY por todos lados
 Frases x8 por juego, celebra el 21/21 con voz, escanea pisos/baterías/cajones, certifica el póster... y presume su carrera de mBots en todas partes 🏁
