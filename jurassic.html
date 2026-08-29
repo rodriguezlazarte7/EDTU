@@ -441,7 +441,7 @@ function wallyLegend(){ if(legendSaid||!edtuLegend()) return false; legendSaid=t
   try{ if(window.speechSynthesis){ const u=new SpeechSynthesisUtterance("¡Veintiuno de veintiuno! ¡Eres leyenda de EDTU, agente!"); u.lang="es-ES"; u.pitch=1.6; u.rate=1.1; u.volume=0.9; speechSynthesis.speak(u); } }catch(e){}
   return true; }
 // 🧠 WALLY RECUERDA tu aventura anterior (jurassic_diary[0]) la primera vez que hablas con él en cada partida
-let jMemSaid=false, jCleanSaid=false;   // jCleanSaid: WALLY ya celebró tu racha sin heridas en esta partida
+let jMemSaid=false, jCleanSaid=false, jAvgSaid=false;   // jCleanSaid: WALLY ya celebró tu racha sin heridas en esta partida
 function wallyMemJ(){ if(jMemSaid) return null; jMemSaid=true; try{ const a=JSON.parse(localStorage.getItem("jurassic_diary")||"[]"); if(!a.length) return null; const e=a[0]; const opts=[];
   if(e.fish) opts.push("la última vez pescaste "+e.fish+(e.fish>1?" peces":" pez")+"... ¿hoy superas eso? 🎣");
   if(e.ptero) opts.push("la última vez el pterodáctilo se lanzó "+e.ptero+(e.ptero>1?" veces":" vez")+" sobre ti: ¡mira arriba! 🦅");
@@ -459,6 +459,7 @@ function talkWallyJ(){ if(petBCd>0) return false;
   { const mem=wallyMemJ(); if(mem){ toast2("🤖 WALLY: «"+mem+"»"); return true; } }   // 🧠 recuerda tu aventura anterior
   { const dfN=(elapsed%DAY_LEN)/DAY_LEN; if(dfN>=0.5 && Math.random()<0.34){ toast2("🤖 WALLY: «es de noche 🌙: los depredadores cazan más — quédate cerca del refugio 🏠 o de una fogata 🔥»"); return true; } }   /* 🌙 consejo nocturno */
   { if(fireT>0 && campfire.visible && !jFireSaid){ const fd=Math.hypot(campfire.position.x-P.x,campfire.position.z-P.z); if(fd>8){ jFireSaid=true; toast2("🤖 WALLY: «tu fogata 🔥 sigue viva a "+Math.round(fd)+" m y le quedan "+Math.max(1,Math.round(fireT))+" s — junto a ella te curas y los dinos no se acercan»"); return true; } } }   /* 🔥 recuerda tu fogata (una vez por fogata) */
+  { if(!jAvgSaid){ try{ const T=JSON.parse(localStorage.getItem("jurassic_totals")||"null"); if(T&&T.games>=3){ const avg=T.days/T.games, dSin2=elapsed/DAY_LEN; if(dSin2>avg){ jAvgSaid=true; toast2("🤖 WALLY: «¡ya llevas "+dSin2.toFixed(1)+" días, más que tu media de "+avg.toFixed(1)+"! 📊 esta aventura va para récord»"); return true; } } }catch(e){} } }   /* 📊 supera tu media (una vez por partida) */
   { const dSin=elapsed/DAY_LEN; if(jDiary.hits===0 && dSin>=2 && !jCleanSaid){ jCleanSaid=true; toast2("🤖 WALLY: «¡"+Math.floor(dSin)+" días sin un rasguño! eres un fantasma para los dinos 🛡️»"); return true; } }   // 🛡️ celebra tu racha sin heridas (una vez por partida)
   const q=WQUIPS_J[Math.floor(Math.random()*WQUIPS_J.length)];
   if(inv.batt>=3){ toast2("🤖 WALLY: «"+q+"» · ¡ya tienes las 3 baterías, a la torre de radio!"); return true; }
@@ -945,7 +946,7 @@ function start(){ $("start").classList.add("hide"); $("end").classList.add("hide
   jPaused=false; const po3=$("jPauseOv"); if(po3) po3.style.display="none";
   try{ jTutOn=!localStorage.getItem("jur_tut1"); }catch(e){ jTutOn=false; }  jTutStep=0; jTutT=5;   // 🎓 tutorial solo la primera vez
   rainOn=false; setRainSnd(false); rainF=0; rain.visible=false; rainT=80+Math.random()*100;   // 🌧️ clima desde cero
-  fireT=0; fireCd=0; fireWarned=false; campfire.visible=false; { const iF=safeZones.findIndex(s2=>s2.fire); if(iF>=0) safeZones.splice(iF,1); }   // 🔥 fogata desde cero
+  fireT=0; fireCd=0; fireWarned=false; campfire.visible=false; jAvgSaid=false; { const iF=safeZones.findIndex(s2=>s2.fire); if(iF>=0) safeZones.splice(iF,1); }   // 🔥 fogata desde cero
   ptState="circle"; ptT=45; ptA=Math.random()*6.28; ptero.position.set(85,26,0);   // 🦅 pterodáctilo desde cero
   jRng=dailyJ?mulberry32(dailyKeyJ()):null;   // 📅 DESAFÍO DEL DÍA: desde aquí huevo, pickups y dinos salen de la semilla de la fecha
   eggPlace();   // 🥚 huevo dorado en un escondite nuevo
