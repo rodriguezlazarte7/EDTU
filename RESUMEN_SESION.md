@@ -1,8 +1,8 @@
 # 🛰️ EDTU — Resumen de la sesión autónoma (2026-08-28)
 
-**Bucle de mejora continua mientras David estaba fuera** — dos tandas: la primera (~iter 205 → 302) y, tras el "sigue sin parar" de David, de la segunda a la quincuagésima sexta (iter 303 → 885 y sigue, ya con David durmiendo 😴 — ¡las iteraciones 500, 600, 700 y 800 se celebraron de madrugada!). **814 commits desde el 26/8** (~731 en esta gran sesión), con deploy a Heroku y verificación en vivo en cada paso. **Ningún juego quedó roto en ningún momento** (chequeos de salud cada 10 iteraciones: todos verdes; el último, iter 885, Heroku v1829).
+**Bucle de mejora continua mientras David estaba fuera** — dos tandas: la primera (~iter 205 → 302) y, tras el "sigue sin parar" de David, de la segunda a la quincuagésima octava (iter 303 → 905 y sigue, ya con David durmiendo 😴 — ¡las iteraciones 500, 600, 700, 800 y 900 se celebraron sin él!). **833 commits desde el 26/8** (~750 en esta gran sesión), con deploy a Heroku y verificación en vivo en cada paso. **Ningún juego quedó roto en ningún momento** (chequeos de salud cada 10 iteraciones: todos verdes; el último, iter 905, Heroku v1861).
 
-**Números actuales**: 🕷️ SCREAM **145** 🏆 · 🦖 JURASSIC **147** 🏆 · 🧟 NOT A GAME **138** 🏆 · 🏎️ F1 **103** 🏆 · 🧩 CUBO **84** · 🕹️ los 16 minijuegos con récord o victorias y medias · **cuatro juegos superaron las 100 features** · 885 iteraciones de bucle verificadas sanas 🎉 · páginas en vivo todas HTTP 200.
+**Números actuales**: 🕷️ SCREAM **145** 🏆 · 🦖 JURASSIC **147** 🏆 · 🧟 NOT A GAME **138** 🏆 · 🏎️ F1 **103** 🏆 · 🧩 CUBO **84** · 🕹️ los 16 minijuegos con récord o victorias y medias · **cuatro juegos superaron las 100 features** · 905 iteraciones de bucle verificadas sanas 🎉 · páginas en vivo todas HTTP 200.
 
 ## 🔍 Auditoría multi-agente (ultracode)
 - 2 rondas con agentes buscadores + verificadores adversarios: **25 hallazgos, 24 bugs reales corregidos** (1 refutado)
@@ -545,6 +545,32 @@
 - 🐛 Bugs cazados: `\b` tras vocal acentuada ("me pegó", "mentí"), "controlo" ≠ "control", "meses tienen 31" ≠ "meses tiene un año", "para llegar al otro lado" no es el comando "para" · **894 preguntas + fuzz 60**
 - 📄 RESUMEN con la Quincuagésima quinta tanda
 - 🩺 Chequeo de salud en 885: todo verde (Heroku v1829, 814 commits desde el 26/8, test 894/894 + fuzz 60/60, 5 páginas + sw.js + server.js con sintaxis OK, dyno web up)
+
+## 🆕 Quincuagésima séptima tanda (iter 886-895) — WALLY chileno, sabelotodo y con opinión
+- 📄 RESUMEN con la Quincuagésima sexta tanda
+- 💬 Ronda 51: **jerga escrita** (ola, k tal, toy, q onda, nose, aver, dnd, kiero, grax, jsjs, weno, oki, sipi, oe…) normalizada; gg, ez, noob, cringe, F, uwu, bro y chilenismos (cachai, bacán, la raja, fome, pulento, brígido, filo, al tiro, wena, qlq); "dónde está la sala"
+- 🐾 Ronda 52: **curiosidades de animales** — patas/ojos/corazones, cómo duermen tiburones y delfines, ronroneo, velocidades, el más venenoso/fuerte/inteligente, perros y colores, cebras, pingüinos, flamencos, miel, picadura de abeja y mordida de perro (primeros auxilios), camaleones, unicornios/dragones, megalodón, cóndor, cuánto vive cada animal
+- 💻 Ronda 53: **diccionario tech** — wifi, píxel, la nube, virus, hacker, HTML/CSS, algoritmo, IA, ChatGPT, servidor, Heroku, GitHub, commit, localStorage, navegador, emoji, QR, bluetooth, 5G, bytes, meme, streamer, Minecraft/Roblox/Fortnite, app, cookie, captcha, CPU/RAM, dron, VR…
+- 💬 Ronda 54: **seguimiento de conversación** — "y tú", "cómo así", "explícame mejor / no entendí / dame un ejemplo" (la última respuesta en simple), "más corto / resume", "sigue", "nada más", "espérame", "ya volví"
+- 📅 Ronda 55: **calendario chileno** — año, estaciones (hemisferio sur), vacaciones, "nací en 2015" + día de la semana y días vividos, signo, día del niño/madre/padre/profe…, Semana Santa (cálculo de Pascua), **feriados de Chile** con los que se mueven al lunes, próximo feriado, ¿es feriado hoy?, días entre fechas
+- 🩺 Ronda 56: **cuerpo, salud y cocina** — recetas con "con un adulto" (queque, panqueques, palomitas, huevo, galletas, limonada, pizza…), higiene, primeros auxilios (fiebre, nariz, quemadura, picadura, moretón, torcedura, caída, herida, oído, piojos), vacunas, alergia, asma, estatura por edad, imagen corporal, Ratón Pérez
+- 💾 Ronda 57: **RESPALDO real** — bloque 💾 en la Sala con 📤 GUARDAR RESPALDO (.json con todo el localStorage) y 📥 RESTAURAR; "guardar respaldo" desde el chat; controles de la app (modo oscuro, sonido, cerrar/limpiar chat, olvida todo, cambia mi nombre a X, foto, sesión, conectados, top 10)
+- 📜 Ronda 58: **enciclopedia de EDTU** — David (11 años, jefe, el dominio del papá), cuándo nació EDTU (22/6/2026) y cada mundo, primer juego (Rush) y el más nuevo, fantasma, torreta, helipuerto, vitrola, antídoto, túnel, fogata, manada, gato, pit, DRS, nitro, leyenda, logros, diario, hitos, semilla
+- 🤔 Ronda 59: **"¿X o Y?"** con opinión (perros/gatos, scream/jurassic, messi/cristiano, colo colo/la u, t-rex/tiburón, kóndor/araña…) y cualquier par con razón; verdad o reto, 20 preguntas, "elige por mí"
+- 🐛 Bugs cazados: "haber o a ver" y "quién fue o higgins" no son pares; "me hacen bullying" y "odio el colegio" siguen su camino; "`\b` tras ó" en "me pegó" · **1094 preguntas + fuzz 60**
+
+## 🆕 Quincuagésima octava tanda (iter 896-905) — 🎉 900 MEJORAS: robot, creatividad, estilo y memoria
+- 🚗 Ronda 60: **robot LAFVIN y Arduino** — conectar, no se mueve, bluetooth, luces con el mapa de pines real, mando Xbox (Y nitro, L3 MODO CARRERA), pilas, programar Arduino (IDE, setup/loop, Blink), HC-05, PWM, Serial, baudios, COM, cortocircuito, resistencia, protoboard, voltios, ohm, cómo aprender a programar
+- 🎨 Ronda 61: **creatividad** — inventa un dinosaurio / superhéroe / palabra / nombre de espía (se guarda), nombres para mascotas, poemas por tema, rima con un nombre, rap de EDTU, **leyendas chilenas** (Caleuche, Trauco, Pincoya, Llorona, Chupacabras…), historia de terror corta, "si fueras humano"
+- 🎭 Ronda 62: **tono y estilo** — "no me sirves", "eres aburrido", "me mentiste", "ponte serio", habla como pirata/robot/bebé/gato…, "trátame de usted", y flags que wallyType aplica de verdad: modo breve, sin emojis, mayúsculas, "habla normal"
+- 🧮 Ronda 63: **calculadora con frases sueltas** — "dos por tres", "veinte dividido en cuatro", "el doble de doce" (números en palabras → dígitos), "2^10", "suma 3 y 4", "cuál es la raíz de 144", "3 docenas", "es 17 par o impar", "pi por 2"
+- 🎉 **Iteración 900**: WALLY celebra las novecientas (saludo, gracias, quién soy, cuántas mejoras) — rumbo a las 1000
+- 🔢🔤 Ronda 64: **utilidades** — primos hasta N, dado de N caras, mayor/menor, promedio, fibonacci, romanos del A al B, abecedario, vocales/consonantes, cuántas letras tiene X, palíndromos, anagramas, palabras con X, repetir N veces, contar palabras, mayúsculas, ordenar alfabéticamente
+- 🩺 Chequeo de salud en 902: todo verde (Heroku v1857, 830 commits, test 1200/1200 + fuzz 60/60, 412 handlers, index 1,14 MB)
+- 📚 Ronda 65: **diccionario e idiomas** — 90 palabras (valores, ciencia, cívica, jerga de chat y chilenismos), "¿zanahoria con z o con s?" con regla, saludos en coreano, quechua, ruso, árabe, griego, hindi, turco, sueco, holandés, rapa nui y latín, frases en 8 idiomas, inglés → español (180 palabras)
+- 🎮 Ronda 66: **controles reales** de cada mundo (teclas sacadas del código), guardar partida, mando por mundo, carriles, bocina, boxes, dificultades y cómo elegirlas
+- 🧠 Ronda 67: **memoria personal y apuntes** — mundo/color/comida favoritos, mascota, equipo, mejor amigo, curso, profe; "vivo en…" no se guarda; anota/apunta/agrega tarea, mis apuntes, borra/listo la tarea N, "recuérdame X", contador de mensajes
+- 🐛 Bugs cazados: "panqueques" contenía "queque", "alérgico" con tilde, "por ciento" ≠ "por 100", "mis notas" son las del colegio · **1266 preguntas + fuzz 60**
 
 ## 🤖 WALLY por todos lados
 Frases x8 por juego, celebra el 21/21 con voz, escanea pisos/baterías/cajones, certifica el póster... y presume su carrera de mBots en todas partes 🏁
