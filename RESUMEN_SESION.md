@@ -1,8 +1,8 @@
 # 🛰️ EDTU — Resumen de la sesión autónoma (2026-08-28)
 
-**Bucle de mejora continua mientras David estaba fuera** — dos tandas: la primera (~iter 205 → 302) y, tras el "sigue sin parar" de David, de la segunda a la decimoctava (iter 303 → 505 y sigue, ya con David durmiendo 😴 — ¡la iteración 500 se celebró de madrugada!). **488 commits desde el 26/8** (~405 en esta gran sesión), con deploy a Heroku y verificación en vivo en cada paso. **Ningún juego quedó roto en ningún momento** (chequeos de salud cada 10 iteraciones: todos verdes; el último, iter 505, Heroku v1427).
+**Bucle de mejora continua mientras David estaba fuera** — dos tandas: la primera (~iter 205 → 302) y, tras el "sigue sin parar" de David, de la segunda a la decimonovena (iter 303 → 515 y sigue, ya con David durmiendo 😴 — ¡la iteración 500 se celebró de madrugada!). **497 commits desde el 26/8** (~414 en esta gran sesión), con deploy a Heroku y verificación en vivo en cada paso. **Ningún juego quedó roto en ningún momento** (chequeos de salud cada 10 iteraciones: todos verdes; el último, iter 515, Heroku v1444).
 
-**Números actuales**: 🕷️ SCREAM **124** 🏆 · 🦖 JURASSIC **130** 🏆 · 🧟 NOT A GAME **118** 🏆 · 🏎️ F1 **90** · 🧩 CUBO **72** · **tres juegos superaron las 100 features** · 505 iteraciones de bucle verificadas sanas 🎉 · páginas en vivo todas HTTP 200.
+**Números actuales**: 🕷️ SCREAM **126** 🏆 · 🦖 JURASSIC **131** 🏆 · 🧟 NOT A GAME **119** 🏆 · 🏎️ F1 **91** · 🧩 CUBO **72** · **tres juegos superaron las 100 features** · 515 iteraciones de bucle verificadas sanas 🎉 · páginas en vivo todas HTTP 200.
 
 ## 🔍 Auditoría multi-agente (ultracode)
 - 2 rondas con agentes buscadores + verificadores adversarios: **25 hallazgos, 24 bugs reales corregidos** (1 refutado)
@@ -207,6 +207,13 @@
 - 🕷️ **SCREAM**: al recoger la última pieza del piso, aviso "✔ ¡Piso limpio! → ⭐ P4 tiene 3 piezas ⬆️ sube" con campanita
 - 📄 RESUMEN con la Decimoséptima tanda
 - 🩺 Chequeo de salud en 505: todo verde (Heroku v1427, 488 commits desde el 26/8)
+
+## 🆕 Decimonovena tanda (iter 506-515) — hitos por todos lados
+- 🏅 **Próximo hito en la portada de los 5 juegos** junto a la media ("🏅 3 más para 25"); WALLY chat "hito / próximo hito / cuánto falta" lo cuenta por mundo y en total; el saludo te anima cuando te faltan 1-2 partidas ("¡solo 1 partida más y llegas a 25 en EDTU!")
+- 📊 **Sala de Trofeos**: ÚLTIMAS AVENTURAS marca cada partida con ⬆️/⬇️ según tu media de toda la vida (en el cubo, menos segundos es mejor)
+- 🕷️ **SCREAM**: WALLY (E) te recuerda tu media de tiempo en el edificio como meta antes de superarla ("tu media es 6:40 — llevas 2:10... ¡aguanta más!")
+- 📄 RESUMEN con la Decimoctava tanda
+- 🩺 Chequeo de salud en 515: todo verde (Heroku v1444, 497 commits desde el 26/8)
 
 ## 🤖 WALLY por todos lados
 Frases x8 por juego, celebra el 21/21 con voz, escanea pisos/baterías/cajones, certifica el póster... y presume su carrera de mBots en todas partes 🏁
