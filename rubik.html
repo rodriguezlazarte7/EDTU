@@ -218,7 +218,7 @@ function startRace(){
     if(n>0){ showMsg(String(n),"#ffd12e"); snd(440,"square",0.12,0.06); setTimeout(step,700); }
     else { showMsg("¡YA!","#39ff14"); snd(880,"square",0.3,0.08); setTimeout(()=>{ if(state==="race") showMsg(""); },500);
       state="race"; newScramble(); raceStart=performance.now(); setTimeout(()=>{ drawNet(); updFaces(); },120);
-      { const g=document.getElementById("goal"); const dv=dailyMode?loadDaily():0; if(g){ if(dv>0){ g.textContent="🎯 hoy: "+dv.toFixed(1)+"s"; g.style.color="#ffd88a"; g.dataset.v=dv; g.style.display="block"; } else { let av=0; try{ const T=JSON.parse(localStorage.getItem("rubik_totals")||"null"); if(T&&T.races>=4) av=T.t/T.races; }catch(e){} if(av>0){ g.textContent="📊 media: "+av.toFixed(1)+"s"; g.style.color="#ffd88a"; g.dataset.v=av; g.style.display="block"; } else g.style.display="none"; } } }   // 🎯 objetivo del día en el HUD (o 📊 tu media fuera del desafío)
+      { window._goalBeeped=false; const g=document.getElementById("goal"); const dv=dailyMode?loadDaily():0; if(g){ if(dv>0){ g.textContent="🎯 hoy: "+dv.toFixed(1)+"s"; g.style.color="#ffd88a"; g.dataset.v=dv; g.style.display="block"; } else { let av=0; try{ const T=JSON.parse(localStorage.getItem("rubik_totals")||"null"); if(T&&T.races>=4) av=T.t/T.races; }catch(e){} if(av>0){ g.textContent="📊 media: "+av.toFixed(1)+"s"; g.style.color="#ffd88a"; g.dataset.v=av; g.style.display="block"; } else g.style.display="none"; } } }   // 🎯 objetivo del día en el HUD (o 📊 tu media fuera del desafío)
       histSolve.length=0; scramble.forEach(m=>histSolve.push({face:m.face,dir:m.dir})); hintsLeft=3;   // 💡 pistas listas
       streakP=0; streakPMax=0; { const ps=document.getElementById("pstreak"); if(ps) ps.style.opacity="0"; }   // 🔥 racha desde cero
       { const hb0=document.getElementById("hintBtn"); if(hb0) hb0.textContent="💡 PISTA x3"; }
@@ -492,7 +492,7 @@ canvas.addEventListener("pointermove",e=>{ if(e.pointerId!==dragId) return; camY
 let aiWinT=0, lastTick=0;   // 🤖 giro de victoria de la IA · ⏰ tic-tac de tensión
 function loop(){
   if(state==="race" && !ended){ const curT=(performance.now()-raceStart)/1000; document.getElementById("timer").textContent=curT.toFixed(1)+"s";
-    { const g=document.getElementById("goal"); if(g && g.style.display!=="none"){ const dv=parseFloat(g.dataset.v)||0; g.style.color=(dv>0&&curT>dv)?"#ff5a5a":"#ffd88a"; } }   // 🎯 se pone rojo al superar la marca
+    { const g=document.getElementById("goal"); if(g && g.style.display!=="none"){ const dv=parseFloat(g.dataset.v)||0; g.style.color=(dv>0&&curT>dv)?"#ff5a5a":"#ffd88a"; if(dv>0&&curT>dv&&!window._goalBeeped){ window._goalBeeped=true; try{ snd(196,"triangle",0.18,0.06); setTimeout(()=>snd(147,"triangle",0.22,0.06),160); }catch(e){} } }   /* 🔔 aviso único al pasar el objetivo */ }   // 🎯 se pone rojo al superar la marca
     // ⏰ FINAL DE INFARTO: cuando la IA pasa el 75%, suena un tic-tac que se ACELERA a medida que se acerca al final
     if(aiTotal){ const done=(aiTotal-aiQueue.length)/aiTotal;
       if(done>=0.75){ const iv=1000-((done-0.75)/0.25)*650;
