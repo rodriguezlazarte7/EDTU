@@ -7550,6 +7550,8 @@ const Secret={
     $("bioMsg").textContent = t.mode==="identify" ? "IDENTIFÍCATE — LA IA DIRÁ QUIÉN ERES"
       : t.mode==="agent" ? "VERIFICACIÓN DE "+((t.name||"AGENTE").toUpperCase())
       : "CONFIRMA TU IDENTIDAD, AGENTE";
+    if(t.mode==="identify"){ try{ const any=this._tplLoad().length || (typeof agents!=="undefined" && agents.some(a=>!a.blocked && this._tplLoad("edtu_face_"+a.id).length));
+      if(!any){ $("bioMsg").style.color="#ffb020"; $("bioMsg").textContent="🧬 EN ESTE DISPOSITIVO NO HAY NINGÚN ROSTRO GUARDADO · escribe 25062015 en la bóveda para registrar el tuyo (o entra con tu PIN y usa 🧬 Rostro)"; } }catch(e){} }
     $("bioStart").style.display="block"; $("bioFrame").classList.remove("scanning");
     $("bioFs").classList.add("show");
     this.loadFaceApi();   // va cargando la IA de reconocimiento mientras el usuario lee
@@ -7690,7 +7692,7 @@ const Secret={
       $("bioStart").style.display="none"; $("bioFrame").classList.add("scanning");
       $("bioProg").style.display="block";
       const msg=$("bioMsg"), HEX="0123456789ABCDEF", video=$("bioVideo");
-      let p=0, tick=0; const t0=Date.now(); this._face=false; this._descs=[]; this._faces=0; this._liveDist=null;
+      let p=0, tick=0; const t0=Date.now(); this._face=false; this._descs=[]; this._faces=0; this._liveDist=null; this._liveHist=[]; this._bestLive=null;
       this._smiled=false; this._smiling=false; this._sawNeutral=false; this._tooFar=false; this._meshFaces=0; this._smilePct=0; this._liveMatch=null;
       // detector de rostro: IA (face-api) > nativo del navegador > casero (color de piel)
       let fd=null; try{ if("FaceDetector" in window) fd=new FaceDetector({fastMode:true,maxDetectedFaces:1}); }catch(e){ fd=null; }
@@ -7716,8 +7718,11 @@ const Secret={
                   tpls=this._tplLoad().slice();
                   for(const a of agents){ if(!a.blocked) tpls=tpls.concat(this._tplLoad("edtu_face_"+a.id)); }
                 } else tpls=this._tplLoad();
-                this._liveDist = tpls.length ? this._minDist(best.descriptor,tpls) : null;
-                this._liveMatch = tpls.length ? (this._liveDist<0.55) : null;   // ¿es la persona correcta AHORA MISMO?
+                const dNow = tpls.length ? this._minDist(best.descriptor,tpls) : null;
+                if(dNow!=null){ (this._liveHist=this._liveHist||[]).push(dNow); if(this._liveHist.length>4) this._liveHist.shift(); if(this._bestLive==null||dNow<this._bestLive) this._bestLive=dNow; }
+                this._liveDist = dNow;
+                // ¿es la persona correcta? se juzga por el PROMEDIO de las últimas 4 medidas (un cuadro movido ya no congela la barra) y con el umbral estándar de esta IA (~0.6)
+                this._liveMatch = (dNow==null) ? null : (this._liveHist.length<3 ? null : ((this._liveHist.reduce((a,b)=>a+b,0)/this._liveHist.length) < 0.62));
               }
               if(!this._meshReady){   // sin malla 3D: sonrisa por expresión clásica (respaldo)
                 const hap=best.expressions ? (best.expressions.happy||0) : 0;
@@ -7771,7 +7776,7 @@ const Secret={
           : multi ? "☝ SOLO UNA PERSONA A LA VEZ"
           : !this._face ? "🔍 BUSCANDO ROSTRO... PONTE FRENTE A LA CÁMARA"
           : this._tooFar ? "🔎 ACÉRCATE UN POCO A LA CÁMARA"
-          : this._liveMatch===false ? "🚫 ROSTRO NO COINCIDE — LA BARRA NO AVANZA"
+          : this._liveMatch===false ? "🚫 ROSTRO NO COINCIDE — ACÉRCATE, BUSCA MÁS LUZ, SIN GORRO NI LENTES"
           : (pi>=96 && this._descs.length<2) ? "📷 ACÉRCATE Y BUSCA MÁS LUZ — MEJORANDO IMAGEN..."
           : (pi>=LIVE_AT && !this._smiled && faReady) ? (this._sawNeutral ? "😁 SONRÍE — PRUEBA DE VIDA"+(this._meshReady?" · "+(this._smilePct||0)+"%":"") : "😐 CARA SERIA PRIMERO...")
           : "ESCANEANDO ROSTRO · "+pi+"%";
@@ -7795,18 +7800,19 @@ const Secret={
                 .concat(agents.filter(a=>!a.blocked).map(a=>({key:"edtu_face_"+a.id, who:{type:"agent",id:a.id}, name:(a.name||"AGENTE").toUpperCase()})));
               for(const cd of cands){ const t=this._tplLoad(cd.key); if(!t.length) continue;
                 const d=this._minDist(avg,t); if(d<bd){ bd=d; best=cd; } }
-              if(best && bd<0.50){
+              if(best && bd<0.58){
                 loginAs=best.who; okMsg="✔ IDENTIFICADO: "+best.name;
+                if(bd>0.25){ try{ const t=this._tplLoad(best.key); if(t.length){ t.push(Array.from(avg)); if(t.length>10) t.splice(5,1); this._tplSave(t,best.key); } }catch(e){} }   // 🧠 aprende este ángulo/luz para la próxima
                 if(best.david){ const dg=agents.find(a=>(a.name||"").trim().toLowerCase()==="david"); if(dg && !dg.blocked) loginAs={type:"agent",id:dg.id}; }
-              } else { pass=false; denyMsg="ROSTRO NO REGISTRADO EN ESTE DISPOSITIVO"; }
+              } else { pass=false; denyMsg=(best?"ROSTRO NO COINCIDE (parecido "+Math.max(0,Math.min(99,(1-bd/0.8)*100)).toFixed(0)+"%) · MÁS LUZ, SIN GORRO NI LENTES, O RE-REGÍSTRALO CON 25062015":"ROSTRO NO REGISTRADO EN ESTE DISPOSITIVO · ESCRIBE 25062015 EN LA BÓVEDA PARA REGISTRARLO"); }
             } else if(tg.mode==="agent"){
               const key="edtu_face_"+tg.id, tpls=this._tplLoad(key);
               if(!tpls.length){ pass=false; denyMsg="ESTE AGENTE NO TIENE ROSTRO ENTRENADO AQUÍ"; }
               else{
                 const dist=this._minDist(avg,tpls);
-                if(dist>=0.50){ pass=false; denyMsg="ROSTRO NO RECONOCIDO · NO ERES "+((tg.name||"EL AGENTE").toUpperCase()); }
+                if(dist>=0.58){ pass=false; denyMsg="ROSTRO NO RECONOCIDO · NO ERES "+((tg.name||"EL AGENTE").toUpperCase())+" (parecido "+Math.max(0,Math.min(99,(1-dist/0.8)*100)).toFixed(0)+"%)"; }
                 else{ loginAs={type:"agent", id:tg.id}; okMsg="✔ BIENVENIDO, "+((tg.name||"AGENTE").toUpperCase());
-                  if(dist>0.25 && dist<0.40 && tpls.length<8){ tpls.push(Array.from(avg)); this._tplSave(tpls,key); } }
+                  if(dist>0.25){ tpls.push(Array.from(avg)); if(tpls.length>10) tpls.splice(5,1); this._tplSave(tpls,key); } }
               }
             } else {   // david (código 25062015)
               const tpls=this._tplLoad();
@@ -7817,8 +7823,8 @@ const Secret={
                 okMsg="🆕 ROSTRO DE DAVID REGISTRADO ("+pick.length+" ángulos) · BIENVENIDO";
               }else{
                 const dist=this._minDist(avg,tpls);
-                if(dist>=0.50){ pass=false; denyMsg="ROSTRO NO RECONOCIDO · NO ERES DAVID"; }
-                else if(dist>0.25 && dist<0.40 && tpls.length<8){ tpls.push(Array.from(avg)); this._tplSave(tpls); }   // anti-contaminación
+                if(dist>=0.58){ pass=false; denyMsg="ROSTRO NO RECONOCIDO · NO ERES DAVID (parecido "+Math.max(0,Math.min(99,(1-dist/0.8)*100)).toFixed(0)+"%) · ¿OTRA LUZ? · CÓDIGO 4567 BORRA EL ROSTRO PARA REGISTRARLO DE NUEVO"; }
+                else if(dist>0.25){ tpls.push(Array.from(avg)); if(tpls.length>10) tpls.splice(5,1); this._tplSave(tpls); }   // 🧠 aprende (solo tras verificar: anti-contaminación)
               }
               if(pass){
                 const dg=agents.find(a=>(a.name||"").trim().toLowerCase()==="david");
@@ -7841,7 +7847,7 @@ const Secret={
         if(Date.now()-t0>25000 && p<100){   // 25 seg y no completó -> denegado (con el motivo real)
           clearInterval(ivS); clearInterval(ivF); if(ivM) clearInterval(ivM);
           this.bioStop(); frame.classList.remove("scanning","noface"); $("bioStart").style.display="block";
-          this.bioFail(!faReady ? "LA IA NO CARGÓ · REVISA INTERNET" : this._face ? (!this._smiled ? "SIN SONRISA REAL (¿UNA FOTO? 🤨) · ACCESO DENEGADO" : "TIEMPO AGOTADO · ACCESO DENEGADO") : "NINGÚN ROSTRO DETECTADO · ACCESO DENEGADO");
+          this.bioFail(!faReady ? "LA IA NO CARGÓ · REVISA INTERNET" : this._liveMatch===false ? "ROSTRO NO COINCIDE (mejor parecido "+(this._bestLive!=null?Math.max(0,Math.min(99,(1-this._bestLive/0.8)*100)).toFixed(0):"?")+"%) · MÁS LUZ, SIN GORRO NI LENTES · O RE-REGÍSTRALO: 25062015" : this._face ? (this._tooFar ? "ESTÁS MUY LEJOS DE LA CÁMARA · ACÉRCATE" : !this._smiled ? "FALTÓ LA SONRISA (cara seria y luego sonríe 😐→😁) · ACCESO DENEGADO" : "TIEMPO AGOTADO · ACCESO DENEGADO") : "NINGÚN ROSTRO DETECTADO · ACCESO DENEGADO");
         }
       },100);
       this._ivs=[ivS,ivF];
