@@ -5806,7 +5806,7 @@ const F1={
     this.rainSndUpd();   // 🌧️ sonido de lluvia sigue la intensidad
     if(this._hornCd>0) this._hornCd-=dt;   // 📯
     // 📅 ¡MEJOR DE LA SEMANA! (solo si aún no es récord absoluto, que ya tiene su propio anuncio)
-    if(!this._wkBeat && !this._mirror && this._wkBest>0 && this.dist>this._wkBest && this._wkBest<this.best){ this._wkBeat=true;
+    if(!this._wkBeat && !this._mirror && !this._spectate && this._wkBest>0 && this.dist>this._wkBest && this._wkBest<this.best){ this._wkBeat=true; this.radioSay("Mejor de la semana, piloto. Sigue empujando.",0.8); /* 📻 el ingeniero felicita */
       this._lcMsg="📅 ¡MEJOR DE LA SEMANA!"; this._lcMsgT=2.6; this._lcGood=true;
       try{ const a=this.actx(); if(a){ [784,988].forEach((fq,i)=>{ const o=a.createOscillator(),g=a.createGain(); o.type="triangle"; o.frequency.value=fq; g.gain.value=0.08; o.connect(g); g.connect(a.destination); o.start(a.currentTime+i*0.1); o.stop(a.currentTime+i*0.1+0.14); }); } }catch(e){} }
     // 🦅 KÓNDOR: el rival con nombre — aparece UNA vez por carrera a los 1500 m, 200 m por delante
