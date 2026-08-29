@@ -627,7 +627,7 @@ let jPhoto=false;   // 📸 modo foto (F2)
 function togglePhotoJ(){ jPhoto=!jPhoto; document.body.classList.toggle("photo",jPhoto); toast2(jPhoto?"📸 MODO FOTO — HUD oculto · F2 para volver":"📸 modo foto apagado"); }
 const inv={water:2,food:2,wood:0,batt:0}; let radioOn=false;
 const tracer=new THREE.Line(new THREE.BufferGeometry().setFromPoints([new THREE.Vector3(),new THREE.Vector3()]),new THREE.LineBasicMaterial({color:0x7fffd8,transparent:true,opacity:0})); scene.add(tracer); let tracerT=0;
-const DAY_LEN=48;                       // seg por día (día+noche). 7 días ≈ 5.6 min
+const DAY_LEN=48; let duskWarned=false;   // 🌇 aviso de anochecer (una vez por día)                       // seg por día (día+noche). 7 días ≈ 5.6 min
 const keys={}; const moveV={x:0,y:0};
 let touchUI = window.matchMedia && !matchMedia("(pointer:fine)").matches;
 
@@ -941,6 +941,7 @@ function start(){ $("start").classList.add("hide"); $("end").classList.add("hide
   eggPlace();   // 🥚 huevo dorado en un escondite nuevo
   legendSaid=false; jMemSaid=false;   // 👑 WALLY puede volver a celebrar el 21/21 una vez por partida · 🧠 y recordar tu aventura anterior
   stampT=100+Math.random()*120; stampOn=0; stampWarn=0;   // 🦕💨 estampida desde cero
+  duskWarned=false;   // 🌇 aviso de anochecer desde cero
   fishSt=0; fishT=0; fishCd=0; fishCount=0;   // 🎣 pesca desde cero
   qsIn=false; qsSink=0; qsEsc=0; qsT=0; qsZone=null;   // 🏜️ arena desde cero
   freeMode=false; { const fb3=$("freeBtn"); if(fb3) fb3.style.display="none"; }   // 🏝️ modo libre apagado
@@ -1084,6 +1085,9 @@ function update(dt){
   elapsed+=dt;
   const day=Math.floor(elapsed/DAY_LEN)+1;
   const df=(elapsed%DAY_LEN)/DAY_LEN;                 // 0..1 dentro del día
+  // 🌇 AVISO DE ANOCHECER: 8 s antes de que caiga la noche (df=0.5), una sola vez por día; se rearma al amanecer
+  { const rem=(0.5-df)*DAY_LEN; if(running && df<0.5 && rem<=8 && !duskWarned){ duskWarned=true; showStory("🌇 ANOCHECE EN 8 SEGUNDOS — vuelve al refugio 🏠 o prende una fogata 🔥 (C)"); snd(330,"triangle",0.3,0.08); setTimeout(()=>snd(262,"triangle",0.35,0.08),320); vibJ(60); }
+    if(df<0.05) duskWarned=false; }
   // 📊 metros recorridos
   if(jLastX!==null) jStatDist+=Math.hypot(P.x-jLastX,P.z-jLastZ);
   jLastX=P.x; jLastZ=P.z;
