@@ -1582,6 +1582,7 @@
     <button class="btn btn-primary" id="f1Start" style="font-size:17px;padding:12px 28px">▶ CORRER</button>
     <button class="btn btn-ghost" id="f1Mirror" title="Curvas invertidas · récords desactivados" style="display:none;margin-top:8px">🪞 ESPEJO: NO</button>
     <button class="btn btn-ghost" id="f1Daily" title="Mismo clima y misma secuencia de tráfico para todos hoy · compara metros con tus amigos" style="margin-top:8px">📅 DESAFÍO DEL DÍA: NO</button>
+    <button class="btn btn-ghost" id="f1Ghost" title="Modo espectador: el auto sigue solo la trayectoria de tu récord" style="display:none;margin-top:8px">👻 VER MI RÉCORD</button>
     <div style="margin-top:10px;font:700 12px Consolas,monospace;color:#8fd0ff">🎨 GARAJE — elige tu color</div>
     <div id="f1Garage" style="margin-top:6px;display:flex;gap:8px;justify-content:center"></div>
   </div>
@@ -5670,6 +5671,7 @@ const F1={
       this._mirror=unlocked&&localStorage.getItem("edtu_f1_mirror")==="1"; this._mir=this._mirror?-1:1;
       mb.textContent="🪞 ESPEJO: "+(this._mirror?"SÍ ✔":"NO"); } }catch(e){}
     $("f1Result").innerHTML="Vista Need for Speed · ←→ o A/D conducir · 🔥 NITRO: espacio / Y / RT / botón · franjas verdes = DRS<br>⏸ <b>P</b> pausa · ↵ <b>Enter</b> correr otra vez · 📯 <b>H</b> claxon (¡los rivales se apartan!) · ¡Cuidado con las CURVAS ⚠️, el pasto y las 🏍️ motos!<br>🌧️ lluvia · 🌙 día y noche · 🚇 túneles · 🛸 zepelín · 🤖 WALLY cada 1500 m · ⚡ combo de adelantamientos · ⏱️ sectores de 2000 m (🟢 = récord) · 🦅 KÓNDOR te reta a los 1500 m · 🔧 PIT STOP cada 3000 m (pégate a la derecha: 2s lento, sales con nitro lleno y +5%)<br>🏆 Récord: <b>"+Math.round(this.best)+"</b> m<br>🎖️ "+this.medals()+(function(){ try{ return localStorage.getItem("edtu_f1_ghost")?"<br>👻 el FANTASMA de tu récord te espera en la pista... ¡véncelo!":""; }catch(e){ return ""; } })()+(function(){ try{ const w=parseInt(localStorage.getItem("edtu_f1_kondor_w")||"0",10)||0, l=parseInt(localStorage.getItem("edtu_f1_kondor_l")||"0",10)||0; return (w||l)?"<br>⚔️ vs 🦅 KÓNDOR: <b>"+w+"-"+l+"</b>":""; }catch(e){ return ""; } })()+(function(){ try{ const bs=parseFloat(localStorage.getItem("edtu_f1_sector")||"0")||0; return bs>0?" · ⏱️ mejor sector: <b>"+bs.toFixed(1)+"s</b>":""; }catch(e){ return ""; } })()+(function(){ try{ const pw=parseFloat(localStorage.getItem("edtu_f1_week_"+F1.wkKey())||"0")||0; return pw>0?"<br>📅 mejor de esta semana: <b>"+Math.round(pw)+" m</b>":""; }catch(e){ return ""; } })()+F1.dailyLine()+F1.diaryLine();
+    try{ const gb=$("f1Ghost"); if(gb) gb.style.display=localStorage.getItem("edtu_f1_ghost")?"inline-block":"none"; }catch(e){}   // 👻 modo espectador solo si hay fantasma grabado
     this.draw();
   },
   close(){
@@ -5682,6 +5684,7 @@ const F1={
     this.stop(); $("f1Fs").classList.remove("open"); window.removeEventListener("resize",this._rs); },
   resize(){ const c=$("f1Canvas"); this.W=c.width=innerWidth; this.H=c.height=innerHeight; this.ctx=c.getContext("2d"); },
   start(){
+    this._spectate=false; this._spI=0;   // 👻 modo espectador apagado por defecto (spectate() lo enciende tras start)
     this.x=0; this.speed=120; this.dist=0; this.fuel=100; this.cars=[]; this.overt=0; this.shake=0; this.bgShift=0; this.maxSpd=0;
     this._spawnT=0; this._nextDrs=500; this._drsEnd=0; this.running=true; this._tPrev=performance.now();
     this.cdT=3.4; this._cdStep=4;   // 🚦 cuenta regresiva de largada
@@ -5744,6 +5747,9 @@ const F1={
     c.fillStyle=n===0?"#39ff14":"#fff"; c.fillText(n===0?"¡GO!":String(n),cx,cy+r+58);
     c.restore(); },
   input(dt){
+    // 👻 MODO ESPECTADOR: el auto sigue solo la x de tu fantasma (interpolada por distancia) con nitro automático; termina al pasar su último punto
+    if(this._spectate){ const gh=this._ghost; if(gh&&gh.length>1){ let i=this._spI||0; while(i<gh.length-2 && gh[i+1][0]<this.dist) i++; this._spI=i; const a=gh[i], b=gh[i+1]; const f=Math.max(0,Math.min(1,(this.dist-a[0])/Math.max(1,b[0]-a[0]))); const tx=a[1]+(b[1]-a[1])*f;
+        this.x+=(tx-this.x)*Math.min(1,dt*9); this.steer=Math.sign(tx-this.x); this.nitroOn=this.fuel>1; if(this.dist>=gh[gh.length-1][0]+25) this.spectateEnd(); } else this.spectateEnd(); return; }
     let dx=0;
     if(this.keys.ArrowLeft||this.keys.a||this.keys.A) dx-=1;
     if(this.keys.ArrowRight||this.keys.d||this.keys.D) dx+=1;
@@ -5804,7 +5810,7 @@ const F1={
       this._lcMsg="📅 ¡MEJOR DE LA SEMANA!"; this._lcMsgT=2.6; this._lcGood=true;
       try{ const a=this.actx(); if(a){ [784,988].forEach((fq,i)=>{ const o=a.createOscillator(),g=a.createGain(); o.type="triangle"; o.frequency.value=fq; g.gain.value=0.08; o.connect(g); g.connect(a.destination); o.start(a.currentTime+i*0.1); o.stop(a.currentTime+i*0.1+0.14); }); } }catch(e){} }
     // 🦅 KÓNDOR: el rival con nombre — aparece UNA vez por carrera a los 1500 m, 200 m por delante
-    if(!this._kSpawned && this.dist>=1500 && !this._mirror){ this._kSpawned=true;   // 🪞 KÓNDOR no corre en espejo
+    if(!this._kSpawned && this.dist>=1500 && !this._mirror && !this._spectate){ this._kSpawned=true;   // 🪞 KÓNDOR no corre en espejo
       this.cars.push({ x:[-0.66,-0.22,0.22,0.66][Math.floor(Math.random()*4)], z:this.dist+200, v:Math.max(22,this.speed/3.6-1.2), col:["#0d0d12","#ffd12e"], moto:false, kondor:true });
       this._kBanTxt="🦅 ¡KÓNDOR EN PISTA! 200 m adelante — ¡atrápalo!"; this._kBanT=3;
       try{ const a=this.actx(); if(a){ [220,330,220].forEach((fq,i)=>{ const o=a.createOscillator(),g=a.createGain(); o.type="sawtooth"; o.frequency.value=fq; g.gain.value=0.07; o.connect(g); g.connect(a.destination); o.start(a.currentTime+i*0.14); o.stop(a.currentTime+i*0.14+0.16); }); } }catch(e){} }
@@ -5812,14 +5818,14 @@ const F1={
     if(this.cdT<=0 && !this.paused) this._raceT+=dt;
     if(this.dist>=this._nextSec){ const st=this._raceT-this._secStart; this._secStart=this._raceT; this._nextSec+=2000;
       let bsec=0; try{ bsec=parseFloat(localStorage.getItem("edtu_f1_sector")||"0")||0; }catch(e){}
-      if((!bsec || st<bsec) && !this._mirror){ try{ localStorage.setItem("edtu_f1_sector",st.toFixed(1)); }catch(e){}
+      if((!bsec || st<bsec) && !this._mirror && !this._spectate){ try{ localStorage.setItem("edtu_f1_sector",st.toFixed(1)); }catch(e){}
         this._secMsg="🟢 ¡SECTOR VERDE! "+st.toFixed(1)+"s"; this._secMsgT=3; this._secGreen=true;
         try{ const a=this.actx(); if(a){ [880,1175].forEach((fq,i)=>{ const o=a.createOscillator(),g=a.createGain(); o.type="triangle"; o.frequency.value=fq; g.gain.value=0.09; o.connect(g); g.connect(a.destination); o.start(a.currentTime+i*0.1); o.stop(a.currentTime+i*0.1+0.14); }); } }catch(e){} }
       else { this._secMsg="⏱ sector: "+st.toFixed(1)+"s"+(bsec?" · récord "+bsec.toFixed(1)+"s":""); this._secMsgT=2.4; this._secGreen=false; } }   // 🐛FIX: sin récord previo (ej. espejo) no mostrar 'récord 0.0s'
     // 👻 grabar el fantasma: muestra [dist, x] cada 20 m (cap 800 = 16 km)
-    if(this._ghRec && !this._mirror && this.dist>=this._ghNext && this._ghRec.length<800){ this._ghRec.push([Math.round(this.dist),Math.round(this.x*1000)/1000]); this._ghNext=this.dist+20; }
+    if(this._ghRec && !this._mirror && !this._spectate && this.dist>=this._ghNext && this._ghRec.length<800){ this._ghRec.push([Math.round(this.dist),Math.round(this.x*1000)/1000]); this._ghNext=this.dist+20; }
     // 👻⚔️ DUELO: al pasar la última huella del fantasma en plena carrera, anuncio único
-    if(this._ghost && !this._mirror && !this._ghBeat && this._ghost.length>1 && this.dist>this._ghost[this._ghost.length-1][0]){ this._ghBeat=true;
+    if(this._ghost && !this._mirror && !this._spectate && !this._ghBeat && this._ghost.length>1 && this.dist>this._ghost[this._ghost.length-1][0]){ this._ghBeat=true;
       try{ if(window.speechSynthesis){ const u=new SpeechSynthesisUtterance("¡Superaste a tu fantasma! ¡Nuevo récord en camino!"); u.lang="es-ES"; u.pitch=1.35; u.rate=1.12; u.volume=0.95; speechSynthesis.cancel(); speechSynthesis.speak(u); } }catch(e){}
       try{ const a=this.actx(); if(a){ [660,880,1175].forEach((fq,i)=>{ const o=a.createOscillator(),g=a.createGain(); o.type="triangle"; o.frequency.value=fq; g.gain.value=0.12; o.connect(g); g.connect(a.destination); o.start(a.currentTime+i*0.12); o.stop(a.currentTime+i*0.12+0.15); }); } }catch(e){}
       try{ if(navigator.vibrate) navigator.vibrate([0,50,40,50,40,140]); }catch(e){} }
@@ -5930,15 +5936,15 @@ const F1={
     if(this.shake>0) this.shake=Math.max(0,this.shake-dt*22);
     if(this._ovT>0){ this._ovT-=dt; if(this._ovT<=0) this._ovCombo=0; }   // 🔥 la racha expira
     this.draw();
-    $("f1Hud").textContent="⚡ "+Math.round(this.speed)+" km/h · 📏 "+(this.dist>=1000?(this.dist/1000).toFixed(2)+" km":Math.round(this.dist)+" m")+" · 🏁 "+this.overt+(this.drs?" · 🟢 DRS":"")+(this._wRain>0.4?" · 🌧️ LLUVIA":"")+(this._inTun?" · 🚇 TÚNEL":(this._nightF>0.5?" · 🌙 NOCHE":""))+(this._ghBeat?" · 👻 ¡SUPERADO!":"")+(this._mirror?" · 🪞 ESPEJO":"")+(this._pitBoostT>0?" · 🔧 +5%":"")+(this._daily?" · 📅":"");
+    $("f1Hud").textContent="⚡ "+Math.round(this.speed)+" km/h · 📏 "+(this.dist>=1000?(this.dist/1000).toFixed(2)+" km":Math.round(this.dist)+" m")+" · 🏁 "+this.overt+(this.drs?" · 🟢 DRS":"")+(this._wRain>0.4?" · 🌧️ LLUVIA":"")+(this._inTun?" · 🚇 TÚNEL":(this._nightF>0.5?" · 🌙 NOCHE":""))+(this._ghBeat?" · 👻 ¡SUPERADO!":"")+(this._mirror?" · 🪞 ESPEJO":"")+(this._pitBoostT>0?" · 🔧 +5%":"")+(this._daily?" · 📅":"")+(this._spectate?" · 👻 ESPECTADOR":"");
   },
   crash(){
     try{ if(navigator.vibrate) navigator.vibrate([0,120,60,180]); }catch(e){}   // 📳 golpe de choque
-    if(this._kSpawned && !this._kDone){ this._kDone=true; try{ localStorage.setItem("edtu_f1_kondor_l",String((parseInt(localStorage.getItem("edtu_f1_kondor_l")||"0",10)||0)+1)); }catch(e){} }   // 🦅 chocaste sin pasarlo: punto para KÓNDOR
+    if(this._kSpawned && !this._kDone && !this._spectate){ this._kDone=true; try{ localStorage.setItem("edtu_f1_kondor_l",String((parseInt(localStorage.getItem("edtu_f1_kondor_l")||"0",10)||0)+1)); }catch(e){} }   // 🦅 chocaste sin pasarlo: punto para KÓNDOR
     this.crashSound(); this.engineOff(); this.rainSndOff(); this.running=false;
     if(navigator.vibrate){ try{ navigator.vibrate([120,60,180]); }catch(e){} }
-    const m=Math.round(this.dist), rec=!this._mirror && m>this.best;   // 🪞 en espejo no hay récords
-    this.saveWeek(m);   // 📅 mejor de la semana
+    const m=Math.round(this.dist), rec=!this._mirror && !this._spectate && m>this.best;   // 🪞 en espejo (ni 👻 espectador) no hay récords
+    if(!this._spectate) this.saveWeek(m);   // 📅 mejor de la semana (+ diario y desafío)
     if(rec){ this.best=m; localStorage.setItem("edtu_f1_best",String(m));
       try{ if(this._ghRec&&this._ghRec.length>1) localStorage.setItem("edtu_f1_ghost",JSON.stringify(this._ghRec)); }catch(e){}   // 👻 guarda la trayectoria récord
       // 🎙️ LOCUTOR de carreras eufórico
@@ -5990,6 +5996,10 @@ const F1={
   wkKey(){ const d=new Date(), j=new Date(d.getFullYear(),0,1); return d.getFullYear()+"-"+Math.floor(((d-j)/86400000+j.getDay())/7); },
   saveWeek(m){ this.saveDiary(m); if(this._mirror) return; try{ const k="edtu_f1_week_"+this.wkKey(); const pw=parseFloat(localStorage.getItem(k)||"0")||0; if(m>pw) localStorage.setItem(k,String(m)); }catch(e){}
     if(this._daily){ try{ const k2="edtu_f1_daily_"+this.dailyKey(); const pd=parseFloat(localStorage.getItem(k2)||"0")||0; if(m>pd) localStorage.setItem(k2,String(m)); }catch(e){} } },   // 📅 más metros de HOY
+  // 👻 MODO ESPECTADOR: revive tu récord — el auto sigue la trayectoria grabada del fantasma; sin récords, diario, KÓNDOR ni desafío
+  spectate(){ this.start(); this._spectate=true; this._spI=0; this._memMsg="👻 MODO ESPECTADOR: así corrió tu récord (el auto va solo)"; this._memMsgT=4; },
+  spectateEnd(){ if(!this._spectate) return; this._spectate=false; this.running=false; try{ this.engineOff(); this.rainSndOff(); }catch(e){}
+    $("f1Overlay").style.display="flex"; $("f1Msg").textContent="👻 ASÍ CORRIÓ TU RÉCORD"; $("f1Result").innerHTML="tu fantasma llegó a <b>"+Math.round(this.dist)+" m</b> — ahora véncelo tú 🏁<br><span style='color:#7a86b8'>↵ Enter o ▶ para correr de verdad</span>"; { const old=$("f1ShareBtn"); if(old) old.remove(); } },
   // 📅 DESAFÍO DEL DÍA: rng propio (semilla = fecha) usado SOLO en clima y tráfico; la pista es fija y el día/noche va por distancia, así que "las mismas condiciones para todos hoy"
   _mul(a){ return function(){ a|=0; a=a+0x6D2B79F5|0; let t=Math.imul(a^a>>>15,1|a); t=t+Math.imul(t^t>>>7,61|t)^t; return ((t^t>>>14)>>>0)/4294967296; }; },
   _rnd(){ return this._drng?this._drng():Math.random(); },
@@ -6803,6 +6813,8 @@ async function shareTxtF1(txt,btn,lbl){ const done=()=>{ btn.textContent="✅ CO
   try{ if(navigator.share){ await navigator.share({text:txt}); done(); return; } }catch(e){ if(e&&e.name==="AbortError") return; }
   try{ await navigator.clipboard.writeText(txt); done(); return; }catch(e){}
   try{ const ta=document.createElement("textarea"); ta.value=txt; ta.style.position="fixed"; ta.style.opacity="0"; document.body.appendChild(ta); ta.select(); document.execCommand("copy"); document.body.removeChild(ta); done(); }catch(e){ btn.textContent="❌ no se pudo copiar"; setTimeout(()=>{ btn.textContent=lbl; },2000); } }
+// 👻 botón VER MI RÉCORD (modo espectador)
+{ const gb=$("f1Ghost"); if(gb) gb.onclick=()=>{ try{ F1.spectate(); }catch(e){} }; }
 // 📅 botón DESAFÍO DEL DÍA de F1 (mismo clima y tráfico para todos hoy; guarda tus metros de hoy)
 { const db=$("f1Daily"); const setTxt=()=>{ let on=false; try{ on=localStorage.getItem("edtu_f1_daily_on")==="1"; }catch(e){} db.textContent="📅 DESAFÍO DEL DÍA: "+(on?"SÍ ✔":"NO"); };
   if(db){ setTxt(); db.onclick=()=>{ try{ const on=localStorage.getItem("edtu_f1_daily_on")==="1"; localStorage.setItem("edtu_f1_daily_on",on?"0":"1"); }catch(e){} setTxt(); }; } }
