@@ -955,7 +955,7 @@ function collide(nx,nz){ const pr=0.35; for(const w of walls){ if(nx>w.x0-pr&&nx
 
 function startGame(){
   P.x=0;P.z=ARENA-5;P.y=1.7;P.vy=0;P.onGround=true;P.hp=100; yaw=0;pitch=0;
-  cluesGot=0; gameOver=false; muzzle=0; shootCd=0; radioT=45; radioClueN=0; clueArrowT=0; c50Said=false; cAvgSaid=false; nDiaryReset(); nMemSaid=false; nWMemSaid=false;   // 📻 radio, 📁 expediente y 🐕 memoria del perro desde cero
+  cluesGot=0; gameOver=false; muzzle=0; shootCd=0; radioT=45; radioClueN=0; clueArrowT=0; c50Said=false; cAvgSaid=false; nDiaryReset(); setTimeout(()=>{ try{ if(!running||gameOver) return; const T=JSON.parse(localStorage.getItem("nag_totals")||"null"); if(T&&T.cases>=3){ try{ radioStatic(); }catch(e){} showStory("📻 CENTRAL: «tu media es "+Math.round((T.kills||0)/T.cases)+" eliminados por caso, agente. Supérala. 📊»"); } }catch(e){} },9000);   /* 📊 la Central te recuerda tu media al empezar */ nMemSaid=false; nWMemSaid=false;   // 📻 radio, 📁 expediente y 🐕 memoria del perro desde cero
   startT=performance.now()/1000;   // reinicia el ciclo día/noche (empieza de noche)
   zombies.forEach(z=>scene.remove(z.grp)); zombies.length=0; spawnZombies(12); kills=0; heliMode=false;
   comboN=0; comboT=0; comboPop=0; maxCombo=0; document.getElementById("combo").style.opacity="0";
