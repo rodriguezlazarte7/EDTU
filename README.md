@@ -1,4 +1,4 @@
-# 🛰️ EDTU — Espías De Tecnología Universal
+# 🛰️ EDTU — el cuartel de juegos de David
 
 Centro de mando para **agendar misiones de espionaje**, gestionar **agentes** y un **canal de comunicaciones (chat)**. Estilo neón futurista, pensada para **móvil, tablet y escritorio**.
 
