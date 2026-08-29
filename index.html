@@ -6620,7 +6620,7 @@ const Mem={ EMO:["🚀","🛸","🤖","👾","🎮","🕹️","⭐","🔫"],card
   pick(i){ if(this.lock)return; const el=$("memBoard").children[i]; if(el.classList.contains("up")||el.classList.contains("done"))return;
     el.textContent=this.cards[i]; el.classList.add("up"); this.flip.push(i);
     if(this.flip.length===2){ this.moves++; $("memHud").textContent="Movimientos: "+this.moves; this.lock=true; const a=this.flip[0],b=this.flip[1];
-      if(this.cards[a]===this.cards[b]){ gBeep(800); setTimeout(()=>{ [a,b].forEach(k=>{const e=$("memBoard").children[k];e.classList.remove("up");e.classList.add("done");}); this.flip=[]; this.lock=false; this.done+=2; if(this.done===this.cards.length) $("memOver").textContent="🎉 ¡Ganaste en "+this.moves+" movimientos!"; },420); }
+      if(this.cards[a]===this.cards[b]){ gBeep(800); setTimeout(()=>{ [a,b].forEach(k=>{const e=$("memBoard").children[k];e.classList.remove("up");e.classList.add("done");}); this.flip=[]; this.lock=false; this.done+=2; if(this.done===this.cards.length){ let bm=0, nw=false; try{ bm=parseInt(localStorage.getItem("edtu_mem_best")||"0",10)||0; if(!bm||this.moves<bm){ nw=bm>0; bm=this.moves; localStorage.setItem("edtu_mem_best",String(bm)); } }catch(e){} $("memOver").textContent="🎉 ¡Ganaste en "+this.moves+" movimientos!"+(nw?" · 🏆 ¡RÉCORD!":(bm?" · Récord: "+bm:"")); } },420); }
       else { setTimeout(()=>{ [a,b].forEach(k=>{const e=$("memBoard").children[k];e.classList.remove("up");e.textContent="";}); this.flip=[]; this.lock=false; },720); } } } };
 
 /* 🔢 2048 */
@@ -6665,7 +6665,7 @@ const Break={ cv:null,ctx:null,raf:null,run:false,px:0,ball:null,bricks:[],score
   stop(){ this.run=false; if(this.raf){cancelAnimationFrame(this.raf);this.raf=null;} },
   tick(){ const b=this.ball; b.x+=b.vx; b.y+=b.vy; if(b.x<b.r||b.x>this.W-b.r)b.vx*=-1; if(b.y<b.r)b.vy*=-1;
     if(b.y>this.H-20&&b.y<this.H-6&&b.x>this.px&&b.x<this.px+this.pw){ b.vy=-Math.abs(b.vy); b.vx=(b.x-(this.px+this.pw/2))/8; }
-    if(b.y>this.H){ this.lives--; if(this.lives<=0){ this.stop(); $("breakOver").textContent="💀 Fin · "+this.score+" pts"; return; } b.x=this.W/2;b.y=this.H-40;b.vx=3;b.vy=-4; }
+    if(b.y>this.H){ this.lives--; if(this.lives<=0){ this.stop(); let bb=0, nw=false; try{ bb=parseInt(localStorage.getItem("edtu_break_best")||"0",10)||0; if(this.score>bb){ nw=bb>0; bb=this.score; localStorage.setItem("edtu_break_best",String(bb)); } }catch(e){} $("breakOver").textContent="💀 Fin · "+this.score+" pts"+(nw?" · 🏆 ¡RÉCORD!":(bb?" · Récord: "+bb:"")); return; } b.x=this.W/2;b.y=this.H-40;b.vx=3;b.vy=-4; }
     for(const br of this.bricks){ if(!br.on)continue; if(b.x>br.x&&b.x<br.x+br.w&&b.y>br.y&&b.y<br.y+br.h){ br.on=false; b.vy*=-1; this.score+=10; gBeep(600); } }
     if(this.bricks.every(br=>!br.on)){ this.stop(); $("breakOver").textContent="🎉 ¡GANASTE! "+this.score+" pts"; }
     $("breakHud").textContent="🧱 "+this.score+" · ❤️"+this.lives; this.draw(); },
@@ -6727,7 +6727,7 @@ const Pong={ cv:null,ctx:null,raf:null,run:false,W:0,H:0,mode:"cpu",l:0,r:0,ball
     if(b.x<18&&b.y>this.l&&b.y<this.l+this.ph){ b.vx=Math.abs(b.vx)*1.05; b.vy+=(b.y-(this.l+this.ph/2))/12; gBeep(500); }
     if(b.x>this.W-18&&b.y>this.r&&b.y<this.r+this.ph){ b.vx=-Math.abs(b.vx)*1.05; b.vy+=(b.y-(this.r+this.ph/2))/12; gBeep(500); }
     if(b.x<0){ this.sr++; this.serve(1); } if(b.x>this.W){ this.sl++; this.serve(-1); }
-    if(this.sl>=5||this.sr>=5){ this.stop(); $("pongOver").textContent=this.sl>=5?(this.mode==="cpu"?"🎉 ¡GANASTE!":"🎉 ¡Ganó Izquierda!"):(this.mode==="cpu"?"🤖 Ganó la máquina":"🎉 ¡Ganó Derecha!"); }
+    if(this.sl>=5||this.sr>=5){ this.stop(); if(this.sl>=5&&this.mode==="cpu"){ try{ localStorage.setItem("edtu_pong_wins",String((parseInt(localStorage.getItem("edtu_pong_wins")||"0",10)||0)+1)); }catch(e){} } $("pongOver").textContent=this.sl>=5?(this.mode==="cpu"?"🎉 ¡GANASTE!":"🎉 ¡Ganó Izquierda!"):(this.mode==="cpu"?"🤖 Ganó la máquina":"🎉 ¡Ganó Derecha!"); }
     $("pongHud").textContent=this.sl+"  ·  "+this.sr; this.draw(); },
   draw(){ const c=this.ctx; c.fillStyle="#02040a"; c.fillRect(0,0,this.W,this.H); c.strokeStyle="rgba(255,255,255,.2)"; c.setLineDash([6,8]); c.beginPath(); c.moveTo(this.W/2,0); c.lineTo(this.W/2,this.H); c.stroke(); c.setLineDash([]);
     c.fillStyle="#33bbff"; c.fillRect(8,this.l,8,this.ph); c.fillStyle="#ff3b5b"; c.fillRect(this.W-16,this.r,8,this.ph); c.fillStyle="#fff"; c.fillRect(this.ball.x-5,this.ball.y-5,10,10); },
