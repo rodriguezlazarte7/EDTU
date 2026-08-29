@@ -1,8 +1,8 @@
 # 🛰️ EDTU — Resumen de la sesión autónoma (2026-08-28)
 
-**Bucle de mejora continua mientras David estaba fuera** — dos tandas: la primera (~iter 205 → 302) y, tras el "sigue sin parar" de David, de la segunda a la decimotercera (iter 303 → 455 y sigue, ya con David durmiendo 😴). **443 commits desde el 26/8** (~360 en esta gran sesión), con deploy a Heroku y verificación en vivo en cada paso. **Ningún juego quedó roto en ningún momento** (chequeos de salud cada 10 iteraciones: todos verdes; el último, iter 455, Heroku v1343).
+**Bucle de mejora continua mientras David estaba fuera** — dos tandas: la primera (~iter 205 → 302) y, tras el "sigue sin parar" de David, de la segunda a la decimocuarta (iter 303 → 465 y sigue, ya con David durmiendo 😴). **452 commits desde el 26/8** (~369 en esta gran sesión), con deploy a Heroku y verificación en vivo en cada paso. **Ningún juego quedó roto en ningún momento** (chequeos de salud cada 10 iteraciones: todos verdes; el último, iter 465, Heroku v1360).
 
-**Números actuales**: 🕷️ SCREAM **117** 🏆 · 🦖 JURASSIC **123** 🏆 · 🧟 NOT A GAME **111** 🏆 · 🏎️ F1 **83** · 🧩 CUBO **67** · **tres juegos superaron las 100 features** · 455 iteraciones de bucle verificadas sanas 🎉 · páginas en vivo todas HTTP 200.
+**Números actuales**: 🕷️ SCREAM **118** 🏆 · 🦖 JURASSIC **125** 🏆 · 🧟 NOT A GAME **113** 🏆 · 🏎️ F1 **84** · 🧩 CUBO **68** · **tres juegos superaron las 100 features** · 465 iteraciones de bucle verificadas sanas 🎉 · páginas en vivo todas HTTP 200.
 
 ## 🔍 Auditoría multi-agente (ultracode)
 - 2 rondas con agentes buscadores + verificadores adversarios: **25 hallazgos, 24 bugs reales corregidos** (1 refutado)
@@ -159,6 +159,15 @@
 - 🕷️ **SCREAM**: si tu piso está limpio, WALLY (E) apunta al piso con más piezas ("P4 tiene 3 piezas ⬆️ sube") o te manda a la MÁQUINA
 - 📄 RESUMEN con la Duodécima tanda
 - 🩺 Chequeo de salud en 455: todo verde (Heroku v1343, 443 commits desde el 26/8)
+
+## 🆕 Decimocuarta tanda (iter 456-465) — hitos y medias
+- 📊 **"vs tu media"**: al terminar, cada juego te compara con la media de todas tus partidas anteriores (desde la 4ª): 🧩 CUBO segundos ("tu media: 48.3s → hoy -6.2s ⬆️ ¡mejor que tu media!"), 🦖 JURASSIC días, 🧟 NAG kills
+- 🏅 **Hitos de partidas totales**: WALLY saluda una vez por hito al llegar a 10/25/50/100 partidas sumando los 5 mundos; en 🏎️ F1 la radio del ingeniero celebra 10/25/50/100 carreras ("Diez carreras, piloto. Ya eres de la casa.")
+- 🦖 **JURASSIC**: la portada dice cuándo hiciste tu récord de días (hoy / ayer / hace N días)
+- 🕷️ **SCREAM**: a veces el teléfono susurra en qué piso hay más piezas ("una voz que sabe dónde mirar")
+- 🧟 **NAG**: WALLY (E) dice cuánto falta para amanecer o anochecer ("🌅 amanece en 1:20, aguanta")
+- 📄 RESUMEN con la Decimotercera tanda
+- 🩺 Chequeo de salud en 465: todo verde (Heroku v1360, 452 commits desde el 26/8)
 
 ## 🤖 WALLY por todos lados
 Frases x8 por juego, celebra el 21/21 con voz, escanea pisos/baterías/cajones, certifica el póster... y presume su carrera de mBots en todas partes 🏁
