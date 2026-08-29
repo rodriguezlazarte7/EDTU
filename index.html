@@ -6226,7 +6226,7 @@ const F1={
       c.fillStyle="#33bbff"; c.font="900 "+Math.round(ps)+"px system-ui,sans-serif"; c.textAlign="center"; c.fillText("⚡",0,ps*0.36);
       c.restore(); }
     // 👻 FANTASMA de tu mejor carrera: auto celeste transparente que repite la trayectoria del récord
-    if(this._ghost && !this._mirror && this._ghost.length>1 && this.cdT<=0 && this.dist>=this._ghost[0][0] && this.dist<=this._ghost[this._ghost.length-1][0]){
+    if(this._ghost && !this._mirror && !this._spectate && this._ghost.length>1 && this.cdT<=0 && this.dist>=this._ghost[0][0] && this.dist<=this._ghost[this._ghost.length-1][0]){   // 👻 en espectador TU auto es el fantasma: no se dibuja encima
       while(this._ghI<this._ghost.length-2 && this._ghost[this._ghI+1][0]<this.dist) this._ghI++;
       const ga=this._ghost[this._ghI], gb=this._ghost[this._ghI+1];
       const gt=Math.max(0,Math.min(1,(this.dist-ga[0])/Math.max(1,gb[0]-ga[0]))), gx=ga[1]+(gb[1]-ga[1])*gt;

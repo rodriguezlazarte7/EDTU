@@ -845,7 +845,7 @@ function petPtTick(dt){ if(!petPtOn) return;
   petPt.position.y+=(ty2-petPt.position.y)*Math.min(1,dt*5);
   petPt.position.z+=(tz2-petPt.position.z)*Math.min(1,dt*5);
   petPt.rotation.y=-petPtA+Math.PI/2;
-  if(ptState==="warn"&&!petPtWarned){ petPtWarned=true; snd(2600,"square",0.18,0.06); setTimeout(()=>snd(2900,"square",0.16,0.05),120); }   // 🐣 doble aviso agudo del peligro
+  if(ptState==="warn"&&!petPtWarned){ petPtWarned=true; snd(2600,"square",0.18,0.06); setTimeout(()=>snd(2900,"square",0.16,0.05),120); toast2("🐣 ¡Tu ptero bebé chilla: PELIGRO ARRIBA! 🦅 — corre o refúgiate"); }   // 🐣 doble aviso agudo del peligro + texto
   if(ptState==="circle") petPtWarned=false;
   if(Math.random()<dt*0.04) snd(2200+Math.random()*400,"square",0.07,0.02); }   // piídos tiernos
 function pteroTick(dt,night){
