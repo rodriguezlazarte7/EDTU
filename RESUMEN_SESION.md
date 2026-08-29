@@ -1,8 +1,8 @@
 # 🛰️ EDTU — Resumen de la sesión autónoma (2026-08-28)
 
-**Bucle de mejora continua mientras David estaba fuera** — dos tandas: la primera (~iter 205 → 302) y, tras el "sigue sin parar" de David, de la segunda a la décima (iter 303 → 425 y sigue, ya con David durmiendo 😴). **416 commits desde el 26/8** (~333 en esta gran sesión), con deploy a Heroku y verificación en vivo en cada paso. **Ningún juego quedó roto en ningún momento** (chequeos de salud cada 10 iteraciones: todos verdes; el último, iter 425, Heroku v1293).
+**Bucle de mejora continua mientras David estaba fuera** — dos tandas: la primera (~iter 205 → 302) y, tras el "sigue sin parar" de David, de la segunda a la undécima (iter 303 → 435 y sigue, ya con David durmiendo 😴). **425 commits desde el 26/8** (~342 en esta gran sesión), con deploy a Heroku y verificación en vivo en cada paso. **Ningún juego quedó roto en ningún momento** (chequeos de salud cada 10 iteraciones: todos verdes; el último, iter 435, Heroku v1309).
 
-**Números actuales**: 🕷️ SCREAM **112** 🏆 · 🦖 JURASSIC **118** 🏆 · 🧟 NOT A GAME **108** 🏆 · 🏎️ F1 **79** · 🧩 CUBO **65** · **tres juegos superaron las 100 features** · 425 iteraciones de bucle verificadas sanas 🎉 · páginas en vivo todas HTTP 200.
+**Números actuales**: 🕷️ SCREAM **115** 🏆 · 🦖 JURASSIC **120** 🏆 · 🧟 NOT A GAME **109** 🏆 · 🏎️ F1 **80** · 🧩 CUBO **65** · **tres juegos superaron las 100 features** · 435 iteraciones de bucle verificadas sanas 🎉 · páginas en vivo todas HTTP 200.
 
 ## 🔍 Auditoría multi-agente (ultracode)
 - 2 rondas con agentes buscadores + verificadores adversarios: **25 hallazgos, 24 bugs reales corregidos** (1 refutado)
@@ -133,6 +133,14 @@
 - 🦖 **JURASSIC**: WALLY aconseja de noche ("los depredadores cazan más — quédate cerca del refugio o de una fogata")
 - 🏆 **Sala**: DESAFÍOS DE HOY dice en cuántas horas se renuevan
 - 🩺 Chequeo de salud en 425: todo verde
+
+## 🆕 Undécima tanda (iter 426-435) — pistas claras
+- 🕷️ **SCREAM**: WALLY recuerda tu escape fantasma anterior ("la última vez la araña nunca te vio... ¿repites, ninja?"); el objetivo del HUD dice cuántas válvulas 🔧 y muestras 🧪 quedan en ESTE piso y se refresca al cambiar de piso; el mapa grande muestra abajo en qué pisos quedan piezas (PB · P2◀ · P5)
+- 🦖 **JURASSIC**: las estadísticas del fin muestran fogatas, peces y cocos; el reloj del HUD muestra 🔥 mientras tu fogata sigue encendida
+- 🧟 **NAG**: el expediente del caso muestra tu ritmo en kills/min
+- 🏎️ **F1**: la portada dice hasta dónde llegó tu fantasma ("llegó a N m... ¡véncelo!")
+- 📄 RESUMEN sin la nota duplicada de la iteración 400
+- 🩺 Chequeo de salud en 435: todo verde (Heroku v1309, 425 commits desde el 26/8)
 
 ## 🤖 WALLY por todos lados
 Frases x8 por juego, celebra el 21/21 con voz, escanea pisos/baterías/cajones, certifica el póster... y presume su carrera de mBots en todas partes 🏁
