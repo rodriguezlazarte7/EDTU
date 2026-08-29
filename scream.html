@@ -656,7 +656,7 @@ function talkWally(){ if(wallyTalkCd>0||!running||gameOver) return;
         c3=clocks.filter(x=>!x.got&&x.f===curFloor).length, m2=medkits.filter(x=>!x.got&&x.f===curFloor).length;
   const parts=[]; if(v)parts.push(v+" válvula"+(v>1?"s":"")); if(s2)parts.push(s2+" muestra"+(s2>1?"s":"")); if(c3)parts.push(c3+" reloj"+(c3>1?"es":"")); if(m2)parts.push(m2+" botiquín"+(m2>1?"es":""));
   const q=WQUIPS_S[Math.floor(Math.random()*WQUIPS_S.length)];
-  showStory("🤖 WALLY: «"+q+"» · "+(parts.length?("escaneo: en este piso hay "+parts.join(", ")):"escaneo: piso limpio, busca en otros")); vib(40); }
+  showStory("🤖 WALLY: «"+q+"» · "+(parts.length?("escaneo: en este piso hay "+parts.join(", ")):(function(){ /* 🏢 piso limpio: WALLY apunta al piso con más piezas */ try{ let bf=-1,bc=0; for(let f2=0;f2<FLOORS;f2++){ const c=valves.filter(x=>!x.got&&x.f===f2).length+samples.filter(x=>!x.got&&x.f===f2).length; if(c>bc){ bc=c; bf=f2; } } if(bf<0) return "escaneo: piso limpio... ¡ya tienes todo! a la MÁQUINA en la planta baja 🧪"; return "escaneo: piso limpio — "+(bf===0?"la planta baja":"P"+bf)+" tiene "+bc+" pieza"+(bc>1?"s":"")+(bf>curFloor?" ⬆️ sube":" ⬇️ baja"); }catch(e){ return "escaneo: piso limpio, busca en otros"; } })())); vib(40); }
 // 📞 EL TELÉFONO: un teléfono viejo empieza a SONAR en algún piso; si lo contestas, una voz susurra una PISTA real
 const phone=new THREE.Group();
 { const base=new THREE.Mesh(new THREE.BoxGeometry(0.5,0.3,0.35),new THREE.MeshStandardMaterial({color:0x191919,roughness:.6})); base.position.y=1.05; phone.add(base);
