@@ -1297,7 +1297,7 @@ function update(dt){
       [880,1175,880,1568].forEach((fq,k)=>setTimeout(()=>snd(fq,"square",0.09,0.06),k*120));
       try{ localStorage.setItem("wally_notagame","1"); }catch(e){}   // 🏅 cacería de WALLY
       showStory("🤖 ¡WALLY sobrevivió al brote! (beep-boop)"); }
-    if(dn){ const nightN=Math.floor((now-startT)/360)+1; dn.textContent = (dayF>0.5 ? "☀️ DÍA "+nightN : (bloodMoon?"🔴 LUNA DE SANGRE "+nightN:"🌙 NOCHE "+nightN))+(dayF<0.5?" · 🔋"+Math.round(fBatt)+"%":""); }
+    if(dn){ const nightN=Math.floor((now-startT)/360)+1; dn.textContent = (dayF>0.5 ? "☀️ DÍA "+nightN : (bloodMoon?"🔴 LUNA DE SANGRE "+nightN:"🌙 NOCHE "+nightN))+(dayF<0.5?" · 🔋"+Math.round(fBatt)+"%":"")+(function(){ /* 🌅 cuenta atrás al amanecer / anochecer (ciclo de 360 s) */ try{ const ph2=(((now-startT)%360)+360)%360/360; const night=dayF<=0.5; const tgt=night?(ph2<0.5?0.5:1.5):1; const sg=Math.max(0,Math.round((tgt-ph2)*360)); return " · "+(night?"🌅 amanece en ":"🌙 anochece en ")+Math.floor(sg/60)+":"+String(sg%60).padStart(2,"0"); }catch(e){ return ""; } })(); }
     // 🏮 faroles: se encienden al anochecer (algunos titilan)
     for(const sl of streetLamps){ const base=(1-dayF)*1.4; sl.l.intensity=base*(Math.random()<0.06?0.2:1); sl.b.material.color.setHex(dayF>0.6?0x555550:0xffd890); }
     // 🔴 LUNA DE SANGRE: algunas noches (35%) la luna se tiñe de rojo — zombies enloquecidos pero sueltan MÁS escudos
