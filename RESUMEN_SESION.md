@@ -1,8 +1,8 @@
 # 🛰️ EDTU — Resumen de la sesión autónoma (2026-08-28)
 
-**Bucle de mejora continua mientras David estaba fuera** — dos tandas: la primera (~iter 205 → 302) y, tras el "sigue sin parar" de David, de la segunda a la vigesimoctava (iter 303 → 605 y sigue, ya con David durmiendo 😴 — ¡las iteraciones 500 y 600 se celebraron de madrugada!). **576 commits desde el 26/8** (~493 en esta gran sesión), con deploy a Heroku y verificación en vivo en cada paso. **Ningún juego quedó roto en ningún momento** (chequeos de salud cada 10 iteraciones: todos verdes; el último, iter 605, Heroku v1587).
+**Bucle de mejora continua mientras David estaba fuera** — dos tandas: la primera (~iter 205 → 302) y, tras el "sigue sin parar" de David, de la segunda a la vigesimonovena (iter 303 → 615 y sigue, ya con David durmiendo 😴 — ¡las iteraciones 500 y 600 se celebraron de madrugada!). **584 commits desde el 26/8** (~501 en esta gran sesión), con deploy a Heroku y verificación en vivo en cada paso. **Ningún juego quedó roto en ningún momento** (chequeos de salud cada 10 iteraciones: todos verdes; el último, iter 615, Heroku v1594).
 
-**Números actuales**: 🕷️ SCREAM **137** 🏆 · 🦖 JURASSIC **140** 🏆 · 🧟 NOT A GAME **131** 🏆 · 🏎️ F1 **98** · 🧩 CUBO **81** · **tres juegos superaron las 100 features** · 605 iteraciones de bucle verificadas sanas 🎉 · páginas en vivo todas HTTP 200.
+**Números actuales**: 🕷️ SCREAM **137** 🏆 · 🦖 JURASSIC **140** 🏆 · 🧟 NOT A GAME **131** 🏆 · 🏎️ F1 **99** · 🧩 CUBO **82** · **tres juegos superaron las 100 features** · 615 iteraciones de bucle verificadas sanas 🎉 · páginas en vivo todas HTTP 200.
 
 ## 🔍 Auditoría multi-agente (ultracode)
 - 2 rondas con agentes buscadores + verificadores adversarios: **25 hallazgos, 24 bugs reales corregidos** (1 refutado)
@@ -289,6 +289,13 @@
 - ⚠️ Dos builds de Heroku fallaron por el rate limit de su API (transitorio) y se reintentaron con éxito; ahora: sleep 10 tras el push, polling a 20 s y un deploy por cada 2-3 commits cuando se puede
 - 📄 RESUMEN con la Vigesimoséptima tanda
 - 🩺 Chequeo de salud en 605: todo verde (Heroku v1587, 576 commits desde el 26/8)
+
+## 🆕 Vigesimonovena tanda (iter 606-615) — chips y enlaces a WALLY
+- 💬 **Chips de preguntas rápidas** bajo el chat de WALLY (🎮 trucos · 🏆 récords · 🔥 racha · 🏅 hito · 📊 media · 🧭 mapa · ❓ ayuda) y una segunda fila con los trucos de cada mundo (🕷️🦖🧟🏎️🧩): un toque y WALLY responde; el placeholder invita a usarlos
+- 🤖 **Más enlaces a WALLY**: en la victoria del CUBO y en el choque de F1 ("🤖 pregúntale a WALLY cómo mejorar")
+- 🧠 **WALLY recuerda tu última pregunta** y cuenta cuántas le has hecho: hitos de 10/50/100/250 preguntas en el saludo y a veces retoma la última; **chat** "hora / qué hora es" dice la hora y cuánto falta para que se renueven los desafíos
+- 📄 RESUMEN con la Vigesimoctava tanda
+- 🩺 Chequeo de salud en 615: todo verde (Heroku v1594, 584 commits desde el 26/8)
 
 ## 🤖 WALLY por todos lados
 Frases x8 por juego, celebra el 21/21 con voz, escanea pisos/baterías/cajones, certifica el póster... y presume su carrera de mBots en todas partes 🏁
