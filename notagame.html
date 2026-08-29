@@ -1062,7 +1062,7 @@ function radioTick(dt){ if(!running||gameOver||cluesGot>=7) return;
     else { const s2=Math.sin(yaw), c2=Math.cos(yaw), tx=best.cx-P.x, tz=best.cz-P.z; const a=Math.atan2(tx*c2-tz*s2, -tx*s2-tz*c2);   // misma fórmula que la flecha al helipuerto
       const dir=Math.abs(a)<0.5?"justo adelante":Math.abs(a)>2.6?"detrás de ti":(a>0?"a tu derecha":"a tu izquierda");
       msg="la pista más cercana está a "+Math.round(bd)+" metros, "+dir; } }
-  radioStatic(); showStory("📻 CENTRAL: «"+msg+"»"); if(level==="surface") clueArrowT=8;   // 📜 y además te marca la pista 8 s
+  radioStatic(); showStory("📻 CENTRAL: «"+msg+"»"); if(level==="surface"){ clueArrowT=8; try{ dogCheer(); }catch(e){} } /* 🐕 el perro ladra cuando la central señala una pista */   // 📜 y además te marca la pista 8 s
   setTimeout(()=>{ try{ if(window.speechSynthesis){ const u=new SpeechSynthesisUtterance("Central a agente: "+msg); u.lang="es-ES"; u.pitch=0.7; u.rate=1.05; u.volume=0.75; speechSynthesis.speak(u); } }catch(e){} },350); }
 let nPhoto=false;   // 📸 modo foto (F2)
 function togglePhotoN(){ nPhoto=!nPhoto; document.body.classList.toggle("photo",nPhoto); showStory(nPhoto?"📸 MODO FOTO — HUD oculto · F2 para volver":"📸 modo foto apagado"); }
