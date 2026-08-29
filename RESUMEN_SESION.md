@@ -1,8 +1,8 @@
 # 🛰️ EDTU — Resumen de la sesión autónoma (2026-08-28)
 
-**Bucle de mejora continua mientras David estaba fuera** — dos tandas: la primera (~iter 205 → 302) y, tras el "sigue sin parar" de David, de la segunda a la vigesimoséptima (iter 303 → 595 y sigue, ya con David durmiendo 😴 — ¡la iteración 500 se celebró de madrugada!). **567 commits desde el 26/8** (~484 en esta gran sesión), con deploy a Heroku y verificación en vivo en cada paso. **Ningún juego quedó roto en ningún momento** (chequeos de salud cada 10 iteraciones: todos verdes; el último, iter 595, Heroku v1571).
+**Bucle de mejora continua mientras David estaba fuera** — dos tandas: la primera (~iter 205 → 302) y, tras el "sigue sin parar" de David, de la segunda a la vigesimoctava (iter 303 → 605 y sigue, ya con David durmiendo 😴 — ¡las iteraciones 500 y 600 se celebraron de madrugada!). **576 commits desde el 26/8** (~493 en esta gran sesión), con deploy a Heroku y verificación en vivo en cada paso. **Ningún juego quedó roto en ningún momento** (chequeos de salud cada 10 iteraciones: todos verdes; el último, iter 605, Heroku v1587).
 
-**Números actuales**: 🕷️ SCREAM **135** 🏆 · 🦖 JURASSIC **138** 🏆 · 🧟 NOT A GAME **129** 🏆 · 🏎️ F1 **97** · 🧩 CUBO **80** · **tres juegos superaron las 100 features** · 595 iteraciones de bucle verificadas sanas 🎉 · páginas en vivo todas HTTP 200.
+**Números actuales**: 🕷️ SCREAM **137** 🏆 · 🦖 JURASSIC **140** 🏆 · 🧟 NOT A GAME **131** 🏆 · 🏎️ F1 **98** · 🧩 CUBO **81** · **tres juegos superaron las 100 features** · 605 iteraciones de bucle verificadas sanas 🎉 · páginas en vivo todas HTTP 200.
 
 ## 🔍 Auditoría multi-agente (ultracode)
 - 2 rondas con agentes buscadores + verificadores adversarios: **25 hallazgos, 24 bugs reales corregidos** (1 refutado)
@@ -281,6 +281,14 @@
 - ⚠️ Un build de Heroku falló por límite de peticiones de su API (transitorio): se reintentó y salió bien; el polling pasó de 10 a 15 s
 - 📄 RESUMEN con la Vigesimosexta tanda
 - 🩺 Chequeo de salud en 595: todo verde (Heroku v1571, 567 commits desde el 26/8)
+
+## 🆕 Vigesimoctava tanda (iter 596-605) — ¡600 mejoras! y pregúntale a WALLY
+- 🎉 **Iteración 600** alcanzada de madrugada (29/8): WALLY chat "mejoras", el saludo y ahora también "gracias" celebran las seiscientas
+- 🤖 **PREGÚNTALE A WALLY desde cada juego**: enlace en las portadas de SCREAM, JURASSIC, NOT A GAME y CUBO (index.html?wally=…) y en la de F1 (askWally), y en las pantallas de fin de SCREAM, JURASSIC y NOT A GAME ("🤖 pregúntale a WALLY cómo mejorar"): index abre la Sala de Trofeos y WALLY responde solo
+- 🧩 **WALLY chat** "cubo / rubik / revoltura / práctica": trucos del cubo; saluda según la hora ("¡buenos días ☀️, agente!") y se despide con tu racha de días ("chao / adiós / me voy")
+- ⚠️ Dos builds de Heroku fallaron por el rate limit de su API (transitorio) y se reintentaron con éxito; ahora: sleep 10 tras el push, polling a 20 s y un deploy por cada 2-3 commits cuando se puede
+- 📄 RESUMEN con la Vigesimoséptima tanda
+- 🩺 Chequeo de salud en 605: todo verde (Heroku v1587, 576 commits desde el 26/8)
 
 ## 🤖 WALLY por todos lados
 Frases x8 por juego, celebra el 21/21 con voz, escanea pisos/baterías/cajones, certifica el póster... y presume su carrera de mBots en todas partes 🏁
