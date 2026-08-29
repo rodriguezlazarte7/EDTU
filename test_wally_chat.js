@@ -19,7 +19,7 @@ try{ fn=new Function("localStorage","window","$","g","pick","toast","wallyType",
 catch(e){ console.error("❌ wallyReply no compila:",e.message); process.exit(2); }
 /* [pregunta, regex esperado] — en orden (algunas son secuencias: adivinanza→pista→me rindo) */
 const T=[
-  ["hola",/agente/],["buenos días",/agente/],["ey wally",/agente/],["ayuda",/pregúntame por/],
+  ["hola",/agente/],["buenos días",/agente/],["ey wally",/agente|oídos|dime|aquí estoy/],["ayuda",/pregúntame por/],
   ["cuánto es 12 por 7",/= 84/],["100 entre 4",/= 25/],["2+2",/= 4/],["4 al cubo",/= 64/],["raíz de 81",/= 9/],["20% de 50",/= 10/],["10/0",/cero/],
   ["tira el dado",/🎲/],["d20",/20 caras/],["2 dados",/= \d+/],["moneda",/🪙/],["cara o sello",/CARA|SELLO/],
   ["qué día es hoy",/📅 hoy es/],["cuánto falta para el finde",/📅/],
@@ -65,6 +65,7 @@ const T=[
   ["soy niño",/bienvenido a EDTU/],["soy nuevo",/bienvenido a EDTU/],["tutorial",/bienvenido a EDTU/],["tengo 11 años",/David tiene 11/],["adivina mi edad",/tienes 11 años/],["adivina mi nombre",/David\?|te llamas/],["adivina",/1 al 100/],["me rindo",/era \d+/],["qué opinas de jurassic",/🦖 JURASSIC: una isla/],["qué es not a game",/🧟 NOT A GAME/],["de qué se trata f1",/🏎️ F1 RB RUSH/],["cuál es el juego más difícil",/SCREAM/],["cuál es el más fácil",/para empezar/],["dime algo",/./],["shhh",/voz apagada/],["me llamo sofía",/encantado, Sofía/],["olvida mi nombre",/agente/],
   ["buenas noches",/🌙/],["feliz cumpleaños wally",/MEJORAS/],["feliz año nuevo",/🎆/],["tengo que irme",/te espero|a la orden|pausa de agente/],["volví",/volviste/],["perdón",/no pasa nada|perdonado|tranqui/],["gracias por el chiste",/de nada|placer|gracias a ti/],["muy bueno",/gracias|sonroja|me alegra/],["no me gustó",/va otro/],["muy difícil",/😈/],["no puedo",/casi|nada es imposible|respira/],["qué es el sigilo",/SIGILO/],["dame una pista",/pista de qué/],
   ["dame un reto",/⚔️ tu reto/],["hay premios",/DESAFÍO DEL DÍA: cada día/],["cómo voy",/📈 así vas/],["mi progreso",/📈 así vas/],["cómo voy en mates",/🎓 tus notas/],["resumen de hoy",/📅 tu día/],["mañana tengo colegio",/descansar|descansado|a dormir/],["tengo tarea",/te ayudo con la tarea/],["practicar restas",/🧮 ¿cuánto es \d+ - \d+/],["me rindo",/./],["repasar las tablas",/✖️ tabla del/],["cuánto es 25 x 4 tarea",/= 100/],
+  ["wally abre jurassic",/abriendo|dime cuál/],["hey wally cuánto es 2+2",/= 4/],["oye wally",/dime, agente|aquí estoy|oídos/],["hola wally",/agente/],["quiero que me cantes",/soy WALLY/],["juguemos a adivinar",/1 al 100/],["me rindo",/era \d+/],["jugar a las adivinanzas",/🧠 adivinanza/],["me rindo",/era «/],["vamos a jugar a piedra papel tijera",/di 'piedra'/],["cuentos",/érase una vez/],["datos curiosos",/🧠 ¿sabías que/],["examen",/🧠 trivia/],["a",/./],["juego de inglés",/🇬🇧 quiz/],["me rindo",/en inglés es/],["palabras",/juegos de palabras/],["animales",/🐾/],["el dinosaurio más grande",/Argentinosaurus/],["cuál es tu dinosaurio favorito",/T-rex de JURASSIC/],
   ["rekord",/quisiste decir 'récord'/],["adivinansa",/quisiste decir 'adivinanza'/],["asdfgh",/no entendí|circuitos|confundido/],
 ];
 let ok=0, bad=0;
