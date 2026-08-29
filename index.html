@@ -7199,7 +7199,7 @@ function buildTrophies(){ try{
   h+="<div style='text-align:center;font-size:18px;color:#ffd12e;margin-bottom:8px'>"+(tot>=21?"🏆 21/21 — ¡ERES LEYENDA DE EDTU!":"🏅 "+tot+"/21 logros")+"</div>";
   // SCREAM
   const sb=parseFloat(g("scream_best")), sw=parseInt(g("scream_wins")||"0",10)||0;
-  h+="<div style='color:#ff6a7a'><b>🕷️ SCREAM"+(g("scream_win_pesadillaplus")==="1"?" 👑":"")+"</b></div>"+(isNaN(sb)?"— sin escape aún":"⏱ Mejor escape: <b>"+fmtMS(sb)+"</b> · 🚁 x"+sw)+"<br>";
+  h+="<div style='color:#ff6a7a'><b>🕷️ SCREAM"+(g("scream_win_pesadillaplus")==="1"?" 👑":"")+"</b></div>"+(isNaN(sb)?"— sin escape aún":"⏱ Mejor escape: <b>"+fmtMS(sb)+"</b> · 🚁 x"+sw)+(function(){ /* 👁️ escape más sigiloso */ const bs=g("scream_best_spot"); return bs!=null?" · 👁️ sigilo: <b>"+bs+"</b> aparición"+(bs==="1"?"":"es"):""; })()+"<br>";
   h+=["facil","normal","pesadilla","infierno"].map(k=>med(g("scream_win_"+k)==="1")).join(" ")+" <small>(🟢🟡🔴🔥)</small><br>";
   // JURASSIC
   const jb=parseFloat(g("jurassic_best"));
@@ -7207,7 +7207,7 @@ function buildTrophies(){ try{
   h+=["facil","normal","dificil","extincion"].map(k=>med(g("jurassic_win_"+k)==="1")).join(" ")+" <small>(🟢🟡🔴☄️)</small> · "+(g("jurassic_egg")==="1"?"🥚 Huevo Dorado":"▫️ ¿secreto? 🤫")+"<br>";
   // NOT A GAME
   const nk=parseInt(g("nag_best_kills")||"0",10)||0, nc2=parseInt(g("nag_best_combo")||"0",10)||0, ncase=g("nag_best_case");
-  h+="<div style='color:#ff2d55'><b>🧟 NOT A GAME</b></div>🧟 Récord kills: <b>"+nk+"</b>"+(nc2?" · 🔥 Racha: <b>x"+nc2+"</b>":"")+(ncase!=null?" · ⏱ Caso: <b>"+fmtMS(parseInt(ncase,10))+"</b>":"")+((parseInt(g("nag_best_nights")||"0",10)||0)>0?" · 🌙 x"+parseInt(g("nag_best_nights"),10)+" noches":"")+(function(){ /* 🌙 mejor noche */ const b=parseInt(g("nag_best_night_kills")||"0",10)||0; return b?" · 🌙 mejor noche: <b>"+b+"</b> kills":""; })()+"<br>";
+  h+="<div style='color:#ff2d55'><b>🧟 NOT A GAME</b></div>🧟 Récord kills: <b>"+nk+"</b>"+(nc2?" · 🔥 Racha: <b>x"+nc2+"</b>":"")+(ncase!=null?" · ⏱ Caso: <b>"+fmtMS(parseInt(ncase,10))+"</b>":"")+((parseInt(g("nag_best_nights")||"0",10)||0)>0?" · 🌙 x"+parseInt(g("nag_best_nights"),10)+" noches":"")+(function(){ /* 🌙 mejor noche */ const b=parseInt(g("nag_best_night_kills")||"0",10)||0; return b?" · 🌙 mejor noche: <b>"+b+"</b> kills":""; })()+(function(){ /* ⚡ primera pista más rápida */ const b1=parseInt(g("nag_best_first_clue")||"0",10)||0; return b1?" · ⚡ 1ª pista: <b>"+b1+" s</b>":""; })()+"<br>";
   h+=[25,50,100,200].map(k=>med(g("nag_kills_"+k)==="1")+k).join(" ")+"<br>";
   // F1
   const fb=parseFloat(g("edtu_f1_best")), fms=parseInt(g("edtu_f1_maxspd")||"0",10)||0, fov=parseInt(g("edtu_f1_overt")||"0",10)||0;
