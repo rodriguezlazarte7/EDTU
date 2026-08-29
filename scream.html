@@ -152,7 +152,7 @@
   </ul>
   <div class="cerrar">H o ❓ para cerrar</div>
 </div>
-<div id="map"><h3>🗺️ MAPA DEL PISO</h3><canvas id="mapC" width="320" height="320"></canvas><p>M o 🗺️ para cerrar · 🟢 válvula · 🟣 muestra · 🔴 araña · 🟡 tú</p></div>
+<div id="map"><h3>🗺️ MAPA DEL PISO</h3><canvas id="mapC" width="320" height="320"></canvas><p>M o 🗺️ para cerrar · 🟢 válvula · 🟣 muestra · 🔴 araña · 🟡 tú · abajo: pisos con piezas</p></div>
 <div id="fade"></div>
 
 <div id="start">
@@ -756,7 +756,11 @@ function drawMap(){ const c=$("mapC"); if(!c) return; const g=c.getContext("2d")
   { const p=w2m(ASC.x,ASC.z); g.strokeStyle="#ff9a3c"; g.lineWidth=1.5; g.strokeRect(p[0]-4,p[1]-4,8,8); }
   for(const mk of medkits){ if(mk.got||mk.f!==curFloor) continue; const p=w2m(mk.x,mk.z); g.fillStyle="#5aff9a"; g.fillRect(p[0]-3,p[1]-1,6,2); g.fillRect(p[0]-1,p[1]-3,2,6); }
   for(const ck of clocks){ if(ck.got||ck.f!==curFloor) continue; const p=w2m(ck.x,ck.z); g.fillStyle="#ffd12e"; g.beginPath(); g.arc(p[0],p[1],3.5,0,6.28); g.fill(); }
-  const pp=w2m(P.x,P.z), fx=-Math.sin(yaw), fz=-Math.cos(yaw); g.fillStyle="#ffd12e"; g.beginPath(); g.moveTo(pp[0]+fx*8,pp[1]+fz*8); g.lineTo(pp[0]-fz*5-fx*4,pp[1]+fx*5-fz*4); g.lineTo(pp[0]+fz*5-fx*4,pp[1]-fx*5-fz*4); g.closePath(); g.fill(); }
+  const pp=w2m(P.x,P.z), fx=-Math.sin(yaw), fz=-Math.cos(yaw); g.fillStyle="#ffd12e"; g.beginPath(); g.moveTo(pp[0]+fx*8,pp[1]+fz*8); g.lineTo(pp[0]-fz*5-fx*4,pp[1]+fx*5-fz*4); g.lineTo(pp[0]+fz*5-fx*4,pp[1]-fx*5-fz*4); g.closePath(); g.fill();
+  /* 🏢 franja inferior: en qué pisos quedan piezas (◀ = este piso) */
+  try{ const fl=[]; for(let f2=0;f2<FLOORS;f2++){ const v=valves.filter(x=>!x.got&&x.f===f2).length, s2=samples.filter(x=>!x.got&&x.f===f2).length; if(v||s2) fl.push((f2===0?"PB":"P"+f2)+(f2===curFloor?"◀":"")); }
+    g.fillStyle="rgba(0,0,0,0.7)"; g.fillRect(0,302,320,18); g.fillStyle="#d8c8ff"; g.font="700 11px Consolas,monospace"; g.textAlign="center";
+    g.fillText(fl.length?"🔧🧪 quedan en: "+fl.join(" · "):"🔧🧪 ¡todo reunido! → MÁQUINA en PB",160,315); }catch(e){} }
 addEventListener("keydown",e=>{ keys[e.code]=true; if(e.code==="KeyF") toggleFlash(); if(e.code==="KeyM") toggleMap(); if(e.code==="KeyG") throwFlare(); if(e.code==="KeyH") toggleHelp(); if(e.code==="KeyE"){ talkWally(); playVitrola(); tryElevator(); } if(e.code==="F2"){ e.preventDefault(); togglePhoto(); }
   if(e.code==="KeyP") togglePauseS();
   if(e.code==="Enter" && gameOver) start();   // ↩ reintentar al instante
