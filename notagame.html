@@ -1003,7 +1003,7 @@ function fmtCase(s){ return Math.floor(s/60)+":"+String(s%60).padStart(2,"0"); }
 function updNagMedals(){ updNDiary(); const el=document.getElementById("nagMedals"); if(el){ const bc=loadNCase();
   let bn=0; try{ bn=parseInt(localStorage.getItem("nag_best_nights")||"0",10)||0; }catch(e){}
   const nw=loadNWeek();
-  el.textContent="🎖️ Hitos de una partida: "+killMedals()+(bc!=null?"  ·  ⏱ Caso más rápido: "+fmtCase(bc):"")+(bn>0?"  ·  🌙 Récord: "+bn+" noche"+(bn>1?"s":""):"")+(nw>0?"  ·  📅 esta semana: "+nw+" kills":"")+(function(){ try{ const kr=parseFloat(localStorage.getItem("nag_best_kpm")||"0")||0; return kr>0?"  ·  ⚡ ritmo récord: "+kr.toFixed(1)+" kills/min":""; }catch(e){ return ""; } })()+(function(){ const dv=loadNDaily(); return dv>0?"  ·  📅 HOY: "+dv+" kills":""; })(); } }
+  el.textContent="🎖️ Hitos de una partida: "+killMedals()+(bc!=null?"  ·  ⏱ Caso más rápido: "+fmtCase(bc)+(function(){ /* 📅 cuándo */ try{ const ts=parseInt(localStorage.getItem("nag_best_case_ts")||"0",10)||0; if(!ts) return ""; const d=Math.floor((Date.now()-ts)/86400000); return " ("+(d<=0?"hoy":d===1?"ayer":"hace "+d+" días")+")"; }catch(e){ return ""; } })():"")+(bn>0?"  ·  🌙 Récord: "+bn+" noche"+(bn>1?"s":""):"")+(nw>0?"  ·  📅 esta semana: "+nw+" kills":"")+(function(){ try{ const kr=parseFloat(localStorage.getItem("nag_best_kpm")||"0")||0; return kr>0?"  ·  ⚡ ritmo récord: "+kr.toFixed(1)+" kills/min":""; }catch(e){ return ""; } })()+(function(){ const dv=loadNDaily(); return dv>0?"  ·  📅 HOY: "+dv+" kills":""; })(); } }
 // 📅 botón DESAFÍO DEL DÍA (cambia el flag y recarga: la ciudad se genera al cargar)
 { const nb=document.getElementById("nagDailyBtn"); if(nb){ nb.textContent="📅 DESAFÍO DEL DÍA: "+(dailyN?"SÍ ✔ — la misma ciudad para todos hoy":"NO"); nb.onclick=()=>{ try{ localStorage.setItem("nag_daily_on",dailyN?"0":"1"); }catch(e){} location.reload(); }; } }
 // ⚔️ aviso de RETO recibido en la portada (misma ciudad que tu amigo) y limpieza de la URL
@@ -1109,7 +1109,7 @@ function endGame(win,customInfo){ try{ const tc0=document.getElementById("toClue
   if(win){ t.textContent="✓ CASO RESUELTO"; t.className="big win";
     // ⏱ speedrun: ¿resolviste el caso más rápido que nunca?
     let caseTxt=""; { const pc=loadNCase(); const isCR=(pc==null||survS<pc);
-      if(isCR){ try{ localStorage.setItem("nag_best_case",String(survS)); }catch(e){} }
+      if(isCR){ try{ localStorage.setItem("nag_best_case",String(survS)); localStorage.setItem("nag_best_case_ts",String(Date.now())); }catch(e){} }
       caseTxt="<br>⏱ Caso resuelto en <b>"+fmtCase(survS)+"</b>"+(isCR?" 🏆 ¡CASO MÁS RÁPIDO!":" · Récord: <b>"+fmtCase(pc)+"</b>"); }
     inf.innerHTML=(customInfo||"Reuniste las pistas y eliminaste el brote.<br>La ciudad está a salvo. 🏙️")+caseTxt+recTxt; if(dailyN) nShareBtn(true,inf); snd(660,"triangle",0.3,0.1);
     // 🗺️ TU INVESTIGACIÓN DIBUJADA: mini-mapa de la ciudad con la ruta del caso
