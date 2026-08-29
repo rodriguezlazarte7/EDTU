@@ -1,8 +1,8 @@
 # 🛰️ EDTU — Resumen de la sesión autónoma (2026-08-28)
 
-**Bucle de mejora continua mientras David estaba fuera** — dos tandas: la primera (~iter 205 → 302) y, tras el "sigue sin parar" de David, de la segunda a la quincuagésima octava (iter 303 → 905 y sigue, ya con David durmiendo 😴 — ¡las iteraciones 500, 600, 700, 800 y 900 se celebraron sin él!). **833 commits desde el 26/8** (~750 en esta gran sesión), con deploy a Heroku y verificación en vivo en cada paso. **Ningún juego quedó roto en ningún momento** (chequeos de salud cada 10 iteraciones: todos verdes; el último, iter 905, Heroku v1861).
+**Bucle de mejora continua mientras David estaba fuera** — dos tandas: la primera (~iter 205 → 302) y, tras el "sigue sin parar" de David, de la segunda a la quincuagésima novena (iter 303 → 915 y sigue, ya con David durmiendo 😴 — ¡las iteraciones 500, 600, 700, 800 y 900 se celebraron sin él!). **842 commits desde el 26/8** (~759 en esta gran sesión), con deploy a Heroku y verificación en vivo en cada paso. **Ningún juego quedó roto en ningún momento** (chequeos de salud cada 10 iteraciones: todos verdes; el último, iter 915, Heroku v1877).
 
-**Números actuales**: 🕷️ SCREAM **145** 🏆 · 🦖 JURASSIC **147** 🏆 · 🧟 NOT A GAME **138** 🏆 · 🏎️ F1 **103** 🏆 · 🧩 CUBO **84** · 🕹️ los 16 minijuegos con récord o victorias y medias · **cuatro juegos superaron las 100 features** · 905 iteraciones de bucle verificadas sanas 🎉 · páginas en vivo todas HTTP 200.
+**Números actuales**: 🕷️ SCREAM **145** 🏆 · 🦖 JURASSIC **147** 🏆 · 🧟 NOT A GAME **138** 🏆 · 🏎️ F1 **103** 🏆 · 🧩 CUBO **84** · 🕹️ los 16 minijuegos con récord o victorias y medias · **cuatro juegos superaron las 100 features** · 915 iteraciones de bucle verificadas sanas 🎉 · páginas en vivo todas HTTP 200.
 
 ## 🔍 Auditoría multi-agente (ultracode)
 - 2 rondas con agentes buscadores + verificadores adversarios: **25 hallazgos, 24 bugs reales corregidos** (1 refutado)
@@ -571,6 +571,19 @@
 - 🎮 Ronda 66: **controles reales** de cada mundo (teclas sacadas del código), guardar partida, mando por mundo, carriles, bocina, boxes, dificultades y cómo elegirlas
 - 🧠 Ronda 67: **memoria personal y apuntes** — mundo/color/comida favoritos, mascota, equipo, mejor amigo, curso, profe; "vivo en…" no se guarda; anota/apunta/agrega tarea, mis apuntes, borra/listo la tarea N, "recuérdame X", contador de mensajes
 - 🐛 Bugs cazados: "panqueques" contenía "queque", "alérgico" con tilde, "por ciento" ≠ "por 100", "mis notas" son las del colegio · **1266 preguntas + fuzz 60**
+
+## 🆕 Quincuagésima novena tanda (iter 906-915) — WALLY profe de lenguaje, guía de papás y enciclopedia
+- 📄 RESUMEN con las tandas 57 y 58
+- ✍️ Ronda 68: **lenguaje del colegio** — conjuga verbos (16 irregulares + regulares), plural, femenino, diminutivo/aumentativo, preposición, sujeto/predicado, fábula, mito vs leyenda, rima, verso, estrofa, **acróstico generado**, onomatopeya, sílaba tónica, agudas/graves/esdrújulas, hiato/diptongo, mayúsculas y puntuación, carta, resumen, mapa conceptual, informe, biografía, noticia
+- 👨‍👩‍👧 Ronda 69: **preguntas de papás y aparatos** — privacidad (qué se guarda y quién lo ve), datos que gasta, tablet/iPad/consolas/Play Store, virus, dueño, el código en GitHub, hacer tu propio juego, computador viejo, control parental (Family Link), jugar de noche, edad recomendada por mundo, idiomas
+- 🪁 Ronda 70: **fuera de la pantalla** — fiestas patrias, juegos típicos chilenos con reglas (trompo, emboque, rayuela, bolitas, luche, corre corre la guaraca…), día de lluvia, vacaciones, experimentos con pasos (volcán, arcoíris, imanes, brújula, teléfono de vasos, burbujas, cohete, paracaídas, periscopio, tinta invisible), títere, trucos de magia
+- ⚽ Ronda 71: **deporte** — goles, rutina en casa, bici, nadar, salto mortal seguro, offside, reglas de básquet/vóleibol/tenis, la Roja y sus Copas América, Chile en 9 mundiales, tenis (Ríos, Massú, Jarry), F1 real, olimpiadas, maratón, yoga, estiramientos, lesiones, 60 minutos al día
+- 📚🎬🎵 Ronda 72: **cultura** — libros (Papelucho, Harry Potter, Percy Jackson…), pelis y series, WALL-E, géneros musicales y artistas (Beatles, MJ, Bad Bunny, Violeta Parra, 31 Minutos), Star Wars, Mario/Sonic/Pikachu (1.025 Pokémon), superhéroes, Cristiano, Elon Musk, Steve Jobs, científicos (Einstein, Newton, Da Vinci, Marie Curie, Turing, Ada Lovelace…), quién inventó internet/celular/videojuegos/avión/rueda…
+- 🩺 Chequeo de salud en 912: todo verde (Heroku v1871, 839 commits, test 1403/1403 + fuzz 60/60, 420 handlers, 0,10 ms por respuesta)
+- 🗺️ Ronda 73: **geografía** — Isla de Pascua, Atacama, ciudades y habitantes, Patagonia, Torres del Paine, Ojos del Salado, cuánto mide Chile, Chiloé, Antártica, Metro, Costanera, Estadio Nacional, país más chico/poblado, ONU, idioma y moneda de 30 países, dónde queda cada país, Andes y Aconcagua
+- 👋 Ronda 74: **saludos y mensajes cortos** — responde a solo emojis y banderas (40 reacciones), "?", "wally?", "estás ahí", "buenas tardes" según la hora, y entiende "hola + pedido" (hola chiste, hola cuánto es 2+2)
+- ⏰ Ronda 75: **aritmética de tiempo** — "las 3 de la tarde", hace cuánto fueron las N, sale/se pone el sol, diferencia horaria con 25 países, cambio de hora en Chile, en qué año nací/cumplo N, días/semanas/horas entre unidades, bisiestos, 3 pm en 24 h, horas dormidas, sumar horas y minutos
+- 🐛 Bugs cazados: "calentamiento global" ≠ calentamiento deportivo, "futbolista" ≠ "fútbol", "dónde está el lago" es del juego, claves con corchetes sin comillas (×3), "2 horas y media" · **1486 preguntas + fuzz 60**
 
 ## 🤖 WALLY por todos lados
 Frases x8 por juego, celebra el 21/21 con voz, escanea pisos/baterías/cajones, certifica el póster... y presume su carrera de mBots en todas partes 🏁
