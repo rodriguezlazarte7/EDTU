@@ -1,8 +1,8 @@
 # 🛰️ EDTU — Resumen de la sesión autónoma (2026-08-28)
 
-**Bucle de mejora continua mientras David estaba fuera** — dos tandas: la primera (~iter 205 → 302) y, tras el "sigue sin parar" de David, de la segunda a la undécima (iter 303 → 435 y sigue, ya con David durmiendo 😴). **425 commits desde el 26/8** (~342 en esta gran sesión), con deploy a Heroku y verificación en vivo en cada paso. **Ningún juego quedó roto en ningún momento** (chequeos de salud cada 10 iteraciones: todos verdes; el último, iter 435, Heroku v1309).
+**Bucle de mejora continua mientras David estaba fuera** — dos tandas: la primera (~iter 205 → 302) y, tras el "sigue sin parar" de David, de la segunda a la duodécima (iter 303 → 445 y sigue, ya con David durmiendo 😴). **434 commits desde el 26/8** (~351 en esta gran sesión), con deploy a Heroku y verificación en vivo en cada paso. **Ningún juego quedó roto en ningún momento** (chequeos de salud cada 10 iteraciones: todos verdes; el último, iter 445, Heroku v1326).
 
-**Números actuales**: 🕷️ SCREAM **115** 🏆 · 🦖 JURASSIC **120** 🏆 · 🧟 NOT A GAME **109** 🏆 · 🏎️ F1 **80** · 🧩 CUBO **65** · **tres juegos superaron las 100 features** · 435 iteraciones de bucle verificadas sanas 🎉 · páginas en vivo todas HTTP 200.
+**Números actuales**: 🕷️ SCREAM **115** 🏆 · 🦖 JURASSIC **122** 🏆 · 🧟 NOT A GAME **110** 🏆 · 🏎️ F1 **82** · 🧩 CUBO **66** · **tres juegos superaron las 100 features** · 445 iteraciones de bucle verificadas sanas 🎉 · páginas en vivo todas HTTP 200.
 
 ## 🔍 Auditoría multi-agente (ultracode)
 - 2 rondas con agentes buscadores + verificadores adversarios: **25 hallazgos, 24 bugs reales corregidos** (1 refutado)
@@ -141,6 +141,16 @@
 - 🏎️ **F1**: la portada dice hasta dónde llegó tu fantasma ("llegó a N m... ¡véncelo!")
 - 📄 RESUMEN sin la nota duplicada de la iteración 400
 - 🩺 Chequeo de salud en 435: todo verde (Heroku v1309, 425 commits desde el 26/8)
+
+## 🆕 Duodécima tanda (iter 436-445) — brújulas y fantasmas
+- 🦖 **JURASSIC**: flecha 🔥 TU FOGATA con distancia y segundos que le quedan; WALLY (E) te recuerda la fogata encendida ("sigue viva a N m y le quedan N s")
+- 🧟 **NAG**: el HUD lleva cuenta atrás "🌅 amanece en m:ss" de noche y "🌙 anochece en m:ss" de día
+- 🧩 **CUBO**: la portada muestra tus últimas 3 carreras y si vas mejorando ("⬆️ vas mejorando")
+- 🏎️ **F1**: la portada dice cuándo hiciste tu récord (hoy / ayer / hace N días); el diario guarda el duelo con tu fantasma ("👻 fantasma vencido" / "👻 el fantasma ganó")
+- 🏆 **Sala**: ÚLTIMAS AVENTURAS marca el duelo 👻 de F1 y WALLY lo menciona al saludar ("le ganaste a tu fantasma" / "tu fantasma sigue invicto")
+- 🤖 **WALLY chat**: "mapa / flecha / brújula / perdí / radar" explica todas las ayudas de orientación de los 4 mundos; "ayuda" lista "mapa 🧭"
+- 📄 RESUMEN con la Undécima tanda
+- 🩺 Chequeo de salud en 445: todo verde (Heroku v1326, 434 commits desde el 26/8)
 
 ## 🤖 WALLY por todos lados
 Frases x8 por juego, celebra el 21/21 con voz, escanea pisos/baterías/cajones, certifica el póster... y presume su carrera de mBots en todas partes 🏁
