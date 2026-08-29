@@ -1,8 +1,8 @@
 # 🛰️ EDTU — Resumen de la sesión autónoma (2026-08-28)
 
-**Bucle de mejora continua mientras David estaba fuera** — dos tandas: la primera (~iter 205 → 302) y, tras el "sigue sin parar" de David, de la segunda a la vigesimotercera (iter 303 → 555 y sigue, ya con David durmiendo 😴 — ¡la iteración 500 se celebró de madrugada!). **533 commits desde el 26/8** (~450 en esta gran sesión), con deploy a Heroku y verificación en vivo en cada paso. **Ningún juego quedó roto en ningún momento** (chequeos de salud cada 10 iteraciones: todos verdes; el último, iter 555, Heroku v1510).
+**Bucle de mejora continua mientras David estaba fuera** — dos tandas: la primera (~iter 205 → 302) y, tras el "sigue sin parar" de David, de la segunda a la vigesimocuarta (iter 303 → 565 y sigue, ya con David durmiendo 😴 — ¡la iteración 500 se celebró de madrugada!). **542 commits desde el 26/8** (~459 en esta gran sesión), con deploy a Heroku y verificación en vivo en cada paso. **Ningún juego quedó roto en ningún momento** (chequeos de salud cada 10 iteraciones: todos verdes; el último, iter 565, Heroku v1527).
 
-**Números actuales**: 🕷️ SCREAM **132** 🏆 · 🦖 JURASSIC **135** 🏆 · 🧟 NOT A GAME **125** 🏆 · 🏎️ F1 **94** · 🧩 CUBO **77** · **tres juegos superaron las 100 features** · 555 iteraciones de bucle verificadas sanas 🎉 · páginas en vivo todas HTTP 200.
+**Números actuales**: 🕷️ SCREAM **133** 🏆 · 🦖 JURASSIC **137** 🏆 · 🧟 NOT A GAME **127** 🏆 · 🏎️ F1 **95** · 🧩 CUBO **78** · **tres juegos superaron las 100 features** · 565 iteraciones de bucle verificadas sanas 🎉 · páginas en vivo todas HTTP 200.
 
 ## 🔍 Auditoría multi-agente (ultracode)
 - 2 rondas con agentes buscadores + verificadores adversarios: **25 hallazgos, 24 bugs reales corregidos** (1 refutado)
@@ -249,6 +249,15 @@
 - 🤖 **WALLY chat** "racha": además de la racha de desafíos cuenta las rachas de juego (noches limpias, escapes seguidos, victorias seguidas al cubo)
 - 📄 RESUMEN con la Vigesimosegunda tanda
 - 🩺 Chequeo de salud en 555: todo verde (Heroku v1510, 533 commits desde el 26/8)
+
+## 🆕 Vigesimocuarta tanda (iter 556-565) — avisos y celebraciones
+- 🏎️ **F1**: RACHA de carreras seguidas por encima de tu media (con récord) — la radio la celebra a las 3/5/10 ("Tres seguidas por encima de tu media, piloto.") y la portada la muestra; WALLY chat "racha" la cuenta
+- 🦖 **JURASSIC**: el amanecer del día 7 anuncia "☀️ ¡ÚLTIMO DÍA! aguanta hoy, el rescate está cerca 🚁" con campanita triple, y WALLY (E) lo recuerda
+- 🧟 **NAG**: el perro celebra el amanecer con un ladrido alegre; la Central avisa cuando te queda UNA pista ("una pista más y cierras el caso, agente")
+- 🕷️ **SCREAM**: con menos de 2 minutos, WALLY (E) te apura con lo que falta o te manda a la MÁQUINA
+- 🧩 **CUBO**: pitido grave (una vez) cuando el reloj pasa tu objetivo del día o tu media
+- 📄 RESUMEN con la Vigesimotercera tanda
+- 🩺 Chequeo de salud en 565: todo verde (Heroku v1527, 542 commits desde el 26/8)
 
 ## 🤖 WALLY por todos lados
 Frases x8 por juego, celebra el 21/21 con voz, escanea pisos/baterías/cajones, certifica el póster... y presume su carrera de mBots en todas partes 🏁
