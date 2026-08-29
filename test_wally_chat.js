@@ -92,6 +92,7 @@ const T=[
   ["reglas del ajedrez",/JAQUE MATE/],["cómo mueve el caballo",/en L/],["cómo hago un gol",/⚽/],["cómo gano en 2048",/esquina/],["qué significan los números del buscaminas",/8 casillas/],["cómo se juega conecta 4",/CONECTA 4/],["cuál minijuego es más difícil",/😈/],["cuál minijuego me recomiendas",/😊 para empezar/],["hay ia en el gato",/🤖 sí/],["el ajedrez es muy difícil",/♟️ AJEDREZ/],["récord de snake",/🕹️/],["cómo se juega snake",/Snake|SNAKE/],
   ["cuáles son los 21 logros",/los 21 logros de EDTU/],["lista de logros",/llevas \d+ de 21/],["qué logros me faltan",/te faltan \d+/],["logro de f1",/logros de F1/],["cómo se juega conecta 4",/CONECTA 4/],
   ["dónde están los wallys",/4 WALLYs escondidos/],["cuántos wallys encontré",/\d de 4/],["cómo consigo el huevo",/🥚/],["soy leyenda",/LEYENDA de EDTU/],["cómo desbloqueo el cubo de oro",/👑/],["hay más secretos",/🤫 secretos de EDTU/],["qué esconde el logo",/logo de EDTU/],["dificultades de scream",/PESADILLA/],["qué es extinción",/EXTINCIÓN/],["cómo desbloqueo infierno",/🎚️/],
+  ["quién ganó el reto",/MÁS en el mismo desafío/],["cuántos retos envié",/⚔️ retos: \d+ enviado/],["me mandaron un link",/📥/],["el link no funciona",/🔗 si el link/],["cuál es la página",/www\.edtu\.cl/],["invitar a un amigo a edtu",/👋 invitar/],["perdí la racha",/🔥 la racha/],["qué pasa si no juego un día",/vuelve a 0/],["qué desafío hay hoy en f1",/🎯 cada mundo/],
   ["rekord",/quisiste decir 'récord'/],["adivinansa",/quisiste decir 'adivinanza'/],["asdfgh",/no entendí|circuitos|confundido/],
 ];
 let ok=0, bad=0;
