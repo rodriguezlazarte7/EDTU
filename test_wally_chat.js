@@ -54,6 +54,7 @@ const T=[
   ["ronda de inglés",/RONDA DE 5! pregunta 1 de 5: ¿cómo se dice/],["zzzz",/era «.*» ➜ pregunta 2 de 5/],["me rindo",/pregunta 3 de 5/],["me rindo",/pregunta 4 de 5/],["me rindo",/pregunta 5 de 5/],["me rindo",/RONDA TERMINADA: \d\/5/],
   ["mis notas",/mejores rondas: .*mates \d\/5/],
   ["cuéntame otro",/^(?!.*quisiste decir)/],["wally",/dime, agente|aquí estoy|oídos/],["wally!",/dime, agente|aquí estoy|oídos/],["jajaja",/reír|risa|jaja/],["xd",/reír|risa|jaja/],["no",/sin problema|cambias de idea|entendido/],["eres muy lento",/circuitos|dramático|lento yo/],["puedes cantar",/soy WALLY/],["chiste",/./],["sí",/^(?!👍|¡genial|beep 👍)/],["ok",/perfecto|genial|desafío|robot|médico|batería|virus|despide/],
+  ["cómo te llamas",/me llamo WALLY/],["dónde vives",/edtu\.cl/],["tienes amigos",/mejor amigo/],["puedes bailar",/baila|gira/],["qué comes",/electricidad/],["cuál es tu color favorito",/azul/],["te gusta el fútbol",/fútbol/],["estoy triste",/lo siento|chiste/],["tengo miedo",/aquí estoy/],["tengo sueño",/descansar/],["qué hago",/ideas:/],["cuántos días tiene un año",/365/],["cuál es la capital de chile",/Santiago/],["capital de japón",/Tokio/],["cuántos juegos hay",/22 juegos/],["hazme una pregunta",/🧠 trivia/],["a",/./],["a",/./],["a",/./],["a",/./],["a",/./],
   ["rekord",/quisiste decir 'récord'/],["adivinansa",/quisiste decir 'adivinanza'/],["asdfgh",/no entendí|circuitos|confundido/],
 ];
 let ok=0, bad=0;
