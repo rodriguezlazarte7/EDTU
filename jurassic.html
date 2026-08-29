@@ -1407,7 +1407,7 @@ function update(dt){
     else th.classList.remove("on"); }
   // 🔥 flecha a TU FOGATA: mientras siga encendida y estés a más de 12 m (con distancia y segundos que le quedan)
   { const tf=$("toFire"); if(tf){ const fd2=(fireT>0&&campfire.visible)?Math.hypot(campfire.position.x-P.x,campfire.position.z-P.z):0;
-    if(fd2>12){ tf.classList.add("on"); const s2=Math.sin(yaw),c2=Math.cos(yaw); const tx=campfire.position.x-P.x, tz=campfire.position.z-P.z;
+    if(fd2>12){ tf.classList.add("on"); tf.style.color=(fireT<=10)?((Math.floor(performance.now()/300)%2)?"#ff4040":"#ffb0b0"):"#ff9a3c";   /* 🔴 se apaga: rojo parpadeante */ const s2=Math.sin(yaw),c2=Math.cos(yaw); const tx=campfire.position.x-P.x, tz=campfire.position.z-P.z;
       const rgt=tx*c2-tz*s2, fw2=-tx*s2-tz*c2; tf.querySelector(".arw").style.transform="rotate("+(Math.atan2(rgt,fw2)*57.2958)+"deg)"; const df2=tf.querySelector(".dist"); if(df2) df2.textContent="· "+Math.round(fd2)+" m · "+Math.max(1,Math.round(fireT))+" s"; }
     else tf.classList.remove("on"); } }
   const hint=$("hint"); hint.textContent = danger?"⚠ ¡Un dinosaurio te persigue! ¡Corre o escóndete!":(safe?"🟢 Estás en una ZONA SEGURA (los dinos no entran)":(flashBatt<25&&isNight?(inv.batt>0?"🔦 ¡Batería baja! pulsa [3] o toca 🔋 para recargar":"🔦 ¡Batería baja! busca una 🔋"):(inv.batt>=3?"🔋 Lleva las baterías a la TORRE DE RADIO":"")));
