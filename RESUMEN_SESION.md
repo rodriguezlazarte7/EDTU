@@ -1,8 +1,8 @@
 # 🛰️ EDTU — Resumen de la sesión autónoma (2026-08-28)
 
-**Bucle de mejora continua mientras David estaba fuera** — dos tandas: la primera (~iter 205 → 302) y, tras el "sigue sin parar" de David, de la segunda a la vigesimoprimera (iter 303 → 535 y sigue, ya con David durmiendo 😴 — ¡la iteración 500 se celebró de madrugada!). **515 commits desde el 26/8** (~432 en esta gran sesión), con deploy a Heroku y verificación en vivo en cada paso. **Ningún juego quedó roto en ningún momento** (chequeos de salud cada 10 iteraciones: todos verdes; el último, iter 535, Heroku v1477).
+**Bucle de mejora continua mientras David estaba fuera** — dos tandas: la primera (~iter 205 → 302) y, tras el "sigue sin parar" de David, de la segunda a la vigesimosegunda (iter 303 → 545 y sigue, ya con David durmiendo 😴 — ¡la iteración 500 se celebró de madrugada!). **524 commits desde el 26/8** (~441 en esta gran sesión), con deploy a Heroku y verificación en vivo en cada paso. **Ningún juego quedó roto en ningún momento** (chequeos de salud cada 10 iteraciones: todos verdes; el último, iter 545, Heroku v1494).
 
-**Números actuales**: 🕷️ SCREAM **128** 🏆 · 🦖 JURASSIC **134** 🏆 · 🧟 NOT A GAME **122** 🏆 · 🏎️ F1 **93** · 🧩 CUBO **76** · **tres juegos superaron las 100 features** · 535 iteraciones de bucle verificadas sanas 🎉 · páginas en vivo todas HTTP 200.
+**Números actuales**: 🕷️ SCREAM **130** 🏆 · 🦖 JURASSIC **134** 🏆 · 🧟 NOT A GAME **124** 🏆 · 🏎️ F1 **94** · 🧩 CUBO **76** · **tres juegos superaron las 100 features** · 545 iteraciones de bucle verificadas sanas 🎉 · páginas en vivo todas HTTP 200.
 
 ## 🔍 Auditoría multi-agente (ultracode)
 - 2 rondas con agentes buscadores + verificadores adversarios: **25 hallazgos, 24 bugs reales corregidos** (1 refutado)
@@ -232,6 +232,14 @@
 - 🤖 **WALLY chat**: "récord" (y "menos giros / adelantamientos / mejor noche / noches limpias") suma los récords nuevos
 - 📄 RESUMEN con la Vigésima tanda
 - 🩺 Chequeo de salud en 535: todo verde (Heroku v1477, 515 commits desde el 26/8)
+
+## 🆕 Vigesimosegunda tanda (iter 536-545) — sigilo, pistas y fechas
+- 🕷️ **SCREAM**: récord del ESCAPE MÁS SIGILOSO (menos apariciones en un escape ganado) — celebrado en el diario del fin, en la portada y en la Sala; WALLY te anima a seguir en silencio si vas con 0 apariciones
+- 🧟 **NAG**: récord de la PRIMERA PISTA más rápida — aviso al batirlo, portada y Sala; WALLY te mete prisa con él si aún no tienes ninguna
+- 🏎️ **F1**: la Sala dice cuándo hiciste tu récord de velocidad ("⚡ 312 km/h (hace 2 días)")
+- 🤖 **WALLY saludo**: presume tu récord más reciente si lo batiste en los últimos 2 días ("tu récord más reciente: 🏎️ 4210 m en F1 (ayer)"); **chat** "récord" suma el escape sigiloso y la 1ª pista
+- 📄 RESUMEN con la Vigesimoprimera tanda
+- 🩺 Chequeo de salud en 545: todo verde (Heroku v1494, 524 commits desde el 26/8)
 
 ## 🤖 WALLY por todos lados
 Frases x8 por juego, celebra el 21/21 con voz, escanea pisos/baterías/cajones, certifica el póster... y presume su carrera de mBots en todas partes 🏁
