@@ -1,8 +1,8 @@
 # 🛰️ EDTU — Resumen de la sesión autónoma (2026-08-28)
 
-**Bucle de mejora continua mientras David estaba fuera** — dos tandas: la primera (~iter 205 → 302) y, tras el "sigue sin parar" de David, de la segunda a la vigesimosegunda (iter 303 → 545 y sigue, ya con David durmiendo 😴 — ¡la iteración 500 se celebró de madrugada!). **524 commits desde el 26/8** (~441 en esta gran sesión), con deploy a Heroku y verificación en vivo en cada paso. **Ningún juego quedó roto en ningún momento** (chequeos de salud cada 10 iteraciones: todos verdes; el último, iter 545, Heroku v1494).
+**Bucle de mejora continua mientras David estaba fuera** — dos tandas: la primera (~iter 205 → 302) y, tras el "sigue sin parar" de David, de la segunda a la vigesimotercera (iter 303 → 555 y sigue, ya con David durmiendo 😴 — ¡la iteración 500 se celebró de madrugada!). **533 commits desde el 26/8** (~450 en esta gran sesión), con deploy a Heroku y verificación en vivo en cada paso. **Ningún juego quedó roto en ningún momento** (chequeos de salud cada 10 iteraciones: todos verdes; el último, iter 555, Heroku v1510).
 
-**Números actuales**: 🕷️ SCREAM **130** 🏆 · 🦖 JURASSIC **134** 🏆 · 🧟 NOT A GAME **124** 🏆 · 🏎️ F1 **94** · 🧩 CUBO **76** · **tres juegos superaron las 100 features** · 545 iteraciones de bucle verificadas sanas 🎉 · páginas en vivo todas HTTP 200.
+**Números actuales**: 🕷️ SCREAM **132** 🏆 · 🦖 JURASSIC **135** 🏆 · 🧟 NOT A GAME **125** 🏆 · 🏎️ F1 **94** · 🧩 CUBO **77** · **tres juegos superaron las 100 features** · 555 iteraciones de bucle verificadas sanas 🎉 · páginas en vivo todas HTTP 200.
 
 ## 🔍 Auditoría multi-agente (ultracode)
 - 2 rondas con agentes buscadores + verificadores adversarios: **25 hallazgos, 24 bugs reales corregidos** (1 refutado)
@@ -240,6 +240,15 @@
 - 🤖 **WALLY saludo**: presume tu récord más reciente si lo batiste en los últimos 2 días ("tu récord más reciente: 🏎️ 4210 m en F1 (ayer)"); **chat** "récord" suma el escape sigiloso y la 1ª pista
 - 📄 RESUMEN con la Vigesimoprimera tanda
 - 🩺 Chequeo de salud en 545: todo verde (Heroku v1494, 524 commits desde el 26/8)
+
+## 🆕 Vigesimotercera tanda (iter 546-555) — fechas y rachas
+- 📅 **Más fechas de récords**: 🕷️ SCREAM dice cuándo hiciste tu mejor escape y 🧟 NAG cuándo resolviste el caso más rápido
+- 🚁 **SCREAM**: RACHA DE ESCAPES seguidos con récord — el diario del fin la celebra, la portada muestra racha actual y mejor racha, y la Sala la mejor racha; ÚLTIMAS AVENTURAS marca con 🥷 el escape con 0 apariciones
+- 🦖 **JURASSIC**: la portada muestra la racha ACTUAL de noches limpias junto al récord
+- 🧩 **CUBO**: el 🏆 del contador de giros apunta al récord de la dificultad actual (rubik_bm_<dif>, que ya existía; el récord global lo complementa)
+- 🤖 **WALLY chat** "racha": además de la racha de desafíos cuenta las rachas de juego (noches limpias, escapes seguidos, victorias seguidas al cubo)
+- 📄 RESUMEN con la Vigesimosegunda tanda
+- 🩺 Chequeo de salud en 555: todo verde (Heroku v1510, 533 commits desde el 26/8)
 
 ## 🤖 WALLY por todos lados
 Frases x8 por juego, celebra el 21/21 con voz, escanea pisos/baterías/cajones, certifica el póster... y presume su carrera de mBots en todas partes 🏁
