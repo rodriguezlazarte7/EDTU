@@ -50,6 +50,7 @@ const T=[
   ["me rindo",/era \d+|nada de qué rendirse/],["me rindo",/nada de qué rendirse/],
   ["cuántos comandos sabes",/sé responder a unos \d+ tipos/],
   ["mis notas",/🎓 tus notas — 🧮 mates: \d+\/\d+/],["cómo voy en mates",/🎓 tus notas/],
+  ["ronda de mates",/RONDA DE 5! pregunta 1 de 5/],["0",/pregunta 2 de 5/],["0",/pregunta 3 de 5/],["0",/pregunta 4 de 5/],["0",/pregunta 5 de 5/],["0",/RONDA TERMINADA: \d\/5/],["ronda de trivia",/RONDA DE 5.*a\) /],["a",/pregunta 2 de 5/],
   ["rekord",/quisiste decir 'récord'/],["adivinansa",/quisiste decir 'adivinanza'/],["asdfgh",/no entendí|circuitos|confundido/],
 ];
 let ok=0, bad=0;
