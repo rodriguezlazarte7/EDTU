@@ -1,8 +1,8 @@
 # 🛰️ EDTU — Resumen de la sesión autónoma (2026-08-28)
 
-**Bucle de mejora continua mientras David estaba fuera** — dos tandas: la primera (~iter 205 → 302) y, tras el "sigue sin parar" de David, de la segunda a la vigesimosexta (iter 303 → 585 y sigue, ya con David durmiendo 😴 — ¡la iteración 500 se celebró de madrugada!). **558 commits desde el 26/8** (~475 en esta gran sesión), con deploy a Heroku y verificación en vivo en cada paso. **Ningún juego quedó roto en ningún momento** (chequeos de salud cada 10 iteraciones: todos verdes; el último, iter 585, Heroku v1557).
+**Bucle de mejora continua mientras David estaba fuera** — dos tandas: la primera (~iter 205 → 302) y, tras el "sigue sin parar" de David, de la segunda a la vigesimoséptima (iter 303 → 595 y sigue, ya con David durmiendo 😴 — ¡la iteración 500 se celebró de madrugada!). **567 commits desde el 26/8** (~484 en esta gran sesión), con deploy a Heroku y verificación en vivo en cada paso. **Ningún juego quedó roto en ningún momento** (chequeos de salud cada 10 iteraciones: todos verdes; el último, iter 595, Heroku v1571).
 
-**Números actuales**: 🕷️ SCREAM **135** 🏆 · 🦖 JURASSIC **138** 🏆 · 🧟 NOT A GAME **129** 🏆 · 🏎️ F1 **97** · 🧩 CUBO **80** · **tres juegos superaron las 100 features** · 585 iteraciones de bucle verificadas sanas 🎉 · páginas en vivo todas HTTP 200.
+**Números actuales**: 🕷️ SCREAM **135** 🏆 · 🦖 JURASSIC **138** 🏆 · 🧟 NOT A GAME **129** 🏆 · 🏎️ F1 **97** · 🧩 CUBO **80** · **tres juegos superaron las 100 features** · 595 iteraciones de bucle verificadas sanas 🎉 · páginas en vivo todas HTTP 200.
 
 ## 🔍 Auditoría multi-agente (ultracode)
 - 2 rondas con agentes buscadores + verificadores adversarios: **25 hallazgos, 24 bugs reales corregidos** (1 refutado)
@@ -273,6 +273,14 @@
 - 🤖 **WALLY chat**: "podio / top 3", "noche / amanecer" (tus noches en NAG y JURASSIC), "fogata / fuego" (cómo funciona + tus fogatas totales) y "vida / botiquín / curar" (cómo recuperar vida en cada mundo); "ayuda" los lista
 - 📄 RESUMEN con la Vigesimoquinta tanda
 - 🩺 Chequeo de salud en 585: todo verde (Heroku v1557, 558 commits desde el 26/8)
+
+## 🆕 Vigesimoséptima tanda (iter 586-595) — WALLY explica los mundos
+- 🤖 **WALLY chat sabe jugar**: "trucos / controles / cómo se juega" es el índice, y cada mundo tiene los suyos — 🏎️ F1 ("nitro, DRS, boxes, espejo, claxon"), 🕷️ SCREAM ("antídoto, máquina, bengala, linterna, vitrola, ascensor"), 🧟 NOT A GAME ("torreta, cajones, drenaje, luna de sangre, pilas"), 🦖 JURASSIC ("pescar, cocos, madera, dardos, refugio")
+- 📻🚁📞 **WALLY chat** "radio / baterías / torre", "helicóptero / helipuerto" y "teléfono / llamada" explican esos elementos en cada mundo; "ayuda" los lista
+- 🏆 **Sala**: ÚLTIMAS AVENTURAS muestra las fogatas 🔥 de tu última aventura en JURASSIC
+- ⚠️ Un build de Heroku falló por límite de peticiones de su API (transitorio): se reintentó y salió bien; el polling pasó de 10 a 15 s
+- 📄 RESUMEN con la Vigesimosexta tanda
+- 🩺 Chequeo de salud en 595: todo verde (Heroku v1571, 567 commits desde el 26/8)
 
 ## 🤖 WALLY por todos lados
 Frases x8 por juego, celebra el 21/21 con voz, escanea pisos/baterías/cajones, certifica el póster... y presume su carrera de mBots en todas partes 🏁
