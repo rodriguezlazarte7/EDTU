@@ -53,6 +53,7 @@ const T=[
   ["ronda de mates",/RONDA DE 5! pregunta 1 de 5/],["0",/pregunta 2 de 5/],["0",/pregunta 3 de 5/],["0",/pregunta 4 de 5/],["0",/pregunta 5 de 5/],["0",/RONDA TERMINADA: \d\/5/],["ronda de trivia",/RONDA DE 5.*a\) /],["a",/pregunta 2 de 5/],
   ["ronda de inglés",/RONDA DE 5! pregunta 1 de 5: ¿cómo se dice/],["zzzz",/era «.*» ➜ pregunta 2 de 5/],["me rindo",/pregunta 3 de 5/],["me rindo",/pregunta 4 de 5/],["me rindo",/pregunta 5 de 5/],["me rindo",/RONDA TERMINADA: \d\/5/],
   ["mis notas",/mejores rondas: .*mates \d\/5/],
+  ["cuéntame otro",/^(?!.*quisiste decir)/],["wally",/dime, agente|aquí estoy|oídos/],["wally!",/dime, agente|aquí estoy|oídos/],["jajaja",/reír|risa|jaja/],["xd",/reír|risa|jaja/],["no",/sin problema|cambias de idea|entendido/],["eres muy lento",/circuitos|dramático|lento yo/],["puedes cantar",/soy WALLY/],["chiste",/./],["sí",/^(?!👍|¡genial|beep 👍)/],["ok",/perfecto|genial|desafío|robot|médico|batería|virus|despide/],
   ["rekord",/quisiste decir 'récord'/],["adivinansa",/quisiste decir 'adivinanza'/],["asdfgh",/no entendí|circuitos|confundido/],
 ];
 let ok=0, bad=0;
