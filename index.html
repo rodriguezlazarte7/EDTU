@@ -7257,7 +7257,7 @@ function buildTrophies(){ try{
     if(jd) la.push(LNK("jurassic.html","🦖 "+rdt(jd)+": "+jd.days+" días"+(jd.fish?" · 🐟 "+jd.fish:"")+(jd.pack?" · 🐾 manada":"")+(jd.egg?" · 🥚":"")+(jd.radio?" · 📻":"")+" · "+(jd.hits?"🩹 "+jd.hits:"🛡️ sin heridas")+(jd.daily?" · 📅":"")+(jd.win?" ✓":"")));
     if(sd) la.push(LNK("scream.html","🕷️ "+rdt(sd)+": "+fmtMS(sd.t)+" · 🔧 "+sd.v+"/4 · 🧪 "+sd.s+"/3 · 👁️ "+sd.spot+" apariciones · "+(sd.bites?"🩸 "+sd.bites:"🛡️ sin mordidas")+(sd.gen?" · ⚡":"")+(sd.vit?" · 🎶":"")+(sd.asc?" · 🛗":"")+(sd.daily?" · 📅":"")+(sd.win?" ✓":"")));
     if(nd) la.push(LNK("notagame.html","🧟 "+rdt(nd)+": "+nd.kills+" kills · 📜 "+nd.clues+"/7 · 🌙 "+nd.nights+(nd.drvz?" · 🧪 Dr. VZ":"")+(nd.cat?" · 🐱":"")+(nd.daily?" · 📅":"")+(nd.win?" ✓ ⏱ "+fmtMS(nd.t||0):"")));
-    const fd=rd("edtu_f1_diary"); if(fd) la.push(LNK("#f1","🏎️ "+rdt(fd)+": "+fd.m+" m · ⏱️ "+fd.sec+" sectores · 🔧 "+fd.pit+" pit"+(fd.drs?" · 🟢 DRS ×"+fd.drs:"")+(fd.spd?" · ⚡ "+fd.spd+" km/h":"")+(fd.ov?" · 🏁 "+fd.ov:"")+(fd.kondor==="W"?" · 🦅 vencido":fd.kondor==="L"?" · 🦅 escapó":"")+(fd.daily?" · 📅":"")+(fd.night?" · 🌙":"")+(fd.rain?" · 🌧️":"")+(fd.mirror?" · 🪞":"")));
+    const fd=rd("edtu_f1_diary"); if(fd) la.push(LNK("#f1","🏎️ "+rdt(fd)+": "+fd.m+" m · ⏱️ "+fd.sec+" sectores · 🔧 "+fd.pit+" pit"+(fd.drs?" · 🟢 DRS ×"+fd.drs:"")+(fd.spd?" · ⚡ "+fd.spd+" km/h":"")+(fd.ov?" · 🏁 "+fd.ov:"")+(fd.kondor==="W"?" · 🦅 vencido":fd.kondor==="L"?" · 🦅 escapó":"")+(fd.gh==="W"?" · 👻 vencido":fd.gh==="L"?" · 👻 ganó":"")+(fd.daily?" · 📅":"")+(fd.night?" · 🌙":"")+(fd.rain?" · 🌧️":"")+(fd.mirror?" · 🪞":"")));
     const cd=rd("rubik_diary"); if(cd) la.push(LNK("rubik.html","🧩 "+rdt(cd)+": "+cd.diff+" · "+cd.t+"s · 🔄 "+cd.moves+" giros"+(cd.hints?" · 💡 "+cd.hints:"")+(cd.daily?" · 📅":"")+((cd.stk||0)>=3?" · 🔥x"+cd.stk:"")+(cd.win?" ✓":" · 🤖 ganó la IA")));
     if(la.length) h+="<div style='margin-top:8px;color:#e8d9a8'><b>📖 ÚLTIMAS AVENTURAS</b></div>"+la.join("<br>"); }catch(e){}
   $("trophyBody").innerHTML=h;
@@ -7283,11 +7283,11 @@ function buildTrophies(){ try{
       const jd2=rd2("jurassic_diary"); if(jd2) cand.push("vi que "+when(jd2)+" sobreviviste "+jd2.days+" días en la isla 🦖"+(jd2.win?" y te rescataron":"... ¡hoy más!"));
       const sd2=rd2("scream_diary"); if(sd2) cand.push(when(sd2)+" la araña te apareció "+sd2.spot+" veces 🕷️"+(sd2.win?" ¡y escapaste igual!":"... ¡hoy la burlas!"));
       const nd2=rd2("nag_diary"); if(nd2) cand.push("tu último caso: "+nd2.kills+" zombies eliminados 🧟"+(nd2.win?" y caso resuelto":"... la ciudad te necesita"));
-      const fd2=rd2("edtu_f1_diary"); if(fd2) cand.push(when(fd2)+" corriste "+fd2.m+" m 🏎️"+(fd2.kondor==="W"?" y venciste a KÓNDOR":""));
+      const fd2=rd2("edtu_f1_diary"); if(fd2) cand.push(when(fd2)+" corriste "+fd2.m+" m 🏎️"+(fd2.kondor==="W"?" y venciste a KÓNDOR":"")+(fd2.gh==="W"?" y le ganaste a tu fantasma 👻":fd2.gh==="L"?"... tu fantasma sigue invicto 👻":""));
       const cd2=rd2("rubik_diary"); if(cd2) cand.push(when(cd2)+" armaste el cubo en "+cd2.t+"s 🧩"+(cd2.win?" ganándole a la IA":""));
       if(streakToday && streakNow>=3 && Math.random()<0.6) memMsg=(streakNow>=7?"🔥 ¡"+streakNow+" días seguidos con desafíos! eres IMPARABLE, agente 🏅":"🔥 ¡"+streakNow+" días seguidos con desafíos! sigue así — a los 7 te espera una sorpresa");   // 🔥 la racha tiene prioridad en el saludo
       else if(cand.length && Math.random()<0.5) memMsg=cand[Math.floor(Math.random()*cand.length)];
-      if(!memMsg && Math.random()<0.33) memMsg="🎉 ¡400 mejoras en un solo día! gracias por confiar en mí, agente"; }catch(e){}   // 🎉 iteración 400
+      if(!memMsg && Math.random()<0.33) memMsg="🎉 ¡más de 440 mejoras seguidas mientras dormías! gracias por confiar en mí, agente"; }catch(e){}   // 🎉 iteración 400
     if(ws) ws.textContent = memMsg ? "«"+memMsg+"»" : wallys>=4 ? "«¡Encontraste TODOS mis escondites! Esta sala brilla gracias a ti»" : (seasMsg?"«"+seasMsg+"»":"«Bienvenido a tu sala, agente. Yo cuido tus trofeos»"); }
 }catch(e){ $("trophyBody").textContent="(error cargando trofeos)"; } }
 $("pickTrophies").onclick=()=>{ buildTrophies(); $("trophyFs").style.display="flex"; };
