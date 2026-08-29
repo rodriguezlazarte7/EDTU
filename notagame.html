@@ -1212,7 +1212,7 @@ function update(dt){
   if(level==="surface" && heliRotor!=null && boardCd<=0){
     if(!boarded && foot<1.2 && Math.hypot(P.x-heliPad.x,P.z-heliPad.z)<2.0){   // pisas el anillo azul del suelo -> SUBES
       P.x=heliSpot.x; P.z=heliSpot.z+1.6; P.y=heliSpot.y+1.7; P.vy=0; boarded=true; boardCd=0.8; nDiary.heli++;
-      showStory("🚁 ¡Abordaste el helicóptero! Dispara a los zombies de abajo.");
+      showStory("🚁 ¡Abordaste el helicóptero! Dispara a los zombies de abajo."); setTimeout(()=>{ try{ radioStatic(); }catch(e){} showStory("📻 CENTRAL: «helicóptero en el aire, agente. Limpia la zona desde arriba y vuelve a por las pistas.»"); },3000);   /* 📻 la Central desde el aire */
     } else if(boarded && foot>heliSpot.y-1 && Math.hypot(P.x-heliDown.x,P.z-heliDown.z)<1.8){   // pisas el anillo verde de arriba -> BAJAS
       const sp=safeSpot(heliPad.x,heliPad.z+3.5); P.x=sp.x; P.z=sp.z; P.y=1.7; P.vy=0; boarded=false; boardCd=0.8;
       showStory("Bajaste a tierra.");
