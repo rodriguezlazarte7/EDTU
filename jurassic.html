@@ -443,6 +443,7 @@ function wallyMemJ(){ if(jMemSaid) return null; jMemSaid=true; try{ const a=JSON
   if(e.ptero) opts.push("la última vez el pterodáctilo se lanzó "+e.ptero+(e.ptero>1?" veces":" vez")+" sobre ti: ¡mira arriba! 🦅");
   if(e.pack) opts.push("la última vez la manada te aceptó — ¡ellos te recuerdan! 🐾");
   if(e.egg) opts.push("la última vez encontraste el HUEVO DORADO... hoy está en otro escondite 🥚");
+  if(e.radio) opts.push("la última vez encendiste la radio y pediste rescate 📻 — ¡hoy igual, pero más rápido!");
   if(e.hits===0) opts.push("la última vez saliste sin un rasguño, ¡crack! 🛡️"); else if(e.hits>=3) opts.push("la última vez te atacaron "+e.hits+" veces... hoy usa más los dardos 💉");
   if(e.fires) opts.push("la última vez hiciste "+e.fires+(e.fires>1?" fogatas":" fogata")+": buena idea para la noche 🔥");
   opts.push("tu última aventura duró "+e.days+" días"+(e.win?" y te rescataron ✓":"... hoy llega más lejos"));
@@ -618,8 +619,8 @@ let hp=100,hunger=100,thirst=100,invT=0,flashBatt=100,darts=6,dartCd=0,placeCd=0
 let jStatDarts=0,jStatSleep=0,jStatWood=0,jStatDist=0,jLastX=null,jLastZ=0;   // 📊 estadísticas
 const jPath=[]; let jPathT=0;   // 🗺️ rastro de tu ruta (un punto cada 3s) para dibujar la aventura al final
 // 📖 DIARIO DEL EXPLORADOR: hitos de la aventura actual (se reinician en cada partida)
-const jDiary={fish:0,cocos:0,berries:0,fires:0,ptero:0,pack:false,egg:false,hits:0};
-function jDiaryReset(){ jDiary.fish=0; jDiary.cocos=0; jDiary.berries=0; jDiary.fires=0; jDiary.ptero=0; jDiary.pack=false; jDiary.egg=false; jDiary.hits=0; }
+const jDiary={fish:0,cocos:0,berries:0,fires:0,ptero:0,pack:false,egg:false,hits:0,radio:false};
+function jDiaryReset(){ jDiary.fish=0; jDiary.cocos=0; jDiary.berries=0; jDiary.fires=0; jDiary.ptero=0; jDiary.pack=false; jDiary.egg=false; jDiary.hits=0; jDiary.radio=false; }
 let jPaused=false;   // ⏸ pausa con P
 let freeMode=false;  // 🏝️ modo libre tras el rescate (sin re-victoria ni récords nuevos)
 let packFriend=false;   // 🐾 la manada te aceptó (acariciar cría con su padre cerca): estampidas inofensivas
@@ -965,7 +966,7 @@ function weekKey(){ const d=new Date(), j=new Date(d.getFullYear(),0,1); return 
 function loadJWeek(){ try{ return parseFloat(localStorage.getItem("jurassic_week_"+weekKey())||"0")||0; }catch(e){ return 0; } }
 function saveJBest(v){ try{ localStorage.setItem("jurassic_best",String(v)); }catch(e){} }
 // 📖 DIARIO DEL EXPLORADOR: resumen de hitos al final + últimas 3 aventuras guardadas (jurassic_diary) + "Última aventura" en la portada
-function jDiaryLine(e){ const p=[]; if(e.fish) p.push("🐟 "+e.fish+" peces"); if(e.cocos) p.push("🥥 "+e.cocos); if(e.berries) p.push("🫐 "+e.berries); if(e.fires) p.push("🔥 "+e.fires+(e.fires>1?" fogatas":" fogata")); if(e.ptero) p.push("🦅 "+e.ptero+" picadas"); if(e.pack) p.push("🐾 la manada te aceptó"); if(e.egg) p.push("🥚 huevo dorado"); p.push(e.hits?("🩹 "+e.hits+" ataques"):((e.days||0)>=3?"🛡️ sin heridas (¡NINJA!)":"🛡️ sin heridas")); return p.join(" · "); }
+function jDiaryLine(e){ const p=[]; if(e.fish) p.push("🐟 "+e.fish+" peces"); if(e.cocos) p.push("🥥 "+e.cocos); if(e.berries) p.push("🫐 "+e.berries); if(e.fires) p.push("🔥 "+e.fires+(e.fires>1?" fogatas":" fogata")); if(e.ptero) p.push("🦅 "+e.ptero+" picadas"); if(e.pack) p.push("🐾 la manada te aceptó"); if(e.egg) p.push("🥚 huevo dorado"); if(e.radio) p.push("📻 radio encendida"); p.push(e.hits?("🩹 "+e.hits+" ataques"):((e.days||0)>=3?"🛡️ sin heridas (¡NINJA!)":"🛡️ sin heridas")); return p.join(" · "); }
 function jDiaryEnd(win,days){ const e=Object.assign({},jDiary); e.days=+days.toFixed(1); e.win=!!win; e.diff=jdiff; e.daily=!!dailyJ; const d=new Date(); e.date=d.getDate()+"/"+(d.getMonth()+1); e.ts=Date.now();
   try{ const arr=JSON.parse(localStorage.getItem("jurassic_diary")||"[]"); arr.unshift(e); localStorage.setItem("jurassic_diary",JSON.stringify(arr.slice(0,3))); }catch(err){}
   return "<div style='margin-top:6px;font-size:13px;color:#e8d9a8;line-height:1.8'>📖 <b>DIARIO DEL EXPLORADOR</b><br>"+jDiaryLine(e)+"</div>"; }
@@ -1310,7 +1311,7 @@ function update(dt){
   if(tracerT>0){ tracerT-=dt; tracer.material.opacity=Math.max(0,tracerT*10); }
 
   // radio: 3 baterías en la torre -> encender
-  if(!radioOn && inv.batt>=3 && Math.hypot(P.x-RADIO.x,P.z-RADIO.z)<7){ radioOn=true; inv.batt-=3; updInv(); showStory("📻 ¡RADIO ENCENDIDA! Pediste rescate. Ahora sobrevive hasta el día 7."); snd(520,"triangle",0.4,0.1); radioSay("Señal recibida. Equipo de rescate en camino. Resiste hasta el día siete."); }
+  if(!radioOn && inv.batt>=3 && Math.hypot(P.x-RADIO.x,P.z-RADIO.z)<7){ radioOn=true; jDiary.radio=true; inv.batt-=3; updInv(); showStory("📻 ¡RADIO ENCENDIDA! Pediste rescate. Ahora sobrevive hasta el día 7."); snd(520,"triangle",0.4,0.1); radioSay("Señal recibida. Equipo de rescate en camino. Resiste hasta el día siete."); }
 
   // dinos
   let danger=false, nearRoar=999; const safe=inSafe(P.x,P.z);

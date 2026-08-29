@@ -7254,7 +7254,7 @@ function buildTrophies(){ try{
   try{ const rd=k=>{ try{ const a=JSON.parse(g(k)||"[]"); return a.length?a[0]:null; }catch(e){ return null; } };
     const rdt=e=>{ if(!e||!e.ts) return e?e.date:""; const d=Math.floor((Date.now()-e.ts)/86400000); return d<=0?"hoy":d===1?"ayer":"hace "+d+" días"; };   // 📆 fecha relativa
     const jd=rd("jurassic_diary"), sd=rd("scream_diary"), nd=rd("nag_diary"); const la=[];
-    if(jd) la.push(LNK("jurassic.html","🦖 "+rdt(jd)+": "+jd.days+" días"+(jd.fish?" · 🐟 "+jd.fish:"")+(jd.pack?" · 🐾 manada":"")+(jd.egg?" · 🥚":"")+" · "+(jd.hits?"🩹 "+jd.hits:"🛡️ sin heridas")+(jd.daily?" · 📅":"")+(jd.win?" ✓":"")));
+    if(jd) la.push(LNK("jurassic.html","🦖 "+rdt(jd)+": "+jd.days+" días"+(jd.fish?" · 🐟 "+jd.fish:"")+(jd.pack?" · 🐾 manada":"")+(jd.egg?" · 🥚":"")+(jd.radio?" · 📻":"")+" · "+(jd.hits?"🩹 "+jd.hits:"🛡️ sin heridas")+(jd.daily?" · 📅":"")+(jd.win?" ✓":"")));
     if(sd) la.push(LNK("scream.html","🕷️ "+rdt(sd)+": "+fmtMS(sd.t)+" · 🔧 "+sd.v+"/4 · 🧪 "+sd.s+"/3 · 👁️ "+sd.spot+" apariciones · "+(sd.bites?"🩸 "+sd.bites:"🛡️ sin mordidas")+(sd.daily?" · 📅":"")+(sd.win?" ✓":"")));
     if(nd) la.push(LNK("notagame.html","🧟 "+rdt(nd)+": "+nd.kills+" kills · 📜 "+nd.clues+"/7 · 🌙 "+nd.nights+(nd.drvz?" · 🧪 Dr. VZ":"")+(nd.cat?" · 🐱":"")+(nd.daily?" · 📅":"")+(nd.win?" ✓":"")));
     const fd=rd("edtu_f1_diary"); if(fd) la.push(LNK("#f1","🏎️ "+rdt(fd)+": "+fd.m+" m · ⏱️ "+fd.sec+" sectores · 🔧 "+fd.pit+" pit"+(fd.drs?" · 🟢 DRS ×"+fd.drs:"")+(fd.spd?" · ⚡ "+fd.spd+" km/h":"")+(fd.ov?" · 🏁 "+fd.ov:"")+(fd.kondor==="W"?" · 🦅 vencido":fd.kondor==="L"?" · 🦅 escapó":"")+(fd.daily?" · 📅":"")+(fd.mirror?" · 🪞":"")));
