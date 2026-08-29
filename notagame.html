@@ -798,7 +798,8 @@ function drawNRadar(){ const cv=document.getElementById("nradar"); if(!cv) retur
     if(Math.sin(performance.now()*0.008)>0) drawers.forEach(d=>{ if(!d.open) put(d.cx,d.cz,"#7dff5a",3.4); });
     // 📜 pista señalada por la central: DORADA y pulsante; si está fuera del alcance del radar, marcador dorado en el borde hacia ella
     if(clueArrowT>0){ let bC=null, bdC=1e9; for(const d of drawers){ if(d.open||CLUE_NOTES.indexOf(d.note)>=5) continue; const ds=Math.hypot(P.x-d.cx,P.z-d.cz); if(ds<bdC){ bdC=ds; bC=d; } }
-      if(bC){ const pr=3+2*Math.abs(Math.sin(performance.now()/150)); if(bdC<=R) put(bC.cx,bC.cz,"#ffd12e",pr);
+      if(bC){ const pr=3+2*Math.abs(Math.sin(performance.now()/150)); if(bdC<15 && !(window._clueBeepAt>performance.now()-(180+bdC*70))){ window._clueBeepAt=performance.now(); snd(1400+(15-bdC)*40,"sine",0.05,0.035); }   /* 🔍 geiger: más rápido y agudo cuanto más cerca */
+        if(bdC<=R) put(bC.cx,bC.cz,"#ffd12e",pr);
         else { const dx=bC.cx-P.x, dz=bC.cz-P.z; const rgt=dx*c2-dz*s2, fw=-dx*s2-dz*c2, L=Math.hypot(rgt,fw)||1; g.fillStyle="#ffd12e"; g.beginPath(); g.arc(52+rgt/L*48,52-fw/L*48,pr*0.8,0,6.28); g.fill(); } } }
     stairDowns.forEach(s2=>put(s2.x,s2.z,"#b26bff",3));   // 🟣 bajadas al drenaje
     battPicks.forEach(bp=>{ if(bp.t<=0) put(bp.m.position.x,bp.m.position.z,"#2dd06a",2.6); });   // 🔋 pilas
