@@ -3187,7 +3187,7 @@ const Game = {
     this.renderResume();
     const scores=this.players.map(p=>Math.floor(p.score));
     const result = this.coop ? scores.reduce((a,b)=>a+b,0) : Math.max(0,...scores);
-    if(result>this.best){ this.best=result; gset("edtu_game_best",result); Cloud.saveScore({ user_key:currentKey(), name:currentDisplayName(), best:result, updated_at:new Date().toISOString() }); }
+    try{ edtuPlayDay("🏃 Rush",result+" pts"); }catch(e){} if(result>this.best){ this.best=result; gset("edtu_game_best",result); Cloud.saveScore({ user_key:currentKey(), name:currentDisplayName(), best:result, updated_at:new Date().toISOString() }); }
     checkAch(); this.renderAch(); this.renderSkins(); this.loadBoard();
     $("gameMsg").innerHTML='<span style="color:var(--green)">🏆 ¡MISIÓN CUMPLIDA! 77 NIVELES</span>';
     $("gameOverScores").innerHTML = this.players.map((p,i)=>`<div style="color:${p.color}">P${i+1}: <b>${Math.floor(p.score)}</b></div>`).join("");
@@ -3199,7 +3199,7 @@ const Game = {
     const result = this.coop ? scores.reduce((a,b)=>a+b,0) : Math.max(0,...scores);
     const mk="edtu_game_best_"+this.players.length+(this.coop?"c":"v");
     if(result>gstat(mk)) gset(mk,result);
-    if(result>this.best){ this.best=result; gset("edtu_game_best",result); Cloud.saveScore({ user_key:currentKey(), name:currentDisplayName(), best:result, updated_at:new Date().toISOString() }); setTimeout(()=>this.loadBoard(),400); } else this.loadBoard();
+    try{ edtuPlayDay("🏃 Rush",result+" pts"); }catch(e){} if(result>this.best){ this.best=result; gset("edtu_game_best",result); Cloud.saveScore({ user_key:currentKey(), name:currentDisplayName(), best:result, updated_at:new Date().toISOString() }); setTimeout(()=>this.loadBoard(),400); } else this.loadBoard();
     checkAch(); this.renderAch(); this.renderSkins(); this.renderResume();
     if(this.coop){
       const teams=[...new Set(this.players.map(p=>p.team))].sort();
