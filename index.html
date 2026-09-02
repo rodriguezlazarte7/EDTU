@@ -294,9 +294,12 @@
   #nagCloseBtn{position:fixed;top:8px;right:12px;z-index:201;background:rgba(0,0,0,.6);color:#fff;border:1px solid #ff2d55;
     border-radius:8px;padding:7px 13px;font-family:"Consolas",monospace;font-weight:700;cursor:pointer}
   #rkFs{position:fixed;inset:0;z-index:200;display:none;background:#0a0f1e}
+  #swFs{position:fixed;inset:0;z-index:200;display:none;background:#0a0f1e}
   #rkFs.open{display:block}
   #rkFrame{width:100%;height:100%;border:none;display:block}
   #rkCloseBtn{position:fixed;top:8px;right:12px;z-index:201;background:rgba(0,0,0,.6);color:#fff;border:1px solid #00e0ff;
+    border-radius:8px;padding:7px 13px;font-family:"Consolas",monospace;font-weight:700;cursor:pointer}
+  #swCloseBtn{position:fixed;top:8px;right:12px;z-index:201;background:rgba(0,0,0,.6);color:#fff;border:1px solid #00e0ff;
     border-radius:8px;padding:7px 13px;font-family:"Consolas",monospace;font-weight:700;cursor:pointer}
   #jpFs{position:fixed;inset:0;z-index:200;display:none;background:#0a1206}
   #jpFs.open{display:block}
@@ -1462,6 +1465,7 @@
     <button class="btn pickgame" id="pickNag" style="background:linear-gradient(90deg,#1a0608,#3a0810);border-color:#ff2d55">🧟 NOT A GAME (terror 3D)</button>
     <button class="btn pickgame" id="pickRk" style="background:linear-gradient(90deg,#06121a,#082438);border-color:#00e0ff">🧩 CUBO 3x3 (carrera vs IA)</button>
     <button class="btn pickgame" id="pickJp" style="background:linear-gradient(90deg,#0a1a06,#183a10);border-color:#7dff5a">🦖 JURASSIC (sobrevive 7 días)</button>
+    <button class="btn pickgame" id="pickSw" style="background:linear-gradient(90deg,#14120a,#3a3208);border-color:#ffe81f;color:#ffe81f">⭐ STAR WARS (batalla espacial 3D)</button>
     <button class="btn pickgame" id="pickScr" style="background:linear-gradient(90deg,#1a0308,#3a0810);border-color:#ff2b3a">🕷️ SCREAM (la araña · terror)</button>
     <button class="btn pickgame" id="pickTrophies" style="background:linear-gradient(90deg,#1a1406,#3a2c08);border-color:#ffd12e;color:#ffd12e">🏆 SALA DE TROFEOS</button>
     <button class="btn pickgame" id="pickWally" style="background:linear-gradient(90deg,#061a1e,#083a44);border-color:#38b6ff;color:#8fd0ff">🤖 HABLAR CON WALLY 🎤</button>
@@ -1515,6 +1519,7 @@
 
 <!-- ============ CUBO 3x3 (carrera vs IA en iframe) ============ -->
 <div id="rkFs"><iframe id="rkFrame" allow="fullscreen; autoplay" title="CUBO 3x3"></iframe><button id="rkCloseBtn">✕ Salir</button></div>
+<div id="swFs"><iframe id="swFrame" allow="fullscreen; autoplay; pointer-lock" title="STAR WARS"></iframe><button id="swCloseBtn">✕ Salir</button></div>
 
 <!-- ============ JURASSIC (supervivencia 3D en iframe) ============ -->
 <div id="jpFs"><iframe id="jpFrame" allow="fullscreen; pointer-lock; autoplay" title="JURASSIC"></iframe><button id="jpCloseBtn">✕ Salir</button></div>
@@ -6821,6 +6826,8 @@ $("hangAgain").onclick=()=>Hang.reset(); $("hangClose").onclick=()=>Hang.close()
 $("pickNag").onclick=()=>{ $("gamePick").classList.remove("open"); $("nagFrame").src="notagame.html"; $("nagFs").classList.add("open"); };
 $("nagCloseBtn").onclick=()=>{ $("nagFs").classList.remove("open"); $("nagFrame").src="about:blank"; };
 $("pickRk").onclick=()=>{ $("gamePick").classList.remove("open"); $("rkFrame").src="rubik.html"; $("rkFs").classList.add("open"); };
+$("pickSw").onclick=()=>{ $("gamePick").classList.remove("open"); $("swFrame").src="starwars.html"; $("swFs").classList.add("open"); };
+$("swCloseBtn").onclick=()=>{ $("swFs").classList.remove("open"); $("swFrame").src="about:blank"; };
 $("rkCloseBtn").onclick=()=>{ $("rkFs").classList.remove("open"); $("rkFrame").src="about:blank"; };
 $("pickJp").onclick=()=>{ $("gamePick").classList.remove("open"); $("jpFrame").src="jurassic.html"; $("jpFs").classList.add("open"); };
 $("jpCloseBtn").onclick=()=>{ $("jpFs").classList.remove("open"); $("jpFrame").src="about:blank"; };
