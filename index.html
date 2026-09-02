@@ -6735,7 +6735,9 @@ const Flap={ cv:null,ctx:null,raf:null,run:false,W:0,H:0,by:0,vy:0,pipes:[],scor
     if(this.by>this.H||this.by<0) return this.dead(); $("flapHud").textContent="🐤 "+this.score+" · Récord: "+this.best; this.draw(); },
   dead(){ this.stop(); if(this.score>this.best){this.best=this.score;localStorage.setItem("edtu_flap_best",this.score);} try{ edtuPlayDay("🐤 Flappy",this.score+" pts",this.score); }catch(e){} $("flapOver").textContent="💀 Fin · "+this.score+" pts"+(function(sc){ try{ return edtuMiniAvg("🐤 Flappy",sc); }catch(e){ return ""; } })(this.score); },
   draw(){ const c=this.ctx; c.fillStyle="#0b1330"; c.fillRect(0,0,this.W,this.H); c.fillStyle="#39ff14"; this.pipes.forEach(p=>{ c.fillRect(p.x-26,0,52,p.top); c.fillRect(p.x-26,p.top+this.gap,52,this.H); });
-    c.font="26px serif"; c.textAlign="center"; c.fillText("🐤",40,this.by); } };
+    c.font="26px serif"; c.textAlign="center"; c.textBaseline="middle";
+    const ang=Math.max(-0.45,Math.min(0.9,this.vy/11));   /* pico arriba al aletear, pico abajo al caer */
+    c.save(); c.translate(40,this.by); c.scale(-1,1); c.rotate(-ang); c.fillText("🐤",0,0); c.restore(); } };
 
 /* 🏓 PONG */
 const Pong={ cv:null,ctx:null,raf:null,run:false,W:0,H:0,mode:"cpu",l:0,r:0,ball:null,sl:0,sr:0,ph:64,
