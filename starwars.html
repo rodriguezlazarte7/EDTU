@@ -217,6 +217,7 @@ function nuevaPartida(){
   G.base=baseNueva(); G.pos=v3(0,0,0); G.enem=[]; G.amigos=[]; G.balas=[]; G.chispas=[]; G.estelas=[]; G.danos=[];
   G.naveBase=baseNueva(); G.naveOff=v3(0,0,0); polvoNuevo();
   for(let i=0;i<3;i++) nuevoAmigo(i);
+  G.chispas=[];
   G.score=0; G.wave=0; G.kills=0; G.disparos=0; G.aciertos=0; G.quedan=0; G.spawn=0; G.waveT=0; G.cad=0;
   G.yaw=0; G.pitch=0; G.roll=0; G.t=0; G.over=false; G.paused=false; G.inicio=Date.now();
   estrellasNuevas(); destructoresNuevos();
@@ -341,11 +342,15 @@ function render(){
     ctx.beginPath(); ctx.moveTo(p1.x,p1.y); ctx.lineTo(p2.x,p2.y); ctx.stroke();
     const pu=proyecta(a); ctx.fillStyle=b.c; ctx.beginPath(); ctx.arc(pu.x,pu.y,Math.max(1.5,Math.min(6,0.04*p1.s)),0,7); ctx.fill();
   }
-  /* chispas */
+  /* chispas, fuego y humo */
   for(const s of G.chispas){
+    if(s.t==="humo"&&ctx.globalCompositeOperation!=="source-over") ctx.globalCompositeOperation="source-over";
+    else if(s.t!=="humo"&&ctx.globalCompositeOperation!=="lighter") ctx.globalCompositeOperation="lighter";
     const c=aCamara(G.base,sub(s.p,G.pos)); if(c.z<6) continue;
-    const p=proyecta(c), a=Math.max(0,s.vida/s.max), r=Math.max(1,9*p.s*a);
-    ctx.fillStyle=a>.5?"rgba(255,240,180,"+a+")":"rgba(255,120,40,"+a+")";
+    const p=proyecta(c), a=Math.max(0,s.vida/s.max), r=Math.max(1,(s.t==="humo"?16:s.t==="fuego"?11:9)*p.s*(s.t==="humo"?1.6-a:a));
+    ctx.fillStyle = s.t==="humo" ? "rgba(90,84,80,"+(a*.5)+")"
+                  : s.t==="fuego" ? (a>.6?"rgba(255,214,110,"+a+")":"rgba(255,92,20,"+(a*.95)+")")
+                  : (a>.5?"rgba(255,240,180,"+a+")":"rgba(255,120,40,"+a+")");
     ctx.beginPath(); ctx.arc(p.x,p.y,r,0,7); ctx.fill();
   }
   ctx.globalCompositeOperation="source-over";
@@ -399,6 +404,7 @@ function dibujaMira(){
   }
   /* marcas de los enemigos (en pantalla o en el borde si están fuera) */
   for(const e of G.enem){
+    if(e.ardiendo>0) continue;                              /* sin marca: ya va cayendo */
     const c=aCamara(G.base,sub(e.p,G.pos)); const d=len(sub(e.p,G.pos));
     if(c.z>6){
       const p=proyecta(c);
@@ -434,6 +440,29 @@ function disparar(){
   }
   sfx("laser");
 }
+const ARDE=5;                                             /* segundos que arde antes de estallar */
+function llamas(o,dt){                                     /* fuego y humo saliendo de la nave herida */
+  o.chispa=(o.chispa||0)-dt;
+  if(o.chispa>0) return;
+  o.chispa=.035;
+  const r=()=>(Math.random()*2-1)*10;
+  for(let i=0;i<2;i++)
+    G.chispas.push({ p:v3(o.p.x+r(),o.p.y+r(),o.p.z+r()), v:mul(norm(v3(Math.random()*2-1,Math.random()*2-1,Math.random()*2-1)),16+Math.random()*40), vida:.5+Math.random()*.5, max:1, t:"fuego" });
+  G.chispas.push({ p:v3(o.p.x+r(),o.p.y+r(),o.p.z+r()), v:mul(norm(v3(Math.random()*2-1,Math.random()*2-1,Math.random()*2-1)),9+Math.random()*22), vida:1.1+Math.random()*.9, max:2, t:"humo" });
+}
+function agoniza(o,dt){                                    /* cae sin control hasta que estalla */
+  o.ardiendo-=dt;
+  girar(o.b, o.caidaY*dt, o.caidaP*dt, o.caidaR*dt);       /* da vueltas descontrolada */
+  o.p=add(o.p, mul(o.b.f, o.vel*Math.max(.15,o.ardiendo/ARDE)*dt));   /* se va frenando */
+  llamas(o,dt);
+  if(!mute && o.ardiendo<=ARDE-.02 && o.ardiendo>ARDE-.06) sfx("hit");
+  return o.ardiendo<=0;                                    /* true = ya estalla */
+}
+function seIncendia(o){                                    /* le empieza a arder la nave */
+  o.ardiendo=ARDE; o.chispa=0;
+  o.caidaY=(Math.random()*2-1)*1.6; o.caidaP=(Math.random()*2-1)*1.3; o.caidaR=(Math.random()>.5?1:-1)*(1.6+Math.random()*1.4);
+  bum(o.p,.45); sfx("hit");
+}
 function bum(p,esc){ const n=Math.round(30*(esc||1));
   for(let i=0;i<n;i++){ const d=norm(v3(Math.random()*2-1,Math.random()*2-1,Math.random()*2-1));
     G.chispas.push({ p:v3(p.x,p.y,p.z), v:mul(d,30+Math.random()*130), vida:.5+Math.random()*.8, max:1.3 }); } }
@@ -452,10 +481,11 @@ function nuevoAmigo(i){
   G.amigos.push({ p, b, vel:150, vida:3, fuego:.3+Math.random()*.4, i, revive:0, idx:i, tiro:0 });
 }
 function iaAmigo(a,dt){
+  if(a.ardiendo>0){ if(agoniza(a,dt)){ bum(a.p,1.5); sfx("boom"); a.revive=9; a.ardiendo=0; } return; }
   if(a.revive>0){ a.revive-=dt; if(a.revive<=0){ a.vida=3; a.p=add(G.pos, add(mul(G.base.r,(a.idx%2?1:-1)*90), mul(G.base.f,-160))); } return; }
   /* busca el enemigo más cercano; si no hay, vuela en formación contigo */
   let obj=null, mejor=1e9;
-  for(const e of G.enem){ const d=len(sub(e.p,a.p)); if(d<mejor){ mejor=d; obj=e; } }
+  for(const e of G.enem){ if(e.ardiendo>0) continue; const d=len(sub(e.p,a.p)); if(d<mejor){ mejor=d; obj=e; } }
   let destino, dist;
   if(obj&&mejor<1900){ destino=obj.p; dist=mejor; }
   else { destino=add(G.pos, add(mul(G.base.r,(a.idx%2?1:-1)*(70+a.idx*18)), mul(G.base.f,-90))); dist=len(sub(destino,a.p)); }
@@ -521,13 +551,14 @@ function update(dt){
   }
   if(G.waveT>0) G.waveT-=dt;
   else if(G.quedan>0){ G.spawn-=dt; if(G.spawn<=0){ G.spawn=Math.max(.4,1.6-G.wave*.08); nuevoEnemigo(); G.quedan--; } }
-  $("hudEnem").textContent=(G.enem.length+G.quedan)+" enemigos · "+G.amigos.filter(a=>a.revive<=0).length+" aliados";
+  $("hudEnem").textContent=(G.enem.filter(e=>!e.ardiendo).length+G.quedan)+" enemigos · "+G.amigos.filter(a=>a.revive<=0).length+" aliados";
 
   /* ---- escuadrón amigo ---- */
   for(const a of G.amigos) iaAmigo(a,dt);
 
   /* ---- IA: te persiguen y disparan ---- */
   for(const e of G.enem){
+    if(e.ardiendo>0){ if(agoniza(e,dt)){ e.muerto=true; bum(e.p,1.5); sfx("boom"); } continue; }
     const haciaMi=sub(G.pos,e.p), d=len(haciaMi);
     const dir=norm(haciaMi), loc=aCamara(e.b,dir);
     girar(e.b, Math.max(-1,Math.min(1,loc.x))*e.giro*dt*1.6, Math.max(-1,Math.min(1,loc.y))*e.giro*dt*1.6, 0);
@@ -547,12 +578,13 @@ function update(dt){
     b.p=add(b.p, mul(b.d,dt)); b.vida-=dt;
     if(b.mia){
       for(const e of G.enem){
+        if(e.ardiendo>0) continue;                          /* ya está sentenciado */
         const dJug=len(sub(e.p,G.pos));
         if(len(sub(b.p,e.p)) < Math.max(G.modEnem.r*2.8, dJug*0.045)){
           b.vida=0; if(b.yo!==false) G.aciertos++;
           const dmg=(b.yo!==false?55:40)+Math.round(Math.random()*8);
           e.vida-=dmg; textoDano(e.p, dmg, b.yo!==false?"#ffe81f":"#8fd0ff");
-          if(e.vida<=0){ e.muerto=true; if(b.yo!==false){ G.kills++; const gana=100+G.wave*10; G.score+=gana; pts(gana); } else { G.score+=30; } bum(e.p); sfx("boom"); }
+          if(e.vida<=0&&!e.ardiendo){ seIncendia(e); textoDano(e.p,"¡EN LLAMAS!","#ff8a2b"); if(b.yo!==false){ G.kills++; const gana=100+G.wave*10; G.score+=gana; pts(gana); } else { G.score+=30; } }
           else { bum(e.p,.3); sfx("hit"); }
           break;
         }
@@ -560,7 +592,7 @@ function update(dt){
     } else {
       if(len(sub(b.p,G.pos))<26){ b.vida=0; golpe(9+G.wave); }
       else for(const a of G.amigos){ if(a.revive<=0&&len(sub(b.p,a.p))<G.mod.r*2.4){ b.vida=0; a.vida--; textoDano(a.p,"-1 ❤","#ff8a5c");
-        if(a.vida<=0){ bum(a.p); sfx("boom"); a.revive=9; } else bum(a.p,.3); break; } }
+        if(a.vida<=0&&!a.ardiendo){ seIncendia(a); } else if(a.vida>0) bum(a.p,.3); break; } }
     }
   }
   G.balas=G.balas.filter(b=>b.vida>0);
@@ -572,7 +604,7 @@ function update(dt){
   G.danos=G.danos.filter(d=>d.vida>0);
 
   /* ---- chispas ---- */
-  for(const s of G.chispas){ s.p=add(s.p,mul(s.v,dt)); s.vida-=dt; }
+  for(const s of G.chispas){ s.p=add(s.p,mul(s.v,dt)); if(s.t) s.v=mul(s.v,Math.max(0,1-dt*(s.t==="humo"?2.2:1.2))); s.vida-=dt; }
   G.chispas=G.chispas.filter(s=>s.vida>0);
 
   /* ---- chocar con un destructor ---- */
@@ -627,7 +659,11 @@ function pausar(v){
     $("pause").classList.remove("hide");
   } else { $("pause").classList.add("hide"); try{ cv.requestPointerLock&&cv.requestPointerLock(); }catch(e){} last=performance.now(); }
 }
-const salir=()=>location.href="index.html";
+const salir=()=>{
+  try{ if(window.parent&&window.parent!==window){          /* si estoy dentro del cuartel, solo cierro la pantalla */
+    const b=window.parent.document.getElementById("swCloseBtn"); if(b){ b.click(); return; } } }catch(e){}
+  location.href="index.html";
+};
 
 /* ---------- controles ---------- */
 addEventListener("mousemove",e=>{
