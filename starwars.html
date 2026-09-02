@@ -93,7 +93,7 @@
     <div class="nave sel" data-n="x"><canvas class="prev" data-p="x"></canvas><div class="n">ALA-X</div>
       <div class="d">Rebelde · <i>resistente</i><br/>escudo 130 · 4 cañones</div></div>
     <div class="nave" data-n="t"><canvas class="prev" data-p="t"></canvas><div class="n">CAZA TIE</div>
-      <div class="d">Imperial · <i>veloz y ágil</i><br/>escudo 85 · gira más rápido</div></div>
+      <div class="d">Imperial · <i>veloz y ágil</i><br/>escudo 85 · gira más rápido<br/>🔫 <b>dispara x3 más rápido</b></div></div>
   </div>
   <div class="keys">
     🖱️ <b>mueve el ratón</b> para volar en cualquier dirección (360°)<br/>
@@ -432,7 +432,8 @@ function dibujaMira(){
 /* ---------- disparar ---------- */
 function disparar(){
   if(!G.run||G.paused||G.over||G.cad>0) return;
-  G.cad=G.bando==="x"?0.16:0.13; G.disparos++;
+  G.cad=G.bando==="x"?0.16:0.13/3;                       /* el TIE es el de tiro rapido */
+  G.disparos++;
   const miPos=add(add(G.pos, add(mul(G.base.f,26), mul(G.base.u,-3.2))), G.naveOff);
   for(const cn of G.mod.canones){
     const o=add(miPos, aLocal(G.naveBase,cn));
