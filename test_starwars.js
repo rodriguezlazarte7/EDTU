@@ -9,7 +9,7 @@ const trozos = [...HTML.matchAll(/<script>([\s\S]*?)<\/script>/g)].map(m => m[1]
 if (!trozos.length) { console.error("❌ no encontré el <script> del juego"); process.exit(1); }
 /* las cosas declaradas con const/let no salen solas del guion: se piden al final */
 const CODIGO = trozos.join("\n;\n") +
-  "\n;globalThis.__G=G; globalThis.__NAVES=NAVES; globalThis.__CLASES=CLASES; globalThis.__MOD=MOD; globalThis.__jefeVivo=jefeVivo;\n";
+  "\n;globalThis.__G=G; globalThis.__NAVES=NAVES; globalThis.__CLASES=CLASES; globalThis.__MOD=MOD; globalThis.__jefeVivo=jefeVivo; globalThis.__hiperEmpieza=hiperEmpieza; globalThis.__hiper=()=>hiper;\n";
 
 /* --- una pantalla y un navegador de mentira --- */
 const nada = () => {};
@@ -157,6 +157,26 @@ for (let w = 1; w <= 12; w++) {
 }
 for (const t of ["protege", "torres", "trinchera", "rapido", "jefe"])
   if (!vistas.has(t)) F("en 12 oleadas nunca salió la misión '" + t + "'");
+
+/* --- el salto del hiperespacio --- */
+{
+  G.bando = "x"; ctxVM.nuevaPartida(); G.run = true;
+  const antesPos = { x: G.pos.x, y: G.pos.y, z: G.pos.z };
+  ctxVM.__hiperEmpieza();
+  if (!(ctxVM.__hiper() > 0)) F("el salto del hiperespacio no arranca");
+  let tocado = false;
+  for (let i = 0; i < 3 / DT; i++) {                          /* 3 segundos: dura 1,7 */
+    G.shield = G.vidaMax;
+    ctxVM.update(DT); ctxVM.render();
+    if (ctxVM.__hiper() > 0) { ctxVM.golpe(50); if (G.shield < G.vidaMax) tocado = true; }
+  }
+  const recorrido = Math.hypot(G.pos.x - antesPos.x, G.pos.y - antesPos.y, G.pos.z - antesPos.z);
+  if (ctxVM.__hiper() !== 0) F("el salto del hiperespacio no se termina nunca");
+  if (tocado) F("te pueden dar mientras sales del hiperespacio, y no deberían");
+  if (recorrido < 500) F("durante el salto casi no te mueves (" + Math.round(recorrido) + ")");
+  console.log("  🌠 hiperespacio: dura " + (1.7) + " s, recorres " + Math.round(recorrido) +
+    " unidades y eres intocable mientras sales");
+}
 
 /* --- la nave jefe: rayo, fases y escoltas --- */
 {

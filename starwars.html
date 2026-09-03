@@ -569,7 +569,7 @@ function nuevaPartida(){
   for(let i=0;i<3;i++) nuevoAmigo(i);
   G.chispas=[];
   G.score=0; G.wave=0; G.jefe=false; misionLimpia(); G.kills=0; G.disparos=0; G.aciertos=0; G.quedan=0; G.spawn=0; G.waveT=0; G.cad=0;
-  G.torpedos=[]; G.torp=TORP_MAX; G.torpCarga=0;
+  hiper=0; G.torpedos=[]; G.torp=TORP_MAX; G.torpCarga=0;
   G.jefes=0; G.caidos=0; G.torpKills=0; G.misionesOK=0; G.trincherasOK=0; G.golpes=0;
   G.gas=1; G.gasObj=1; G.yaw=0; G.pitch=0; G.roll=0; G.t=0; G.over=false; G.paused=false; G.inicio=Date.now();
   estrellasNuevas(); destructoresNuevos();
@@ -582,6 +582,24 @@ function polvoMueve(){                                  /* lo que queda lejos re
   for(const q of G.polvo){ const d=sub(q.p,G.pos);
     if(len(d)>POLVO_R*1.15){ const lado=norm(add(mul(G.base.f,1.15),v3((Math.random()*2-1)*.9,(Math.random()*2-1)*.9,(Math.random()*2-1)*.9)));
       q.p=add(G.pos, mul(lado, POLVO_R*(.55+Math.random()*.45))); q.t=Math.random()<.22?1:0; q.g=.35+Math.random()*.65; } }
+}
+const HIPER_DURA=1.7;                                        /* lo que dura el frenazo */
+let hiper=0;
+function hiperEmpieza(){
+  hiper=HIPER_DURA;
+  const a=ac(); if(!a||mute) return;
+  /* el frenazo: un barrido que baja de agudo a grave, y un golpe grave al salir */
+  const t=a.currentTime;
+  const o=a.createOscillator(), g=a.createGain();
+  o.type="sawtooth";
+  o.frequency.setValueAtTime(2200,t); o.frequency.exponentialRampToValueAtTime(70,t+HIPER_DURA*0.75);
+  g.gain.setValueAtTime(.10,t); g.gain.exponentialRampToValueAtTime(.0001,t+HIPER_DURA*0.8);
+  o.connect(g); g.connect(a.destination); o.start(t); o.stop(t+HIPER_DURA);
+  const o2=a.createOscillator(), g2=a.createGain();
+  o2.type="sine";
+  o2.frequency.setValueAtTime(160,t+HIPER_DURA*0.72); o2.frequency.exponentialRampToValueAtTime(38,t+HIPER_DURA*0.72+.5);
+  g2.gain.setValueAtTime(.16,t+HIPER_DURA*0.72); g2.gain.exponentialRampToValueAtTime(.0001,t+HIPER_DURA*0.72+.55);
+  o2.connect(g2); g2.connect(a.destination); o2.start(t+HIPER_DURA*0.72); o2.stop(t+HIPER_DURA*0.72+.6);
 }
 const COL_ESTRELLA=["255,255,255","255,255,255","255,255,255","210,228,255","255,238,205","255,214,190","200,240,255"];
 function estrellasNuevas(){ G.estrellas=[];
@@ -842,10 +860,31 @@ function render(){
   ctx.fillStyle=neb; ctx.fillRect(0,0,W,H);
 
   /* estrellas (dirección fija: giran contigo) */
+  const k=hiper>0 ? Math.pow(Math.min(1,hiper/HIPER_DURA),1.6) : 0;   /* 1 al principio, 0 al terminar */
+  if(k>0){
+    /* rayas larguísimas saliendo del centro: el túnel del hiperespacio */
+    ctx.save(); ctx.globalCompositeOperation="lighter"; ctx.lineCap="round";
+    for(const s of G.estrellas){
+      const d=aCamara(G.base,s.d); if(d.z<=0.1) continue;
+      const p=proyecta(mul(d,1));
+      const dx=p.x-CX, dy=p.y-CY, l=Math.hypot(dx,dy)||1;
+      const largo=Math.min(Math.max(W,H)*1.3, (60+l*2.2)*k);
+      ctx.strokeStyle="rgba(200,225,255,"+(0.15+0.7*k*s.b).toFixed(3)+")";
+      ctx.lineWidth=0.7+2.6*k*s.b;
+      ctx.beginPath(); ctx.moveTo(p.x,p.y); ctx.lineTo(p.x+dx/l*largo, p.y+dy/l*largo); ctx.stroke();
+    }
+    /* el fogonazo azul del salto */
+    const fl=ctx.createRadialGradient(CX,CY,0,CX,CY,Math.max(W,H)*0.75);
+    fl.addColorStop(0,"rgba(190,225,255,"+(0.55*k).toFixed(3)+")");
+    fl.addColorStop(0.35,"rgba(120,170,255,"+(0.18*k).toFixed(3)+")");
+    fl.addColorStop(1,"rgba(0,0,0,0)");
+    ctx.fillStyle=fl; ctx.fillRect(0,0,W,H);
+    ctx.restore();
+  }
   for(const s of G.estrellas){ const d=aCamara(G.base,s.d); if(d.z<=0.1) continue;
     const p=proyecta(mul(d,1)); if(p.x<-4||p.x>W+4||p.y<-4||p.y>H+4) continue;
     const tit=0.82+0.18*Math.sin(G.t*s.f+s.fa);              /* titilan, cada una a su ritmo */
-    const a=s.b*tit;
+    const a=s.b*tit*(1-k*0.85);                              /* durante el salto casi no se ven como puntos */
     const r=(s.b>.9?1.5:s.b>.6?1.0:0.65)*Math.min(1.9,ZOOM_ACT);
     ctx.fillStyle="rgba("+s.c+","+a.toFixed(3)+")";
     ctx.beginPath(); ctx.arc(p.x,p.y,r,0,7); ctx.fill();
@@ -1361,7 +1400,8 @@ function aviso(txt){ const el=$("aviso"); if(!el) return; el.textContent=txt; el
 function avisoM(){ aviso(mute?"🔇 silencio":"🔊 música y sonido"); }
 let warnT=0;
 function textoDano(p,txt,col){ G.danos.push({ p:v3(p.x,p.y,p.z), txt:(typeof txt==="number"?"-"+txt:txt), c:col||"#ffe81f", vida:1.1, max:1.1 }); }
-function golpe(d){ G.shield-=d; G.golpes=(G.golpes||0)+1; sacude(.22+Math.min(.5,d/70)); if(d>=1){ const q=add(G.pos, add(mul(G.base.f,40), mul(G.base.u,-6))); textoDano(q, Math.round(d), "#ff5a5a"); } warnT=.5; $("warn").style.opacity=1; setTimeout(()=>{$("warn").style.opacity=0;},350); sfx("hit"); }
+function golpe(d){ if(hiper>0) return;                     /* mientras sales del salto eres intocable */
+  G.shield-=d; G.golpes=(G.golpes||0)+1; sacude(.22+Math.min(.5,d/70)); if(d>=1){ const q=add(G.pos, add(mul(G.base.f,40), mul(G.base.u,-6))); textoDano(q, Math.round(d), "#ff5a5a"); } warnT=.5; $("warn").style.opacity=1; setTimeout(()=>{$("warn").style.opacity=0;},350); sfx("hit"); }
 
 /* ---------- estelas de las alas ---------- */
 const ESTELA_VIDA=0.75;                                     /* lo que tarda en deshacerse */
@@ -1680,8 +1720,18 @@ function update(dt){
   if(ptsTimer>0){ ptsTimer-=dt; if(ptsTimer<=0) $("pts").style.opacity=.4; }
   if(msgT>0){ msgT-=dt; if(msgT<=0&&$("aviso")) $("aviso").style.opacity=0; }
 
+  /* ---- el salto del hiperespacio ---- */
+  if(hiper>0){
+    hiper=Math.max(0,hiper-dt);
+    const k=Math.pow(Math.min(1,hiper/HIPER_DURA),1.6);
+    G.pos=add(G.pos, mul(G.base.f, G.vel*11*k*dt));           /* aún vas lanzadísimo, frenando */
+    G.yaw*=0.25; G.pitch*=0.25;                               /* casi no puedes girar todavía */
+    if(hiper<=0){ aviso("⚡ ¡SALIDA DEL HIPERESPACIO!"); sacude(.55); }
+  }
+
   /* ---- zoom del clic derecho ---- */
-  ZOOM_ACT+=(ZOOM_OBJ-ZOOM_ACT)*Math.min(1,dt*11); FOV=FOV_BASE*ZOOM_ACT;
+  ZOOM_ACT+=(ZOOM_OBJ-ZOOM_ACT)*Math.min(1,dt*11);
+  FOV=FOV_BASE*ZOOM_ACT*(hiper>0?1+0.55*Math.pow(hiper/HIPER_DURA,1.6):1);   /* el salto abre el campo de visión */
   const finura=1/(1+(ZOOM_ACT-1)*0.75);                  /* con zoom, el giro es más preciso */
 
   /* ---- vuelo: el ratón inclina y gira; se puede dar la vuelta entera ---- */
@@ -1935,7 +1985,7 @@ function empezar(){
   $("intro").classList.add("hide"); $("over").classList.add("hide"); $("pause").classList.add("hide");
   $("pauseBtn").style.display="block"; $("pts").style.opacity=.4; $("ptsN").textContent="0";
   try{ cv.requestPointerLock&&cv.requestPointerLock(); }catch(e){}
-  MUS.intens=0; SACUDE=0; TEMA=TEMAS.batalla; tactilVisible(true);
+  MUS.intens=0; SACUDE=0; TEMA=TEMAS.batalla; tactilVisible(true); hiperEmpieza();
   ordenN=0; { const el=$("orden"); if(el){ el.textContent=ordenActual().nom; el.style.opacity=1; } } if(!mute){ musArranca(); motorEnciende(); }
   last=performance.now(); requestAnimationFrame(frame);
 }
