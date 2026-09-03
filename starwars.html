@@ -233,7 +233,7 @@ function nuevaPartida(){
   G.naveBase=baseNueva(); G.naveOff=v3(0,0,0); polvoNuevo();
   for(let i=0;i<3;i++) nuevoAmigo(i);
   G.chispas=[];
-  G.score=0; G.wave=0; G.kills=0; G.disparos=0; G.aciertos=0; G.quedan=0; G.spawn=0; G.waveT=0; G.cad=0;
+  G.score=0; G.wave=0; G.jefe=false; G.kills=0; G.disparos=0; G.aciertos=0; G.quedan=0; G.spawn=0; G.waveT=0; G.cad=0;
   G.yaw=0; G.pitch=0; G.roll=0; G.t=0; G.over=false; G.paused=false; G.inicio=Date.now();
   estrellasNuevas(); destructoresNuevos();
 }
@@ -312,6 +312,24 @@ function musPara(rapido){
   if(MUS.gan&&a){ const t=a.currentTime; MUS.gan.gain.cancelScheduledValues(t);
     MUS.gan.gain.setValueAtTime(MUS.gan.gain.value,t); MUS.gan.gain.linearRampToValueAtTime(0,t+(rapido?.15:.7)); }
 }
+const MOT={ o:null, g:null, f:null };
+function motorEnciende(){
+  const a=ac(); if(!a||MOT.o||mute) return;
+  MOT.o=a.createOscillator(); MOT.o.type="sawtooth";
+  MOT.f=a.createBiquadFilter(); MOT.f.type="lowpass"; MOT.f.frequency.value=420;
+  MOT.g=a.createGain(); MOT.g.gain.value=0;
+  MOT.o.connect(MOT.f); MOT.f.connect(MOT.g); MOT.g.connect(a.destination);
+  MOT.o.start();
+}
+function motorApaga(){ try{ if(MOT.o){ MOT.g.gain.value=0; MOT.o.stop(); } }catch(e){} MOT.o=null; }
+function motorSuena(v){                                      /* v de 0 a 1: cuánto corre la nave */
+  if(!MOT.o||mute) return;
+  const a=ac(); if(!a) return;
+  const t=a.currentTime;
+  MOT.o.frequency.setTargetAtTime(46+v*70, t, .12);           /* grave: se siente más que se oye */
+  MOT.f.frequency.setTargetAtTime(280+v*900, t, .12);
+  MOT.g.gain.setTargetAtTime(.028+v*.05, t, .12);
+}
 function musIntensidad(v){                                   /* cuantos más enemigos cerca, más música */
   MUS.intens+=(v-MUS.intens)*.06;
   if(MUS.filtro) MUS.filtro.frequency.value=1500+MUS.intens*3200;
@@ -319,7 +337,7 @@ function musIntensidad(v){                                   /* cuantos más ene
 
 /* ---------- dibujar un modelo en el mundo ---------- */
 const LUZ=norm(v3(.4,.75,-.5));
-function pintaModelo(mod, pos, base, escala, caras, extra){
+function pintaModelo(mod, pos, base, escala, caras, extra, tinta){
   const rel=sub(pos,G.pos), cam=aCamara(G.base,rel);
   if(cam.z<-mod.r*escala) return;                            /* del todo detrás */
   const V=[];
@@ -336,14 +354,28 @@ function pintaModelo(mod, pos, base, escala, caras, extra){
     const luz=Math.max(0,-dot(n,nl));
     const rim=Math.pow(1-Math.min(1,Math.abs(n.z)),3)*.35;   /* borde de luz: separa la nave del espacio */
     const esp=Math.pow(luz,14)*.55;                          /* reflejo del sol en la chapa */
-    caras.push({z, pts:idx.map(k=>proyecta(V[k])), c:f.c, l:.30+luz*.80+rim+esp});
+    caras.push({z, pts:idx.map(k=>proyecta(V[k])), c:tinta?mezcla(f.c,tinta,.5):f.c, l:.30+luz*.80+rim+esp});
   }
   if(extra) extra(V,rel,cam,escala);
 }
+function mezcla(a,b,k){                                      /* mezcla dos colores: así cada clase tiene el suyo */
+  const x=parseInt(a.slice(1),16), y=parseInt(b.slice(1),16);
+  const m=(sh)=>Math.round((((x>>sh)&255)*(1-k))+(((y>>sh)&255)*k));
+  return "#"+((1<<24)+(m(16)<<16)+(m(8)<<8)+m(0)).toString(16).slice(1);
+}
 function tinte(hex,k){ const n=parseInt(hex.slice(1),16); const r=Math.min(255,((n>>16)&255)*k)|0, g=Math.min(255,((n>>8)&255)*k)|0, b=Math.min(255,(n&255)*k)|0; return "rgb("+r+","+g+","+b+")"; }
 
+let SACUDE=0;
+function sacude(v){ SACUDE=Math.min(1.6,SACUDE+v); }         /* se van sumando los golpes */
 /* ---------- render ---------- */
 function render(){
+  let sx=0, sy=0;
+  if(SACUDE>0.002){                                          /* tiembla más fuerte al principio y se calma */
+    const a=SACUDE*SACUDE*14;
+    sx=(Math.random()*2-1)*a; sy=(Math.random()*2-1)*a;
+    ctx.save(); ctx.translate(sx,sy);
+    SACUDE*=0.90;
+  } else SACUDE=0;
   /* fondo: nebulosa */
   const g=ctx.createLinearGradient(0,0,W*.4,H);
   g.addColorStop(0,"#070a16"); g.addColorStop(.5,"#0d1024"); g.addColorStop(1,"#140f22");
@@ -375,8 +407,8 @@ function render(){
       for(const m of G.mod.motores){ const w=add(rel,aLocal(a.b,m)); const c=aCamara(G.base,w); if(c.z>6){ const p=proyecta(c);
         glows.push({z:c.z,x:p.x,y:p.y,r:Math.max(2,Math.min(20,0.9*p.s)),c:G.mod.motorCol,a:.3}); } } }); }
   /* enemigos */
-  for(const e of G.enem){ pintaModelo(G.modEnem, e.p, e.b, 1, caras, (V,rel,cam,esc)=>{
-      for(const m of G.modEnem.motores){ const w=add(rel,aLocal(e.b,m)); const c=aCamara(G.base,w); if(c.z>6){ const p=proyecta(c); glows.push({z:c.z,x:p.x,y:p.y,r:Math.max(2,Math.min(24,1.1*p.s)),c:G.modEnem.motorCol,a:.4}); } } }); }
+  for(const e of G.enem){ pintaModelo(G.modEnem, e.p, e.b, e.esc||1, caras, (V,rel,cam,esc)=>{
+      for(const m of G.modEnem.motores){ const w=add(rel,aLocal(e.b,mul(m,esc))); const c=aCamara(G.base,w); if(c.z>6){ const p=proyecta(c); glows.push({z:c.z,x:p.x,y:p.y,r:Math.max(2,Math.min(24*esc,1.1*p.s*esc)),c:G.modEnem.motorCol,a:.4}); } } }, e.k&&e.k.col); }
   /* mi nave, delante de la cámara (tercera persona) */
   const miPos=add(add(G.pos, add(mul(G.base.f,26), mul(G.base.u,-3.2))), G.naveOff);
   pintaModelo(G.mod, miPos, G.naveBase, 1, caras, (V,rel,cam,esc)=>{
@@ -451,6 +483,7 @@ function render(){
     ctx.globalAlpha=1;
   }
 
+  if(sx||sy) ctx.restore();                                  /* la mira y el aviso no tiemblan */
   dibujaMira();
   if(warnT>0){ warnT-=.016; ctx.fillStyle="rgba(255,40,40,"+(0.2*Math.max(0,warnT/.5))+")"; ctx.fillRect(0,0,W,H); }
 }
@@ -494,7 +527,9 @@ function dibujaMira(){
       const p=proyecta(c);
       if(p.x>4&&p.x<W-4&&p.y>4&&p.y<H-4){
         const s=Math.max(9,26*p.s*8);
-        ctx.strokeStyle=Math.abs(p.x-CX)<r&&Math.abs(p.y-CY)<r?"#ff4d4d":"rgba(255,77,77,.75)"; ctx.lineWidth=1.6;
+        const mk=e.k?e.k.marca:"rgba(255,77,77,";
+        ctx.strokeStyle=Math.abs(p.x-CX)<r&&Math.abs(p.y-CY)<r?mk+"1)":mk+".75)"; ctx.lineWidth=e.k&&e.k!==CLASES.caza?2.2:1.6;
+        if(e.k&&e.k!==CLASES.caza){ ctx.font="700 10px Consolas,monospace"; ctx.textAlign="center"; ctx.fillStyle=mk+".85)"; ctx.fillText(e.k.nom,p.x,p.y+s*.5+12); }
         ctx.strokeRect(p.x-s/2,p.y-s/2,s,s);
         if(e.vida<e.vidaMax){ const bw=s*1.1, bh=Math.max(2,s*.09), bx=p.x-bw/2, by=p.y-s/2-bh-3;
           ctx.fillStyle="rgba(0,0,0,.5)"; ctx.fillRect(bx,by,bw,bh);
@@ -589,6 +624,7 @@ function seIncendia(o){                                    /* le empieza a arder
   bum(o.p,.45); sfx("hit");
 }
 function bum(p,esc){ const n=Math.round(30*(esc||1));
+  const d=len(sub(p,G.pos)); if(d<700) sacude((esc||1)*.55*(1-d/700));   /* si estalla cerca, se nota */
   for(let i=0;i<n;i++){ const d=norm(v3(Math.random()*2-1,Math.random()*2-1,Math.random()*2-1));
     G.chispas.push({ p:v3(p.x,p.y,p.z), v:mul(d,30+Math.random()*130), vida:.5+Math.random()*.8, max:1.3 }); } }
 let ptsTimer=0;
@@ -598,7 +634,7 @@ function aviso(txt){ const el=$("aviso"); if(!el) return; el.textContent=txt; el
 function avisoM(){ aviso(mute?"🔇 silencio":"🔊 música y sonido"); }
 let warnT=0;
 function textoDano(p,txt,col){ G.danos.push({ p:v3(p.x,p.y,p.z), txt:(typeof txt==="number"?"-"+txt:txt), c:col||"#ffe81f", vida:1.1, max:1.1 }); }
-function golpe(d){ G.shield-=d; if(d>=1){ const q=add(G.pos, add(mul(G.base.f,40), mul(G.base.u,-6))); textoDano(q, Math.round(d), "#ff5a5a"); } warnT=.5; $("warn").style.opacity=1; setTimeout(()=>{$("warn").style.opacity=0;},350); sfx("hit"); }
+function golpe(d){ G.shield-=d; sacude(.22+Math.min(.5,d/70)); if(d>=1){ const q=add(G.pos, add(mul(G.base.f,40), mul(G.base.u,-6))); textoDano(q, Math.round(d), "#ff5a5a"); } warnT=.5; $("warn").style.opacity=1; setTimeout(()=>{$("warn").style.opacity=0;},350); sfx("hit"); }
 
 /* ---------- escuadrón amigo ---------- */
 const NOMBRES=["ROJO 2","ROJO 3","ROJO 5"], NOMBRES_T=["NEGRO 2","NEGRO 3","NEGRO 5"];
@@ -630,11 +666,29 @@ function iaAmigo(a,dt){
 }
 
 /* ---------- enemigos ---------- */
-function nuevoEnemigo(){
+/* cada clase con su nombre, su color, su tamaño y su forma de pelear */
+const CLASES={
+  caza:   { nom:"CAZA",       col:null,      esc:1,   vida:1,   vel:1,    giro:1,   cad:1,   tiros:1, pts:1,   marca:"rgba(255,77,77," },
+  elite:  { nom:"ÉLITE",      col:"#ffcf3a", esc:1.05,vida:2.1, vel:1.28, giro:1.4, cad:.55, tiros:2, pts:2.4, marca:"rgba(255,207,58," },
+  bomba:  { nom:"BOMBARDERO", col:"#7ad17a", esc:1.7, vida:5.5, vel:.55,  giro:.45, cad:1.9, tiros:1, pts:3.2, marca:"rgba(122,209,122," },
+  jefe:   { nom:"NAVE JEFE",  col:"#ff4de0", esc:3.2, vida:26,  vel:.72,  giro:.75, cad:.3,  tiros:4, pts:14,  marca:"rgba(255,77,224," }
+};
+function eligeClase(){
+  if(G.wave>=4&&Math.random()<.20) return "bomba";
+  if(G.wave>=3&&Math.random()<.28) return "elite";
+  return "caza";
+}
+function nuevoEnemigo(clase){
+  const k=CLASES[clase||eligeClase()], esJefe=k===CLASES.jefe;
   const d=norm(v3(Math.random()*2-1,Math.random()*2-1,Math.random()*2-1));
-  const p=add(G.pos, mul(d, 900+Math.random()*500));
+  const p=add(G.pos, mul(d, (esJefe?1500:900)+Math.random()*500));
   const b=baseNueva(); girar(b,Math.random()*7,(Math.random()*2-1)*1.2,0);
-  G.enem.push({ p, b, vel:110+G.wave*7+Math.random()*40, vida:G.wave>=5?170:110, vidaMax:G.wave>=5?170:110, fuego:.8+Math.random()*1.8, giro:.5+Math.random()*.5 });
+  const base=(G.wave>=5?170:110)*k.vida;
+  G.enem.push({ p, b, k, esc:k.esc,
+    vel:(110+G.wave*7+Math.random()*40)*k.vel,
+    vida:base, vidaMax:base,
+    fuego:.8+Math.random()*1.8, giro:(.5+Math.random()*.5)*k.giro });
+  if(esJefe){ aviso("☠️ ¡NAVE JEFE!"); sfx("wave"); }
 }
 
 /* ---------- bucle ---------- */
@@ -668,18 +722,23 @@ function update(dt){
   const vel=G.vel*(G.turbo&&G.boost>0?2.15:1);
   G.pos=add(G.pos, mul(G.base.f, vel*dt));
   $("spN").textContent=Math.round(vel);
+  motorSuena(Math.min(1,(vel/G.vel-1)/1.15*.75+.25));        /* de paseo zumba; con turbo ruge */
   $("boostFill").style.width=G.boost+"%";
 
   /* ---- oleadas ---- */
   if(G.quedan<=0&&G.enem.length===0){
     G.wave++; G.quedan=3+G.wave; G.waveT=1.6;
+    G.jefe=(G.wave%5===0);                                   /* oleadas 5, 10, 15... traen jefe */
+    if(G.jefe) G.quedan=Math.max(2,G.quedan-3);
     $("waveN").textContent="OLEADA "+G.wave; $("hudWave").textContent="OLEADA "+G.wave;
-    $("waveS").textContent=(G.bando==="x"?"CAZAS TIE":"ALAS-X REBELDES")+" ENTRANTES";
+    $("waveS").textContent=(G.wave%5===0?"☠️ NAVE JEFE ":"")+(G.bando==="x"?"CAZAS TIE":"ALAS-X REBELDES")+" ENTRANTES";
     $("wave").style.opacity=1; sfx("wave"); setTimeout(()=>{$("wave").style.opacity=0;},1500);
     G.shield=Math.min(G.vidaMax,G.shield+G.vidaMax*.14);
   }
   if(G.waveT>0) G.waveT-=dt;
-  else if(G.quedan>0){ G.spawn-=dt; if(G.spawn<=0){ G.spawn=Math.max(.4,1.6-G.wave*.08); nuevoEnemigo(); G.quedan--; } }
+  else if(G.quedan>0){ G.spawn-=dt; if(G.spawn<=0){ G.spawn=Math.max(.4,1.6-G.wave*.08);
+    if(G.jefe){ nuevoEnemigo("jefe"); G.jefe=false; } else nuevoEnemigo();
+    G.quedan--; } }
   $("hudEnem").textContent=(G.enem.filter(e=>!e.ardiendo).length+G.quedan)+" enemigos · "+G.amigos.filter(a=>a.revive<=0).length+" aliados";
 
   /* ---- la música se enciende con la batalla ---- */
@@ -699,8 +758,12 @@ function update(dt){
     else e.p=add(e.p, mul(e.b.f, e.vel*dt));
     e.fuego-=dt;
     if(e.fuego<=0 && d<900 && loc.z>0.86){
-      e.fuego=1.0+Math.random()*1.6;
-      G.balas.push({ p:v3(e.p.x,e.p.y,e.p.z), d:mul(e.b.f,760), vida:2.2, mia:false, c:G.colorEnem });
+      e.fuego=(1.0+Math.random()*1.6)*(e.k?e.k.cad:1);
+      const nt=e.k?e.k.tiros:1;
+      for(let i=0;i<nt;i++){
+        const sep=nt>1?(i-(nt-1)/2)*7*(e.esc||1):0;
+        G.balas.push({ p:add(e.p, mul(e.b.r,sep)), d:mul(e.b.f,760), vida:2.2, mia:false, c:G.colorEnem, dano:e.k===CLASES.bomba?1.8:1 });
+      }
       if(!mute) sfx("laser");
     }
     if(d>2600){ const nd=norm(v3(Math.random()*2-1,Math.random()*2-1,Math.random()*2-1)); e.p=add(G.pos,mul(nd,1000)); }
@@ -713,17 +776,17 @@ function update(dt){
       for(const e of G.enem){
         if(e.ardiendo>0) continue;                          /* ya está sentenciado */
         const dJug=len(sub(e.p,G.pos));
-        if(len(sub(b.p,e.p)) < Math.max(G.modEnem.r*2.8, dJug*0.045)){
+        if(len(sub(b.p,e.p)) < Math.max(G.modEnem.r*2.8*(e.esc||1), dJug*0.045)){
           b.vida=0; if(b.yo!==false) G.aciertos++;
           const dmg=(b.yo!==false?55:40)+Math.round(Math.random()*8);
           e.vida-=dmg; textoDano(e.p, dmg, b.yo!==false?"#ffe81f":"#8fd0ff");
-          if(e.vida<=0&&!e.ardiendo){ seIncendia(e); textoDano(e.p,"¡EN LLAMAS!","#ff8a2b"); if(b.yo!==false){ G.kills++; const gana=100+G.wave*10; G.score+=gana; pts(gana); } else { G.score+=30; } }
+          if(e.vida<=0&&!e.ardiendo){ seIncendia(e); textoDano(e.p,"¡EN LLAMAS!","#ff8a2b"); if(b.yo!==false){ G.kills++; const gana=Math.round((100+G.wave*10)*(e.k?e.k.pts:1)); G.score+=gana; pts(gana); } else { G.score+=30; } }
           else { bum(e.p,.3); sfx("hit"); }
           break;
         }
       }
     } else {
-      if(len(sub(b.p,G.pos))<26){ b.vida=0; golpe(9+G.wave); }
+      if(len(sub(b.p,G.pos))<26){ b.vida=0; golpe((9+G.wave)*(b.dano||1)); }
       else for(const a of G.amigos){ if(a.revive<=0&&len(sub(b.p,a.p))<G.mod.r*2.4){ b.vida=0; a.vida--; textoDano(a.p,"-1 ❤","#ff8a5c");
         if(a.vida<=0&&!a.ardiendo){ seIncendia(a); } else if(a.vida>0) bum(a.p,.3); break; } }
     }
@@ -759,13 +822,13 @@ function empezar(){
   $("intro").classList.add("hide"); $("over").classList.add("hide"); $("pause").classList.add("hide");
   $("pauseBtn").style.display="block"; $("pts").style.opacity=.4; $("ptsN").textContent="0";
   try{ cv.requestPointerLock&&cv.requestPointerLock(); }catch(e){}
-  MUS.intens=0; if(!mute) musArranca();
+  MUS.intens=0; SACUDE=0; if(!mute){ musArranca(); motorEnciende(); }
   last=performance.now(); requestAnimationFrame(frame);
 }
 /* si no se está jugando, hay que seguir mirando el mando para que START arranque */
 setInterval(()=>{ if(!G.run) leeMando(); },100);
 function finPartida(){
-  G.over=true; G.run=false; G.shield=0; $("pauseBtn").style.display="none"; musPara();
+  G.over=true; G.run=false; G.shield=0; $("pauseBtn").style.display="none"; musPara(); motorApaga(); sacude(1.2);
   try{ document.exitPointerLock&&document.exitPointerLock(); }catch(e){}
   const seg=Math.round((Date.now()-G.inicio)/1000), punt=G.disparos?Math.round(100*G.aciertos/G.disparos):0;
   const record=G.score>G.best;
@@ -792,8 +855,8 @@ function pausar(v){
       "<div>🌊 oleada <b>"+Math.max(1,G.wave)+"</b> · quedan <b>"+(G.quedan+G.enem.length)+"</b> enemigos</div>"+
       "<div>🛡️ escudo <b>"+Math.max(0,Math.round(G.shield))+"</b>/"+G.vidaMax+" · 🎯 "+G.kills+" derribados</div>"+
       "<div>🔫 puntería <b>"+punt+"%</b> · pilotando "+(G.bando==="x"?"Ala-X":"TIE")+"</div>";
-    $("pause").classList.remove("hide"); musPara(true);
-  } else { $("pause").classList.add("hide"); if(!mute) musArranca(); try{ cv.requestPointerLock&&cv.requestPointerLock(); }catch(e){} last=performance.now(); }
+    $("pause").classList.remove("hide"); musPara(true); motorApaga();
+  } else { $("pause").classList.add("hide"); if(!mute){ musArranca(); motorEnciende(); } try{ cv.requestPointerLock&&cv.requestPointerLock(); }catch(e){} last=performance.now(); }
 }
 const salir=()=>{
   try{ if(window.parent&&window.parent!==window){          /* si estoy dentro del cuartel, solo cierro la pantalla */
@@ -825,7 +888,7 @@ addEventListener("keydown",e=>{
   else if(k==="d"||k==="arrowright") G.roll=1;
   else if(k==="shift"){ teclaTurbo=true; if(!G.turbo){ G.turbo=true; sfx("turbo"); } }
   else if(k==="p") pausar();
-  else if(k==="m"){ mute=!mute; if(mute) musPara(true); else if(G.run&&!G.paused&&!G.over) musArranca(); avisoM(); }
+  else if(k==="m"){ mute=!mute; if(mute){ musPara(true); motorApaga(); } else if(G.run&&!G.paused&&!G.over){ musArranca(); motorEnciende(); } avisoM(); }
   else if(k==="escape"&&G.run&&!G.over) pausar(true);
 });
 addEventListener("keyup",e=>{ const k=e.key.toLowerCase();
