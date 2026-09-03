@@ -118,6 +118,7 @@
     🔫 <b>clic o ESPACIO</b> dispara &nbsp;·&nbsp; 🔭 <b>clic derecho</b> zoom x2,50 &nbsp;·&nbsp; ⚡ <b>SHIFT</b> turbo<br/>
     🎮 <b>mando</b>: palancas para volar · RT dispara · LT puntería · LB/RB tonel · B turbo · START pausa<br/>
     🎚️ <b>W / S</b> (o la rueda del ratón) acelerador · <b>X</b> parar en seco · <b>Z</b> a fondo<br/>
+    🎯 la <b>mirilla verde</b> te dice dónde apuntar para acertar · frena para <b>girar más cerrado</b><br/>
     ↩️ <b>A / D</b> giro de barril &nbsp;·&nbsp;
     📡 <b>R</b> radar &nbsp;·&nbsp; ⏸ <b>P</b> pausa &nbsp;·&nbsp; 🎵 <b>M</b> música y sonido &nbsp;·&nbsp; 📱 en el celular: arrastra y toca<br/>
     🤝 vuelas con <b>3 cazas aliados</b> que atacan contigo
@@ -692,6 +693,7 @@ function render(){
   deslumbra();
   pintaCabina();
   pintaRadar();
+  pintaAdelanto();
   dibujaMira();
   if(warnT>0){ warnT-=.016; ctx.fillStyle="rgba(255,40,40,"+(0.2*Math.max(0,warnT/.5))+")"; ctx.fillRect(0,0,W,H); }
 }
@@ -748,6 +750,59 @@ function pintaRadar(){
   ctx.beginPath(); ctx.moveTo(cx,cy-5.5); ctx.lineTo(cx-4,cy+4); ctx.lineTo(cx,cy+1.6); ctx.lineTo(cx+4,cy+4); ctx.closePath(); ctx.fill();
   ctx.font="700 8px Consolas,monospace"; ctx.textAlign="center"; ctx.fillStyle="rgba(120,220,255,.55)";
   ctx.fillText("RADAR "+RADAR.alcance,cx,cy+R+11);
+  ctx.restore();
+}
+const BALA_V=900;                                           /* lo que corre tu láser */
+let BLANCO=null;                                            /* a quién tienes fichado */
+function buscaBlanco(){
+  /* el enemigo más pegado al centro de la pantalla, dentro de un cono y a tiro */
+  let mejor=null, mejorD=0.965;
+  for(const e of G.enem){
+    if(e.ardiendo>0) continue;
+    const rel=sub(e.p,G.pos), d=len(rel);
+    if(d>2200||d<8) continue;
+    const cos=dot(norm(rel),G.base.f);                       /* 1 = justo en el centro */
+    if(cos<mejorD) continue;
+    mejorD=cos; mejor=e;
+  }
+  BLANCO=mejor;
+}
+function puntoAdelanto(e){
+  /* ¿dónde estará cuando llegue el disparo? Se resuelve dos veces y ya queda clavado */
+  const vel=mul(e.b.f, e.vel);
+  let t=len(sub(e.p,G.pos))/BALA_V;
+  for(let i=0;i<2;i++) t=len(sub(add(e.p,mul(vel,t)),G.pos))/BALA_V;
+  return { p:add(e.p, mul(vel,t)), t };
+}
+function pintaAdelanto(){
+  if(!BLANCO) return;
+  const e=BLANCO;
+  const a=puntoAdelanto(e);
+  const c=aCamara(G.base, sub(a.p,G.pos)); if(c.z<6) return;
+  const p=proyecta(c);
+  const cE=aCamara(G.base, sub(e.p,G.pos)); const pE=cE.z>6?proyecta(cE):null;
+  const col=e.k?e.k.marca:"rgba(255,77,77,";
+  ctx.save();
+  /* la raya de la nave a donde hay que apuntar */
+  if(pE){ ctx.strokeStyle=col+".35)"; ctx.lineWidth=1; ctx.setLineDash([4,4]);
+    ctx.beginPath(); ctx.moveTo(pE.x,pE.y); ctx.lineTo(p.x,p.y); ctx.stroke(); ctx.setLineDash([]); }
+  /* la mirilla de adelanto: si está encima de tu mira, es tiro seguro */
+  const cerca=Math.hypot(p.x-CX,p.y-CY)<Math.min(W,H)*0.035;
+  const r=Math.max(9,Math.min(W,H)*0.028);
+  ctx.strokeStyle=cerca?"rgba(120,255,150,.95)":col+".85)"; ctx.lineWidth=cerca?2.4:1.8;
+  ctx.beginPath(); ctx.arc(p.x,p.y,r,0,7); ctx.stroke();
+  for(let i=0;i<4;i++){ const ang=i*Math.PI/2+Math.PI/4;
+    ctx.beginPath(); ctx.moveTo(p.x+Math.cos(ang)*r*0.72,p.y+Math.sin(ang)*r*0.72);
+    ctx.lineTo(p.x+Math.cos(ang)*r*1.45,p.y+Math.sin(ang)*r*1.45); ctx.stroke(); }
+  if(cerca){ ctx.fillStyle="rgba(120,255,150,.22)"; ctx.beginPath(); ctx.arc(p.x,p.y,r*0.55,0,7); ctx.fill(); }
+  /* quién es, cuánto le queda y a qué distancia */
+  const d=Math.round(len(sub(e.p,G.pos)));
+  ctx.font="700 10px Consolas,monospace"; ctx.textAlign="center";
+  ctx.fillStyle=col+".95)";
+  ctx.fillText((e.k?e.k.nom:"CAZA")+"  "+d, p.x, p.y-r-14);
+  const bw=r*2.4, bh=4, bx=p.x-bw/2, by=p.y-r-10;
+  ctx.fillStyle="rgba(0,0,0,.45)"; ctx.fillRect(bx,by,bw,bh);
+  ctx.fillStyle=col+".9)"; ctx.fillRect(bx,by,bw*Math.max(0,e.vida/e.vidaMax),bh);
   ctx.restore();
 }
 function pintaCabina(){
@@ -1163,7 +1218,8 @@ function update(dt){
   const finura=1/(1+(ZOOM_ACT-1)*0.75);                  /* con zoom, el giro es más preciso */
 
   /* ---- vuelo: el ratón inclina y gira; se puede dar la vuelta entera ---- */
-  girar(G.base, G.yaw*G.giro*finura*dt, G.pitch*G.giro*finura*dt, G.roll*1.9*dt);
+  const cerrado=1+(1-Math.min(1,G.gas))*0.75;               /* frenar es la forma de girar en seco */
+  girar(G.base, G.yaw*G.giro*cerrado*finura*dt, G.pitch*G.giro*cerrado*finura*dt, G.roll*1.9*(0.7+cerrado*0.45)*dt);
   /* la nave persigue a la mira con medio segundo de retraso (se ve derrapar al girar) */
   const kN=1-Math.exp(-dt/0.5);
   G.naveBase.f=norm(add(G.naveBase.f, mul(sub(G.base.f,G.naveBase.f), kN)));
@@ -1187,7 +1243,7 @@ function update(dt){
   motorSuena(Math.min(1, vel/G.vel*.45 + (G.turbo&&G.boost>0?.4:0)));   /* parado calla, a fondo ruge */
   { const el=$("gasFill"); if(el){ el.style.width=Math.round(G.gasObj*100)+"%";
       el.style.background=G.gasObj<=0?"#ff5a5a":G.gasObj<.35?"#ffb84d":"#7ef0a8"; }
-    const t=$("gasTxt"); if(t) t.textContent=G.gas<=0?"PARADO":Math.round(G.gasObj*100)+"%"; }
+    const t=$("gasTxt"); if(t) t.textContent=(G.gas<=0?"PARADO":Math.round(G.gasObj*100)+"%")+(G.gas<.6?" · 🛞 giro cerrado":""); }
   $("boostFill").style.width=G.boost+"%";
 
   /* ---- oleadas ---- */
@@ -1208,6 +1264,8 @@ function update(dt){
     if(G.jefe){ nuevoEnemigo("jefe"); G.jefe=false; } else nuevoEnemigo();
     G.quedan--; } }
   $("hudEnem").textContent=(G.enem.filter(e=>!e.ardiendo).length+G.quedan)+" enemigos · "+G.amigos.filter(a=>a.revive<=0).length+" aliados";
+
+  buscaBlanco();
 
   /* ---- estelas de las alas ---- */
   estelasSuelta(dt);
