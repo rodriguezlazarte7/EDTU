@@ -9,7 +9,7 @@ const trozos = [...HTML.matchAll(/<script>([\s\S]*?)<\/script>/g)].map(m => m[1]
 if (!trozos.length) { console.error("❌ no encontré el <script> del juego"); process.exit(1); }
 /* las cosas declaradas con const/let no salen solas del guion: se piden al final */
 const CODIGO = trozos.join("\n;\n") +
-  "\n;globalThis.__G=G; globalThis.__NAVES=NAVES; globalThis.__CLASES=CLASES; globalThis.__MOD=MOD; globalThis.__jefeVivo=jefeVivo; globalThis.__hiperEmpieza=hiperEmpieza; globalThis.__hiper=()=>hiper;\n";
+  "\n;globalThis.__G=G; globalThis.__NAVES=NAVES; globalThis.__CLASES=CLASES; globalThis.__MOD=MOD; globalThis.__jefeVivo=jefeVivo; globalThis.__hiperEmpieza=hiperEmpieza; globalThis.__nodrizaVive=nodrizaVive; globalThis.__nodrizaGolpe=nodrizaGolpe; globalThis.__hiper=()=>hiper;\n";
 
 /* --- una pantalla y un navegador de mentira --- */
 const nada = () => {};
@@ -210,6 +210,43 @@ for (const t of ["protege", "torres", "trinchera", "rapido", "jefe"])
     console.log("  ☠️ nave jefe: fases del rayo " + [...fases].join(" → ") +
       " · se enfurece: " + (furia ? "sí" : "no") + " · te alcanza el rayo: " + dañoRayo + " veces");
   }
+}
+
+/* --- la NODRIZA: escudo, generadores y hangares --- */
+{
+  G.bando = "x"; G.dif = "normal"; ctxVM.nuevaPartida(); G.run = true; G.wave = 10;
+  try { ctxVM.nuevoEnemigo("nodriza"); } catch (e) { F("no se puede crear la nodriza: " + e.message); }
+  const nod = ctxVM.__nodrizaVive();
+  if (!nod) F("la nodriza no aparece");
+  else {
+    ctxVM.update(DT);                                        /* un fotograma para que se prepare */
+    if (!nod.gens || nod.gens.length !== 4) F("la nodriza no tiene sus 4 generadores");
+    const vidaAntes = nod.vida;
+
+    /* 1) con el escudo puesto, dispararle al casco NO le hace nada */
+    const paro = ctxVM.__nodrizaGolpe(nod, nod.p, 500);
+    if (!paro) F("el escudo de la nodriza no para los disparos");
+    if (nod.vida !== vidaAntes) F("la nodriza pierde vida con el escudo puesto");
+
+    /* 2) suelta cazas por los hangares */
+    const antesEnem = G.enem.length;
+    for (let i = 0; i < 12 / DT; i++) { ctxVM.update(DT); ctxVM.render(); }
+    if (G.enem.length <= antesEnem) F("la nodriza no suelta cazas por sus hangares");
+    const soltados = G.enem.length - antesEnem;
+
+    /* 3) reventar los 4 generadores le quita el escudo */
+    for (const g of nod.gens) ctxVM.__nodrizaGolpe(nod, g.p, 9999);
+    ctxVM.update(DT);
+    if (nod.escudo) F("la nodriza sigue con escudo tras reventar los 4 generadores");
+
+    /* 4) y ahora sí se le puede hacer daño */
+    const paro2 = ctxVM.__nodrizaGolpe(nod, nod.p, 300);
+    if (paro2) F("sin generadores, la nodriza sigue parando los disparos");
+
+    console.log("  🛰️ nodriza: 4 generadores · escudo aguanta con ellos puestos · soltó " + soltados +
+      " cazas en 12 s · sin generadores se le puede dar");
+  }
+  for (let i = 0; i < 3 / DT; i++) { try { ctxVM.update(DT); ctxVM.render(); } catch (e) { F("la nodriza peta: " + e.message); break; } }
 }
 
 /* --- que se pueda perder y volver a empezar --- */
