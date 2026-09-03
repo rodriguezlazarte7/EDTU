@@ -1401,12 +1401,42 @@ function update(dt){
   for(const e of G.enem){
     if(e.ardiendo>0){ if(agoniza(e,dt)){ e.muerto=true; bum(e.p,1.5); sfx("boom"); } continue; }
     const haciaMi=sub(G.pos,e.p), d=len(haciaMi);
-    const dir=norm(haciaMi), loc=aCamara(e.b,dir);
-    girar(e.b, Math.max(-1,Math.min(1,loc.x))*e.giro*dt*1.6, Math.max(-1,Math.min(1,loc.y))*e.giro*dt*1.6, 0);
-    if(d<150) e.p=add(e.p, mul(e.b.f, -e.vel*dt*.5));       /* si está encima, se aparta */
-    else e.p=add(e.p, mul(e.b.f, e.vel*dt));
+    const bomba=(e.k===CLASES.bomba), jefe=(e.k===CLASES.jefe);
+
+    /* --- qué está haciendo ahora mismo --- */
+    if(e.plan===undefined){ e.plan="ataca"; e.planT=0; e.zig=0; e.zigT=0; }
+    e.planT-=dt;
+    if(e.plan==="ataca"&&(d<(jefe?260:170)||e.planT<-14)){    /* te pasó por al lado: no se queda dando vueltas encima */
+      e.plan="larga"; e.planT=1.1+Math.random()*1.1;
+      e.huida=norm(add(sub(e.p,G.pos), v3((Math.random()*2-1)*260,(Math.random()*2-1)*260,(Math.random()*2-1)*260)));
+    } else if(e.plan==="larga"&&e.planT<=0){
+      e.plan="vuelve"; e.planT=0.8+Math.random()*0.9;
+    } else if(e.plan==="vuelve"&&e.planT<=0){
+      e.plan="ataca"; e.planT=6+Math.random()*6;
+    }
+    if(d>1500&&e.plan!=="ataca"){ e.plan="ataca"; e.planT=6+Math.random()*6; }   /* si ya está lejos, a por ti otra vez */
+
+    /* --- si le tienes fichado y de frente, se pone a zigzaguear para que no le des --- */
+    const fichado=(BLANCO===e)&&d<1400;
+    e.zigT-=dt;
+    if(e.zigT<=0){ e.zigT=(fichado?0.30:0.9)+Math.random()*0.4; e.zig=(Math.random()*2-1)*(fichado?1:0.35); }
+    const esquiva=bomba?0.25:(jefe?0.5:1);                   /* el bombardero es un ladrillo, apenas esquiva */
+
+    /* --- a dónde quiere ir --- */
+    let meta;
+    if(e.plan==="larga") meta=add(e.p, mul(e.huida,400));
+    else if(e.plan==="vuelve") meta=add(G.pos, mul(e.huida,bomba?900:600));
+    else meta=G.pos;
+    const dir=norm(sub(meta,e.p)), loc=aCamara(e.b,dir);
+    const vira=Math.max(-1,Math.min(1,loc.x))+e.zig*0.75*esquiva;
+    const cabe=Math.max(-1,Math.min(1,loc.y))+Math.sin(G.t*2.3+e.zigT*4)*0.30*esquiva*(fichado?1:0.35);
+    girar(e.b, vira*e.giro*dt*1.6, cabe*e.giro*dt*1.6, e.zig*e.giro*dt*1.1);
+    /* el bombardero se queda lejos disparando, no se te echa encima */
+    const frena=(bomba&&d<520&&e.plan==="ataca")?-0.55:1;
+    e.p=add(e.p, mul(e.b.f, e.vel*(e.plan==="larga"?1.25:1)*frena*dt));
     e.fuego-=dt;
-    if(e.fuego<=0 && d<900 && loc.z>0.86){
+    const alTiro=dot(norm(haciaMi), e.b.f);               /* ¿te tiene en el punto de mira? */
+    if(e.fuego<=0 && d<(bomba?1300:900) && alTiro>0.90){
       e.fuego=(1.0+Math.random()*1.6)*(e.k?e.k.cad:1);
       const nt=e.k?e.k.tiros:1;
       for(let i=0;i<nt;i++){
@@ -1415,7 +1445,7 @@ function update(dt){
       }
       if(!mute) sfx("laser");
     }
-    if(d>2600){ const nd=norm(v3(Math.random()*2-1,Math.random()*2-1,Math.random()*2-1)); e.p=add(G.pos,mul(nd,1000)); }
+    if(d>2600){ const nd=norm(v3(Math.random()*2-1,Math.random()*2-1,Math.random()*2-1)); e.p=add(G.pos,mul(nd,1000)); e.plan="ataca"; e.planT=6; }
   }
 
   /* ---- balas ---- */
