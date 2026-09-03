@@ -43,6 +43,8 @@
   #shieldBar,#boostBar{height:8px;background:rgba(255,255,255,.1);border:1px solid rgba(143,208,255,.4);border-radius:5px;overflow:hidden;margin-bottom:5px}
   #shieldFill{height:100%;width:100%;background:linear-gradient(90deg,#38b6ff,#8fd0ff);transition:width .16s}
   #shieldFill.low{background:linear-gradient(90deg,#ff3b3b,#ff8a5c)}
+  #shieldFill.critico{background:#ff2020;animation:latir .55s infinite}
+  @keyframes latir{0%,100%{opacity:1}50%{opacity:.35}}
   #boostFill{height:100%;width:100%;background:linear-gradient(90deg,#ffd12e,#ffe81f)}
   #right{text-align:right;font-size:clamp(10px,2.4vw,12px);letter-spacing:.1em;color:#8fd0ff}
   #right .big{font-size:clamp(16px,4.2vw,23px);font-weight:900;color:#ffe81f;text-shadow:0 0 14px rgba(255,232,31,.5)}
@@ -756,6 +758,7 @@ function render(){
 
   if(sx||sy) ctx.restore();                                  /* la mira y el aviso no tiemblan */
   deslumbra();
+  pintaAlarma();
   pintaCabina();
   pintaRadar();
   pintaAdelanto();
@@ -869,6 +872,48 @@ function pintaAdelanto(){
   ctx.fillStyle="rgba(0,0,0,.45)"; ctx.fillRect(bx,by,bw,bh);
   ctx.fillStyle=col+".9)"; ctx.fillRect(bx,by,bw*Math.max(0,e.vida/e.vidaMax),bh);
   ctx.restore();
+}
+let alarmaT=0, humoT=0;
+function naveTocada(dt){
+  const vida=Math.max(0,G.shield)/G.vidaMax;
+  if(vida>=0.45||G.over){ alarmaT=0; return; }
+  const mal=(0.45-vida)/0.45;                                /* 0 = tocada · 1 = a punto de caer */
+  const miPos=add(add(G.pos, add(mul(G.base.f,26), mul(G.base.u,-3.2))), G.naveOff);
+  /* humo (y fuego si va muy mal) saliendo de un motor */
+  humoT-=dt;
+  if(humoT<=0){
+    humoT=0.07-mal*0.045;
+    const mot=G.mod.motores, m=mot[(Math.random()*mot.length)|0];
+    const p=add(miPos, aLocal(G.naveBase, m));
+    const dd=()=>(Math.random()*2-1)*4;
+    G.chispas.push({ p:v3(p.x+dd(),p.y+dd(),p.z+dd()),
+      v:add(mul(G.base.f,-40), v3(dd()*6,dd()*6,dd()*6)),
+      vida:.8+Math.random()*.7, max:1.6, t:"humo" });
+    if(vida<0.2&&Math.random()<0.75)
+      G.chispas.push({ p:v3(p.x+dd(),p.y+dd(),p.z+dd()),
+        v:add(mul(G.base.f,-25), v3(dd()*9,dd()*9,dd()*9)),
+        vida:.35+Math.random()*.3, max:.8, t:"fuego" });
+  }
+  /* pitido de alarma cuando el escudo está en rojo */
+  if(vida<0.2){
+    alarmaT-=dt;
+    if(alarmaT<=0){ alarmaT=0.85; if(!mute) sfx("hit"); }
+  }
+}
+function pintaAlarma(){
+  const vida=Math.max(0,G.shield)/G.vidaMax;
+  if(vida>=0.45||G.over) return;
+  const mal=(0.45-vida)/0.45;
+  const pulso=(0.35+0.65*Math.abs(Math.sin(G.t*(2.2+mal*3.4))))*mal;
+  /* el borde de la pantalla late en rojo, mas rapido cuanto peor estas */
+  const g=ctx.createRadialGradient(CX,CY,Math.min(W,H)*0.30,CX,CY,Math.max(W,H)*0.72);
+  g.addColorStop(0,"rgba(255,40,40,0)"); g.addColorStop(1,"rgba(255,30,30,"+(pulso*0.42).toFixed(3)+")");
+  ctx.fillStyle=g; ctx.fillRect(0,0,W,H);
+  if(vida<0.2){
+    ctx.font="800 "+Math.round(Math.min(W,H)*0.032)+"px Consolas,monospace";
+    ctx.textAlign="center"; ctx.fillStyle="rgba(255,80,80,"+(0.35+0.5*pulso).toFixed(3)+")";
+    ctx.fillText("⚠ ESCUDO CRÍTICO", CX, H*0.20);
+  }
 }
 function pintaCabina(){
   /* esquinas oscuras: como estar dentro de un casco */
@@ -1418,6 +1463,7 @@ function update(dt){
   $("hudEnem").textContent=(G.enem.filter(e=>!e.ardiendo).length+G.quedan)+" enemigos · "+G.amigos.filter(a=>a.revive<=0).length+" aliados";
 
   buscaBlanco();
+  naveTocada(dt);
   torpedosCorren(dt);
 
   /* ---- estelas de las alas ---- */
@@ -1551,6 +1597,7 @@ function update(dt){
   /* ---- HUD ---- */
   $("hudScore").textContent=G.score;
   const pc=Math.max(0,G.shield/G.vidaMax*100);
+  { const sf=$("shieldFill"); if(sf) sf.classList.toggle("critico",pc<20); }
   $("shieldFill").style.width=pc+"%"; $("shieldFill").classList.toggle("low",pc<=35);
   if(G.shield<=0) finPartida();
 }
