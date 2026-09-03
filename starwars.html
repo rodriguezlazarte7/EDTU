@@ -12,6 +12,9 @@
   #c{display:block;width:100%;height:100%;touch-action:none;cursor:none}
   /* ---- HUD ---- */
   #hud{position:fixed;inset:0;z-index:5;pointer-events:none;font-family:"Consolas",monospace}
+  #mision{position:absolute;left:50%;top:6%;transform:translateX(-50%);opacity:0;transition:opacity .3s;text-align:center;
+    font-size:clamp(10px,2.2vw,13px);letter-spacing:.05em;color:#9ff0c0;background:rgba(0,20,10,.45);border:1px solid rgba(90,240,160,.35);
+    border-radius:999px;padding:5px 16px;white-space:nowrap;pointer-events:none;text-shadow:0 0 8px rgba(90,240,160,.4)}
   #aviso{position:absolute;left:50%;top:14%;transform:translateX(-50%);opacity:0;transition:opacity .25s;
     font-size:clamp(13px,3vw,18px);font-weight:800;letter-spacing:.08em;color:#ffe81f;text-shadow:0 0 12px rgba(255,232,31,.6);pointer-events:none}
   #pts{position:absolute;left:50%;transform:translateX(-50%);bottom:calc(8px + env(safe-area-inset-bottom));font-size:clamp(11px,2.6vw,14px);
@@ -87,6 +90,7 @@
   <div id="speed">VELOCIDAD <b id="spN">0</b></div>
   <div id="pts">+<b id="ptsN">0</b> &nbsp;BATTLE POINTS</div>
   <div id="aviso"></div>
+  <div id="mision"></div>
 </div>
 <div id="pauseBtn" title="Pausa (P)">⏸</div>
 
@@ -201,6 +205,13 @@ MOD.t=(()=>{                                            /* CAZA TIE */
   }
   const m=junta(...partes); m.motores=[v3(0,0,-2.2)]; m.canones=[v3(-0.9,-1.2,1.8),v3(0.9,-1.2,1.8)]; m.r=4.4; m.motorCol="#8fd0ff"; return m;
 })();
+MOD.torre=(()=>{
+  const gris="#8a90a0", osc="#454b5c", rojo="#ff4d4d";
+  const m=junta( caja(0,0,0,7,4.5,7,gris), caja(0,3.6,0,4.6,3.2,4.6,osc),
+                 caja(-1.4,4.2,3.2,.9,.9,5.2,gris), caja(1.4,4.2,3.2,.9,.9,5.2,gris),
+                 caja(0,6.1,0,2.2,1.2,2.2,rojo) );
+  m.r=7; m.canones=[v3(-1.4,4.2,6.2),v3(1.4,4.2,6.2)]; m.motores=[]; m.motorCol=rojo; return m;
+})();
 MOD.destructor=(()=>{                                   /* DESTRUCTOR ESTELAR */
   const g1="#767c8c", g2="#5a6070", g3="#3f4453";
   const L=210,A=120,h=16;
@@ -219,7 +230,7 @@ MOD.destructor=(()=>{                                   /* DESTRUCTOR ESTELAR */
 /* ---------- estado ---------- */
 const G={ run:false,over:false,paused:false,t:0, score:0,wave:0,kills:0,disparos:0,aciertos:0,
   bando:"x", vidaMax:130, shield:130, boost:100, vel:150, base:baseNueva(), pos:v3(0,0,0),
-  enem:[], amigos:[], balas:[], chispas:[], estelas:[], destructores:[], estrellas:[], polvo:[], danos:[],
+  enem:[], amigos:[], torres:[], mision:null, balas:[], chispas:[], estelas:[], destructores:[], estrellas:[], polvo:[], danos:[],
   naveBase:baseNueva(), naveOff:v3(0,0,0),
   cad:0, quedan:0, spawn:0, waveT:0, best:+(localStorage.getItem("edtu_sw_best")||0), inicio:0,
   yaw:0, pitch:0, roll:0, turbo:false, disparando:false };
@@ -233,7 +244,7 @@ function nuevaPartida(){
   G.naveBase=baseNueva(); G.naveOff=v3(0,0,0); polvoNuevo();
   for(let i=0;i<3;i++) nuevoAmigo(i);
   G.chispas=[];
-  G.score=0; G.wave=0; G.jefe=false; G.kills=0; G.disparos=0; G.aciertos=0; G.quedan=0; G.spawn=0; G.waveT=0; G.cad=0;
+  G.score=0; G.wave=0; G.jefe=false; misionLimpia(); G.kills=0; G.disparos=0; G.aciertos=0; G.quedan=0; G.spawn=0; G.waveT=0; G.cad=0;
   G.yaw=0; G.pitch=0; G.roll=0; G.t=0; G.over=false; G.paused=false; G.inicio=Date.now();
   estrellasNuevas(); destructoresNuevos();
 }
@@ -402,6 +413,8 @@ function render(){
 
   /* destructores estelares */
   for(const d of G.destructores) pintaModelo(MOD.destructor, d.p, d.b, 1, caras);
+  /* torretas de la misión */
+  for(const t of G.torres){ if(t.vida>0) pintaModelo(MOD.torre, t.p, t.b, 1, caras, null, "#9ff0c0"); }
   /* escuadrón amigo */
   for(const a of G.amigos){ if(a.revive>0) continue; pintaModelo(G.mod, a.p, a.b, 1, caras, (V,rel)=>{
       for(const m of G.mod.motores){ const w=add(rel,aLocal(a.b,m)); const c=aCamara(G.base,w); if(c.z>6){ const p=proyecta(c);
@@ -509,6 +522,24 @@ function dibujaMira(){
   ctx.beginPath(); ctx.arc(CX,CY,r,Math.PI-0.55,Math.PI+0.55); ctx.stroke();
   ctx.beginPath(); ctx.moveTo(CX-r*.42,CY); ctx.lineTo(CX-r*.14,CY); ctx.moveTo(CX+r*.14,CY); ctx.lineTo(CX+r*.42,CY);
   ctx.moveTo(CX,CY-r*.42); ctx.lineTo(CX,CY-r*.14); ctx.moveTo(CX,CY+r*.14); ctx.lineTo(CX,CY+r*.42); ctx.stroke();
+  /* marcas de las torretas: una flecha en el borde si aún no la ves */
+  for(const t of G.torres){ if(t.vida<=0) continue;
+    const c=aCamara(G.base,sub(t.p,G.pos)); const dd=len(sub(t.p,G.pos));
+    if(c.z>6){ const p=proyecta(c);
+      if(p.x>4&&p.x<W-4&&p.y>4&&p.y<H-4){
+        const z=Math.max(10,26*p.s*8);
+        ctx.strokeStyle="rgba(120,255,190,.8)"; ctx.lineWidth=1.8;
+        ctx.beginPath(); ctx.arc(p.x,p.y,z*.6,0,7); ctx.stroke();
+        ctx.font="700 10px Consolas,monospace"; ctx.textAlign="center"; ctx.fillStyle="rgba(120,255,190,.85)";
+        ctx.fillText("TORRETA "+Math.round(dd),p.x,p.y+z*.6+12);
+        continue;
+      } }
+    const dir=aCamara(G.base,norm(sub(t.p,G.pos)));
+    const ang=Math.atan2(-dir.y,dir.x)+(dir.z<0?Math.PI:0);
+    const rr=Math.min(W,H)*0.30, ax=CX+Math.cos(ang)*rr, ay=CY+Math.sin(ang)*rr;
+    ctx.save(); ctx.translate(ax,ay); ctx.rotate(ang);
+    ctx.fillStyle="rgba(120,255,190,.7)"; ctx.beginPath(); ctx.moveTo(10,0); ctx.lineTo(-6,6); ctx.lineTo(-6,-6); ctx.closePath(); ctx.fill(); ctx.restore();
+  }
   /* marcas del escuadrón amigo */
   for(const a of G.amigos){ if(a.revive>0) continue;
     const c=aCamara(G.base,sub(a.p,G.pos)); if(c.z<=6) continue;
@@ -517,7 +548,7 @@ function dibujaMira(){
     ctx.strokeStyle="rgba(110,220,255,.55)"; ctx.lineWidth=1.4;
     ctx.beginPath(); ctx.arc(p.x,p.y,s*.55,0,7); ctx.stroke();
     ctx.font="600 9px Consolas,monospace"; ctx.fillStyle="rgba(110,220,255,.6)"; ctx.textAlign="center";
-    ctx.fillText((G.bando==="x"?NOMBRES:NOMBRES_T)[a.idx%3],p.x,p.y-s*.62);
+    ctx.fillText((a.protegido?"🛡 ":"")+(G.bando==="x"?NOMBRES:NOMBRES_T)[a.idx%3],p.x,p.y-s*.62);
   }
   /* marcas de los enemigos (en pantalla o en el borde si están fuera) */
   for(const e of G.enem){
@@ -636,6 +667,83 @@ let warnT=0;
 function textoDano(p,txt,col){ G.danos.push({ p:v3(p.x,p.y,p.z), txt:(typeof txt==="number"?"-"+txt:txt), c:col||"#ffe81f", vida:1.1, max:1.1 }); }
 function golpe(d){ G.shield-=d; sacude(.22+Math.min(.5,d/70)); if(d>=1){ const q=add(G.pos, add(mul(G.base.f,40), mul(G.base.u,-6))); textoDano(q, Math.round(d), "#ff5a5a"); } warnT=.5; $("warn").style.opacity=1; setTimeout(()=>{$("warn").style.opacity=0;},350); sfx("hit"); }
 
+/* ---------- misiones ---------- */
+function misionLimpia(){ G.mision=null; G.torres=[]; pintaMision(); }
+function pintaMision(){
+  const el=$("mision"); if(!el) return;
+  const m=G.mision;
+  if(!m||m.fin){ el.style.opacity=0; return; }
+  el.style.opacity=1;
+  el.innerHTML="<b>🎯 MISIÓN</b> · "+m.texto+
+    (m.meta>1?" <b>"+m.prog+"/"+m.meta+"</b>":"")+
+    (m.tiempo!==undefined?" · ⏱️ <b>"+Math.max(0,Math.ceil(m.tiempo))+"s</b>":"");
+}
+function misionNueva(){
+  G.torres=[];
+  const w=G.wave, prem=350+w*60;
+  if(w%5===0){                                              /* la oleada del jefe ya es bastante */
+    G.mision={ tipo:"jefe", texto:"derriba la NAVE JEFE", meta:1, prog:0, prem:prem*2 };
+  } else if(w%3===2){                                        /* proteger a un compañero */
+    const vivos=G.amigos.filter(a=>a.revive<=0);
+    if(!vivos.length){ G.mision=null; pintaMision(); return; }
+    const a=vivos[(Math.random()*vivos.length)|0];
+    a.protegido=true;
+    G.mision={ tipo:"protege", texto:"que no derriben a <b>"+(G.bando==="x"?NOMBRES:NOMBRES_T)[a.idx%3]+"</b>", meta:1, prog:0, prem, quien:a };
+  } else if(w%3===0){                                        /* volar hasta un Destructor y callar sus torretas */
+    torresNuevas(4);
+    G.mision={ tipo:"torres", texto:"destruye las torretas del Destructor", meta:4, prog:0, prem:prem+250 };
+  } else {                                                   /* cazar rápido */
+    const meta=3+Math.floor(w/2);
+    G.mision={ tipo:"rapido", texto:"derriba "+meta+" cazas antes de que acabe el tiempo", meta, prog:0, tiempo:12+meta*5, prem };
+  }
+  pintaMision(); if(G.mision) aviso("🎯 "+G.mision.texto.replace(/<[^>]+>/g,""));
+}
+function torresNuevas(cuantas){
+  /* se elige el Destructor más cercano y se le pegan torretas por encima del casco */
+  let d=null, mejor=1e9;
+  for(const x of G.destructores){ const l=len(sub(x.p,G.pos)); if(l<mejor){ mejor=l; d=x; } }
+  if(!d) return;
+  d.p=add(G.pos, mul(norm(sub(d.p,G.pos)), 1400));           /* lo acercamos para que se pueda llegar */
+  for(let i=0;i<cuantas;i++){
+    const t=(i+.5)/cuantas;
+    const local=v3((i%2?1:-1)*(30+t*55), 18, 170-t*330);     /* repartidas por la cubierta */
+    G.torres.push({ d, local, p:add(d.p, aLocal(d.b, local)), b:d.b, vida:160, vidaMax:160, fuego:1+Math.random()*2 });
+  }
+}
+function misionLogro(){
+  const m=G.mision; if(!m||m.fin) return;
+  m.fin=true; G.score+=m.prem; pts(m.prem); aviso("✅ ¡MISIÓN CUMPLIDA! +"+m.prem);
+  G.shield=Math.min(G.vidaMax,G.shield+G.vidaMax*.25);       /* de premio, escudo */
+  sfx("wave"); pintaMision();
+}
+function misionFallo(txt){
+  const m=G.mision; if(!m||m.fin) return;
+  m.fin=true; aviso("❌ misión perdida: "+txt); pintaMision();
+}
+function misionAvanza(tipo){
+  const m=G.mision; if(!m||m.fin||m.tipo!==tipo) return;
+  m.prog++; pintaMision();
+  if(m.prog>=m.meta) misionLogro();
+}
+function misionCorre(dt){
+  const m=G.mision; if(!m||m.fin) return;
+  if(m.tiempo!==undefined){ m.tiempo-=dt; if(m.tiempo<=0) misionFallo("se acabó el tiempo"); }
+  pintaMision();
+  /* las torretas te disparan si te acercas */
+  for(const t of G.torres){
+    if(t.vida<=0) continue;
+    t.p=add(t.d.p, aLocal(t.d.b, t.local));
+    const d=len(sub(G.pos,t.p)); if(d>1200) continue;
+    t.fuego-=dt;
+    if(t.fuego<=0){
+      t.fuego=1.4+Math.random()*1.2;
+      const dir=norm(sub(G.pos,t.p));
+      G.balas.push({ p:add(t.p,mul(dir,10)), d:mul(dir,700), vida:2.4, mia:false, c:G.colorEnem, dano:1.4 });
+      if(!mute&&d<700) sfx("laser");
+    }
+  }
+}
+
 /* ---------- escuadrón amigo ---------- */
 const NOMBRES=["ROJO 2","ROJO 3","ROJO 5"], NOMBRES_T=["NEGRO 2","NEGRO 3","NEGRO 5"];
 function nuevoAmigo(i){
@@ -734,12 +842,17 @@ function update(dt){
     $("waveS").textContent=(G.wave%5===0?"☠️ NAVE JEFE ":"")+(G.bando==="x"?"CAZAS TIE":"ALAS-X REBELDES")+" ENTRANTES";
     $("wave").style.opacity=1; sfx("wave"); setTimeout(()=>{$("wave").style.opacity=0;},1500);
     G.shield=Math.min(G.vidaMax,G.shield+G.vidaMax*.14);
+    for(const a of G.amigos) a.protegido=false;
+    misionNueva();
   }
   if(G.waveT>0) G.waveT-=dt;
   else if(G.quedan>0){ G.spawn-=dt; if(G.spawn<=0){ G.spawn=Math.max(.4,1.6-G.wave*.08);
     if(G.jefe){ nuevoEnemigo("jefe"); G.jefe=false; } else nuevoEnemigo();
     G.quedan--; } }
   $("hudEnem").textContent=(G.enem.filter(e=>!e.ardiendo).length+G.quedan)+" enemigos · "+G.amigos.filter(a=>a.revive<=0).length+" aliados";
+
+  /* ---- la misión de la oleada ---- */
+  misionCorre(dt);
 
   /* ---- la música se enciende con la batalla ---- */
   { let cerca=0; for(const e of G.enem){ if(!e.ardiendo&&len(sub(e.p,G.pos))<900) cerca++; }
@@ -773,6 +886,18 @@ function update(dt){
   for(const b of G.balas){
     b.p=add(b.p, mul(b.d,dt)); b.vida-=dt;
     if(b.mia){
+      for(const t of G.torres){
+        if(t.vida<=0) continue;
+        if(len(sub(b.p,t.p))<16){
+          b.vida=0; if(b.yo!==false) G.aciertos++;
+          const dmg=(b.yo!==false?55:40)+Math.round(Math.random()*8);
+          t.vida-=dmg; textoDano(t.p,dmg,"#9ff0c0");
+          if(t.vida<=0){ bum(t.p,1.2); sfx("boom"); G.score+=150; pts(150); misionAvanza("torres"); }
+          else { bum(t.p,.3); sfx("hit"); }
+          break;
+        }
+      }
+      if(b.vida<=0) continue;
       for(const e of G.enem){
         if(e.ardiendo>0) continue;                          /* ya está sentenciado */
         const dJug=len(sub(e.p,G.pos));
@@ -780,7 +905,7 @@ function update(dt){
           b.vida=0; if(b.yo!==false) G.aciertos++;
           const dmg=(b.yo!==false?55:40)+Math.round(Math.random()*8);
           e.vida-=dmg; textoDano(e.p, dmg, b.yo!==false?"#ffe81f":"#8fd0ff");
-          if(e.vida<=0&&!e.ardiendo){ seIncendia(e); textoDano(e.p,"¡EN LLAMAS!","#ff8a2b"); if(b.yo!==false){ G.kills++; const gana=Math.round((100+G.wave*10)*(e.k?e.k.pts:1)); G.score+=gana; pts(gana); } else { G.score+=30; } }
+          if(e.vida<=0&&!e.ardiendo){ seIncendia(e); textoDano(e.p,"¡EN LLAMAS!","#ff8a2b"); if(b.yo!==false){ G.kills++; const gana=Math.round((100+G.wave*10)*(e.k?e.k.pts:1)); G.score+=gana; pts(gana); misionAvanza("rapido"); if(e.k===CLASES.jefe) misionAvanza("jefe"); } else { G.score+=30; } }
           else { bum(e.p,.3); sfx("hit"); }
           break;
         }
@@ -788,7 +913,7 @@ function update(dt){
     } else {
       if(len(sub(b.p,G.pos))<26){ b.vida=0; golpe((9+G.wave)*(b.dano||1)); }
       else for(const a of G.amigos){ if(a.revive<=0&&len(sub(b.p,a.p))<G.mod.r*2.4){ b.vida=0; a.vida--; textoDano(a.p,"-1 ❤","#ff8a5c");
-        if(a.vida<=0&&!a.ardiendo){ seIncendia(a); } else if(a.vida>0) bum(a.p,.3); break; } }
+        if(a.vida<=0&&!a.ardiendo){ seIncendia(a); if(a.protegido) misionFallo("derribaron a tu compañero"); } else if(a.vida>0) bum(a.p,.3); break; } }
     }
   }
   G.balas=G.balas.filter(b=>b.vida>0);
