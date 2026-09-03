@@ -227,6 +227,8 @@
   </div>
   <div class="hoja" id="hojaVolar">
   <div id="naves">
+    <div class="nave" data-n="david" style="border-color:rgba(58,160,255,.75)"><canvas class="prev" data-p="david"></canvas><div class="n" style="color:#3aa0ff">CAZA DAVID</div>
+      <div class="d">La nave de David · <i>la mejor de todas</i><br/>escudo <b>300</b> · la más rápida y la que mejor gira<br/>🔫 <b>26 tiros/s</b> · pega <b>x2,8</b><br/>🔵 2 cañones abajo <b>azules</b> · ⚪ 2 arriba <b>blancos</b><br/>🎯 puntería asistida al máximo</div></div>
     <div class="nave sel" data-n="x"><canvas class="prev" data-p="x"></canvas><div class="n">ALA-X</div>
       <div class="d">Rebelde · <i>resistente</i><br/>escudo 130 · 4 cañones</div></div>
     <div class="nave" data-n="t"><canvas class="prev" data-p="t"></canvas><div class="n">CAZA TIE</div>
@@ -259,7 +261,7 @@
   <div class="row" id="filaJugar"><button class="btn go" id="startBtn">▶ DESPEGAR</button><button class="btn go" id="segBtn" style="display:none">▶ CONTINUAR</button><button class="btn gh" id="novBtn">❇️ NOVEDADES</button><button class="btn gh" id="backBtn">✕ SALIR</button></div>
   <details class="keys" id="ayuda"><summary>❔ CONTROLES — tócame para verlos</summary>
     🖱️ <b>mueve el ratón</b> para volar en cualquier dirección (360°)<br/>
-    🔫 <b>clic o ESPACIO</b> dispara &nbsp;·&nbsp; 🔭 <b>clic derecho</b> zoom x2,50 &nbsp;·&nbsp; ⚡ <b>SHIFT</b> turbo<br/>
+    🔫 <b>clic o ESPACIO</b> dispara &nbsp;·&nbsp; 🔭 <b>clic derecho</b> zoom (con la <b>rueda</b> apretado lo ajustas de x2 a x4) &nbsp;·&nbsp; ⚡ <b>SHIFT</b> turbo<br/>
     🎮 <b>mando</b>: palancas para volar · RT dispara · LT puntería · LB/RB tonel · B turbo · START pausa<br/>
     🎚️ <b>W / S</b> (o la rueda del ratón) acelerador · <b>X</b> parar en seco · <b>Z</b> a fondo<br/>
     📻 <b>H</b> pides refuerzos: llegan 2 cazas de apoyo durante 32 s (llevas 2, +1 por cada jefe)<br/>
@@ -293,7 +295,8 @@
 const $=id=>document.getElementById(id);
 const cv=$("c"), ctx=cv.getContext("2d",{alpha:false});
 let W=0,H=0,DPR=1,CX=0,CY=0,FOV=0,FOV_BASE=0,ZOOM_ACT=1,ZOOM_OBJ=1;
-const ZOOM=2.5;
+let ZOOM=2.5;                                              /* se puede ajustar de x2 a x4 */
+const ZOOM_MIN=2, ZOOM_MAX=4;
 let CAL=1;                                                  /* 0,6 a 1: cuánta resolución de verdad pintamos */
 let fpsAcum=0, fpsN=0;
 function midePotencia(dt){                                   /* mira cuántos fotogramas da el aparato */
@@ -541,6 +544,51 @@ MOD.jefe=(()=>{                                         /* NAVE JEFE: corbeta de
   m.canones=[v3(-7.4,0,12.2),v3(7.4,0,12.2),v3(-3.0,2.1,3.6),v3(3.0,-2.1,3.6)];
   m.r=13.5; m.motorCol="#ff6ae0"; return m;
 })();
+MOD.david=(()=>{                                        /* CAZA DAVID (TIE Advanced) */
+  const osc="#2d3446", osc2="#1b2230", claro="#6b748c", metal="#98a2b8", crist="#3f8fb8",
+        rojo="#c8392f", azulL="#3aa0ff", blanco="#eef4ff";
+  const partes=[];
+  /* la bola de la cabina, con su ventana hexagonal */
+  partes.push(caja(0,0,0,2.7,2.7,2.7,claro));
+  partes.push(caja(0,0,1.45,1.9,1.9,0.7,osc2));
+  partes.push(caja(0,0,1.85,1.45,1.45,0.22,crist));                       /* el cristal */
+  partes.push(caja(0,0,-1.6,1.2,1.2,1.4,osc2));
+  partes.push(caja(0,0,-2.45,0.9,0.9,0.3,metal));                         /* boca del motor */
+  /* la cola alargada del Advanced */
+  partes.push(caja(0,0,-3.4,1.5,1.5,2.2,osc));
+  partes.push(caja(0,1.1,-3.6,0.8,0.9,1.8,claro));
+  /* los DOS CAÑONES DE ABAJO (los rojos de tu nave): disparan AZUL */
+  for(const sx of [-1,1]){
+    partes.push(caja(sx*0.85,-1.35,1.5,0.42,0.42,2.6,metal));
+    partes.push(caja(sx*0.85,-1.35,3.0,0.55,0.55,0.5,azulL));              /* la punta, azul */
+  }
+  /* las DOS BOLAS DE ARRIBA (las dos pelotitas rojas): disparan BLANCO */
+  for(const sx of [-1,1]){
+    partes.push(caja(sx*0.75,1.35,0.9,0.62,0.62,0.62,rojo));
+    partes.push(caja(sx*0.75,1.35,1.35,0.42,0.42,0.5,blanco));
+  }
+  /* los brazos y las alas dobladas en flecha, como en la foto */
+  for(const sx of [-1,1]){
+    partes.push(caja(sx*2.4,0,0,2.6,0.6,0.6,claro));
+    partes.push(caja(sx*3.7,0,0,0.6,2.4,1.6,osc2));                        /* el codo del ala */
+    /* el panel de delante, inclinado hacia dentro */
+    partes.push(panel([v3(sx*3.9,-3.6,-0.6),v3(sx*3.9,3.6,-0.6),v3(sx*5.6,2.9,2.2),v3(sx*5.6,-2.9,2.2)],osc));
+    partes.push(panel([v3(sx*3.9,-3.6,-0.6),v3(sx*5.6,-2.9,2.2),v3(sx*5.6,2.9,2.2),v3(sx*3.9,3.6,-0.6)],osc2));
+    /* el panel de atrás */
+    partes.push(panel([v3(sx*3.9,-3.6,-0.6),v3(sx*3.9,3.6,-0.6),v3(sx*5.6,2.9,-3.4),v3(sx*5.6,-2.9,-3.4)],osc2));
+    /* los nervios y el borde */
+    partes.push(caja(sx*4.7,0,0.8,0.2,6.6,0.2,claro));
+    partes.push(caja(sx*5.6,0,-0.6,0.3,6.0,0.3,metal));
+    partes.push(caja(sx*4.7,3.2,-0.6,0.35,0.5,3.0,metal));
+    partes.push(caja(sx*4.7,-3.2,-0.6,0.35,0.5,3.0,metal));
+  }
+  const m=junta(...partes);
+  m.motores=[v3(0,0,-4.6),v3(-1.0,0,-4.4),v3(1.0,0,-4.4)];
+  /* el orden importa: primero los dos de abajo (azul) y luego los dos de arriba (blanco) */
+  m.canones=[v3(-0.85,-1.35,3.4), v3(0.85,-1.35,3.4), v3(-0.75,1.35,1.7), v3(0.75,1.35,1.7)];
+  m.canonCol=["#3aa0ff","#3aa0ff","#ffffff","#ffffff"];
+  m.r=5.6; m.motorCol="#7fd0ff"; return m;
+})();
 MOD.nodriza=(()=>{                                      /* NODRIZA: fábrica de cazas */
   const casco="#3f4a5c", casco2="#2b3444", claro="#68738a", verde="#39e08a", metal="#9aa3b5", luz="#ffcf3a";
   const partes=[];
@@ -606,7 +654,10 @@ const NAVES={
   d:{ nom:"TIE Defender", mod:()=>MOD.d, vida:150, vel:205, giro:1.55, cad:0.10,   imperial:true  },
   a:{ nom:"Ala-A",        mod:()=>MOD.a, vida:80,  vel:235, giro:1.70, cad:0.13,   imperial:false, dano:0.85 },
   y:{ nom:"Ala-Y",        mod:()=>MOD.y, vida:210, vel:110, giro:0.70, cad:0.30,   imperial:false, dano:2.6  },
-  i:{ nom:"TIE Interceptor", mod:()=>MOD.i, vida:95, vel:215, giro:1.62, cad:0.075, imperial:true, dano:0.8 }
+  i:{ nom:"TIE Interceptor", mod:()=>MOD.i, vida:95, vel:215, giro:1.62, cad:0.075, imperial:true, dano:0.8 },
+  /* 🛡️ la nave de David: la mejor del juego */
+  david:{ nom:"CAZA DAVID", mod:()=>MOD.david, vida:300, vel:260, giro:2.10, cad:0.038, imperial:false,
+          dano:2.8, asist:2.6, elite:true }
 };
 const NAVE=()=>NAVES[G.bando]||NAVES.x;
 
@@ -1290,7 +1341,7 @@ function dibujaMira(){
     for(let i=-4;i<=4;i++){ if(!i) continue; const y=CY+i*R*.16;
       ctx.beginPath(); ctx.moveTo(CX-R*.05,y); ctx.lineTo(CX+R*.05,y); ctx.stroke(); }
     ctx.globalAlpha=k*.55; ctx.font="700 12px Consolas,monospace"; ctx.fillStyle="#8fd0ff"; ctx.textAlign="left";
-    ctx.fillText("x"+ZOOM.toFixed(2).replace(".",","), CX+R*0.72, CY-R*0.72);
+    ctx.fillText("x"+ZOOM.toFixed(2).replace(".",",")+"  (rueda)", CX+R*0.72, CY-R*0.72);
     ctx.restore();
   }
   /* retícula fija en el centro (hacia donde apuntas) */
@@ -1357,7 +1408,8 @@ function dibujaMira(){
 }
 
 /* ---------- mando ---------- */
-let teclaTurbo=false, gasSube=false, gasBaja=false;
+let teclaTurbo=false, gasSube=false, gasBaja=false, ratonDerecho=false, ZOOM_ANT=-1;
+try{ const z=+(localStorage.getItem("edtu_sw_zoom")||0); if(z>=2&&z<=4) ZOOM=z; }catch(e){}
 const MANDO={ hay:false, antes:{}, vuela:false, roll:false, tiro:false, zoom:false };
 /* el Jabra del papá se hacía pasar por mando: solo valen los que tienen palancas y botones de verdad */
 const mandoBueno=g=>g&&g.connected&&g.axes&&g.axes.length>=4&&g.buttons&&g.buttons.length>=8&&!/jabra|speak|headset|audio|micro/i.test(g.id||"");
@@ -1468,10 +1520,11 @@ function disparar(){
   if(!G.run||G.paused||G.over||G.cad>0) return;
   G.cad=CADENCIA(); G.disparos++;
   const miPos=add(add(G.pos, add(mul(G.base.f,26), mul(G.base.u,-3.2))), G.naveOff);
-  for(const cn of G.mod.canones){
+  const cols=G.mod.canonCol;                               /* si la nave tiene colores propios, se usan */
+  G.mod.canones.forEach((cn,i)=>{
     const o=add(miPos, aLocal(G.naveBase,cn));
-    G.balas.push({ p:o, d:mul(G.base.f,900), vida:2.2, mia:true, yo:true, c:G.colorMio });
-  }
+    G.balas.push({ p:o, d:mul(G.base.f,900), vida:2.2, mia:true, yo:true, c:cols?cols[i]:G.colorMio });
+  });
   sfx("laser");
 }
 const ARDE=5;                                             /* segundos que arde antes de estallar */
@@ -2428,7 +2481,7 @@ function update(dt){
       for(const e of G.enem){
         if(e.ardiendo>0) continue;                          /* ya está sentenciado */
         const dJug=len(sub(e.p,G.pos));
-        if(len(sub(b.p,e.p)) < Math.max((e.mod||G.modEnem).r*2.8*(e.esc||1), dJug*0.045)){
+        if(len(sub(b.p,e.p)) < Math.max((e.mod||G.modEnem).r*2.8*(e.esc||1), dJug*0.045*(b.yo!==false?(NAVE().asist||1):1))){
           b.vida=0; if(b.yo!==false) G.aciertos++;
           const dmg=Math.round(((b.yo!==false?55:40)+Math.random()*8)*(NAVE().dano||1));
           if(e.k===CLASES.nodriza && nodrizaGolpe(e, b.p, dmg)) break;   /* lo paró el escudo o se lo comió un generador */
@@ -2632,10 +2685,17 @@ addEventListener("mousemove",e=>{
 });
 cv.addEventListener("contextmenu",e=>e.preventDefault());
 cv.addEventListener("wheel",e=>{ if(!G.run||G.paused||G.over) return;
-  G.gasObj=Math.max(0,Math.min(1, G.gasObj - Math.sign(e.deltaY)*0.12));   /* la rueda es el acelerador */
+  if(ZOOM_OBJ===ZOOM_ANT||ratonDerecho){                   /* con el clic derecho apretado, la rueda es el ZOOM */
+    ZOOM=Math.max(ZOOM_MIN,Math.min(ZOOM_MAX, ZOOM - Math.sign(e.deltaY)*0.25));
+    ZOOM_ANT=ZOOM; if(ratonDerecho) ZOOM_OBJ=ZOOM;
+    aviso("🔭 mira x"+ZOOM.toFixed(2).replace(".",","));
+    try{ localStorage.setItem("edtu_sw_zoom",ZOOM); }catch(err){}
+  } else {
+    G.gasObj=Math.max(0,Math.min(1, G.gasObj - Math.sign(e.deltaY)*0.12));  /* sin clic derecho, es el acelerador */
+  }
   e.preventDefault(); },{passive:false});
-cv.addEventListener("mousedown",e=>{ if(e.button===2&&G.run&&!G.paused&&!G.over){ ZOOM_OBJ=ZOOM; e.preventDefault(); return; } });
-addEventListener("mouseup",e=>{ if(e.button===2) ZOOM_OBJ=1; });
+cv.addEventListener("mousedown",e=>{ if(e.button===2&&G.run&&!G.paused&&!G.over){ ratonDerecho=true; ZOOM_OBJ=ZOOM; e.preventDefault(); return; } });
+addEventListener("mouseup",e=>{ if(e.button===2){ ratonDerecho=false; ZOOM_OBJ=1; } });
 cv.addEventListener("mousedown",e=>{ if(e.button===2) return; if(G.run&&!G.paused&&!G.over){ if(document.pointerLockElement!==cv){ try{cv.requestPointerLock();}catch(e){} } G.disparando=true; disparar(); } });
 addEventListener("mouseup",()=>G.disparando=false);
 /* táctil: arrastrar gira, tocar dispara */
@@ -2705,7 +2765,7 @@ document.addEventListener("pointerlockchange",()=>{ if(G.run&&!G.over&&document.
 resize(); estrellasNuevas(); destructoresNuevos();
 $("best").textContent=G.best?"🏆 tu récord: "+G.best+" battle points":"";
 pintaRecords();
-const NOVEDADES_V=7;                                         /* sube este número cuando haya cosas nuevas */
+const NOVEDADES_V=8;                                         /* sube este número cuando haya cosas nuevas */
 const NOVEDADES=[
   ["🎚️","Mandas tú la velocidad","<span class='tec'>W</span> y <span class='tec'>S</span> (o la rueda del ratón) mueven el acelerador · <span class='tec'>X</span> para en seco · <span class='tec'>Z</span> a fondo. Parado giras hasta un 75% más cerrado: frena y el que te persigue se te pasa de largo"],
   ["🚀","Torpedos que persiguen","<span class='tec'>F</span> suelta dos torpedos al enemigo que tengas fichado. Pegan 260 (casi cinco veces un láser). Llevas 6 y te dan 2 en cada oleada"],
@@ -2718,6 +2778,8 @@ const NOVEDADES=[
   ["🎯","Misiones en cada oleada","Proteger a un compañero, callar las torretas de un Destructor, cruzar los 7 arcos del desfiladero o cazar contrarreloj"],
   ["🎖️","Catorce medallas","Se ganan por CÓMO juegas: sin perder compañeros, sin que te den, con torpedos, con puntería, aguantando 5 minutos en supervivencia, desmantelando una nodriza, sin pedir refuerzos o pasando la oleada 5 en IMPOSIBLE. El medallero está en la pantalla de inicio"],
   ["😠","Cuatro dificultades","De FÁCIL a IMPOSIBLE. Las difíciles pagan más: en IMPOSIBLE cada derribo vale x2,5"],
+  ["🛡️","CAZA DAVID","La nave de David, copiada de su LEGO: escudo 300 (el doble que ninguna), la más rápida (260), la que mejor gira, dispara cada 0,038 s (26 tiros por segundo, más que ninguna) y pega x2,8, más que el bombardero. Sus <b>dos cañones de abajo son azules</b> y sus <b>dos bolas de arriba, blancas</b>, y disparan a la vez. Y su puntería asistida es 2,6 veces la normal"],
+  ["🔭","Zoom ajustable","Con el <span class='tec'>clic derecho apretado</span>, la <span class='tec'>rueda del ratón</span> sube y baja la mira de x2 a x4. Se queda guardado para la próxima"],
   ["🔥","Racha de derribos","Encadena derribos sin que te den y los puntos se multiplican: x1,5 a los 3, x2 a los 6, x3 a los 10 y x4 a los 15. Tienes 6,5 segundos para el siguiente, y si te dan UNA sola vez la racha se corta entera"],
   ["📈","Historial","En la pantalla de inicio se guardan tus últimas 10 partidas en un gráfico de barritas (la última en amarillo) y te dice si has mejorado o empeorado respecto a la anterior. Pasa el ratón por una barrita para ver esa partida"],
   ["💾","Continuar la partida","Si te tienes que ir a mitad, el juego guarda solo al terminar cada oleada (o cada 20 s en supervivencia). Al volver sale un botón <b>▶ CONTINUAR</b> con tu oleada y tus puntos. Dura un día"],
