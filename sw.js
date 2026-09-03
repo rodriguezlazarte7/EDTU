@@ -1,9 +1,13 @@
 // EDTU Service Worker — cache del "shell" para que funcione offline.
-const CACHE = "edtu-v2";
+const CACHE = "edtu-v3";
 const SHELL = ["./", "./index.html", "./starwars.html", "./wally-kb.js", "./manifest.json", "./icon-192.png", "./icon-512.png"];
+// Estas SIEMPRE se piden a la red primero: son las que cambian con cada mejora.
+const FRESCOS = [".html", "/"];
+// Estas casi nunca cambian: cache primero, que es instantáneo.
+const QUIETOS = ["./wally-kb.js", "./manifest.json", "./icon-192.png", "./icon-512.png"];
 
 self.addEventListener("install", e => {
-  e.waitUntil(caches.open(CACHE).then(c => c.addAll(SHELL)).catch(()=>{}));
+  e.waitUntil(caches.open(CACHE).then(c => c.addAll(SHELL)).catch(() => {}));
   self.skipWaiting();
 });
 
@@ -12,22 +16,52 @@ self.addEventListener("activate", e => {
   self.clients.claim();
 });
 
+// ¿es una página del cuartel (index, starwars, rubik...)?
+function esPagina(req) {
+  if (req.mode === "navigate") return true;
+  const p = new URL(req.url).pathname;
+  return FRESCOS.some(x => p.endsWith(x));
+}
+function esQuieto(req) {
+  const p = new URL(req.url).pathname;
+  return QUIETOS.some(s => { const q = s.replace("./", ""); return q && p.endsWith(q); });
+}
+
 self.addEventListener("fetch", e => {
   const req = e.request;
   if (req.method !== "GET") return;
-  // Navegación: red primero, y si no hay conexión, sirve el shell cacheado.
-  if (req.mode === "navigate") {
+  let mismoSitio = false;
+  try { mismoSitio = new URL(req.url).origin === self.location.origin; } catch (err) { return; }
+  if (!mismoSitio) return;                       // Supabase, CDNs y demás: directo a la red.
+
+  // Páginas: RED PRIMERO. Así una mejora recién publicada se ve al momento;
+  // si no hay conexión, se sirve la copia guardada DE ESA MISMA página.
+  if (esPagina(req)) {
     e.respondWith(
       fetch(req).then(r => {
-        const copy = r.clone();
-        caches.open(CACHE).then(c => c.put("./index.html", copy)).catch(()=>{});
+        if (r && r.ok) {
+          const copia = r.clone();
+          // se guarda cada página bajo SU propia dirección (antes todas se
+          // guardaban como index.html, así que abrir el juego sin conexión
+          // dejaba el cuartel entero sustituido por el juego)
+          caches.open(CACHE).then(c => c.put(req, copia)).catch(() => {});
+        }
         return r;
-      }).catch(() => caches.match("./index.html"))
+      }).catch(() => caches.match(req).then(c => c || caches.match("./index.html")))
     );
     return;
   }
-  // Iconos/manifest: cache primero. El resto (Supabase, CDNs) pasa directo a la red.
-  if (SHELL.some(s => { const p = s.replace("./", ""); return p && req.url.endsWith(p); })) {   // "./" daba "" y endsWith("") era siempre true: TODO pasaba por el SW
-    e.respondWith(caches.match(req).then(c => c || fetch(req)));
+
+  // Lo que no cambia: cache primero, y se refresca por detrás para la próxima vez.
+  if (esQuieto(req)) {
+    e.respondWith(
+      caches.match(req).then(c => {
+        const red = fetch(req).then(r => {
+          if (r && r.ok) { const copia = r.clone(); caches.open(CACHE).then(x => x.put(req, copia)).catch(() => {}); }
+          return r;
+        }).catch(() => c);
+        return c || red;
+      })
+    );
   }
 });
