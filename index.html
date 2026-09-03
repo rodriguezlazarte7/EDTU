@@ -7267,7 +7267,7 @@ function buildTrophies(){ try{
       let extra=""; try{ const T=JSON.parse(g("edtu_sw_totals")||"null");
         if(T&&T.n) extra=" · 🎮 "+T.n+" partida"+(T.n>1?"s":"")+" · 🎯 "+(T.kills||0)+" derribos"; }catch(e){}
       let med=""; try{ const md=JSON.parse(g("edtu_sw_medallas")||"[]");
-        if(Array.isArray(md)&&md.length) med=" · 🎖️ "+md.length+"/13 medallas"; }catch(e){}
+        if(Array.isArray(md)&&md.length) med=" · 🎖️ "+md.length+"/14 medallas"; }catch(e){}
       h+="<div style='color:#ffe81f'><b>⭐ STAR WARS</b></div>🏆 "+sb+" battle points"+extra+med+
          (porNave.length?"<br><span style='color:#9fb6c9'>🚀 "+porNave.map((x,i)=>(i===0?"👑 ":"")+x.n+" "+x.v).join(" · ")+"</span>":"")+"<br>";
     } }
@@ -7907,7 +7907,8 @@ function wallyType(txt){ const ws=$("wallySpeech"); if(!ws) return; try{ const n
       ["superviviente","♾️","SUPERVIVIENTE","aguantar 5 minutos en el modo supervivencia"],
       ["desmantelador","🛰️","DESMANTELADOR","reventar los 4 generadores de una nodriza"],
       ["solitario","📻","SOLITARIO","llegar a la oleada 8 sin pedir refuerzos"],
-      ["imparable","💀","IMPARABLE","pasar la oleada 5 en dificultad IMPOSIBLE"]
+      ["imparable","💀","IMPARABLE","pasar la oleada 5 en dificultad IMPOSIBLE"],
+      ["enracha","🔥","EN RACHA","derribar 10 naves seguidas sin que te den ni una vez"]
     ];
     const pideMedallas=/(medalla|medallas|medallero|condecoraci)/.test(q) &&
       (/star ?wars|starwars|espacial|nave/.test(q) || !/(jurassic|scream|not a game|f1|cubo|rubik)/.test(q));
@@ -7937,7 +7938,7 @@ function wallyType(txt){ const ws=$("wallySpeech"); if(!ws) return; try{ const n
     }catch(e){}
     return "⭐ STAR WARS es la batalla espacial en 3D del cuartel. Eliges entre seis naves (Ala-X, Ala-A, Ala-Y, TIE, TIE Interceptor y TIE Defender), vuelas en todas las direcciones con el ratón o el mando, disparas láseres y torpedos que persiguen al blanco, y peleas por oleadas con tres compañeros de escuadrón. Cada oleada trae una misión y cada cinco aparece una nave jefe."+
       (r?" Tu récord: "+r+" battle points"+(mejorNave?", con "+mejorNave:"")+".":"")+
-      (nMed?" Llevas "+nMed+" de 13 medallas.":"")+" Di «abre star wars» y entramos.";
+      (nMed?" Llevas "+nMed+" de 14 medallas.":"")+" Di «abre star wars» y entramos.";
   }
     if(/\bjuegos?\b|jugar|aburrid/.test(q)){
       if(!g("scream_best")) return "te recomiendo SCREAM 🕷️ ¡aún no logras escapar del edificio!";

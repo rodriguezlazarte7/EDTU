@@ -39,6 +39,12 @@
   #mision{position:absolute;left:50%;top:6%;transform:translateX(-50%);opacity:0;transition:opacity .3s;text-align:center;
     font-size:clamp(10px,2.2vw,13px);letter-spacing:.05em;color:#9ff0c0;background:rgba(0,20,10,.45);border:1px solid rgba(90,240,160,.35);
     border-radius:999px;padding:5px 16px;white-space:nowrap;pointer-events:none;text-shadow:0 0 8px rgba(90,240,160,.4)}
+  #racha{position:absolute;left:50%;top:calc(6% + 46px);transform:translateX(-50%);opacity:0;
+    transition:opacity .25s;pointer-events:none;font-family:"Consolas",monospace;font-weight:800;
+    font-size:clamp(12px,2.8vw,17px);color:#ffb347;letter-spacing:.06em;text-shadow:0 0 12px rgba(255,140,40,.6);text-align:center}
+  #racha b{color:#ffe81f;font-size:1.25em}
+  #racha .rt{display:block;width:92px;height:3px;margin:3px auto 0;background:rgba(255,255,255,.18);border-radius:9px;overflow:hidden}
+  #racha .rt i{display:block;height:100%;background:#ffb347}
   #tuto{position:absolute;left:50%;bottom:calc(52px + env(safe-area-inset-bottom));transform:translateX(-50%);
     max-width:min(560px,88vw);opacity:0;transition:opacity .35s;pointer-events:none;text-align:center;
     background:rgba(6,16,30,.72);border:1px solid rgba(143,208,255,.4);border-radius:14px;padding:9px 16px;
@@ -198,6 +204,7 @@
   <div id="aviso"></div>
   <div id="mision"></div>
   <div id="tuto"></div>
+  <div id="racha"></div>
 </div>
 <div id="tactil" class="off">
   <div id="tGas"><div id="tGasFill"></div><div id="tGasTxt">100%</div></div>
@@ -663,7 +670,7 @@ function nuevaPartida(){
   for(let i=0;i<3;i++) nuevoAmigo(i);
   G.chispas=[];
   G.score=0; G.wave=0; G.jefe=false; misionLimpia(); G.kills=0; G.disparos=0; G.aciertos=0; G.quedan=0; G.spawn=0; G.waveT=0; G.cad=0;
-  hiper=0; G.guardaT=20; G.refuerzos=2; G.refT=0; G.jefeT=0; G.jefesLlamados=0; G.curaT=60; G.capsulas=[]; G.torpedos=[]; G.torp=TORP_MAX; G.torpCarga=0;
+  hiper=0; G.racha=0; G.rachaT=0; G.rachaMulti=1; G.rachaMax=0; G.guardaT=20; G.refuerzos=2; G.refT=0; G.jefeT=0; G.jefesLlamados=0; G.curaT=60; G.capsulas=[]; G.torpedos=[]; G.torp=TORP_MAX; G.torpCarga=0;
   G.jefes=0; G.caidos=0; G.torpKills=0; G.misionesOK=0; G.trincherasOK=0; G.golpes=0; G.gensRotos=0; G.refPedidos=0;
   G.gas=1; G.gasObj=1; G.yaw=0; G.pitch=0; G.roll=0; G.t=0; G.over=false; G.paused=false; G.inicio=Date.now();
   estrellasNuevas(); destructoresNuevos();
@@ -1432,7 +1439,8 @@ function torpedosCorren(dt){
         e.vida-=TORP_DANO; textoDano(e.p, TORP_DANO, "#ffd166");
         bum(t.p,1.6); sfx("boom",t.p); sacude(.5);
         if(e.vida<=0&&!e.ardiendo){ seIncendia(e); textoDano(e.p,"¡EN LLAMAS!","#ff8a2b"); sueltaCapsula(e.p);
-          G.kills++; const gana=Math.round((100+G.wave*10)*(e.k?e.k.pts:1)*DIF().puntos); G.score+=gana; pts(gana);
+          G.kills++; const gana=Math.round((100+G.wave*10)*(e.k?e.k.pts:1)*DIF().puntos*multiRacha()); G.score+=gana; pts(gana);
+          sumaRacha();
           misionAvanza("rapido"); if(e.k===CLASES.jefe||e.k===CLASES.nodriza){ misionAvanza("jefe"); G.jefes=(G.jefes||0)+1; G.refuerzos++; aviso("📻 +1 refuerzo"); }
           G.torpKills=(G.torpKills||0)+1; }
         break;
@@ -1501,6 +1509,7 @@ function avisoM(){ aviso(mute?"🔇 silencio":"🔊 música y sonido"); }
 let warnT=0;
 function textoDano(p,txt,col){ G.danos.push({ p:v3(p.x,p.y,p.z), txt:(typeof txt==="number"?"-"+txt:txt), c:col||"#ffe81f", vida:1.1, max:1.1 }); }
 function golpe(d){ if(hiper>0) return;                     /* mientras sales del salto eres intocable */
+  cortaRacha(true);                                        /* que te den te corta la racha */
   G.shield-=d; G.golpes=(G.golpes||0)+1; sacude(.22+Math.min(.5,d/70)); if(d>=1){ const q=add(G.pos, add(mul(G.base.f,40), mul(G.base.u,-6))); textoDano(q, Math.round(d), "#ff5a5a"); } warnT=.5; $("warn").style.opacity=1; setTimeout(()=>{$("warn").style.opacity=0;},350); sfx("hit"); }
 
 /* ---------- estelas de las alas ---------- */
@@ -1620,6 +1629,47 @@ function pintaNodriza(){
     gr.addColorStop(0,"rgba(120,255,180,.75)"); gr.addColorStop(1,"rgba(57,224,138,0)");
     ctx.fillStyle=gr; ctx.beginPath(); ctx.arc(p.x,p.y,r*2.6,0,7); ctx.fill();
     ctx.restore();
+  }
+}
+
+/* ---------- racha de derribos ---------- */
+const RACHA_T=6.5;                                           /* segundos para encadenar el siguiente */
+function multiRacha(){
+  const r=G.racha||0;
+  if(r>=15) return 4;
+  if(r>=10) return 3;
+  if(r>=6)  return 2;
+  if(r>=3)  return 1.5;
+  return 1;
+}
+function sumaRacha(){
+  G.racha=(G.racha||0)+1; G.rachaT=RACHA_T;
+  const m=multiRacha();
+  if(m>(G.rachaMulti||1)){                                   /* subiste de escalón */
+    aviso("🔥 ¡RACHA x"+m+"!"); if(!mute) sfx("wave");
+  }
+  G.rachaMulti=m;
+  if((G.racha||0)>(G.rachaMax||0)) G.rachaMax=G.racha;
+}
+function cortaRacha(porGolpe){
+  if((G.racha||0)>=3) aviso(porGolpe?"💔 racha cortada de "+G.racha:"⏳ se te enfrió la racha de "+G.racha);
+  G.racha=0; G.rachaT=0; G.rachaMulti=1;
+}
+function rachaCorre(dt){
+  if((G.racha||0)>0){
+    G.rachaT-=dt;
+    if(G.rachaT<=0) cortaRacha(false);
+  }
+  const el=$("racha");
+  if(el){
+    if((G.racha||0)>=2){
+      el.style.opacity=1;
+      const m=multiRacha();
+      const late=0.9+0.1*Math.sin(G.t*8);
+      el.style.transform="translateX(-50%) scale("+late.toFixed(3)+")";
+      el.innerHTML="🔥 <b>x"+m+"</b> · racha "+G.racha+
+        "<span class='rt'><i style='width:"+Math.max(0,Math.min(100,G.rachaT/RACHA_T*100))+"%'></i></span>";
+    } else el.style.opacity=0;
   }
 }
 
@@ -2286,6 +2336,7 @@ function update(dt){
   for(const e of G.estelas) e.vida-=dt;
   G.estelas=G.estelas.filter(e=>e.vida>0);
 
+  rachaCorre(dt);
   tutoCorre(dt);
   G.guardaT=(G.guardaT||0)-dt;
   if(G.guardaT<=0){ G.guardaT=20; if(esSuper()) guardaPartida(); }   /* en supervivencia, cada 20 s */
@@ -2382,7 +2433,7 @@ function update(dt){
           const dmg=Math.round(((b.yo!==false?55:40)+Math.random()*8)*(NAVE().dano||1));
           if(e.k===CLASES.nodriza && nodrizaGolpe(e, b.p, dmg)) break;   /* lo paró el escudo o se lo comió un generador */
           e.vida-=dmg; textoDano(e.p, dmg, b.yo!==false?"#ffe81f":"#8fd0ff");
-          if(e.vida<=0&&!e.ardiendo){ seIncendia(e); textoDano(e.p,"¡EN LLAMAS!","#ff8a2b"); sueltaCapsula(e.p); if(b.yo!==false){ G.kills++; const gana=Math.round((100+G.wave*10)*(e.k?e.k.pts:1)*DIF().puntos); G.score+=gana; pts(gana); misionAvanza("rapido"); if(e.k===CLASES.jefe||e.k===CLASES.nodriza){ misionAvanza("jefe"); G.jefes=(G.jefes||0)+1; G.refuerzos++; aviso("📻 +1 refuerzo"); } } else { G.score+=30; } }
+          if(e.vida<=0&&!e.ardiendo){ seIncendia(e); textoDano(e.p,"¡EN LLAMAS!","#ff8a2b"); sueltaCapsula(e.p); if(b.yo!==false){ sumaRacha(); G.kills++; const gana=Math.round((100+G.wave*10)*(e.k?e.k.pts:1)*DIF().puntos*multiRacha()); G.score+=gana; pts(gana); misionAvanza("rapido"); if(e.k===CLASES.jefe||e.k===CLASES.nodriza){ misionAvanza("jefe"); G.jefes=(G.jefes||0)+1; G.refuerzos++; aviso("📻 +1 refuerzo"); } } else { G.score+=30; } }
           else { bum(e.p,.3); sfx("hit",e.p); }
           break;
         }
@@ -2489,7 +2540,8 @@ const MEDALLAS=[
   { id:"superviviente", ic:"♾️", nom:"SUPERVIVIENTE",  dice:"aguantar 5 minutos en supervivencia",      gana:d=>d.modo==="super"&&d.seg>=300 },
   { id:"desmantelador", ic:"🛰️", nom:"DESMANTELADOR",  dice:"reventar los 4 generadores de una nodriza", gana:d=>d.gens>=4 },
   { id:"solitario",     ic:"📻", nom:"SOLITARIO",      dice:"llegar a la oleada 8 sin pedir refuerzos",  gana:d=>d.modo==="campana"&&d.wave>=8&&d.refPedidos===0 },
-  { id:"imparable",     ic:"💀", nom:"IMPARABLE",      dice:"pasar la oleada 5 en IMPOSIBLE",           gana:d=>d.dif==="imposible"&&d.wave>=6 }
+  { id:"imparable",     ic:"💀", nom:"IMPARABLE",      dice:"pasar la oleada 5 en IMPOSIBLE",           gana:d=>d.dif==="imposible"&&d.wave>=6 },
+  { id:"enracha",       ic:"🔥", nom:"EN RACHA",       dice:"derribar 10 seguidos sin que te den",      gana:d=>d.rachaMax>=10 }
 ];
 function medallasGanadas(){ try{ return JSON.parse(localStorage.getItem("edtu_sw_medallas")||"[]"); }catch(e){ return []; } }
 function guardaMedallas(l){ try{ localStorage.setItem("edtu_sw_medallas",JSON.stringify(l)); }catch(e){} }
@@ -2498,6 +2550,7 @@ function calculaMedallas(){
             wave:Math.max(1,G.wave), jefes:G.jefes||0, caidos:G.caidos||0, torpKills:G.torpKills||0,
             misiones:G.misionesOK||0, trincheras:G.trincherasOK||0, golpes:G.golpes||0,
             modo:G.modo, dif:G.dif, gens:G.gensRotos||0, refPedidos:G.refPedidos||0,
+            rachaMax:G.rachaMax||0,
             seg:Math.max(0,Math.round((Date.now()-G.inicio)/1000)) };
   return MEDALLAS.filter(m=>{ try{ return m.gana(d); }catch(e){ return false; } });
 }
@@ -2527,7 +2580,7 @@ function finPartida(){
   apuntaPartida(seg,punt);
   $("overTitle").textContent=record?"¡NUEVO RÉCORD!":(recordNave?"¡RÉCORD CON ESTA NAVE!":(recordDificultad?"¡RÉCORD EN "+DIF().nom+"!":"DERRIBADO"));
   $("overStats").innerHTML="<div><b>"+G.score+"</b> battle points</div><div>"+MODOS[G.modo].ic+" "+MODOS[G.modo].nom+
-    (esSuper()?" · aguantaste <b>"+seg+" s</b>":"")+"</div><div>🎯 "+G.kills+" cazas derribados</div>"+
+    (esSuper()?" · aguantaste <b>"+seg+" s</b>":"")+"</div><div>🎯 "+G.kills+" cazas derribados"+((G.rachaMax||0)>=3?" · 🔥 mejor racha <b>"+G.rachaMax+"</b>":"")+"</div>"+
     "<div>🔫 puntería <b>"+punt+"%</b></div><div>🌊 oleada <b>"+Math.max(1,G.wave)+"</b></div>"+
     "<div>⏱️ "+seg+" s en vuelo · "+NAVE().nom+"</div><div>🎚️ dificultad <b>"+DIF().nom+"</b>"+(DIF().puntos!==1?" (x"+DIF().puntos.toString().replace(".",",")+" puntos)":"")+
     "</div><div style='color:#8fd0ff;margin-top:6px'>récord general: "+G.best+
@@ -2652,7 +2705,7 @@ document.addEventListener("pointerlockchange",()=>{ if(G.run&&!G.over&&document.
 resize(); estrellasNuevas(); destructoresNuevos();
 $("best").textContent=G.best?"🏆 tu récord: "+G.best+" battle points":"";
 pintaRecords();
-const NOVEDADES_V=6;                                         /* sube este número cuando haya cosas nuevas */
+const NOVEDADES_V=7;                                         /* sube este número cuando haya cosas nuevas */
 const NOVEDADES=[
   ["🎚️","Mandas tú la velocidad","<span class='tec'>W</span> y <span class='tec'>S</span> (o la rueda del ratón) mueven el acelerador · <span class='tec'>X</span> para en seco · <span class='tec'>Z</span> a fondo. Parado giras hasta un 75% más cerrado: frena y el que te persigue se te pasa de largo"],
   ["🚀","Torpedos que persiguen","<span class='tec'>F</span> suelta dos torpedos al enemigo que tengas fichado. Pegan 260 (casi cinco veces un láser). Llevas 6 y te dan 2 en cada oleada"],
@@ -2663,8 +2716,9 @@ const NOVEDADES=[
   ["👾","Cuatro clases de enemigo","CAZA, ÉLITE (dorado), BOMBARDERO (verde) y NAVE JEFE (rosa), cada uno con su nave. Y esquivan de verdad: cuanto mejor les apuntas, más zigzaguean"],
   ["☠️","La nave jefe, cada 5 oleadas","Corbeta de mando con barra de vida. Carga un <b>rayo</b> avisando con una línea de puntos: sal de ahí <b>de lado</b>. A media vida se enfurece y llama a dos escoltas"],
   ["🎯","Misiones en cada oleada","Proteger a un compañero, callar las torretas de un Destructor, cruzar los 7 arcos del desfiladero o cazar contrarreloj"],
-  ["🎖️","Trece medallas","Se ganan por CÓMO juegas: sin perder compañeros, sin que te den, con torpedos, con puntería, aguantando 5 minutos en supervivencia, desmantelando una nodriza, sin pedir refuerzos o pasando la oleada 5 en IMPOSIBLE. El medallero está en la pantalla de inicio"],
+  ["🎖️","Catorce medallas","Se ganan por CÓMO juegas: sin perder compañeros, sin que te den, con torpedos, con puntería, aguantando 5 minutos en supervivencia, desmantelando una nodriza, sin pedir refuerzos o pasando la oleada 5 en IMPOSIBLE. El medallero está en la pantalla de inicio"],
   ["😠","Cuatro dificultades","De FÁCIL a IMPOSIBLE. Las difíciles pagan más: en IMPOSIBLE cada derribo vale x2,5"],
+  ["🔥","Racha de derribos","Encadena derribos sin que te den y los puntos se multiplican: x1,5 a los 3, x2 a los 6, x3 a los 10 y x4 a los 15. Tienes 6,5 segundos para el siguiente, y si te dan UNA sola vez la racha se corta entera"],
   ["📈","Historial","En la pantalla de inicio se guardan tus últimas 10 partidas en un gráfico de barritas (la última en amarillo) y te dice si has mejorado o empeorado respecto a la anterior. Pasa el ratón por una barrita para ver esa partida"],
   ["💾","Continuar la partida","Si te tienes que ir a mitad, el juego guarda solo al terminar cada oleada (o cada 20 s en supervivencia). Al volver sale un botón <b>▶ CONTINUAR</b> con tu oleada y tus puntos. Dura un día"],
   ["🎓","Primer vuelo","La primera vez que juegas, el juego te enseña paso a paso: volar, disparar, la mirilla, el acelerador, el turbo, los torpedos y las órdenes. Se salta con <span class='tec'>T</span> y se puede repetir desde aquí"],
