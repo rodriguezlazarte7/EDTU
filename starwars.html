@@ -1810,11 +1810,21 @@ const RED={
   sala:"STARWARS-GLOBAL", ch:null, on:false, id:null, nom:"Piloto",
   otros:{}, balas:[], _envio:0, _tiros:[], _err:""
 };
+let _nubePropia=null;
 function nube(){
   /* el juego va dentro del cuartel: se aprovecha SU conexión, sin cargar nada nuevo */
   try{
     const p=window.parent;
-    if(p&&p!==window&&p.Cloud&&p.Cloud.enabled&&p.Cloud.sb) return p.Cloud;
+    if(!p||p===window) return null;                          /* abierto suelto: no hay cuartel */
+    if(p.Cloud&&p.Cloud.enabled&&p.Cloud.sb) return p.Cloud;  /* lo normal */
+    /* plan B: el cuartel no la exporta (o es una versión vieja guardada en la caché).
+       Se arma el cliente aquí mismo con SU dirección y SU clave, que sí están en window */
+    if(_nubePropia) return _nubePropia;
+    if(p.SB_URL&&p.SB_KEY&&p.supabase&&String(p.SB_URL).indexOf("http")===0){
+      const sb=p.supabase.createClient(p.SB_URL,p.SB_KEY,{auth:{persistSession:false}});
+      _nubePropia={ enabled:true, sb };
+      return _nubePropia;
+    }
   }catch(e){}
   return null;
 }

@@ -34,6 +34,17 @@ const p = `
 const G=ctxVM.__G, RED=ctxVM.__RED, DT=1/60;
 let malos=0; const MAL=m=>{ malos++; console.log("  FALLO: "+m); };
 
+/* 0) EL CUARTEL DE VERDAD tiene que dejar ver su nube al marco del juego */
+{
+  const ix=require("fs").readFileSync("index.html","utf8");
+  const exporta=/window\\.Cloud\\s*=/.test(ix);
+  console.log("  el cuartel exporta su nube al marco: "+(exporta?"sí":"NO"));
+  if(!exporta) MAL("index.html declara Cloud con const y no lo cuelga de window: desde el marco, window.parent.Cloud es undefined y la sala NUNCA funciona");
+  const claves=/window\\.SB_URL\\s*=\\s*"https/.test(ix)&&/window\\.SB_KEY\\s*=\\s*"[^"]{10}/.test(ix);
+  if(!claves) MAL("el cuartel no tiene puestas la dirección y la clave de la nube");
+  else console.log("  ✅ y tiene puestas su dirección y su clave");
+}
+
 /* 1) ¿encuentra la nube del cuartel? */
 if(!ctxVM.__nube()) MAL("no encuentra la nube del cuartel");
 else console.log("  ✅ encuentra la conexión del cuartel (no carga ninguna otra)");
@@ -87,6 +98,17 @@ catch(e){ MAL("el juego peta al dibujar a los demás: "+e.message); }
 ctxVM.__sale();
 if(RED.on||Object.keys(RED.otros).length||RED.balas.length) MAL("al salir queda basura");
 else console.log("  ✅ al salir se limpia todo");
+
+/* 9) PLAN B: si el cuartel no exporta Cloud (versión vieja en la caché), el juego
+      tiene que armar el cliente él mismo con la dirección y la clave del cuartel */
+{
+  let creado=null;
+  ventana.parent={ SB_URL:"https://ejemplo.supabase.co", SB_KEY:"clave-de-prueba-123456",
+    supabase:{ createClient:(u,k)=>{ creado={u,k}; return { channel:()=>canalFalso, removeChannel:()=>{} }; } } };
+  const c=ctxVM.__nube();
+  if(!c||!creado) MAL("sin Cloud en el cuartel, el juego no sabe armar la conexión por su cuenta");
+  else console.log("  ✅ plan B: si el cuartel no exporta la nube, el juego la arma solo ("+creado.u+")");
+}
 
 console.log("");
 if(malos){ console.log("❌ "+malos+" fallo(s)"); process.exit(1); }

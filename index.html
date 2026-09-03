@@ -4245,6 +4245,8 @@ setInterval(tick,1000); tick();
 /* ============ ARRANQUE ============ */
 fillSelects();
 Cloud.init();
+window.Cloud = Cloud;                      /* 🌐 para que los juegos que van en un marco (STAR WARS) puedan usar la nube */
+window.EDTU_nube = () => (Cloud.enabled ? Cloud : null);
 
 let _cloudTimer = null;
 function onCloudChange(){
