@@ -39,6 +39,13 @@
   #mision{position:absolute;left:50%;top:6%;transform:translateX(-50%);opacity:0;transition:opacity .3s;text-align:center;
     font-size:clamp(10px,2.2vw,13px);letter-spacing:.05em;color:#9ff0c0;background:rgba(0,20,10,.45);border:1px solid rgba(90,240,160,.35);
     border-radius:999px;padding:5px 16px;white-space:nowrap;pointer-events:none;text-shadow:0 0 8px rgba(90,240,160,.4)}
+  #tuto{position:absolute;left:50%;bottom:calc(52px + env(safe-area-inset-bottom));transform:translateX(-50%);
+    max-width:min(560px,88vw);opacity:0;transition:opacity .35s;pointer-events:none;text-align:center;
+    background:rgba(6,16,30,.72);border:1px solid rgba(143,208,255,.4);border-radius:14px;padding:9px 16px;
+    font-size:clamp(11px,2.5vw,14px);line-height:1.6;color:#dff0ff}
+  #tuto b{color:#ffe81f}
+  #tuto .p{display:block;font-size:9px;letter-spacing:.14em;color:#8fd0ff;font-weight:800;margin-bottom:3px}
+  #tuto .s{display:block;font-size:9px;color:#7fa0c8;margin-top:4px}
   #aviso{position:absolute;left:50%;top:14%;transform:translateX(-50%);opacity:0;transition:opacity .25s;
     font-size:clamp(13px,3vw,18px);font-weight:800;letter-spacing:.08em;color:#ffe81f;text-shadow:0 0 12px rgba(255,232,31,.6);pointer-events:none}
   #gasBar{width:100%;height:5px;margin-top:4px;background:rgba(255,255,255,.14);border-radius:99px;overflow:hidden}
@@ -177,6 +184,7 @@
   <div id="pts">+<b id="ptsN">0</b> &nbsp;BATTLE POINTS</div>
   <div id="aviso"></div>
   <div id="mision"></div>
+  <div id="tuto"></div>
 </div>
 <div id="tactil" class="off">
   <div id="tGas"><div id="tGasFill"></div><div id="tGasTxt">100%</div></div>
@@ -241,7 +249,7 @@
 
 <div class="screen hide" id="novedades"><h1>❇️ NOVEDADES</h1><h2>LO NUEVO DE STAR WARS</h2>
   <div id="novLista"></div>
-  <div class="row"><button class="btn go" id="novCerrar">✕ ENTENDIDO</button></div></div>
+  <div class="row"><button class="btn go" id="novCerrar">✕ ENTENDIDO</button><button class="btn gh" id="tutoBtn">🎓 REPETIR EL PRIMER VUELO</button></div></div>
 <div class="screen hide" id="over"><h1 id="overTitle">DERRIBADO</h1><div id="overStats"></div><div id="medallas"></div>
   <div class="row"><button class="btn go" id="againBtn">▶ OTRA VEZ</button><button class="btn gh" id="menuBtn">✕ AL CUARTEL</button></div></div>
 
@@ -1593,6 +1601,55 @@ function pintaNodriza(){
   }
 }
 
+/* ---------- primer vuelo: el tutorial ---------- */
+const PASOS=[
+  { txt:"🖱️ <b>Mueve el ratón</b> (o arrastra el dedo) para volar. Puedes girar en todas las direcciones, hasta dar la vuelta entera",
+    hecho:()=>tutoGiro>1.5, min:2 },
+  { txt:"🔫 <b>Clic</b> o <b>ESPACIO</b> para disparar. Mantén apretado y dispara seguido",
+    hecho:()=>G.disparos>=6, min:1.2 },
+  { txt:"🎯 Cuando fiches una nave sale una <b>mirilla</b>: apunta ahí y cuando se ponga <b>verde</b>, es tiro seguro",
+    hecho:()=>G.aciertos>=1, min:2.5 },
+  { txt:"🎚️ <b>W</b> y <b>S</b> son el acelerador. Frena y girarás mucho más cerrado; con <b>X</b> paras del todo",
+    hecho:()=>G.gasObj<0.7, min:2 },
+  { txt:"⚡ <b>SHIFT</b> es el turbo, para escaparte o para alcanzar a alguien",
+    hecho:()=>G.turbo, min:1.5 },
+  { txt:"🚀 <b>F</b> lanza dos torpedos que persiguen solos al enemigo que tengas fichado",
+    hecho:()=>G.torp<TORP_MAX, min:2 },
+  { txt:"🫡 <b>G</b> manda a tus tres compañeros: prueba «¡a mi blanco!» y verás caer al enemigo en segundos",
+    hecho:()=>ordenN!==0, min:2 },
+  { txt:"📻 <b>H</b> pide refuerzos y llegan dos cazas más · 📡 <b>R</b> enciende el radar · ⏸ <b>P</b> pausa. <b>¡Ya sabes volar, agente!</b>",
+    hecho:()=>false, min:6.5 }
+];
+let tutoPaso=-1, tutoT=0, tutoGiro=0;
+function tutoActivo(){ return tutoPaso>=0 && tutoPaso<PASOS.length; }
+function tutoEmpieza(){
+  let visto=false; try{ visto=localStorage.getItem("edtu_sw_tuto")==="1"; }catch(e){}
+  if(visto||esSuper()){ tutoPaso=-1; tutoCartel(); return; }
+  tutoPaso=0; tutoT=0; tutoGiro=0; tutoCartel();
+}
+function tutoTermina(){
+  tutoPaso=-1; tutoCartel();
+  try{ localStorage.setItem("edtu_sw_tuto","1"); }catch(e){}
+}
+function tutoCartel(){
+  const el=$("tuto"); if(!el) return;
+  if(!tutoActivo()){ el.style.opacity=0; return; }
+  el.style.opacity=1;
+  el.innerHTML="<span class='p'>PRIMER VUELO "+(tutoPaso+1)+"/"+PASOS.length+"</span>"+PASOS[tutoPaso].txt+
+    "<span class='s'>(pulsa <b>T</b> para saltarlo)</span>";
+}
+function tutoCorre(dt){
+  if(!tutoActivo()) return;
+  tutoT+=dt;
+  tutoGiro+=(Math.abs(G.yaw)+Math.abs(G.pitch))*dt;          /* cuánto has movido el ratón en total */
+  const p=PASOS[tutoPaso];
+  if(tutoT>=p.min && p.hecho()){
+    tutoPaso++; tutoT=0;
+    if(!mute) sfx("wave");
+    if(tutoPaso>=PASOS.length) tutoTermina(); else tutoCartel();
+  } else if(tutoPaso===PASOS.length-1 && tutoT>p.min){ tutoTermina(); }
+}
+
 /* ---------- cápsulas que sueltan los enemigos ---------- */
 const CAPSULAS={
   escudo:{ ic:"🛡", col:"#4de08a", nom:"ESCUDO",   dice:"+30% de escudo" },
@@ -2083,7 +2140,7 @@ function update(dt){
   }
   else if(G.quedan<=0&&G.enem.length===0){
     if(G.wave>=1) musFanfarria();                          /* ¡oleada limpia! */
-    G.wave++; G.quedan=Math.max(2, 3+G.wave+DIF().cuantos); G.waveT=1.6;
+    G.wave++; G.quedan=Math.max(2, 3+G.wave+DIF().cuantos-(tutoActivo()?2:0)); G.waveT=1.6;
     G.jefe=(G.wave%5===0);                                   /* oleadas 5, 10, 15... traen jefe */
     if(G.jefe) G.quedan=Math.max(2,G.quedan-3);
     $("waveN").textContent="OLEADA "+G.wave; $("hudWave").textContent="OLEADA "+G.wave+" · "+DIF().nom;
@@ -2110,6 +2167,7 @@ function update(dt){
   for(const e of G.estelas) e.vida-=dt;
   G.estelas=G.estelas.filter(e=>e.vida>0);
 
+  tutoCorre(dt);
   refuerzosCorren(dt);
   capsulasCorren(dt);
   { const j=jefeVivo(); if(j) jefeCorre(j,dt); }
@@ -2291,6 +2349,7 @@ function empezar(){
   $("pauseBtn").style.display="block"; $("pts").style.opacity=.4; $("ptsN").textContent="0";
   try{ cv.requestPointerLock&&cv.requestPointerLock(); }catch(e){}
   MUS.intens=0; SACUDE=0; TEMA=TEMAS.batalla; tactilVisible(true); hiperEmpieza();
+  tutoEmpieza();
   ordenN=0; { const el=$("orden"); if(el){ el.textContent=ordenActual().nom; el.style.opacity=1; } } if(!mute){ musArranca(); motorEnciende(); }
   last=performance.now(); requestAnimationFrame(frame);
 }
@@ -2415,6 +2474,7 @@ addEventListener("keydown",e=>{
   else if(k==="a"||k==="arrowleft") G.roll=-1;
   else if(k==="d"||k==="arrowright") G.roll=1;
   else if(k==="shift"){ teclaTurbo=true; if(!G.turbo){ G.turbo=true; sfx("turbo"); } }
+  else if(k==="t"){ if(tutoActivo()){ tutoTermina(); aviso("🎓 tutorial saltado"); } }
   else if(k==="h") pideRefuerzos();
   else if(k==="g") cambiaOrden();
   else if(k==="f") lanzaTorpedo();
@@ -2466,7 +2526,7 @@ document.addEventListener("pointerlockchange",()=>{ if(G.run&&!G.over&&document.
 resize(); estrellasNuevas(); destructoresNuevos();
 $("best").textContent=G.best?"🏆 tu récord: "+G.best+" battle points":"";
 pintaRecords();
-const NOVEDADES_V=3;                                         /* sube este número cuando haya cosas nuevas */
+const NOVEDADES_V=4;                                         /* sube este número cuando haya cosas nuevas */
 const NOVEDADES=[
   ["🎚️","Mandas tú la velocidad","<span class='tec'>W</span> y <span class='tec'>S</span> (o la rueda del ratón) mueven el acelerador · <span class='tec'>X</span> para en seco · <span class='tec'>Z</span> a fondo. Parado giras hasta un 75% más cerrado: frena y el que te persigue se te pasa de largo"],
   ["🚀","Torpedos que persiguen","<span class='tec'>F</span> suelta dos torpedos al enemigo que tengas fichado. Pegan 260 (casi cinco veces un láser). Llevas 6 y te dan 2 en cada oleada"],
@@ -2479,6 +2539,7 @@ const NOVEDADES=[
   ["🎯","Misiones en cada oleada","Proteger a un compañero, callar las torretas de un Destructor, cruzar los 7 arcos del desfiladero o cazar contrarreloj"],
   ["🎖️","Trece medallas","Se ganan por CÓMO juegas: sin perder compañeros, sin que te den, con torpedos, con puntería, aguantando 5 minutos en supervivencia, desmantelando una nodriza, sin pedir refuerzos o pasando la oleada 5 en IMPOSIBLE. El medallero está en la pantalla de inicio"],
   ["😠","Cuatro dificultades","De FÁCIL a IMPOSIBLE. Las difíciles pagan más: en IMPOSIBLE cada derribo vale x2,5"],
+  ["🎓","Primer vuelo","La primera vez que juegas, el juego te enseña paso a paso: volar, disparar, la mirilla, el acelerador, el turbo, los torpedos y las órdenes. Se salta con <span class='tec'>T</span> y se puede repetir desde aquí"],
   ["📻","Pedir refuerzos","<span class='tec'>H</span> llama por radio al escuadrón ORO (o GRIS si eres del Imperio): llegan 2 cazas extra que pelean contigo 32 segundos y luego vuelven a la base. Llevas 2 llamadas, tardan 75 s en recargar, y ganas una más por cada jefe que derribes"],
   ["♾️","Modo supervivencia","Sin oleadas ni descansos: los enemigos no paran de venir y cada 30 segundos vienen más y más rápido, con un jefe cada minuto y medio (se turnan corbeta y nodriza). Cada minuto te dan un poco de escudo y un torpedo. Tiene su propio récord"],
   ["🛰️","Dos jefes distintos","En las oleadas 5, 15, 25... viene la CORBETA con su rayo. En las 10, 20, 30... la NODRIZA: no le puedes hacer nada hasta reventar sus 4 generadores verdes, y mientras tanto va soltando cazas por sus hangares"],
@@ -2494,6 +2555,11 @@ function abreNovedades(){
   $("novedades").classList.remove("hide");
   try{ localStorage.setItem("edtu_sw_nov",NOVEDADES_V); }catch(e){}
 }
+function repiteTutorial(){
+  try{ localStorage.removeItem("edtu_sw_tuto"); }catch(e){}
+  aviso("🎓 el primer vuelo volverá a salir");
+  const b=$("tutoBtn"); if(b){ b.textContent="🎓 ¡listo! sale al despegar"; b.disabled=true; }
+}
 function cierraNovedades(){ $("novedades").classList.add("hide"); $("intro").classList.remove("hide"); }
 function pintaMedallero(){
   const el=$("medallero"); if(!el) return;
@@ -2506,6 +2572,7 @@ function pintaMedallero(){
 pintaMedallero();
 $("novBtn").onclick=abreNovedades;
 $("novCerrar").onclick=cierraNovedades;
+$("tutoBtn").onclick=repiteTutorial;
 { /* la primera vez se avisa con una chapita, para que no se pierdan */
   let visto=0; try{ visto=+(localStorage.getItem("edtu_sw_nov")||0); }catch(e){}
   if(visto<NOVEDADES_V){ const b=$("novBtn"); if(b){ b.textContent="❇️ NOVEDADES ·"+NOVEDADES.length+" nuevas"; b.style.borderColor="#ffe81f"; b.style.color="#ffe81f"; } }
