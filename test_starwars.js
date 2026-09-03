@@ -90,7 +90,7 @@ catch (e) { console.log("❌ el guion no llega ni a cargar: " + e.message); cons
 console.log("✅ el guion carga sin reventar");
 
 /* --- que las piezas estén todas --- */
-for (const nombre of ["nuevaPartida", "update", "render", "disparar", "lanzaTorpedo", "nuevoEnemigo",
+for (const nombre of ["nuevaPartida", "update", "render", "disparar", "lanzaTorpedo", "nuevoEnemigo", "cambiaOrden", "objetivoDe",
   "misionNueva", "pintaRadar", "buscaBlanco", "seIncendia", "trincheraNueva", "colorLuz", "sfx", "musArranca"])
   if (typeof ctxVM[nombre] !== "function") F("falta la función " + nombre);
 
@@ -123,6 +123,7 @@ for (const bando of Object.keys(NAVES)) {
     G.gasObj = (i % 900 < 450) ? 1 : 0.15;
     G.disparando = (i % 7) < 4;
     if (i % 180 === 0) { try { ctxVM.lanzaTorpedo(); } catch (e) { F(bando + ": los torpedos petan: " + e.message); } }
+    if (i % 500 === 0) { try { ctxVM.cambiaOrden(); } catch (e) { F(bando + ": las órdenes al escuadrón petan: " + e.message); } }
     if (i % 240 === 0) G.shield = G.vidaMax;
     try { ctxVM.update(DT); } catch (e) { F(bando + ": update peta en el segundo " + (i * DT).toFixed(1) + ": " + e.message); console.log(e.stack); roto = true; break; }
     try { ctxVM.render(); } catch (e) { F(bando + ": render peta en el segundo " + (i * DT).toFixed(1) + ": " + e.message); console.log(e.stack); roto = true; break; }
