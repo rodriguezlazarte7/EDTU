@@ -277,10 +277,42 @@ function sfx(tipo){ if(mute) return; const a=ac(); if(!a) return; const t=a.curr
 const MUS={ on:false, gan:null, filtro:null, paso:0, prox:0, reloj:null, intens:0 };
 const NOTA=n=>55*Math.pow(2,n/12);                          /* n = semitonos desde el LA grave */
 /* ocho compases en re menor: el bajo late, los metales sostienen y la melodía la lleva encima */
-const BAJO=[0,0,12,0, 7,7,19,7, 5,5,17,5, 3,3,15,3, 0,0,12,0, 8,8,20,8, 10,10,22,10, 7,7,7,7].map(x=>x+5);
-const ACORDE=[[5,17,20],[5,17,20],[12,24,27],[12,24,27],[10,22,25],[10,22,25],[8,20,24],[15,22,27]];
-const MELO=[ 24,null,26,27, 29,null,27,null, 26,null,24,null, 22,null,null,null,
-             24,null,27,26, 24,null,22,null, 20,null,22,24, 22,null,null,null ].map(x=>x==null?null:x+5);
+const TEMAS={
+  batalla:{                                                 /* re menor, heroico: el de siempre */
+    bajo:[0,0,12,0, 7,7,19,7, 5,5,17,5, 3,3,15,3, 0,0,12,0, 8,8,20,8, 10,10,22,10, 7,7,7,7].map(x=>x+5),
+    acorde:[[5,17,20],[5,17,20],[12,24,27],[12,24,27],[10,22,25],[10,22,25],[8,20,24],[15,22,27]],
+    melo:[ 24,null,26,27, 29,null,27,null, 26,null,24,null, 22,null,null,null,
+           24,null,27,26, 24,null,22,null, 20,null,22,24, 22,null,null,null ].map(x=>x==null?null:x+5),
+    paso:.1875, tambor:.13, bajoTipo:"triangle", metalTipo:"sawtooth", meloTipo:"square", tono:0
+  },
+  jefe:{                                                    /* más grave, más rápido y con la nota que "raspa" (la segunda menor) */
+    bajo:[0,0,0,1, 0,0,0,1, 0,0,0,-2, 0,0,0,1, 0,0,0,1, 0,0,0,-1, -2,-2,-2,-1, 0,0,1,0].map(x=>x+5),
+    acorde:[[5,6,17],[5,6,17],[3,5,15],[3,5,15],[5,6,17],[5,6,17],[1,4,13],[2,5,14]],
+    melo:[ 17,null,18,null, 17,null,13,null, 12,null,13,null, 17,null,null,null,
+           17,18,17,16, 17,null,null,null, 20,null,18,17, 17,null,null,null ].map(x=>x==null?null:x+5),
+    paso:.1552, tambor:.19, bajoTipo:"sawtooth", metalTipo:"sawtooth", meloTipo:"sawtooth", tono:-5
+  }
+};
+let TEMA=TEMAS.batalla;
+function musTema(cual){                                     /* cambiar de tema sin cortar la música */
+  const t=TEMAS[cual]||TEMAS.batalla;
+  if(t===TEMA) return;
+  TEMA=t; MUS.paso=0;                                       /* empieza el tema nuevo desde su principio */
+  if(MUS.on) aviso(cual==="jefe"?"🎼 tema del jefe":"🎼 vuelta a la batalla");
+}
+/* fanfarria corta cuando limpias una oleada: suena ENCIMA, sin parar la música */
+function musFanfarria(){
+  const a=ac(); if(!a||mute) return;
+  const t0=a.currentTime+.02;
+  const sube=[12,16,19,24,28,31];                           /* un acorde mayor subiendo, que suena a victoria */
+  sube.forEach((nn,i)=>{
+    musVoz("square", NOTA(nn+5), t0+i*.085, .28, .05);
+    if(i%2===0) musVoz("triangle", NOTA(nn+5-12), t0+i*.085, .34, .06);
+  });
+  musVoz("sawtooth", NOTA(24+5), t0+sube.length*.085, .9, .05);
+  musVoz("sawtooth", NOTA(31+5), t0+sube.length*.085, .9, .04);
+  musVoz("triangle", NOTA(12+5), t0+sube.length*.085, .9, .07);
+}
 function musVoz(tipo,frec,t,dur,vol){
   const a=ac(); if(!a) return;
   const o=a.createOscillator(), g=a.createGain();
@@ -291,15 +323,15 @@ function musVoz(tipo,frec,t,dur,vol){
   o.connect(g); g.connect(MUS.filtro||a.destination); o.start(t); o.stop(t+dur+.03);
 }
 function musPaso(t){
-  const p=MUS.paso, compas=Math.floor(p/4)%8, i=p%32, viva=MUS.intens;
-  musVoz("triangle", NOTA(BAJO[i%BAJO.length]-12), t, .22, .16+viva*.05);   /* el bajo, siempre */
-  if(p%4===0){ for(const c of ACORDE[compas]) musVoz("sawtooth", NOTA(c-12), t, .62, .028+viva*.02); }  /* metales */
-  const m=MELO[i%MELO.length];
-  if(m!==null&&viva>.15) musVoz("square", NOTA(m), t, .30, .034*Math.min(1,viva*1.4));  /* la melodía entra cuando hay pelea */
-  if(p%8===4||p%8===0){                                     /* golpe de tambor */
+  const T=TEMA, p=MUS.paso, compas=Math.floor(p/4)%8, i=p%32, viva=MUS.intens, tono=T.tono;
+  musVoz(T.bajoTipo, NOTA(T.bajo[i%T.bajo.length]-12+tono), t, .22, .16+viva*.05);   /* el bajo, siempre */
+  if(p%4===0){ for(const c of T.acorde[compas]) musVoz(T.metalTipo, NOTA(c-12+tono), t, .62, .028+viva*.02); }  /* metales */
+  const m=T.melo[i%T.melo.length];
+  if(m!==null&&(viva>.15||T===TEMAS.jefe)) musVoz(T.meloTipo, NOTA(m+tono), t, .30, .034*Math.min(1,viva*1.4+(T===TEMAS.jefe?.5:0)));
+  if(p%8===4||p%8===0||(T===TEMAS.jefe&&p%4===2)){          /* golpe de tambor (el jefe marca más) */
     const a=ac(); const o=a.createOscillator(), g=a.createGain();
     o.type="sine"; o.frequency.setValueAtTime(p%8===0?110:150,t); o.frequency.exponentialRampToValueAtTime(40,t+.13);
-    g.gain.setValueAtTime(.13,t); g.gain.exponentialRampToValueAtTime(.0001,t+.16);
+    g.gain.setValueAtTime(T.tambor,t); g.gain.exponentialRampToValueAtTime(.0001,t+.16);
     o.connect(g); g.connect(MUS.filtro||a.destination); o.start(t); o.stop(t+.18);
   }
   MUS.paso++;
@@ -314,7 +346,7 @@ function musArranca(){
   MUS.gan.gain.setValueAtTime(0,a.currentTime); MUS.gan.gain.linearRampToValueAtTime(.9,a.currentTime+1.6);  /* entra despacio */
   MUS.reloj=setInterval(()=>{                                /* va dejando las notas preparadas por delante */
     if(!MUS.on) return; const ah=a.currentTime;
-    while(MUS.prox<ah+.25){ musPaso(MUS.prox); MUS.prox+=.1875; }   /* 160 pulsos por minuto */
+    while(MUS.prox<ah+.25){ musPaso(MUS.prox); MUS.prox+=TEMA.paso; }   /* el jefe va más rápido */
   },40);
 }
 function musPara(rapido){
@@ -876,6 +908,7 @@ function update(dt){
 
   /* ---- oleadas ---- */
   if(G.quedan<=0&&G.enem.length===0){
+    if(G.wave>=1) musFanfarria();                          /* ¡oleada limpia! */
     G.wave++; G.quedan=3+G.wave; G.waveT=1.6;
     G.jefe=(G.wave%5===0);                                   /* oleadas 5, 10, 15... traen jefe */
     if(G.jefe) G.quedan=Math.max(2,G.quedan-3);
@@ -901,6 +934,8 @@ function update(dt){
   misionCorre(dt);
 
   /* ---- la música se enciende con la batalla ---- */
+  { let hayJefe=false; for(const e of G.enem){ if(e.k===CLASES.jefe&&!e.ardiendo){ hayJefe=true; break; } }
+    musTema(hayJefe?"jefe":"batalla"); }
   { let cerca=0; for(const e of G.enem){ if(!e.ardiendo&&len(sub(e.p,G.pos))<900) cerca++; }
     musIntensidad(Math.min(1, cerca/3 + (G.shield<G.vidaMax*.4?.4:0))); }
 
@@ -993,7 +1028,7 @@ function empezar(){
   $("intro").classList.add("hide"); $("over").classList.add("hide"); $("pause").classList.add("hide");
   $("pauseBtn").style.display="block"; $("pts").style.opacity=.4; $("ptsN").textContent="0";
   try{ cv.requestPointerLock&&cv.requestPointerLock(); }catch(e){}
-  MUS.intens=0; SACUDE=0; if(!mute){ musArranca(); motorEnciende(); }
+  MUS.intens=0; SACUDE=0; TEMA=TEMAS.batalla; if(!mute){ musArranca(); motorEnciende(); }
   last=performance.now(); requestAnimationFrame(frame);
 }
 /* si no se está jugando, hay que seguir mirando el mando para que START arranque */
