@@ -121,7 +121,7 @@
     🎯 la <b>mirilla verde</b> te dice dónde apuntar para acertar · frena para <b>girar más cerrado</b><br/>
     ↩️ <b>A / D</b> giro de barril &nbsp;·&nbsp;
     📡 <b>R</b> radar &nbsp;·&nbsp; ⏸ <b>P</b> pausa &nbsp;·&nbsp; 🎵 <b>M</b> música y sonido &nbsp;·&nbsp; 📱 en el celular: arrastra y toca<br/>
-    🤝 vuelas con <b>3 cazas aliados</b> que atacan contigo
+    🤝 vuelas con <b>3 cazas aliados</b> que atacan contigo &nbsp;·&nbsp; 👾 enfrente hay <b>4 clases de nave</b> distintas
   </div>
   <div class="row"><button class="btn go" id="startBtn">▶ DESPEGAR</button><button class="btn gh" id="backBtn">✕ SALIR</button></div>
   <div id="best"></div>
@@ -612,8 +612,8 @@ function render(){
       for(const m of G.mod.motores){ const w=add(rel,aLocal(a.b,m)); const c=aCamara(G.base,w); if(c.z>6){ const p=proyecta(c);
         glows.push({z:c.z,x:p.x,y:p.y,r:Math.max(2,Math.min(20,0.9*p.s)),c:G.mod.motorCol,a:.3}); } } }); }
   /* enemigos */
-  for(const e of G.enem){ pintaModelo(G.modEnem, e.p, e.b, e.esc||1, caras, (V,rel,cam,esc)=>{
-      for(const m of G.modEnem.motores){ const w=add(rel,aLocal(e.b,mul(m,esc))); const c=aCamara(G.base,w); if(c.z>6){ const p=proyecta(c); glows.push({z:c.z,x:p.x,y:p.y,r:Math.max(2,Math.min(24*esc,1.1*p.s*esc)),c:G.modEnem.motorCol,a:.4}); } } }, e.k&&e.k.col); }
+  for(const e of G.enem){ const mo=e.mod||G.modEnem; pintaModelo(mo, e.p, e.b, e.esc||1, caras, (V,rel,cam,esc)=>{
+      for(const m of mo.motores){ const w=add(rel,aLocal(e.b,mul(m,esc))); const c=aCamara(G.base,w); if(c.z>6){ const p=proyecta(c); glows.push({z:c.z,x:p.x,y:p.y,r:Math.max(2,Math.min(24*esc,1.1*p.s*esc)),c:mo.motorCol,a:.4}); } } }, e.k&&e.k.col); }
   /* mi nave, delante de la cámara (tercera persona) */
   const miPos=add(add(G.pos, add(mul(G.base.f,26), mul(G.base.u,-3.2))), G.naveOff);
   pintaModelo(G.mod, miPos, G.naveBase, 1, caras, (V,rel,cam,esc)=>{
@@ -1181,21 +1181,31 @@ function iaAmigo(a,dt){
 const CLASES={
   caza:   { nom:"CAZA",       col:null,      esc:1,   vida:1,   vel:1,    giro:1,   cad:1,   tiros:1, pts:1,   marca:"rgba(255,77,77," },
   elite:  { nom:"ÉLITE",      col:"#ffcf3a", esc:1.05,vida:2.1, vel:1.28, giro:1.4, cad:.55, tiros:2, pts:2.4, marca:"rgba(255,207,58," },
-  bomba:  { nom:"BOMBARDERO", col:"#7ad17a", esc:1.7, vida:5.5, vel:.55,  giro:.45, cad:1.9, tiros:1, pts:3.2, marca:"rgba(122,209,122," },
+  bomba:  { nom:"BOMBARDERO", col:"#7ad17a", esc:1.25, vida:5.5, vel:.55,  giro:.45, cad:1.9, tiros:1, pts:3.2, marca:"rgba(122,209,122," },
   jefe:   { nom:"NAVE JEFE",  col:"#ff4de0", esc:3.2, vida:26,  vel:.72,  giro:.75, cad:.3,  tiros:4, pts:14,  marca:"rgba(255,77,224," }
 };
+/* qué nave usa cada clase, según de qué bando sean tus enemigos */
+const NAVE_ENEM={
+  imperio:{ caza:"t", elite:"i", bomba:"d", jefe:"d" },      /* TIE, Interceptor, Defender */
+  rebeldes:{ caza:"x", elite:"a", bomba:"y", jefe:"x" }      /* Ala-X, Ala-A, Ala-Y */
+};
+function modeloEnem(clase){
+  const tabla=G.imperial?NAVE_ENEM.rebeldes:NAVE_ENEM.imperio;   /* si tú eres del Imperio, enfrente van rebeldes */
+  return MOD[tabla[clase]||tabla.caza];
+}
 function eligeClase(){
   if(G.wave>=4&&Math.random()<.20) return "bomba";
   if(G.wave>=3&&Math.random()<.28) return "elite";
   return "caza";
 }
 function nuevoEnemigo(clase){
-  const k=CLASES[clase||eligeClase()], esJefe=k===CLASES.jefe;
+  const cl=clase||eligeClase();
+  const k=CLASES[cl], esJefe=k===CLASES.jefe, mod=modeloEnem(cl);
   const d=norm(v3(Math.random()*2-1,Math.random()*2-1,Math.random()*2-1));
   const p=add(G.pos, mul(d, (esJefe?1500:900)+Math.random()*500));
   const b=baseNueva(); girar(b,Math.random()*7,(Math.random()*2-1)*1.2,0);
   const base=(G.wave>=5?170:110)*k.vida;
-  G.enem.push({ p, b, k, esc:k.esc,
+  G.enem.push({ p, b, k, mod, esc:k.esc,
     vel:(110+G.wave*7+Math.random()*40)*k.vel,
     vida:base, vidaMax:base,
     fuego:.8+Math.random()*1.8, giro:(.5+Math.random()*.5)*k.giro });
@@ -1324,7 +1334,7 @@ function update(dt){
       for(const e of G.enem){
         if(e.ardiendo>0) continue;                          /* ya está sentenciado */
         const dJug=len(sub(e.p,G.pos));
-        if(len(sub(b.p,e.p)) < Math.max(G.modEnem.r*2.8*(e.esc||1), dJug*0.045)){
+        if(len(sub(b.p,e.p)) < Math.max((e.mod||G.modEnem).r*2.8*(e.esc||1), dJug*0.045)){
           b.vida=0; if(b.yo!==false) G.aciertos++;
           const dmg=Math.round(((b.yo!==false?55:40)+Math.random()*8)*(NAVE().dano||1));
           e.vida-=dmg; textoDano(e.p, dmg, b.yo!==false?"#ffe81f":"#8fd0ff");
