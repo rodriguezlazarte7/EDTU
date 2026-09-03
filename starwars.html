@@ -966,6 +966,18 @@ const TEMAS={
            24,null,27,26, 24,null,22,null, 20,null,22,24, 22,null,null,null ].map(x=>x==null?null:x+5),
     paso:.1875, tambor:.13, bajoTipo:"triangle", metalTipo:"sawtooth", meloTipo:"square", tono:0
   },
+  apertura:{                                                /* 🎺 el TEMA DE EDTU: marcha de metales, en bucle */
+    /* el bajo camina como una marcha: tónica, quinta, y un empujón al final de cada frase */
+    bajo:[ 0,0,7,0,  0,0,7,0,   -2,-2,5,-2,  -2,-2,5,-2,
+           -4,-4,3,-4, -4,-4,3,-4,  -5,-5,2,-5,  7,7,7,7 ].map(x=>x+5),
+    /* los metales sostienen el acorde debajo de la melodía */
+    acorde:[[5,12,17],[5,12,17],[3,10,15],[3,10,15],[1,8,13],[1,8,13],[0,7,12],[7,14,19]],
+    /* la melodía: salto de quinta al empezar (lo que suena "a aventura"),
+       nota larga, y una bajada que vuelve a subir. Compuesta para EDTU */
+    melo:[ 12,null,null,19,  19,null,17,15,   17,null,null,null,  14,null,15,17,
+           15,null,null,12,  12,null,10,12,   14,null,15,14,      12,null,null,null ].map(x=>x==null?null:x+5),
+    paso:.2400, tambor:.16, bajoTipo:"triangle", metalTipo:"sawtooth", meloTipo:"sawtooth", tono:0
+  },
   jefe:{                                                    /* más grave, más rápido y con la nota que "raspa" (la segunda menor) */
     bajo:[0,0,0,1, 0,0,0,1, 0,0,0,-2, 0,0,0,1, 0,0,0,1, 0,0,0,-1, -2,-2,-2,-1, 0,0,1,0].map(x=>x+5),
     acorde:[[5,6,17],[5,6,17],[3,5,15],[3,5,15],[5,6,17],[5,6,17],[1,4,13],[2,5,14]],
@@ -1008,7 +1020,10 @@ function musPaso(t){
   musVoz(T.bajoTipo, NOTA(T.bajo[i%T.bajo.length]-12+tono), t, .22, .16+viva*.05);   /* el bajo, siempre */
   if(p%4===0){ for(const c of T.acorde[compas]) musVoz(T.metalTipo, NOTA(c-12+tono), t, .62, .028+viva*.02); }  /* metales */
   const m=T.melo[i%T.melo.length];
-  if(m!==null&&(viva>.15||T===TEMAS.jefe)) musVoz(T.meloTipo, NOTA(m+tono), t, .30, .034*Math.min(1,viva*1.4+(T===TEMAS.jefe?.5:0)));
+  if(m!==null&&(viva>.15||T===TEMAS.jefe||T===TEMAS.apertura))
+    musVoz(T.meloTipo, NOTA(m+tono), t, T===TEMAS.apertura?.42:.30,
+           T===TEMAS.apertura?.045:.034*Math.min(1,viva*1.4+(T===TEMAS.jefe?.5:0)));
+  if(T===TEMAS.apertura&&m!==null) musVoz("triangle", NOTA(m+tono-12), t, .40, .030);   /* la melodía doblada una octava abajo: suena a orquesta */
   if(p%8===4||p%8===0||(T===TEMAS.jefe&&p%4===2)){          /* golpe de tambor (el jefe marca más) */
     const a=ac(); const o=a.createOscillator(), g=a.createGain();
     o.type="sine"; o.frequency.setValueAtTime(p%8===0?110:150,t); o.frequency.exponentialRampToValueAtTime(40,t+.13);
@@ -1017,7 +1032,8 @@ function musPaso(t){
   }
   MUS.paso++;
 }
-function musArranca(){
+function musArranca(cual){
+  if(cual&&TEMAS[cual]) TEMA=TEMAS[cual];
   const a=ac(); if(!a||MUS.on) return;
   try{ if(a.state==="suspended") a.resume(); }catch(e){}
   if(!MUS.gan){ MUS.gan=a.createGain(); MUS.gan.gain.value=0; MUS.gan.connect(a.destination);
@@ -2823,7 +2839,7 @@ function empezar(){
   $("intro").classList.add("hide"); $("over").classList.add("hide"); $("pause").classList.add("hide");
   $("pauseBtn").style.display="block"; $("pts").style.opacity=.4; $("ptsN").textContent="0";
   try{ cv.requestPointerLock&&cv.requestPointerLock(); }catch(e){}
-  MUS.intens=0; SACUDE=0; TEMA=TEMAS.batalla; tactilVisible(true); hiperEmpieza();
+  musMenuPara(); MUS.intens=0; SACUDE=0; TEMA=TEMAS.batalla; tactilVisible(true); hiperEmpieza();
   tutoEmpieza();
   ordenN=0; { const el=$("orden"); if(el){ el.textContent=ordenActual().nom; el.style.opacity=1; } } if(!mute){ musArranca(); motorEnciende(); }
   last=performance.now(); requestAnimationFrame(frame);
@@ -2897,6 +2913,7 @@ function finPartida(){
     pintaMedallero(); pintaHistorial();
     pintaMedallas(nuevas, ganadas.map(m=>m.id)); }
   $("over").classList.remove("hide"); pintaContinuar();
+  setTimeout(()=>{ if(!G.run&&!mute){ musMenu=false; musMenuArranca(); } }, 1400);   /* vuelve el tema de EDTU */
   { const b=$("hojaMarcas"), a=$("hojaVolar");                /* al terminar, la pantalla de inicio ya queda en TUS MARCAS */
     if(a&&b){ a.classList.add("hide"); b.classList.remove("hide");
       document.querySelectorAll(".pes").forEach(x=>x.classList.toggle("sel", x.dataset.p==="marcas")); } }
@@ -2969,7 +2986,11 @@ addEventListener("keydown",e=>{
   else if(k==="f") lanzaTorpedo();
   else if(k==="r"){ RADAR.on=!RADAR.on; aviso(RADAR.on?"📡 radar encendido":"📡 radar apagado"); }
   else if(k==="p") pausar();
-  else if(k==="m"){ mute=!mute; if(mute){ musPara(true); motorApaga(); } else if(G.run&&!G.paused&&!G.over){ musArranca(); motorEnciende(); } avisoM(); }
+  else if(k==="m"){ mute=!mute;
+    if(mute){ musPara(true); motorApaga(); musMenu=false; }
+    else if(G.run&&!G.paused&&!G.over){ musArranca(); motorEnciende(); }
+    else { musMenu=false; musMenuArranca(); }
+    avisoM(); }
   else if(k==="escape"&&G.run&&!G.over) pausar(true);
 });
 addEventListener("keyup",e=>{ const k=e.key.toLowerCase();
@@ -3015,7 +3036,7 @@ document.addEventListener("pointerlockchange",()=>{ if(G.run&&!G.over&&document.
 resize(); estrellasNuevas(); destructoresNuevos();
 $("best").textContent=G.best?"🏆 tu récord: "+G.best+" battle points":"";
 pintaRecords();
-const NOVEDADES_V=10;                                         /* sube este número cuando haya cosas nuevas */
+const NOVEDADES_V=11;                                         /* sube este número cuando haya cosas nuevas */
 const NOVEDADES=[
   ["🎚️","Mandas tú la velocidad","<span class='tec'>W</span> y <span class='tec'>S</span> (o la rueda del ratón) mueven el acelerador · <span class='tec'>X</span> para en seco · <span class='tec'>Z</span> a fondo. Parado giras hasta un 75% más cerrado: frena y el que te persigue se te pasa de largo"],
   ["🚀","Torpedos que persiguen","<span class='tec'>F</span> suelta dos torpedos al enemigo que tengas fichado. Pegan 260 (casi cinco veces un láser). Llevas 6 y te dan 2 en cada oleada"],
@@ -3028,6 +3049,7 @@ const NOVEDADES=[
   ["🎯","Misiones en cada oleada","Proteger a un compañero, callar las torretas de un Destructor, cruzar los 7 arcos del desfiladero o cazar contrarreloj"],
   ["🎖️","Catorce medallas","Se ganan por CÓMO juegas: sin perder compañeros, sin que te den, con torpedos, con puntería, aguantando 5 minutos en supervivencia, desmantelando una nodriza, sin pedir refuerzos o pasando la oleada 5 en IMPOSIBLE. El medallero está en la pantalla de inicio"],
   ["😠","Cuatro dificultades","De FÁCIL a IMPOSIBLE. Las difíciles pagan más: en IMPOSIBLE cada derribo vale x2,5"],
+  ["🎺","Tema de EDTU","Una marcha de metales propia que suena en bucle en la pantalla de inicio, compuesta para el juego (la de las películas es de John Williams y no se puede copiar). Empieza en cuanto tocas algo, y se calla al despegar para dejar paso al tema de batalla"],
   ["💥","Destructores que se hunden","Los Destructores Estelares ya no son decorado: tienen 9.000 de vida, TE DISPARAN desde 2.600 unidades con cañones verdes gordísimos que hacen mucho daño, y se pueden HUNDIR. Cuando revientas uno se va a pique 3,5 segundos explotando por dentro, suelta 3 cápsulas y te da 6.000 puntos"],
   ["🛡️","Jefes de tu equipo","En cada oleada de jefe llega una nave capital AMIGA (la CORBETA REPÚBLICA si vuelas el CAZA DAVID) con 5.200 de vida y torretas que apuntan adelantado. Pelea contigo contra el jefe... pero también se la pueden hundir"],
   ["🚀","Halcón Milenario y Corbeta","Dos naves grandes más: el HALCÓN (escudo 340, su cañón cuádruple azul, pesado de girar) y la CORBETA de la República (escudo 520, el más alto del juego, con 3 torretas, pero lentísima)"],
@@ -3057,6 +3079,16 @@ function repiteTutorial(){
   aviso("🎓 el primer vuelo volverá a salir");
   const b=$("tutoBtn"); if(b){ b.textContent="🎓 ¡listo! sale al despegar"; b.disabled=true; }
 }
+let musMenu=false;
+function musMenuArranca(){
+  /* los navegadores no dejan sonar nada hasta que el usuario toca algo:
+     por eso se engancha al primer clic o a la primera tecla */
+  if(musMenu||mute||G.run) return;
+  musMenu=true; MUS.intens=1; musArranca("apertura");
+}
+function musMenuPara(){ if(!musMenu) return; musMenu=false; musPara(); }
+addEventListener("pointerdown",musMenuArranca,{once:false});
+addEventListener("keydown",musMenuArranca,{once:false});
 function pestanaVolar(){
   document.querySelectorAll(".pes").forEach(x=>x.classList.toggle("sel", x.dataset.p==="volar"));
   const a=$("hojaVolar"), b=$("hojaMarcas");
