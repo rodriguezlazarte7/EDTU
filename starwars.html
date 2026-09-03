@@ -1125,23 +1125,98 @@ function ambienteApaga(){
     setTimeout(()=>{ for(const x of viejos){ try{ x.stop&&x.stop(); }catch(e){} try{ x.disconnect(); }catch(e){} } },900);
   }catch(e){}
 }
-const MOT={ o:null, g:null, f:null };
-function motorEnciende(){
-  const a=ac(); if(!a||MOT.o||mute) return;
-  MOT.o=a.createOscillator(); MOT.o.type="sawtooth";
-  MOT.f=a.createBiquadFilter(); MOT.f.type="lowpass"; MOT.f.frequency.value=420;
-  MOT.g=a.createGain(); MOT.g.gain.value=0;
-  MOT.o.connect(MOT.f); MOT.f.connect(MOT.g); MOT.g.connect(a.destination);
-  MOT.o.start();
+const MOT={ on:false, nodos:[], sub:null, s1:null, s2:null, chi:null, aire:null,
+            fBody:null, fAire:null, gSub:null, gBody:null, gAire:null, gChi:null, gMaster:null };
+/* cada nave suena distinta: los TIE chillan agudo, las grandes retumban */
+function motorVoz(){
+  const N=NAVE();
+  if(G.bando==="david")  return { base:58, chillo:1.00, cuerpo:1.05, grave:1.00, aire:1.00 };
+  if(G.bando==="corbeta")return { base:26, chillo:0.15, cuerpo:0.75, grave:1.60, aire:0.70 };
+  if(G.bando==="halcon") return { base:34, chillo:0.20, cuerpo:0.95, grave:1.35, aire:0.85 };
+  if(N.imperial)         return { base:74, chillo:1.55, cuerpo:0.85, grave:0.70, aire:1.15 };   /* el chillido TIE */
+  return                        { base:48, chillo:0.45, cuerpo:1.00, grave:1.05, aire:0.95 };   /* rebeldes */
 }
-function motorApaga(){ try{ if(MOT.o){ MOT.g.gain.value=0; MOT.o.stop(); } }catch(e){} MOT.o=null; }
+function motorEnciende(){
+  const a=ac(); if(!a||MOT.on||mute) return;
+  try{ if(a.state==="suspended") a.resume(); }catch(e){}
+  MOT.on=true; MOT.nodos=[];
+  const V=motorVoz();
+  MOT.gMaster=a.createGain(); MOT.gMaster.gain.value=1; MOT.gMaster.connect(a.destination);
+
+  /* 1) EL SUBGRAVE: lo que se siente en el pecho más que se oye */
+  MOT.sub=a.createOscillator(); MOT.sub.type="sine"; MOT.sub.frequency.value=V.base*0.5;
+  MOT.gSub=a.createGain(); MOT.gSub.gain.value=0;
+  MOT.sub.connect(MOT.gSub); MOT.gSub.connect(MOT.gMaster); MOT.sub.start();
+
+  /* 2) EL CUERPO: dos sierras casi iguales. Ese "casi" es lo que da el batido
+        que hace que suene a motor y no a pitido de test de oído */
+  MOT.fBody=a.createBiquadFilter(); MOT.fBody.type="lowpass"; MOT.fBody.frequency.value=500; MOT.fBody.Q.value=3.2;
+  MOT.gBody=a.createGain(); MOT.gBody.gain.value=0;
+  MOT.fBody.connect(MOT.gBody); MOT.gBody.connect(MOT.gMaster);
+  MOT.s1=a.createOscillator(); MOT.s1.type="sawtooth"; MOT.s1.frequency.value=V.base;
+  MOT.s2=a.createOscillator(); MOT.s2.type="sawtooth"; MOT.s2.frequency.value=V.base*1.007;
+  MOT.s1.connect(MOT.fBody); MOT.s2.connect(MOT.fBody); MOT.s1.start(); MOT.s2.start();
+
+  /* 3) EL AIRE: el chorro de plasma, que es ruido filtrado */
+  MOT.aire=a.createBufferSource(); MOT.aire.buffer=ruidoBuffer(a); MOT.aire.loop=true;
+  MOT.fAire=a.createBiquadFilter(); MOT.fAire.type="bandpass"; MOT.fAire.frequency.value=900; MOT.fAire.Q.value=0.9;
+  MOT.gAire=a.createGain(); MOT.gAire.gain.value=0;
+  MOT.aire.connect(MOT.fAire); MOT.fAire.connect(MOT.gAire); MOT.gAire.connect(MOT.gMaster); MOT.aire.start();
+
+  /* 4) EL CHILLIDO: el agudo con el que se reconoce un TIE */
+  MOT.chi=a.createOscillator(); MOT.chi.type="square"; MOT.chi.frequency.value=V.base*6;
+  MOT.gChi=a.createGain(); MOT.gChi.gain.value=0;
+  const fChi=a.createBiquadFilter(); fChi.type="bandpass"; fChi.frequency.value=V.base*6; fChi.Q.value=6;
+  MOT.chi.connect(fChi); fChi.connect(MOT.gChi); MOT.gChi.connect(MOT.gMaster); MOT.chi.start();
+
+  /* 5) el temblor: sin esto todo suena sintético y muerto */
+  const lfo=a.createOscillator(), lg=a.createGain();
+  lfo.type="sine"; lfo.frequency.value=7.5; lg.gain.value=V.base*0.012;
+  lfo.connect(lg); lg.connect(MOT.s1.frequency); lg.connect(MOT.s2.frequency); lfo.start();
+
+  MOT.nodos.push(MOT.sub,MOT.s1,MOT.s2,MOT.chi,MOT.aire,lfo,lg,fChi,
+                 MOT.fBody,MOT.fAire,MOT.gSub,MOT.gBody,MOT.gAire,MOT.gChi,MOT.gMaster);
+  MOT.V=V;
+}
+function motorApaga(){
+  if(!MOT.on) return;
+  MOT.on=false;
+  const a=ac();
+  try{
+    if(MOT.gMaster&&a){ const t=a.currentTime;
+      MOT.gMaster.gain.cancelScheduledValues(t);
+      MOT.gMaster.gain.setValueAtTime(MOT.gMaster.gain.value,t);
+      MOT.gMaster.gain.linearRampToValueAtTime(0,t+.25); }
+    const viejos=MOT.nodos; MOT.nodos=[];
+    setTimeout(()=>{ for(const x of viejos){ try{ x.stop&&x.stop(); }catch(e){} try{ x.disconnect(); }catch(e){} } },350);
+  }catch(e){}
+  MOT.sub=MOT.s1=MOT.s2=MOT.chi=MOT.aire=null;
+}
 function motorSuena(v){                                      /* v de 0 a 1: cuánto corre la nave */
-  if(!MOT.o||mute) return;
+  if(!MOT.on||mute) return;
   const a=ac(); if(!a) return;
-  const t=a.currentTime;
-  MOT.o.frequency.setTargetAtTime(46+v*70, t, .12);           /* grave: se siente más que se oye */
-  MOT.f.frequency.setTargetAtTime(280+v*900, t, .12);
-  MOT.g.gain.setTargetAtTime(.028+v*.05, t, .12);
+  const t=a.currentTime, V=MOT.V||motorVoz();
+  const k=0.10;                                              /* lo que tarda en obedecer: sube y baja suave */
+  const turbo=(G.turbo&&G.boost>0)?1:0;
+  const gas=Math.max(0,Math.min(1,v));
+  const giro=Math.min(1,(Math.abs(G.yaw)+Math.abs(G.pitch))/3.4);   /* al virar fuerte, el motor "carga" */
+
+  /* el tono sube con el gas y un poco más con el turbo */
+  const tono=V.base*(0.72+gas*0.55+turbo*0.22+giro*0.06);
+  MOT.s1.frequency.setTargetAtTime(tono, t, k);
+  MOT.s2.frequency.setTargetAtTime(tono*1.007, t, k);
+  MOT.sub.frequency.setTargetAtTime(tono*0.5, t, k);
+  MOT.chi.frequency.setTargetAtTime(tono*6, t, k);
+
+  /* el filtro se abre con el gas: eso es lo que hace que "acelere" y no solo suba de tono */
+  MOT.fBody.frequency.setTargetAtTime(240+gas*1400+turbo*900, t, k);
+  MOT.fAire.frequency.setTargetAtTime(700+gas*1800+turbo*1200, t, k);
+
+  /* volúmenes de cada capa */
+  MOT.gSub .gain.setTargetAtTime((0.020+gas*0.055)*V.grave,               t, k);
+  MOT.gBody.gain.setTargetAtTime((0.014+gas*0.042+turbo*0.030)*V.cuerpo,  t, k);
+  MOT.gAire.gain.setTargetAtTime((0.006+gas*0.030+turbo*0.028)*V.aire,    t, k);
+  MOT.gChi .gain.setTargetAtTime((0.0015+gas*0.011+turbo*0.010)*V.chillo, t, k);
 }
 function musIntensidad(v){                                   /* cuantos más enemigos cerca, más música */
   MUS.intens+=(v-MUS.intens)*.06;
@@ -3301,7 +3376,7 @@ document.addEventListener("pointerlockchange",()=>{ if(G.run&&!G.over&&document.
 resize(); estrellasNuevas(); destructoresNuevos();
 $("best").textContent=G.best?"🏆 tu récord: "+G.best+" battle points":"";
 pintaRecords();
-const NOVEDADES_V=13;                                         /* sube este número cuando haya cosas nuevas */
+const NOVEDADES_V=14;                                         /* sube este número cuando haya cosas nuevas */
 const NOVEDADES=[
   ["🎚️","Mandas tú la velocidad","<span class='tec'>W</span> y <span class='tec'>S</span> (o la rueda del ratón) mueven el acelerador · <span class='tec'>X</span> para en seco · <span class='tec'>Z</span> a fondo. Parado giras hasta un 75% más cerrado: frena y el que te persigue se te pasa de largo"],
   ["🚀","Torpedos que persiguen","<span class='tec'>F</span> suelta dos torpedos al enemigo que tengas fichado. Pegan 260 (casi cinco veces un láser). Llevas 6 y te dan 2 en cada oleada"],
@@ -3315,6 +3390,7 @@ const NOVEDADES=[
   ["🎖️","Catorce medallas","Se ganan por CÓMO juegas: sin perder compañeros, sin que te den, con torpedos, con puntería, aguantando 5 minutos en supervivencia, desmantelando una nodriza, sin pedir refuerzos o pasando la oleada 5 en IMPOSIBLE. El medallero está en la pantalla de inicio"],
   ["😠","Cuatro dificultades","De FÁCIL a IMPOSIBLE. Las difíciles pagan más: en IMPOSIBLE cada derribo vale x2,5"],
   ["🌐","Sala online","Como en SWARM: entras a la sala y VES A LOS DEMÁS PILOTOS volando en el mismo espacio, con su nombre, su nave, su puntuación y sus disparos. Salen también en el radar en verde. Cada uno pelea contra sus propios enemigos, así que nadie te puede fastidiar la partida"],
+  ["🔊","El motor suena de verdad","Antes el motor era UN pitido con un filtro. Ahora son cuatro capas (subgrave, cuerpo, chorro de plasma y chillido) y CADA NAVE SUENA DISTINTA: los TIE chillan agudo, la Corbeta retumba grave, el Halcón ronronea. Y responde a lo que haces: acelerar abre el sonido, el turbo lo rompe y al virar fuerte el motor carga"],
   ["🌌","Ambiente de batalla espacial","Debajo de todo suena ahora el espacio: el zumbido grave de una nave enorme (tres tonos casi iguales que laten a distinto ritmo, por eso «respira»), viento estelar y estruendos lejanos de explosiones que no ves. Todo generado en el momento: no descarga ni un byte"],
   ["🎺","Tema de EDTU","Una marcha de metales propia que suena en bucle en la pantalla de inicio, compuesta para el juego (la de las películas es de John Williams y no se puede copiar). Empieza en cuanto tocas algo, y se calla al despegar para dejar paso al tema de batalla"],
   ["💥","Destructores que se hunden","Los Destructores Estelares ya no son decorado: tienen 9.000 de vida, TE DISPARAN desde 2.600 unidades con cañones verdes gordísimos que hacen mucho daño, y se pueden HUNDIR. Cuando revientas uno se va a pique 3,5 segundos explotando por dentro, suelta 3 cápsulas y te da 6.000 puntos"],
