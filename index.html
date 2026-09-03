@@ -7267,7 +7267,7 @@ function buildTrophies(){ try{
       let extra=""; try{ const T=JSON.parse(g("edtu_sw_totals")||"null");
         if(T&&T.n) extra=" · 🎮 "+T.n+" partida"+(T.n>1?"s":"")+" · 🎯 "+(T.kills||0)+" derribos"; }catch(e){}
       let med=""; try{ const md=JSON.parse(g("edtu_sw_medallas")||"[]");
-        if(Array.isArray(md)&&md.length) med=" · 🎖️ "+md.length+"/9 medallas"; }catch(e){}
+        if(Array.isArray(md)&&md.length) med=" · 🎖️ "+md.length+"/13 medallas"; }catch(e){}
       h+="<div style='color:#ffe81f'><b>⭐ STAR WARS</b></div>🏆 "+sb+" battle points"+extra+med+
          (porNave.length?"<br><span style='color:#9fb6c9'>🚀 "+porNave.map((x,i)=>(i===0?"👑 ":"")+x.n+" "+x.v).join(" · ")+"</span>":"")+"<br>";
     } }
@@ -7903,7 +7903,11 @@ function wallyType(txt){ const ws=$("wallySpeech"); if(!ws) return; try{ const n
       ["torpedero","🚀","TORPEDERO","derribar 6 naves con torpedos"],
       ["comandante","🎖️","COMANDANTE","cumplir 5 misiones en una partida"],
       ["pilotofino","🏁","PILOTO FINO","cruzar entero un desfiladero"],
-      ["intocable","✨","INTOCABLE","pasar la oleada 5 sin que te den ni una vez"]
+      ["intocable","✨","INTOCABLE","pasar la oleada 5 sin que te den ni una vez"],
+      ["superviviente","♾️","SUPERVIVIENTE","aguantar 5 minutos en el modo supervivencia"],
+      ["desmantelador","🛰️","DESMANTELADOR","reventar los 4 generadores de una nodriza"],
+      ["solitario","📻","SOLITARIO","llegar a la oleada 8 sin pedir refuerzos"],
+      ["imparable","💀","IMPARABLE","pasar la oleada 5 en dificultad IMPOSIBLE"]
     ];
     const pideMedallas=/(medalla|medallas|medallero|condecoraci)/.test(q) &&
       (/star ?wars|starwars|espacial|nave/.test(q) || !/(jurassic|scream|not a game|f1|cubo|rubik)/.test(q));
@@ -7913,12 +7917,12 @@ function wallyType(txt){ const ws=$("wallySpeech"); if(!ws) return; try{ const n
       const puestas=SW_MED.filter(m=>tengo.includes(m[0]));
       const faltan=SW_MED.filter(m=>!tengo.includes(m[0]));
       if(!puestas.length)
-        return "🎖️ Todavía no tienes ninguna de las 9 medallas de STAR WARS. La más fácil para empezar: ☠️ CAZAJEFES, derribar una nave jefe — aparece en la oleada 5. Di «abre star wars» y vamos.";
+        return "🎖️ Todavía no tienes ninguna de las "+SW_MED.length+" medallas de STAR WARS. La más fácil para empezar: ☠️ CAZAJEFES, derribar una nave jefe — aparece en la oleada 5. Di «abre star wars» y vamos.";
       const prox=faltan[0];
-      return "🎖️ Llevas "+puestas.length+" de 9 medallas en STAR WARS: "+
+      return "🎖️ Llevas "+puestas.length+" de "+SW_MED.length+" medallas en STAR WARS: "+
         puestas.map(m=>m[1]+" "+m[2]).join(" · ")+
         (prox ? ". La siguiente que te propongo: "+prox[1]+" "+prox[2]+" — "+prox[3]+"."
-              : ". ¡Las nueve! No queda ninguna, eres el mejor piloto del cuartel.");
+              : ". ¡Las "+SW_MED.length+"! No queda ninguna, eres el mejor piloto del cuartel.");
     }
   }
   if(/star ?wars|starwars/.test(q)){                                                        /* ⭐ el juego STAR WARS del cuartel */
@@ -7933,7 +7937,7 @@ function wallyType(txt){ const ws=$("wallySpeech"); if(!ws) return; try{ const n
     }catch(e){}
     return "⭐ STAR WARS es la batalla espacial en 3D del cuartel. Eliges entre seis naves (Ala-X, Ala-A, Ala-Y, TIE, TIE Interceptor y TIE Defender), vuelas en todas las direcciones con el ratón o el mando, disparas láseres y torpedos que persiguen al blanco, y peleas por oleadas con tres compañeros de escuadrón. Cada oleada trae una misión y cada cinco aparece una nave jefe."+
       (r?" Tu récord: "+r+" battle points"+(mejorNave?", con "+mejorNave:"")+".":"")+
-      (nMed?" Llevas "+nMed+" de 9 medallas.":"")+" Di «abre star wars» y entramos.";
+      (nMed?" Llevas "+nMed+" de 13 medallas.":"")+" Di «abre star wars» y entramos.";
   }
     if(/\bjuegos?\b|jugar|aburrid/.test(q)){
       if(!g("scream_best")) return "te recomiendo SCREAM 🕷️ ¡aún no logras escapar del edificio!";
