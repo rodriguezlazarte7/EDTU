@@ -600,7 +600,8 @@ function pintaModelo(mod, pos, base, escala, caras, extra, tinta){
     const luz=Math.max(0,-dot(n,nl));
     const rim=Math.pow(1-Math.min(1,Math.abs(n.z)),3)*.35;   /* borde de luz: separa la nave del espacio */
     const esp=Math.pow(luz,14)*.55;                          /* reflejo del sol en la chapa */
-    caras.push({z, pts:idx.map(k=>proyecta(V[k])), c:tinta?mezcla(f.c,tinta,.5):f.c, l:.30+luz*.80+rim+esp});
+    const base=tinta?mezcla(f.c,tinta,.5):f.c;
+    caras.push({z, pts:idx.map(k=>proyecta(V[k])), c:colorLuz(base,luz), l:.34+luz*.74+rim+esp});
   }
   if(extra) extra(V,rel,cam,escala);
 }
@@ -608,6 +609,20 @@ function mezcla(a,b,k){                                      /* mezcla dos color
   const x=parseInt(a.slice(1),16), y=parseInt(b.slice(1),16);
   const m=(sh)=>Math.round((((x>>sh)&255)*(1-k))+(((y>>sh)&255)*k));
   return "#"+((1<<24)+(m(16)<<16)+(m(8)<<8)+m(0)).toString(16).slice(1);
+}
+const SOL_CALIDO="#fff2d2", SOMBRA_FRIA="#2b3c74";           /* el color del sol y el de la sombra del espacio */
+const cacheLuz=new Map();
+function colorLuz(hex,luz){
+  /* se guarda lo ya calculado: si no, habría que mezclar colores cientos de veces por fotograma */
+  const paso=Math.round(Math.max(0,Math.min(1,luz))*12);
+  const clave=hex+"|"+paso;
+  let c=cacheLuz.get(clave);
+  if(c!==undefined) return c;
+  const t=paso/12;
+  c = t>0.5 ? mezcla(hex, SOL_CALIDO, (t-0.5)*0.34)          /* al sol, tira a dorado */
+            : mezcla(hex, SOMBRA_FRIA, (0.5-t)*0.62);        /* en sombra, tira a azul de nebulosa */
+  cacheLuz.set(clave,c);
+  return c;
 }
 function tinte(hex,k){ const n=parseInt(hex.slice(1),16); const r=Math.min(255,((n>>16)&255)*k)|0, g=Math.min(255,((n>>8)&255)*k)|0, b=Math.min(255,(n&255)*k)|0; return "rgb("+r+","+g+","+b+")"; }
 
