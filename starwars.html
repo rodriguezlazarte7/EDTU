@@ -64,6 +64,11 @@
   .nave:hover,.nave.sel{transform:translateY(-4px)}
   .nave.sel{border-color:#ffe81f;box-shadow:0 0 24px rgba(255,232,31,.3)}
   .nave canvas{width:100%;height:78px;display:block}
+  .nave .rec{margin-top:6px;font-size:11px;color:#ffd166;letter-spacing:.04em}
+  #recTabla{margin:8px auto 2px;max-width:min(430px,92vw);font-size:12px;color:#9fc8e8;
+    background:rgba(6,16,30,.5);border:1px solid rgba(143,208,255,.2);border-radius:12px;padding:8px 14px}
+  #recTabla .rt{font-weight:800;letter-spacing:.08em;color:#8fd0ff;margin-bottom:5px;font-size:11px}
+  #recTabla .rf{display:flex;justify-content:space-between;gap:14px;padding:1px 0}
   .nave .n{font-family:"Consolas",monospace;font-weight:900;letter-spacing:.1em;font-size:clamp(13px,3.4vw,17px);color:#ffe81f;margin-top:6px}
   .nave .d{font-family:"Consolas",monospace;font-size:clamp(10px,2.5vw,12px);color:#8fd0ff;line-height:1.7;margin-top:5px}
   .nave .d i{font-style:normal;color:#cfe0ff}
@@ -116,6 +121,7 @@
     <div class="nave" data-n="i"><canvas class="prev" data-p="i"></canvas><div class="n">TIE INTERCEPTOR</div>
       <div class="d">Imperial · <i>el más rápido en disparar</i><br/>escudo 95 · muy ágil<br/>🔫 <b>13 tiros por segundo</b></div></div>
   </div>
+  <div id="recTabla"></div>
   <div class="keys">
     🖱️ <b>mueve el ratón</b> para volar en cualquier dirección (360°)<br/>
     🔫 <b>clic o ESPACIO</b> dispara &nbsp;·&nbsp; 🔭 <b>clic derecho</b> zoom x2,50 &nbsp;·&nbsp; ⚡ <b>SHIFT</b> turbo<br/>
@@ -342,6 +348,23 @@ const NAVES={
   i:{ nom:"TIE Interceptor", mod:()=>MOD.i, vida:95, vel:215, giro:1.62, cad:0.075, imperial:true, dano:0.8 }
 };
 const NAVE=()=>NAVES[G.bando]||NAVES.x;
+const recordDe=b=>{ try{ return +(localStorage.getItem("edtu_sw_best_"+b)||0); }catch(e){ return 0; } };
+function guardaRecord(b,v){ try{ localStorage.setItem("edtu_sw_best_"+b, v); }catch(e){} }
+function pintaRecords(){
+  /* cada ficha de la pantalla de elección enseña su propio récord */
+  document.querySelectorAll(".nave").forEach(el=>{
+    const b=el.dataset.n, r=recordDe(b);
+    let et=el.querySelector(".rec");
+    if(!et){ et=document.createElement("div"); et.className="rec"; el.appendChild(et); }
+    et.innerHTML=r?("🏆 <b>"+r+"</b>"):"<span style='opacity:.45'>sin récord</span>";
+  });
+  const t=$("recTabla"); if(!t) return;
+  const filas=Object.keys(NAVES).map(b=>({b,nom:NAVES[b].nom,r:recordDe(b)})).sort((a,c)=>c.r-a.r);
+  const mejor=filas[0]&&filas[0].r;
+  t.innerHTML="<div class='rt'>🏆 TUS RÉCORDS POR NAVE</div>"+filas.map(x=>
+    "<div class='rf'"+(x.b===G.bando?" style='color:#ffe81f'":"")+"><span>"+
+    (x.r&&x.r===mejor?"👑 ":"")+x.nom+"</span><b>"+(x.r||"—")+"</b></div>").join("");
+}
 
 /* ---------- estado ---------- */
 const G={ run:false,over:false,paused:false,t:0, score:0,wave:0,kills:0,disparos:0,aciertos:0,
@@ -1480,13 +1503,18 @@ function finPartida(){
   G.over=true; G.run=false; G.shield=0; $("pauseBtn").style.display="none"; musPara(); motorApaga(); sacude(1.2);
   try{ document.exitPointerLock&&document.exitPointerLock(); }catch(e){}
   const seg=Math.round((Date.now()-G.inicio)/1000), punt=G.disparos?Math.round(100*G.aciertos/G.disparos):0;
+  const recNave=recordDe(G.bando);
+  const recordNave=G.score>recNave;
+  if(recordNave) guardaRecord(G.bando,G.score);
   const record=G.score>G.best;
   if(record){ G.best=G.score; try{ localStorage.setItem("edtu_sw_best",G.score); }catch(e){} }
   guardaDiario(seg,punt);
-  $("overTitle").textContent=record?"¡NUEVO RÉCORD!":"DERRIBADO";
+  $("overTitle").textContent=record?"¡NUEVO RÉCORD!":(recordNave?"¡RÉCORD CON ESTA NAVE!":"DERRIBADO");
   $("overStats").innerHTML="<div><b>"+G.score+"</b> battle points</div><div>🎯 "+G.kills+" cazas derribados</div>"+
     "<div>🔫 puntería <b>"+punt+"%</b></div><div>🌊 oleada <b>"+Math.max(1,G.wave)+"</b></div>"+
-    "<div>⏱️ "+seg+" s en vuelo · "+NAVE().nom+"</div><div style='color:#8fd0ff;margin-top:6px'>récord: "+G.best+"</div>";
+    "<div>⏱️ "+seg+" s en vuelo · "+NAVE().nom+"</div><div style='color:#8fd0ff;margin-top:6px'>récord general: "+G.best+
+    " · con "+NAVE().nom+": "+Math.max(recNave,G.score)+"</div>";
+  pintaRecords();
   $("over").classList.remove("hide");
 }
 function guardaDiario(seg,punt){ try{
@@ -1559,7 +1587,7 @@ addEventListener("keyup",e=>{ const k=e.key.toLowerCase();
 
 /* ---------- elegir nave ---------- */
 document.querySelectorAll(".nave").forEach(el=>{ el.onclick=()=>{
-  document.querySelectorAll(".nave").forEach(x=>x.classList.remove("sel")); el.classList.add("sel"); G.bando=el.dataset.n; }; });
+  document.querySelectorAll(".nave").forEach(x=>x.classList.remove("sel")); el.classList.add("sel"); G.bando=el.dataset.n; pintaRecords(); }; });
 /* miniaturas 3D girando */
 document.querySelectorAll(".prev").forEach(pc=>{
   const mod=MOD[pc.dataset.p], c2=pc.getContext("2d"); let ang=Math.random()*6;
@@ -1591,6 +1619,7 @@ document.addEventListener("pointerlockchange",()=>{ if(G.run&&!G.over&&document.
 
 resize(); estrellasNuevas(); destructoresNuevos();
 $("best").textContent=G.best?"🏆 tu récord: "+G.best+" battle points":"";
+pintaRecords();
 </script>
 </body>
 </html>
