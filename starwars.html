@@ -146,6 +146,13 @@
   #novLista .nv b{color:#ffe81f}
   #novLista .nv .tec{color:#8fd0ff;font-weight:800}
   #novLista .nv small{display:block;color:#9fb6c9}
+  #hist{margin:8px auto 2px;max-width:min(520px,94vw);display:none;
+    background:rgba(6,16,30,.5);border:1px solid rgba(143,208,255,.2);border-radius:12px;padding:8px 14px}
+  #hist .ht{font-weight:800;letter-spacing:.08em;color:#8fd0ff;font-size:11px;margin-bottom:6px}
+  #hist .hb{display:flex;align-items:flex-end;gap:4px;height:46px}
+  #hist .hb i{flex:1;border-radius:3px 3px 0 0;min-height:4px}
+  #hist .hp{margin-top:6px;font-size:11px;color:#9fc8e8;line-height:1.5}
+  #hist .hp b{color:#ffe81f}
   #medallero{margin:6px auto 2px;max-width:min(520px,94vw);text-align:center;font-size:11px;color:#9fb6c9}
   #medallero .mg{display:inline-block;margin:2px;padding:3px 8px;font-size:10px;border-radius:999px;border:1px solid rgba(255,209,102,.35);color:#ffd166}
   #medallero .mg.falta{opacity:.32;border-color:rgba(159,182,201,.3);color:#9fb6c9}
@@ -227,6 +234,7 @@
   </div>
   <div id="recTabla"></div>
   <div id="medallero"></div>
+  <div id="hist"></div>
   <div class="row" id="filaJugar"><button class="btn go" id="startBtn">▶ DESPEGAR</button><button class="btn go" id="segBtn" style="display:none">▶ CONTINUAR</button><button class="btn gh" id="novBtn">❇️ NOVEDADES</button><button class="btn gh" id="backBtn">✕ SALIR</button></div>
   <details class="keys" id="ayuda"><summary>❔ CONTROLES — tócame para verlos</summary>
     🖱️ <b>mueve el ratón</b> para volar en cualquier dirección (360°)<br/>
@@ -1601,6 +1609,47 @@ function pintaNodriza(){
   }
 }
 
+/* ---------- historial de partidas ---------- */
+const HIST="edtu_sw_hist", HIST_MAX=10;
+function leeHistorial(){
+  try{ const a=JSON.parse(localStorage.getItem(HIST)||"[]"); return Array.isArray(a)?a:[]; }catch(e){ return []; }
+}
+function apuntaPartida(seg,punt){
+  try{
+    const h=leeHistorial();
+    h.push({ ts:Date.now(), score:G.score, wave:Math.max(1,G.wave), kills:G.kills, seg, punt,
+             nave:G.bando, dif:G.dif, modo:G.modo });
+    while(h.length>HIST_MAX) h.shift();
+    localStorage.setItem(HIST, JSON.stringify(h));
+  }catch(e){}
+}
+function pintaHistorial(){
+  const el=$("hist"); if(!el) return;
+  const h=leeHistorial();
+  if(h.length<2){ el.innerHTML=""; el.style.display="none"; return; }
+  el.style.display="";
+  const max=Math.max(...h.map(x=>x.score))||1;
+  const ultima=h[h.length-1], previa=h[h.length-2];
+  const sube=ultima.score-previa.score;
+  /* barritas: una por partida, de la más vieja a la más nueva */
+  const barras=h.map((x,i)=>{
+    const alto=Math.max(4, Math.round(x.score/max*100));
+    const esUlt=(i===h.length-1);
+    const t=(x.modo==="super"?"♾️":"⚔️")+" "+x.score+" pts · "+
+            (x.modo==="super"?Math.floor(x.seg/60)+":"+String(x.seg%60).padStart(2,"0"):"oleada "+x.wave)+
+            " · "+(NAVES[x.nave]?NAVES[x.nave].nom:x.nave)+" · "+(DIFS[x.dif]?DIFS[x.dif].nom:x.dif);
+    return "<i title='"+t+"' style='height:"+alto+"%;background:"+(esUlt?"#ffe81f":"rgba(143,208,255,.55)")+"'></i>";
+  }).join("");
+  el.innerHTML="<div class='ht'>📈 TUS ÚLTIMAS "+h.length+" PARTIDAS</div>"+
+    "<div class='hb'>"+barras+"</div>"+
+    "<div class='hp'>última: <b>"+ultima.score+"</b> pts · "+
+      (ultima.modo==="super"?("aguantaste "+ultima.seg+" s"):("oleada "+ultima.wave))+
+      " · 🎯 "+ultima.kills+" derribos · 🔫 "+ultima.punt+"%"+
+      (sube>0?" · <span style='color:#7ef0a8'>▲ "+sube+" mejor que la anterior</span>"
+            :sube<0?" · <span style='color:#ff9a9a'>▼ "+(-sube)+" menos que la anterior</span>"
+                   :" · igual que la anterior")+"</div>";
+}
+
 /* ---------- partida guardada ---------- */
 const GUARDA="edtu_sw_partida", GUARDA_DURA=24*60*60*1000;   /* vale durante un día */
 function guardaPartida(){
@@ -2461,6 +2510,7 @@ function finPartida(){
   const record=G.score>G.best;
   if(record){ G.best=G.score; try{ localStorage.setItem("edtu_sw_best",G.score); }catch(e){} }
   guardaDiario(seg,punt);
+  apuntaPartida(seg,punt);
   $("overTitle").textContent=record?"¡NUEVO RÉCORD!":(recordNave?"¡RÉCORD CON ESTA NAVE!":(recordDificultad?"¡RÉCORD EN "+DIF().nom+"!":"DERRIBADO"));
   $("overStats").innerHTML="<div><b>"+G.score+"</b> battle points</div><div>"+MODOS[G.modo].ic+" "+MODOS[G.modo].nom+
     (esSuper()?" · aguantaste <b>"+seg+" s</b>":"")+"</div><div>🎯 "+G.kills+" cazas derribados</div>"+
@@ -2474,7 +2524,7 @@ function finPartida(){
     const nuevas=ganadas.filter(m=>!tenia.includes(m.id));
     const todas=tenia.concat(nuevas.map(m=>m.id));
     if(nuevas.length){ guardaMedallas(todas); sfx("wave"); }
-    pintaMedallero();
+    pintaMedallero(); pintaHistorial();
     pintaMedallas(nuevas, ganadas.map(m=>m.id)); }
   $("over").classList.remove("hide"); pintaContinuar();
 }
@@ -2585,7 +2635,7 @@ document.addEventListener("pointerlockchange",()=>{ if(G.run&&!G.over&&document.
 resize(); estrellasNuevas(); destructoresNuevos();
 $("best").textContent=G.best?"🏆 tu récord: "+G.best+" battle points":"";
 pintaRecords();
-const NOVEDADES_V=5;                                         /* sube este número cuando haya cosas nuevas */
+const NOVEDADES_V=6;                                         /* sube este número cuando haya cosas nuevas */
 const NOVEDADES=[
   ["🎚️","Mandas tú la velocidad","<span class='tec'>W</span> y <span class='tec'>S</span> (o la rueda del ratón) mueven el acelerador · <span class='tec'>X</span> para en seco · <span class='tec'>Z</span> a fondo. Parado giras hasta un 75% más cerrado: frena y el que te persigue se te pasa de largo"],
   ["🚀","Torpedos que persiguen","<span class='tec'>F</span> suelta dos torpedos al enemigo que tengas fichado. Pegan 260 (casi cinco veces un láser). Llevas 6 y te dan 2 en cada oleada"],
@@ -2598,6 +2648,7 @@ const NOVEDADES=[
   ["🎯","Misiones en cada oleada","Proteger a un compañero, callar las torretas de un Destructor, cruzar los 7 arcos del desfiladero o cazar contrarreloj"],
   ["🎖️","Trece medallas","Se ganan por CÓMO juegas: sin perder compañeros, sin que te den, con torpedos, con puntería, aguantando 5 minutos en supervivencia, desmantelando una nodriza, sin pedir refuerzos o pasando la oleada 5 en IMPOSIBLE. El medallero está en la pantalla de inicio"],
   ["😠","Cuatro dificultades","De FÁCIL a IMPOSIBLE. Las difíciles pagan más: en IMPOSIBLE cada derribo vale x2,5"],
+  ["📈","Historial","En la pantalla de inicio se guardan tus últimas 10 partidas en un gráfico de barritas (la última en amarillo) y te dice si has mejorado o empeorado respecto a la anterior. Pasa el ratón por una barrita para ver esa partida"],
   ["💾","Continuar la partida","Si te tienes que ir a mitad, el juego guarda solo al terminar cada oleada (o cada 20 s en supervivencia). Al volver sale un botón <b>▶ CONTINUAR</b> con tu oleada y tus puntos. Dura un día"],
   ["🎓","Primer vuelo","La primera vez que juegas, el juego te enseña paso a paso: volar, disparar, la mirilla, el acelerador, el turbo, los torpedos y las órdenes. Se salta con <span class='tec'>T</span> y se puede repetir desde aquí"],
   ["📻","Pedir refuerzos","<span class='tec'>H</span> llama por radio al escuadrón ORO (o GRIS si eres del Imperio): llegan 2 cazas extra que pelean contigo 32 segundos y luego vuelven a la base. Llevas 2 llamadas, tardan 75 s en recargar, y ganas una más por cada jefe que derribes"],
@@ -2620,7 +2671,7 @@ function repiteTutorial(){
   aviso("🎓 el primer vuelo volverá a salir");
   const b=$("tutoBtn"); if(b){ b.textContent="🎓 ¡listo! sale al despegar"; b.disabled=true; }
 }
-function cierraNovedades(){ $("novedades").classList.add("hide"); $("intro").classList.remove("hide"); pintaContinuar(); }
+function cierraNovedades(){ $("novedades").classList.add("hide"); $("intro").classList.remove("hide"); pintaContinuar(); pintaHistorial(); }
 function pintaMedallero(){
   const el=$("medallero"); if(!el) return;
   const tengo=medallasGanadas();
@@ -2630,6 +2681,7 @@ function pintaMedallero(){
       (tengo.includes(m.id)?m.nom:m.dice)+"</span>").join("");
 }
 pintaMedallero();
+pintaHistorial();
 $("segBtn").onclick=continuaPartida;
 pintaContinuar();
 addEventListener("visibilitychange",()=>{ if(document.hidden) guardaPartida(); });
