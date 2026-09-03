@@ -154,7 +154,7 @@
     🚀 <b>F</b> lanza torpedos al blanco fichado (persiguen solos) &nbsp;·&nbsp; 6 por partida, +2 por oleada<br/>
     🎯 la <b>mirilla verde</b> te dice dónde apuntar para acertar · frena para <b>girar más cerrado</b><br/>
     ↩️ <b>A / D</b> giro de barril &nbsp;·&nbsp;
-    📡 <b>R</b> radar &nbsp;·&nbsp; ⏸ <b>P</b> pausa &nbsp;·&nbsp; 🎵 <b>M</b> música y sonido &nbsp;·&nbsp; 📱 en el celular: arrastra para volar, con <b>acelerador</b> a la izquierda y botones de fuego, turbo, mira y torpedos a la derecha<br/>
+    📡 <b>R</b> radar &nbsp;·&nbsp; ⏸ <b>P</b> pausa &nbsp;·&nbsp; 🎧 <b>con auriculares se oye de dónde vienen los disparos</b> &nbsp;·&nbsp; 🎵 <b>M</b> música y sonido &nbsp;·&nbsp; 📱 en el celular: arrastra para volar, con <b>acelerador</b> a la izquierda y botones de fuego, turbo, mira y torpedos a la derecha<br/>
     🤝 vuelas con <b>3 cazas aliados</b> que atacan contigo &nbsp;·&nbsp; 👾 enfrente hay <b>4 clases de nave</b> distintas
   </div>
   <div class="row"><button class="btn go" id="startBtn">▶ DESPEGAR</button><button class="btn gh" id="backBtn">✕ SALIR</button></div>
@@ -431,10 +431,30 @@ function destructoresNuevos(){ G.destructores=[];
 /* ---------- sonido ---------- */
 let AC=null, mute=false;
 function ac(){ if(!AC){ try{ AC=new (window.AudioContext||window.webkitAudioContext)(); }catch(e){} } return AC; }
-function sfx(tipo){ if(mute) return; const a=ac(); if(!a) return; const t=a.currentTime,o=a.createOscillator(),g=a.createGain(); o.connect(g); g.connect(a.destination);
+const SON_ALCANCE=1500;                                     /* más lejos de esto ya no se oye */
+function sfx(tipo,pos){
+  if(mute) return; const a=ac(); if(!a) return;
   const S={laser:["square",900,110,.05,.13],boom:["sawtooth",170,38,.12,.36],hit:["square",240,70,.09,.2],wave:["triangle",320,700,.07,.36],turbo:["sine",180,420,.05,.3]}[tipo];
-  o.type=S[0]; o.frequency.setValueAtTime(S[1],t); o.frequency.exponentialRampToValueAtTime(Math.max(1,S[2]),t+S[4]);
-  g.gain.setValueAtTime(S[3],t); g.gain.exponentialRampToValueAtTime(.0001,t+S[4]); o.start(t); o.stop(t+S[4]+.02); }
+  if(!S) return;
+  let vol=S[3], pan=0, tono=1;
+  if(pos){
+    const loc=aCamara(G.base, sub(pos,G.pos));               /* dónde suena, respecto a TU nave */
+    const d=Math.hypot(loc.x,loc.y,loc.z);
+    if(d>SON_ALCANCE) return;                                /* demasiado lejos: no se oye */
+    vol*=Math.max(0.05, 1-d/SON_ALCANCE);                    /* cuanto más lejos, más flojo */
+    pan=Math.max(-1,Math.min(1, loc.x/Math.max(60,d*0.55)));     /* izquierda o derecha */
+    tono=1-Math.min(.25, d/SON_ALCANCE*.25);                 /* lo lejano suena más grave */
+  }
+  const t=a.currentTime, o=a.createOscillator(), g=a.createGain();
+  o.connect(g);
+  let sal=g;
+  if(pos&&a.createStereoPanner){                             /* el altavoz de la izquierda o el de la derecha */
+    const pn=a.createStereoPanner(); pn.pan.setValueAtTime(pan,t); g.connect(pn); sal=pn;
+  }
+  sal.connect(a.destination);
+  o.type=S[0]; o.frequency.setValueAtTime(S[1]*tono,t); o.frequency.exponentialRampToValueAtTime(Math.max(1,S[2]*tono),t+S[4]);
+  g.gain.setValueAtTime(vol,t); g.gain.exponentialRampToValueAtTime(.0001,t+S[4]); o.start(t); o.stop(t+S[4]+.02);
+}
 
 /* ---------- música de batalla (generada, sin archivos) ---------- */
 const MUS={ on:false, gan:null, filtro:null, paso:0, prox:0, reloj:null, intens:0 };
@@ -1091,7 +1111,7 @@ function torpedosCorren(dt){
       if(len(sub(t.p,e.p)) < ((e.mod||G.modEnem).r*3.2*(e.esc||1))){
         t.vida=0; G.aciertos++; G.disparos++;
         e.vida-=TORP_DANO; textoDano(e.p, TORP_DANO, "#ffd166");
-        bum(t.p,1.6); sfx("boom"); sacude(.5);
+        bum(t.p,1.6); sfx("boom",t.p); sacude(.5);
         if(e.vida<=0&&!e.ardiendo){ seIncendia(e); textoDano(e.p,"¡EN LLAMAS!","#ff8a2b");
           G.kills++; const gana=Math.round((100+G.wave*10)*(e.k?e.k.pts:1)); G.score+=gana; pts(gana);
           misionAvanza("rapido"); if(e.k===CLASES.jefe) misionAvanza("jefe"); }
@@ -1141,7 +1161,7 @@ function agoniza(o,dt){                                    /* cae sin control ha
   girar(o.b, o.caidaY*dt, o.caidaP*dt, o.caidaR*dt);       /* da vueltas descontrolada */
   o.p=add(o.p, mul(o.b.f, o.vel*Math.max(.15,o.ardiendo/ARDE)*dt));   /* se va frenando */
   llamas(o,dt);
-  if(!mute && o.ardiendo<=ARDE-.02 && o.ardiendo>ARDE-.06) sfx("hit");
+  if(!mute && o.ardiendo<=ARDE-.02 && o.ardiendo>ARDE-.06) sfx("hit",o.p);
   return o.ardiendo<=0;                                    /* true = ya estalla */
 }
 function seIncendia(o){                                    /* le empieza a arder la nave */
@@ -1310,7 +1330,7 @@ function misionCorre(dt){
       t.fuego=1.4+Math.random()*1.2;
       const dir=norm(sub(G.pos,t.p));
       G.balas.push({ p:add(t.p,mul(dir,10)), d:mul(dir,700), vida:2.4, mia:false, c:G.colorEnem, dano:1.4 });
-      if(!mute&&d<700) sfx("laser");
+      if(!mute) sfx("laser",t.p);            /* las torretas */
     }
   }
 }
@@ -1324,7 +1344,7 @@ function nuevoAmigo(i){
   G.amigos.push({ p, b, vel:150, vida:3, fuego:Math.random()*.3, i, revive:0, idx:i, tiro:0 });
 }
 function iaAmigo(a,dt){
-  if(a.ardiendo>0){ if(agoniza(a,dt)){ bum(a.p,1.5); sfx("boom"); a.revive=9; a.ardiendo=0; } return; }
+  if(a.ardiendo>0){ if(agoniza(a,dt)){ bum(a.p,1.5); sfx("boom",a.p); a.revive=9; a.ardiendo=0; } return; }
   if(a.revive>0){ a.revive-=dt; if(a.revive<=0){ a.vida=3; a.p=add(G.pos, add(mul(G.base.r,(a.idx%2?1:-1)*90), mul(G.base.f,-160))); } return; }
   /* busca el enemigo más cercano; si no hay, vuela en formación contigo */
   let obj=null, mejor=1e9;
@@ -1340,7 +1360,7 @@ function iaAmigo(a,dt){
   if(obj&&a.fuego<=0&&mejor<1250&&loc.z>0.72){
     a.fuego=CADENCIA();                                    /* disparan exactamente igual que tú */
     for(const c of G.mod.canones) G.balas.push({ p:add(a.p, aLocal(a.b,c)), d:mul(a.b.f,900), vida:2.2, mia:true, yo:false, c:G.colorMio });
-    if(!mute&&len(sub(a.p,G.pos))<420) sfx("laser");
+    if(!mute) sfx("laser",a.p);            /* los tiros de tus compañeros */
   }
 }
 
@@ -1485,7 +1505,7 @@ function update(dt){
 
   /* ---- IA: te persiguen y disparan ---- */
   for(const e of G.enem){
-    if(e.ardiendo>0){ if(agoniza(e,dt)){ e.muerto=true; bum(e.p,1.5); sfx("boom"); } continue; }
+    if(e.ardiendo>0){ if(agoniza(e,dt)){ e.muerto=true; bum(e.p,1.5); sfx("boom",e.p); } continue; }
     const haciaMi=sub(G.pos,e.p), d=len(haciaMi);
     const bomba=(e.k===CLASES.bomba), jefe=(e.k===CLASES.jefe);
 
@@ -1529,7 +1549,7 @@ function update(dt){
         const sep=nt>1?(i-(nt-1)/2)*7*(e.esc||1):0;
         G.balas.push({ p:add(e.p, mul(e.b.r,sep)), d:mul(e.b.f,760), vida:2.2, mia:false, c:G.colorEnem, dano:e.k===CLASES.bomba?1.8:1 });
       }
-      if(!mute) sfx("laser");
+      if(!mute) sfx("laser",e.p);            /* los del enemigo, por su lado */
     }
     if(d>2600){ const nd=norm(v3(Math.random()*2-1,Math.random()*2-1,Math.random()*2-1)); e.p=add(G.pos,mul(nd,1000)); e.plan="ataca"; e.planT=6; }
   }
@@ -1544,7 +1564,7 @@ function update(dt){
           b.vida=0; if(b.yo!==false) G.aciertos++;
           const dmg=(b.yo!==false?55:40)+Math.round(Math.random()*8);
           t.vida-=dmg; textoDano(t.p,dmg,"#9ff0c0");
-          if(t.vida<=0){ bum(t.p,1.2); sfx("boom"); G.score+=150; pts(150); misionAvanza("torres"); }
+          if(t.vida<=0){ bum(t.p,1.2); sfx("boom",t.p); G.score+=150; pts(150); misionAvanza("torres"); }
           else { bum(t.p,.3); sfx("hit"); }
           break;
         }
@@ -1558,14 +1578,14 @@ function update(dt){
           const dmg=Math.round(((b.yo!==false?55:40)+Math.random()*8)*(NAVE().dano||1));
           e.vida-=dmg; textoDano(e.p, dmg, b.yo!==false?"#ffe81f":"#8fd0ff");
           if(e.vida<=0&&!e.ardiendo){ seIncendia(e); textoDano(e.p,"¡EN LLAMAS!","#ff8a2b"); if(b.yo!==false){ G.kills++; const gana=Math.round((100+G.wave*10)*(e.k?e.k.pts:1)); G.score+=gana; pts(gana); misionAvanza("rapido"); if(e.k===CLASES.jefe) misionAvanza("jefe"); } else { G.score+=30; } }
-          else { bum(e.p,.3); sfx("hit"); }
+          else { bum(e.p,.3); sfx("hit",e.p); }
           break;
         }
       }
     } else {
       if(len(sub(b.p,G.pos))<26){ b.vida=0; golpe((9+G.wave)*(b.dano||1)); }
       else for(const a of G.amigos){ if(a.revive<=0&&len(sub(b.p,a.p))<G.mod.r*2.4){ b.vida=0; a.vida--; textoDano(a.p,"-1 ❤","#ff8a5c");
-        if(a.vida<=0&&!a.ardiendo){ seIncendia(a); if(a.protegido) misionFallo("derribaron a tu compañero"); } else if(a.vida>0) bum(a.p,.3); break; } }
+        if(a.vida<=0&&!a.ardiendo){ seIncendia(a); if(a.protegido) misionFallo("derribaron a tu compañero"); } else if(a.vida>0){ bum(a.p,.3); sfx("hit",a.p); } break; } }
     }
   }
   G.balas=G.balas.filter(b=>b.vida>0);
