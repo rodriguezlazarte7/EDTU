@@ -563,7 +563,7 @@ function pintaRecords(){
 /* ---------- estado ---------- */
 const G={ run:false,over:false,paused:false,t:0, score:0,wave:0,kills:0,disparos:0,aciertos:0,
   bando:"x", dif:"normal", vidaMax:130, shield:130, boost:100, vel:150, gas:1, gasObj:1, base:baseNueva(), pos:v3(0,0,0),
-  enem:[], amigos:[], torres:[], aros:[], mision:null, torpedos:[], torp:6, torpCarga:0, balas:[], chispas:[], estelas:[], destructores:[], estrellas:[], polvo:[], danos:[],
+  enem:[], amigos:[], torres:[], aros:[], capsulas:[], mision:null, torpedos:[], torp:6, torpCarga:0, balas:[], chispas:[], estelas:[], destructores:[], estrellas:[], polvo:[], danos:[],
   naveBase:baseNueva(), naveOff:v3(0,0,0),
   cad:0, quedan:0, spawn:0, waveT:0, best:+(localStorage.getItem("edtu_sw_best")||0), inicio:0,
   yaw:0, pitch:0, roll:0, turbo:false, disparando:false };
@@ -578,7 +578,7 @@ function nuevaPartida(){
   for(let i=0;i<3;i++) nuevoAmigo(i);
   G.chispas=[];
   G.score=0; G.wave=0; G.jefe=false; misionLimpia(); G.kills=0; G.disparos=0; G.aciertos=0; G.quedan=0; G.spawn=0; G.waveT=0; G.cad=0;
-  hiper=0; G.torpedos=[]; G.torp=TORP_MAX; G.torpCarga=0;
+  hiper=0; G.capsulas=[]; G.torpedos=[]; G.torp=TORP_MAX; G.torpCarga=0;
   G.jefes=0; G.caidos=0; G.torpKills=0; G.misionesOK=0; G.trincherasOK=0; G.golpes=0;
   G.gas=1; G.gasObj=1; G.yaw=0; G.pitch=0; G.roll=0; G.t=0; G.over=false; G.paused=false; G.inicio=Date.now();
   estrellasNuevas(); destructoresNuevos();
@@ -975,6 +975,7 @@ function render(){
     const pu=proyecta(a); ctx.fillStyle=b.c; ctx.beginPath(); ctx.arc(pu.x,pu.y,Math.max(1.5,Math.min(6,0.04*p1.s)),0,7); ctx.fill();
   }
   pintaRayo();
+  pintaCapsulas();
   pintaTorpedos();
   estelasPinta();
   /* chispas, fuego y humo */
@@ -1053,6 +1054,7 @@ function pintaRadar(){
     if(texto){ ctx.font="700 8px Consolas,monospace"; ctx.textAlign="center"; ctx.fillStyle=col+".9)";
       ctx.fillText(texto,x,y-alt-tam-3); }
   };
+  for(const c of G.capsulas){ const k=CAPSULAS[c.tipo]; marca(c.p, k.col==="#4de08a"?"rgba(77,224,138,":k.col==="#ffd166"?"rgba(255,209,102,":k.col==="#8fd0ff"?"rgba(143,208,255,":"rgba(196,143,255,", 2.2, k.ic); }
   for(const a of G.aros){ if(!a.hecho) marca(a.p,"rgba(255,232,31,",2.4,a.i===(G.mision?G.mision.prog:-1)?"🏁":null); }
   for(const t of G.torres){ if(t.vida>0) marca(t.p,"rgba(120,255,190,",2.6,null); }
   for(const a of G.amigos){ if(a.revive<=0) marca(a.p,"rgba(110,200,255,",2.4,a.protegido?"🛡":null); }
@@ -1340,7 +1342,7 @@ function torpedosCorren(dt){
         t.vida=0; G.aciertos++; G.disparos++;
         e.vida-=TORP_DANO; textoDano(e.p, TORP_DANO, "#ffd166");
         bum(t.p,1.6); sfx("boom",t.p); sacude(.5);
-        if(e.vida<=0&&!e.ardiendo){ seIncendia(e); textoDano(e.p,"¡EN LLAMAS!","#ff8a2b");
+        if(e.vida<=0&&!e.ardiendo){ seIncendia(e); textoDano(e.p,"¡EN LLAMAS!","#ff8a2b"); sueltaCapsula(e.p);
           G.kills++; const gana=Math.round((100+G.wave*10)*(e.k?e.k.pts:1)*DIF().puntos); G.score+=gana; pts(gana);
           misionAvanza("rapido"); if(e.k===CLASES.jefe){ misionAvanza("jefe"); G.jefes=(G.jefes||0)+1; }
           G.torpKills=(G.torpKills||0)+1; }
@@ -1449,6 +1451,75 @@ function estelasPinta(){
       ctx.lineWidth=Math.max(1,Math.min(9, 0.055*pa.s*(0.35+v*0.65)));
       ctx.beginPath(); ctx.moveTo(pa.x,pa.y); ctx.lineTo(pb.x,pb.y); ctx.stroke();
     }
+  }
+}
+
+/* ---------- cápsulas que sueltan los enemigos ---------- */
+const CAPSULAS={
+  escudo:{ ic:"🛡", col:"#4de08a", nom:"ESCUDO",   dice:"+30% de escudo" },
+  torp:  { ic:"🚀", col:"#ffd166", nom:"TORPEDOS", dice:"+2 torpedos" },
+  turbo: { ic:"⚡", col:"#8fd0ff", nom:"TURBO",    dice:"turbo al máximo" },
+  ayuda: { ic:"🤝", col:"#c48fff", nom:"REFUERZO", dice:"vuelve un compañero" }
+};
+function sueltaCapsula(p){
+  /* no todos sueltan: una de cada cinco, y lo que suelta depende de lo que te falte */
+  if(Math.random()>0.22) return;
+  const pesos=[];
+  const faltaEscudo=1-Math.max(0,G.shield)/G.vidaMax;
+  pesos.push(["escudo", 0.25+faltaEscudo*1.6]);
+  pesos.push(["torp",   0.25+(1-G.torp/TORP_MAX)*1.2]);
+  pesos.push(["turbo",  0.20+(1-G.boost/100)*0.7]);
+  const caidos=G.amigos.filter(a=>a.revive>0||a.ardiendo>0).length;
+  pesos.push(["ayuda",  caidos?0.9*caidos:0]);
+  let tot=0; for(const x of pesos) tot+=x[1];
+  let r=Math.random()*tot, tipo=pesos[0][0];
+  for(const x of pesos){ r-=x[1]; if(r<=0){ tipo=x[0]; break; } }
+  G.capsulas.push({ p:v3(p.x,p.y,p.z), tipo, vida:22, giro:Math.random()*6,
+    v:mul(norm(v3(Math.random()*2-1,Math.random()*2-1,Math.random()*2-1)), 14) });
+}
+function capsulasCorren(dt){
+  for(const c of G.capsulas){
+    c.vida-=dt; c.giro+=dt*2.1;
+    c.p=add(c.p, mul(c.v,dt));
+    /* te atrae un poco si pasas cerca: así no hay que clavar el vuelo */
+    const d=sub(G.pos,c.p), l=len(d);
+    if(l<170) c.p=add(c.p, mul(norm(d), (170-l)*1.5*dt));
+    if(l<34){
+      c.vida=0;
+      const k=CAPSULAS[c.tipo];
+      if(c.tipo==="escudo") G.shield=Math.min(G.vidaMax, G.shield+G.vidaMax*0.30);
+      else if(c.tipo==="torp") G.torp=Math.min(TORP_MAX, G.torp+2);
+      else if(c.tipo==="turbo") G.boost=100;
+      else if(c.tipo==="ayuda"){ const a=G.amigos.find(x=>x.revive>0||x.ardiendo>0);
+        if(a){ a.ardiendo=0; a.revive=0.01; a.vida=3; } }
+      G.score+=60; pts(60);
+      aviso(k.ic+" "+k.nom+" · "+k.dice);
+      if(!mute) sfx("wave");
+      for(let i=0;i<10;i++) G.chispas.push({ p:v3(c.p.x,c.p.y,c.p.z),
+        v:mul(norm(v3(Math.random()*2-1,Math.random()*2-1,Math.random()*2-1)),50), vida:.4, max:.6, t:"fuego" });
+    }
+  }
+  G.capsulas=G.capsulas.filter(c=>c.vida>0);
+}
+function pintaCapsulas(){
+  for(const c of G.capsulas){
+    const cam=aCamara(G.base, sub(c.p,G.pos)); if(cam.z<6) continue;
+    const p=proyecta(cam);
+    const k=CAPSULAS[c.tipo];
+    const r=Math.max(3,Math.min(26,0.16*p.s));
+    const late=0.75+0.25*Math.sin(G.t*5+c.giro);
+    const parpadea=c.vida<4 ? (Math.sin(G.t*14)>0?1:0.25) : 1;   /* avisa cuando va a desaparecer */
+    ctx.save(); ctx.globalCompositeOperation="lighter"; ctx.globalAlpha=parpadea;
+    const g=ctx.createRadialGradient(p.x,p.y,0,p.x,p.y,r*3);
+    g.addColorStop(0,k.col); g.addColorStop(0.35,k.col+"66"); g.addColorStop(1,"rgba(0,0,0,0)");
+    ctx.fillStyle=g; ctx.beginPath(); ctx.arc(p.x,p.y,r*3*late,0,7); ctx.fill();
+    /* la caja, girando */
+    ctx.translate(p.x,p.y); ctx.rotate(c.giro);
+    ctx.strokeStyle=k.col; ctx.lineWidth=Math.max(1.4,r*0.22);
+    ctx.strokeRect(-r,-r,r*2,r*2);
+    ctx.restore();
+    if(r>7){ ctx.save(); ctx.globalAlpha=parpadea; ctx.font="700 "+Math.round(r*1.5)+"px system-ui,sans-serif";
+      ctx.textAlign="center"; ctx.textBaseline="middle"; ctx.fillText(k.ic,p.x,p.y); ctx.restore(); }
   }
 }
 
@@ -1819,6 +1890,7 @@ function update(dt){
   for(const e of G.estelas) e.vida-=dt;
   G.estelas=G.estelas.filter(e=>e.vida>0);
 
+  capsulasCorren(dt);
   { const j=jefeVivo(); if(j) jefeCorre(j,dt); }
   pintaBarraJefe();
 
@@ -1908,7 +1980,7 @@ function update(dt){
           b.vida=0; if(b.yo!==false) G.aciertos++;
           const dmg=Math.round(((b.yo!==false?55:40)+Math.random()*8)*(NAVE().dano||1));
           e.vida-=dmg; textoDano(e.p, dmg, b.yo!==false?"#ffe81f":"#8fd0ff");
-          if(e.vida<=0&&!e.ardiendo){ seIncendia(e); textoDano(e.p,"¡EN LLAMAS!","#ff8a2b"); if(b.yo!==false){ G.kills++; const gana=Math.round((100+G.wave*10)*(e.k?e.k.pts:1)*DIF().puntos); G.score+=gana; pts(gana); misionAvanza("rapido"); if(e.k===CLASES.jefe){ misionAvanza("jefe"); G.jefes=(G.jefes||0)+1; } } else { G.score+=30; } }
+          if(e.vida<=0&&!e.ardiendo){ seIncendia(e); textoDano(e.p,"¡EN LLAMAS!","#ff8a2b"); sueltaCapsula(e.p); if(b.yo!==false){ G.kills++; const gana=Math.round((100+G.wave*10)*(e.k?e.k.pts:1)*DIF().puntos); G.score+=gana; pts(gana); misionAvanza("rapido"); if(e.k===CLASES.jefe){ misionAvanza("jefe"); G.jefes=(G.jefes||0)+1; } } else { G.score+=30; } }
           else { bum(e.p,.3); sfx("hit",e.p); }
           break;
         }
@@ -2161,7 +2233,7 @@ document.addEventListener("pointerlockchange",()=>{ if(G.run&&!G.over&&document.
 resize(); estrellasNuevas(); destructoresNuevos();
 $("best").textContent=G.best?"🏆 tu récord: "+G.best+" battle points":"";
 pintaRecords();
-const NOVEDADES_V=1;                                         /* sube este número cuando haya cosas nuevas */
+const NOVEDADES_V=2;                                         /* sube este número cuando haya cosas nuevas */
 const NOVEDADES=[
   ["🎚️","Mandas tú la velocidad","<span class='tec'>W</span> y <span class='tec'>S</span> (o la rueda del ratón) mueven el acelerador · <span class='tec'>X</span> para en seco · <span class='tec'>Z</span> a fondo. Parado giras hasta un 75% más cerrado: frena y el que te persigue se te pasa de largo"],
   ["🚀","Torpedos que persiguen","<span class='tec'>F</span> suelta dos torpedos al enemigo que tengas fichado. Pegan 260 (casi cinco veces un láser). Llevas 6 y te dan 2 en cada oleada"],
@@ -2174,6 +2246,7 @@ const NOVEDADES=[
   ["🎯","Misiones en cada oleada","Proteger a un compañero, callar las torretas de un Destructor, cruzar los 7 arcos del desfiladero o cazar contrarreloj"],
   ["🎖️","Nueve medallas","Se ganan por CÓMO juegas: sin perder compañeros, sin que te den, con torpedos, con puntería... El medallero está en la pantalla de inicio"],
   ["😠","Cuatro dificultades","De FÁCIL a IMPOSIBLE. Las difíciles pagan más: en IMPOSIBLE cada derribo vale x2,5"],
+  ["📦","Cápsulas","Los enemigos derribados sueltan cápsulas: 🛡 escudo, 🚀 torpedos, ⚡ turbo y 🤝 refuerzo (te devuelve un compañero caído). Sale lo que más te falta, y te atraen si pasas cerca"],
   ["🎧","Sonido con sitio","Con auriculares oyes por qué lado te disparan. Y hay música que cambia cuando aparece el jefe"],
   ["📱","Mandos en el celular","Acelerador a la izquierda y botones de fuego, turbo, mira, torpedos y órdenes a la derecha"],
   ["🎮","Mando de consola","Palancas para volar · RT dispara · LT puntería · LB/RB tonel · B turbo · cruceta acelerador y órdenes · START pausa"]
