@@ -89,6 +89,11 @@
   .nave.sel{border-color:#ffe81f;box-shadow:0 0 24px rgba(255,232,31,.3)}
   .nave canvas{width:100%;height:78px;display:block}
   .nave .rec{margin-top:6px;font-size:11px;color:#ffd166;letter-spacing:.04em}
+  #difs{display:flex;gap:8px;flex-wrap:wrap;justify-content:center;margin:10px 0 2px}
+  #difs .dif{cursor:pointer;padding:7px 13px;border-radius:12px;border:1.5px solid rgba(143,208,255,.3);
+    background:rgba(8,18,36,.6);font-size:11px;line-height:1.35;transition:border-color .2s,transform .15s}
+  #difs .dif span{display:block;color:#9fb6c9;font-size:10px}
+  #difs .dif.sel{border-color:#ffe81f;transform:translateY(-2px);box-shadow:0 0 16px rgba(255,232,31,.25)}
   #recTabla{margin:8px auto 2px;max-width:min(430px,92vw);font-size:12px;color:#9fc8e8;
     background:rgba(6,16,30,.5);border:1px solid rgba(143,208,255,.2);border-radius:12px;padding:8px 14px}
   #recTabla .rt{font-weight:800;letter-spacing:.08em;color:#8fd0ff;margin-bottom:5px;font-size:11px}
@@ -158,6 +163,12 @@
       <div class="d">Rebelde · <i>bombardero</i><br/>escudo 210 · lenta y torpe<br/>🔫 <b>pega 2,6 veces más</b></div></div>
     <div class="nave" data-n="i"><canvas class="prev" data-p="i"></canvas><div class="n">TIE INTERCEPTOR</div>
       <div class="d">Imperial · <i>el más rápido en disparar</i><br/>escudo 95 · muy ágil<br/>🔫 <b>13 tiros por segundo</b></div></div>
+  </div>
+  <div id="difs">
+    <div class="dif" data-d="facil"><b>😊 FÁCIL</b><span>para aprender a volar</span></div>
+    <div class="dif sel" data-d="normal"><b>🙂 NORMAL</b><span>como ha sido siempre</span></div>
+    <div class="dif" data-d="dificil"><b>😠 DIFÍCIL</b><span>vienen más y pegan más · x1,6 puntos</span></div>
+    <div class="dif" data-d="imposible"><b>💀 IMPOSIBLE</b><span>suerte con eso · x2,5 puntos</span></div>
   </div>
   <div id="recTabla"></div>
   <div id="medallero"></div>
@@ -437,6 +448,14 @@ const NAVES={
   i:{ nom:"TIE Interceptor", mod:()=>MOD.i, vida:95, vel:215, giro:1.62, cad:0.075, imperial:true, dano:0.8 }
 };
 const NAVE=()=>NAVES[G.bando]||NAVES.x;
+
+const DIFS={
+  facil:    { nom:"FÁCIL",     dice:"para aprender a volar",        vida:1.35, dano:0.55, cuantos:-1, cad:1.5,  puntos:0.7, esc:1 },
+  normal:   { nom:"NORMAL",    dice:"como ha sido siempre",         vida:1.00, dano:1.00, cuantos:0,  cad:1.0,  puntos:1.0, esc:1 },
+  dificil:  { nom:"DIFÍCIL",   dice:"vienen más y pegan más",       vida:0.85, dano:1.55, cuantos:2,  cad:0.72, puntos:1.6, esc:1 },
+  imposible:{ nom:"IMPOSIBLE", dice:"suerte con eso",               vida:0.70, dano:2.30, cuantos:4,  cad:0.5,  puntos:2.5, esc:1 }
+};
+const DIF=()=>DIFS[G.dif]||DIFS.normal;
 const recordDe=b=>{ try{ return +(localStorage.getItem("edtu_sw_best_"+b)||0); }catch(e){ return 0; } };
 function guardaRecord(b,v){ try{ localStorage.setItem("edtu_sw_best_"+b, v); }catch(e){} }
 function pintaRecords(){
@@ -457,7 +476,7 @@ function pintaRecords(){
 
 /* ---------- estado ---------- */
 const G={ run:false,over:false,paused:false,t:0, score:0,wave:0,kills:0,disparos:0,aciertos:0,
-  bando:"x", vidaMax:130, shield:130, boost:100, vel:150, gas:1, gasObj:1, base:baseNueva(), pos:v3(0,0,0),
+  bando:"x", dif:"normal", vidaMax:130, shield:130, boost:100, vel:150, gas:1, gasObj:1, base:baseNueva(), pos:v3(0,0,0),
   enem:[], amigos:[], torres:[], aros:[], mision:null, torpedos:[], torp:6, torpCarga:0, balas:[], chispas:[], estelas:[], destructores:[], estrellas:[], polvo:[], danos:[],
   naveBase:baseNueva(), naveOff:v3(0,0,0),
   cad:0, quedan:0, spawn:0, waveT:0, best:+(localStorage.getItem("edtu_sw_best")||0), inicio:0,
@@ -465,7 +484,7 @@ const G={ run:false,over:false,paused:false,t:0, score:0,wave:0,kills:0,disparos
 
 function nuevaPartida(){
   const N=NAVE(), imp=N.imperial;
-  G.vidaMax=N.vida; G.shield=G.vidaMax; G.boost=100; G.vel=N.vel;
+  G.vidaMax=Math.round(N.vida*DIF().vida); G.shield=G.vidaMax; G.boost=100; G.vel=N.vel;
   G.giro=N.giro; G.mod=N.mod(); G.modEnem=imp?MOD.x:MOD.t; G.imperial=imp; G.gas=1;
   G.colorEnem=imp?"#ff3b30":"#7CFC00"; G.colorMio=imp?"#7CFC00":"#ff3b30";
   G.base=baseNueva(); G.pos=v3(0,0,0); G.enem=[]; G.amigos=[]; G.balas=[]; G.chispas=[]; G.estelas=[]; G.danos=[];
@@ -1196,7 +1215,7 @@ function torpedosCorren(dt){
         e.vida-=TORP_DANO; textoDano(e.p, TORP_DANO, "#ffd166");
         bum(t.p,1.6); sfx("boom",t.p); sacude(.5);
         if(e.vida<=0&&!e.ardiendo){ seIncendia(e); textoDano(e.p,"¡EN LLAMAS!","#ff8a2b");
-          G.kills++; const gana=Math.round((100+G.wave*10)*(e.k?e.k.pts:1)); G.score+=gana; pts(gana);
+          G.kills++; const gana=Math.round((100+G.wave*10)*(e.k?e.k.pts:1)*DIF().puntos); G.score+=gana; pts(gana);
           misionAvanza("rapido"); if(e.k===CLASES.jefe){ misionAvanza("jefe"); G.jefes=(G.jefes||0)+1; }
           G.torpKills=(G.torpKills||0)+1; }
         break;
@@ -1575,10 +1594,10 @@ function update(dt){
   /* ---- oleadas ---- */
   if(G.quedan<=0&&G.enem.length===0){
     if(G.wave>=1) musFanfarria();                          /* ¡oleada limpia! */
-    G.wave++; G.quedan=3+G.wave; G.waveT=1.6;
+    G.wave++; G.quedan=Math.max(2, 3+G.wave+DIF().cuantos); G.waveT=1.6;
     G.jefe=(G.wave%5===0);                                   /* oleadas 5, 10, 15... traen jefe */
     if(G.jefe) G.quedan=Math.max(2,G.quedan-3);
-    $("waveN").textContent="OLEADA "+G.wave; $("hudWave").textContent="OLEADA "+G.wave;
+    $("waveN").textContent="OLEADA "+G.wave; $("hudWave").textContent="OLEADA "+G.wave+" · "+DIF().nom;
     $("waveS").textContent=(G.wave%5===0?"☠️ NAVE JEFE ":"")+(G.imperial?"ALAS-X REBELDES":"CAZAS TIE")+" ENTRANTES";
     $("wave").style.opacity=1; sfx("wave"); setTimeout(()=>{$("wave").style.opacity=0;},1500);
     G.shield=Math.min(G.vidaMax,G.shield+G.vidaMax*.14);
@@ -1653,7 +1672,7 @@ function update(dt){
     e.fuego-=dt;
     const alTiro=dot(norm(haciaMi), e.b.f);               /* ¿te tiene en el punto de mira? */
     if(e.fuego<=0 && d<(bomba?1300:900) && alTiro>0.90){
-      e.fuego=(1.0+Math.random()*1.6)*(e.k?e.k.cad:1);
+      e.fuego=(1.0+Math.random()*1.6)*(e.k?e.k.cad:1)*DIF().cad;
       const nt=e.k?e.k.tiros:1;
       for(let i=0;i<nt;i++){
         const sep=nt>1?(i-(nt-1)/2)*7*(e.esc||1):0;
@@ -1687,13 +1706,13 @@ function update(dt){
           b.vida=0; if(b.yo!==false) G.aciertos++;
           const dmg=Math.round(((b.yo!==false?55:40)+Math.random()*8)*(NAVE().dano||1));
           e.vida-=dmg; textoDano(e.p, dmg, b.yo!==false?"#ffe81f":"#8fd0ff");
-          if(e.vida<=0&&!e.ardiendo){ seIncendia(e); textoDano(e.p,"¡EN LLAMAS!","#ff8a2b"); if(b.yo!==false){ G.kills++; const gana=Math.round((100+G.wave*10)*(e.k?e.k.pts:1)); G.score+=gana; pts(gana); misionAvanza("rapido"); if(e.k===CLASES.jefe){ misionAvanza("jefe"); G.jefes=(G.jefes||0)+1; } } else { G.score+=30; } }
+          if(e.vida<=0&&!e.ardiendo){ seIncendia(e); textoDano(e.p,"¡EN LLAMAS!","#ff8a2b"); if(b.yo!==false){ G.kills++; const gana=Math.round((100+G.wave*10)*(e.k?e.k.pts:1)*DIF().puntos); G.score+=gana; pts(gana); misionAvanza("rapido"); if(e.k===CLASES.jefe){ misionAvanza("jefe"); G.jefes=(G.jefes||0)+1; } } else { G.score+=30; } }
           else { bum(e.p,.3); sfx("hit",e.p); }
           break;
         }
       }
     } else {
-      if(len(sub(b.p,G.pos))<26){ b.vida=0; golpe((9+G.wave)*(b.dano||1)); }
+      if(len(sub(b.p,G.pos))<26){ b.vida=0; golpe((9+G.wave)*(b.dano||1)*DIF().dano); }
       else for(const a of G.amigos){ if(a.revive<=0&&len(sub(b.p,a.p))<G.mod.r*2.4){ b.vida=0; a.vida--; textoDano(a.p,"-1 ❤","#ff8a5c");
         if(a.vida<=0&&!a.ardiendo){ seIncendia(a); G.caidos=(G.caidos||0)+1; if(a.protegido) misionFallo("derribaron a tu compañero"); } else if(a.vida>0){ bum(a.p,.3); sfx("hit",a.p); } break; } }
     }
@@ -1820,7 +1839,8 @@ function finPartida(){
   $("overTitle").textContent=record?"¡NUEVO RÉCORD!":(recordNave?"¡RÉCORD CON ESTA NAVE!":"DERRIBADO");
   $("overStats").innerHTML="<div><b>"+G.score+"</b> battle points</div><div>🎯 "+G.kills+" cazas derribados</div>"+
     "<div>🔫 puntería <b>"+punt+"%</b></div><div>🌊 oleada <b>"+Math.max(1,G.wave)+"</b></div>"+
-    "<div>⏱️ "+seg+" s en vuelo · "+NAVE().nom+"</div><div style='color:#8fd0ff;margin-top:6px'>récord general: "+G.best+
+    "<div>⏱️ "+seg+" s en vuelo · "+NAVE().nom+"</div><div>🎚️ dificultad <b>"+DIF().nom+"</b>"+(DIF().puntos!==1?" (x"+DIF().puntos.toString().replace(".",",")+" puntos)":"")+
+    "</div><div style='color:#8fd0ff;margin-top:6px'>récord general: "+G.best+
     " · con "+NAVE().nom+": "+Math.max(recNave,G.score)+"</div>";
   pintaRecords();
   { const ganadas=calculaMedallas(), tenia=medallasGanadas();
@@ -1944,6 +1964,16 @@ function pintaMedallero(){
       (tengo.includes(m.id)?m.nom:m.dice)+"</span>").join("");
 }
 pintaMedallero();
+try{ G.dif=localStorage.getItem("edtu_sw_dif")||"normal"; }catch(e){ G.dif="normal"; }
+if(!DIFS[G.dif]) G.dif="normal";
+document.querySelectorAll(".dif").forEach(el=>{
+  el.classList.toggle("sel", el.dataset.d===G.dif);
+  el.onclick=()=>{
+    document.querySelectorAll(".dif").forEach(x=>x.classList.remove("sel"));
+    el.classList.add("sel"); G.dif=el.dataset.d;
+    try{ localStorage.setItem("edtu_sw_dif",G.dif); }catch(e){}
+  };
+});
 </script>
 </body>
 </html>
