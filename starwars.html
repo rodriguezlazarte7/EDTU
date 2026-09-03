@@ -244,7 +244,7 @@
   <div class="hoja" id="hojaVolar">
   <div id="naves">
     <div class="nave" data-n="david" style="border-color:rgba(58,160,255,.75)"><canvas class="prev" data-p="david"></canvas><div class="n" style="color:#3aa0ff">CAZA DAVID</div>
-      <div class="d">La nave de David · <i>hecha para cazar</i><br/>🚀 torpedos <b>infinitos</b> y del <b>doble</b> de daño<br/>escudo <b>300</b> · la más rápida y la que mejor gira<br/>🔫 <b>26 tiros/s</b> · pega <b>x2,8</b><br/>🔵 2 cañones abajo <b>azules</b> · ⚪ 2 arriba <b>blancos</b><br/>🎯 puntería asistida al máximo</div></div>
+      <div class="d">La nave de David · <i>hecha para cazar</i><br/>🚀 torpedos <b>infinitos</b> y del <b>doble</b> de daño<br/>🔋 el escudo <b>se repara solo</b> · sin humo en los motores<br/>escudo <b>300</b> · la más rápida y la que mejor gira<br/>🔫 <b>26 tiros/s</b> · pega <b>x2,8</b><br/>🔵 2 cañones abajo <b>azules</b> · ⚪ 2 arriba <b>blancos</b><br/>🎯 puntería asistida al máximo</div></div>
     <div class="nave" data-n="halcon"><canvas class="prev" data-p="halcon"></canvas><div class="n">HALCÓN MILENARIO</div>
       <div class="d">Rebelde · <i>el carguero más rápido de la galaxia</i><br/>escudo 340 · gira pesado<br/>🔵 cañón cuádruple azul · pega x1,9</div></div>
     <div class="nave" data-n="corbeta"><canvas class="prev" data-p="corbeta"></canvas><div class="n">CORBETA</div>
@@ -756,7 +756,9 @@ const NAVES={
   i:{ nom:"TIE Interceptor", mod:()=>MOD.i, vida:95, vel:215, giro:1.62, cad:0.075, imperial:true, dano:0.8 },
   /* 🛡️ la nave de David: la mejor del juego */
   david:{ nom:"CAZA DAVID", mod:()=>MOD.david, vida:300, vel:260, giro:2.10, cad:0.038, imperial:false,
-          dano:2.8, asist:2.6, elite:true, republica:true, torpInf:true, torpX:2 },
+          dano:2.8, asist:2.6, elite:true, republica:true, torpInf:true, torpX:2,
+          sinHumo:true,        /* sus motores no echan humo ni fuego aunque esté tocada */
+          regen:26, regenT:2.0 /* recupera 26 de escudo por segundo, 2 s después del último impacto */ },
   halcon:{ nom:"Halcón Milenario", mod:()=>MOD.halcon, vida:340, vel:195, giro:0.85, cad:0.11, imperial:false, dano:1.9 },
   corbeta:{ nom:"Corbeta",         mod:()=>MOD.corbeta, vida:520, vel:125, giro:0.45, cad:0.16, imperial:false, dano:2.4, republica:true }
 };
@@ -822,7 +824,7 @@ function nuevaPartida(){
   for(let i=0;i<3;i++) nuevoAmigo(i);
   G.chispas=[];
   G.score=0; G.wave=0; G.jefe=false; misionLimpia(); G.kills=0; G.disparos=0; G.aciertos=0; G.quedan=0; G.spawn=0; G.waveT=0; G.cad=0;
-  hiper=0; G.aliado=null; { const el=$("aliBar"); if(el) el.style.opacity=0; } G.destruidos=0; G.racha=0; G.rachaT=0; G.rachaMulti=1; G.rachaMax=0; G.guardaT=20; G.refuerzos=2; G.refT=0; G.jefeT=0; G.jefesLlamados=0; G.curaT=60; G.capsulas=[]; G.torpedos=[]; G.torp=TORP_MAX; G.torpCarga=0;
+  hiper=0; G.regenT=0; G.aliado=null; { const el=$("aliBar"); if(el) el.style.opacity=0; } G.destruidos=0; G.racha=0; G.rachaT=0; G.rachaMulti=1; G.rachaMax=0; G.guardaT=20; G.refuerzos=2; G.refT=0; G.jefeT=0; G.jefesLlamados=0; G.curaT=60; G.capsulas=[]; G.torpedos=[]; G.torp=TORP_MAX; G.torpCarga=0;
   G.jefes=0; G.caidos=0; G.torpKills=0; G.misionesOK=0; G.trincherasOK=0; G.golpes=0; G.gensRotos=0; G.refPedidos=0;
   G.gas=1; G.gasObj=1; G.yaw=0; G.pitch=0; G.roll=0; G.t=0; G.over=false; G.paused=false; G.inicio=Date.now();
   estrellasNuevas(); destructoresNuevos();
@@ -1460,6 +1462,10 @@ let alarmaT=0, humoT=0;
 function naveTocada(dt){
   const vida=Math.max(0,G.shield)/G.vidaMax;
   if(vida>=0.45||G.over){ alarmaT=0; return; }
+  if(NAVE().sinHumo){                                        /* el CAZA DAVID no echa humo: sus motores aguantan */
+    if(vida<0.2){ alarmaT-=dt; if(alarmaT<=0){ alarmaT=0.85; if(!mute) sfx("hit"); } }
+    return;
+  }
   const mal=(0.45-vida)/0.45;                                /* 0 = tocada · 1 = a punto de caer */
   const miPos=add(add(G.pos, add(mul(G.base.f,CAM_D()), mul(G.base.u,CAM_Y()))), G.naveOff);
   /* humo (y fuego si va muy mal) saliendo de un motor */
@@ -1762,6 +1768,7 @@ function avisoM(){ aviso(mute?"🔇 silencio":"🔊 música y sonido"); }
 let warnT=0;
 function textoDano(p,txt,col){ G.danos.push({ p:v3(p.x,p.y,p.z), txt:(typeof txt==="number"?"-"+txt:txt), c:col||"#ffe81f", vida:1.1, max:1.1 }); }
 function golpe(d){ if(hiper>0) return;                     /* mientras sales del salto eres intocable */
+  G.regenT=NAVE().regenT||0;                               /* al recibir un golpe, la reparación se pausa */
   cortaRacha(true);                                        /* que te den te corta la racha */
   G.shield-=d; G.golpes=(G.golpes||0)+1; sacude(.22+Math.min(.5,d/70)); if(d>=1){ const q=add(G.pos, add(mul(G.base.f,40), mul(G.base.u,-6))); textoDano(q, Math.round(d), "#ff5a5a"); } warnT=.5; $("warn").style.opacity=1; setTimeout(()=>{$("warn").style.opacity=0;},350); sfx("hit"); }
 
@@ -2735,6 +2742,22 @@ function update(dt){
   G.gas+=(G.gasObj-G.gas)*Math.min(1,dt*3.2);                /* la nave tarda un poco en obedecer */
   if(G.gas<0.008) G.gas=0;
 
+  /* ---- escudo que se recupera solo (solo las naves que lo llevan) ---- */
+  { const R=NAVE().regen;
+    if(R){
+      G.regenT=(G.regenT||0)-dt;                             /* cuenta atrás desde el último golpe */
+      if(G.regenT<=0 && G.shield>0 && G.shield<G.vidaMax){
+        const antes=G.shield;
+        G.shield=Math.min(G.vidaMax, G.shield+R*dt);
+        if(Math.floor(antes/25)!==Math.floor(G.shield/25)){  /* chispitas azules mientras se repara */
+          const miPos=add(add(G.pos, add(mul(G.base.f,CAM_D()), mul(G.base.u,CAM_Y()))), G.naveOff);
+          for(let i=0;i<3;i++) G.chispas.push({ p:add(miPos, v3((Math.random()*2-1)*7,(Math.random()*2-1)*7,(Math.random()*2-1)*7)),
+            v:mul(norm(v3(Math.random()*2-1,Math.random()*2-1,Math.random()*2-1)),18), vida:.35, max:.6, t:"fuego" });
+        }
+      }
+    }
+  }
+
   /* turbo (solo si el motor está dando algo) */
   if(G.turbo&&G.boost>0&&G.gas>0.05){ G.boost=Math.max(0,G.boost-dt*34); } else { G.boost=Math.min(100,G.boost+dt*13); }
   const vel=G.vel*G.gas*(G.turbo&&G.boost>0&&G.gas>0.05?2.15:1);
@@ -3227,7 +3250,7 @@ const NOVEDADES=[
   ["💥","Destructores que se hunden","Los Destructores Estelares ya no son decorado: tienen 9.000 de vida, TE DISPARAN desde 2.600 unidades con cañones verdes gordísimos que hacen mucho daño, y se pueden HUNDIR. Cuando revientas uno se va a pique 3,5 segundos explotando por dentro, suelta 3 cápsulas y te da 6.000 puntos"],
   ["🛡️","Jefes de tu equipo","En cada oleada de jefe llega una nave capital AMIGA (la CORBETA REPÚBLICA si vuelas el CAZA DAVID) con 5.200 de vida y torretas que apuntan adelantado. Pelea contigo contra el jefe... pero también se la pueden hundir"],
   ["🚀","Halcón Milenario y Corbeta","Dos naves grandes más: el HALCÓN (escudo 340, su cañón cuádruple azul, pesado de girar) y la CORBETA de la República (escudo 520, el más alto del juego, con 3 torretas, pero lentísima)"],
-  ["🛡️","CAZA DAVID","La nave de David, copiada de su LEGO: escudo 300 (el doble que ninguna), la más rápida (260), la que mejor gira, dispara cada 0,038 s (26 tiros por segundo, más que ninguna) y pega x2,8, más que el bombardero. Sus <b>dos cañones de abajo son azules</b> y sus <b>dos bolas de arriba, blancas</b>, y disparan a la vez. Y su puntería asistida es 2,6 veces la normal. Vuela para la REPÚBLICA (tu escuadrón se llama REPÚBLICA 2, 3 y 5) y sus torpedos son INFINITOS y pegan el DOBLE"],
+  ["🛡️","CAZA DAVID","La nave de David, copiada de su LEGO: escudo 300 (el doble que ninguna), la más rápida (260), la que mejor gira, dispara cada 0,038 s (26 tiros por segundo, más que ninguna) y pega x2,8, más que el bombardero. Sus <b>dos cañones de abajo son azules</b> y sus <b>dos bolas de arriba, blancas</b>, y disparan a la vez. Y su puntería asistida es 2,6 veces la normal. Vuela para la REPÚBLICA (tu escuadrón se llama REPÚBLICA 2, 3 y 5), sus torpedos son INFINITOS y pegan el DOBLE, su ESCUDO SE REPARA SOLO (26 por segundo, 2 s después del último impacto) y sus motores no echan humo aunque esté tocada"],
   ["🔭","Zoom ajustable","Con el <span class='tec'>clic derecho apretado</span>, la <span class='tec'>rueda del ratón</span> sube y baja la mira de x2 a x4. Se queda guardado para la próxima"],
   ["🔥","Racha de derribos","Encadena derribos sin que te den y los puntos se multiplican: x1,5 a los 3, x2 a los 6, x3 a los 10 y x4 a los 15. Tienes 6,5 segundos para el siguiente, y si te dan UNA sola vez la racha se corta entera"],
   ["📈","Historial","En la pantalla de inicio se guardan tus últimas 10 partidas en un gráfico de barritas (la última en amarillo) y te dice si has mejorado o empeorado respecto a la anterior. Pasa el ratón por una barrita para ver esa partida"],
