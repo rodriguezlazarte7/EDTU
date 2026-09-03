@@ -471,6 +471,7 @@ function render(){
     ctx.beginPath(); ctx.moveTo(p1.x,p1.y); ctx.lineTo(p2.x,p2.y); ctx.stroke();
     const pu=proyecta(a); ctx.fillStyle=b.c; ctx.beginPath(); ctx.arc(pu.x,pu.y,Math.max(1.5,Math.min(6,0.04*p1.s)),0,7); ctx.fill();
   }
+  estelasPinta();
   /* chispas, fuego y humo */
   for(const s of G.chispas){
     if(s.t==="humo"&&ctx.globalCompositeOperation!=="source-over") ctx.globalCompositeOperation="source-over";
@@ -667,6 +668,46 @@ let warnT=0;
 function textoDano(p,txt,col){ G.danos.push({ p:v3(p.x,p.y,p.z), txt:(typeof txt==="number"?"-"+txt:txt), c:col||"#ffe81f", vida:1.1, max:1.1 }); }
 function golpe(d){ G.shield-=d; sacude(.22+Math.min(.5,d/70)); if(d>=1){ const q=add(G.pos, add(mul(G.base.f,40), mul(G.base.u,-6))); textoDano(q, Math.round(d), "#ff5a5a"); } warnT=.5; $("warn").style.opacity=1; setTimeout(()=>{$("warn").style.opacity=0;},350); sfx("hit"); }
 
+/* ---------- estelas de las alas ---------- */
+const ESTELA_VIDA=0.75;                                     /* lo que tarda en deshacerse */
+let estelaT=0;
+function estelasSuelta(dt){
+  /* cuanto más brusco es el giro (o más rápido vas), más marcada sale */
+  const giro=Math.min(1,(Math.abs(G.yaw)+Math.abs(G.pitch))/3.2+Math.abs(G.roll)*.55);
+  const fuerza=Math.max(0, giro-0.22)/0.78;                 /* volando recto no sale nada */
+  const extra=G.turbo?0.35:0;
+  const cuanto=Math.min(1,fuerza+extra);
+  if(cuanto<=0.02){ estelaT=0; return; }
+  estelaT-=dt;
+  if(estelaT>0) return;
+  estelaT=0.016;                                            /* un punto por fotograma, como mucho */
+  const miPos=add(add(G.pos, add(mul(G.base.f,26), mul(G.base.u,-3.2))), G.naveOff);
+  const puntas=G.mod.canones;
+  for(let k=0;k<puntas.length;k++){
+    G.estelas.push({ k, p:add(miPos, aLocal(G.naveBase, puntas[k])), vida:ESTELA_VIDA, a:cuanto });
+  }
+}
+function estelasPinta(){
+  if(!G.estelas.length) return;
+  const porPunta={};
+  for(const e of G.estelas){ (porPunta[e.k]=porPunta[e.k]||[]).push(e); }
+  ctx.lineCap="round"; ctx.lineJoin="round";
+  for(const k in porPunta){
+    const lista=porPunta[k];
+    for(let i=1;i<lista.length;i++){
+      const a=lista[i-1], b=lista[i];
+      const ca=aCamara(G.base,sub(a.p,G.pos)), cb=aCamara(G.base,sub(b.p,G.pos));
+      if(ca.z<6||cb.z<6) continue;
+      const pa=proyecta(ca), pb=proyecta(cb);
+      const v=Math.min(a.vida,b.vida)/ESTELA_VIDA, op=v*v*0.55*Math.min(a.a,b.a);
+      if(op<0.015) continue;
+      ctx.strokeStyle="rgba(210,235,255,"+op.toFixed(3)+")";
+      ctx.lineWidth=Math.max(1,Math.min(9, 0.055*pa.s*(0.35+v*0.65)));
+      ctx.beginPath(); ctx.moveTo(pa.x,pa.y); ctx.lineTo(pb.x,pb.y); ctx.stroke();
+    }
+  }
+}
+
 /* ---------- misiones ---------- */
 function misionLimpia(){ G.mision=null; G.torres=[]; pintaMision(); }
 function pintaMision(){
@@ -850,6 +891,11 @@ function update(dt){
     if(G.jefe){ nuevoEnemigo("jefe"); G.jefe=false; } else nuevoEnemigo();
     G.quedan--; } }
   $("hudEnem").textContent=(G.enem.filter(e=>!e.ardiendo).length+G.quedan)+" enemigos · "+G.amigos.filter(a=>a.revive<=0).length+" aliados";
+
+  /* ---- estelas de las alas ---- */
+  estelasSuelta(dt);
+  for(const e of G.estelas) e.vida-=dt;
+  G.estelas=G.estelas.filter(e=>e.vida>0);
 
   /* ---- la misión de la oleada ---- */
   misionCorre(dt);
