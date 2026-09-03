@@ -457,21 +457,30 @@ const DIFS={
 };
 const DIF=()=>DIFS[G.dif]||DIFS.normal;
 const recordDe=b=>{ try{ return +(localStorage.getItem("edtu_sw_best_"+b)||0); }catch(e){ return 0; } };
-function guardaRecord(b,v){ try{ localStorage.setItem("edtu_sw_best_"+b, v); }catch(e){} }
+const difDe=b=>{ try{ return localStorage.getItem("edtu_sw_bestdif_"+b)||""; }catch(e){ return ""; } };
+const recordDif=d=>{ try{ return +(localStorage.getItem("edtu_sw_dbest_"+d)||0); }catch(e){ return 0; } };
+function guardaRecord(b,v){ try{ localStorage.setItem("edtu_sw_best_"+b, v); localStorage.setItem("edtu_sw_bestdif_"+b, G.dif); }catch(e){} }
+function guardaRecordDif(d,v){ try{ localStorage.setItem("edtu_sw_dbest_"+d, v); }catch(e){} }
+const ICONO_DIF={ facil:"😊", normal:"🙂", dificil:"😠", imposible:"💀" };
 function pintaRecords(){
   /* cada ficha de la pantalla de elección enseña su propio récord */
   document.querySelectorAll(".nave").forEach(el=>{
     const b=el.dataset.n, r=recordDe(b);
     let et=el.querySelector(".rec");
     if(!et){ et=document.createElement("div"); et.className="rec"; el.appendChild(et); }
-    et.innerHTML=r?("🏆 <b>"+r+"</b>"):"<span style='opacity:.45'>sin récord</span>";
+    const dd=difDe(b);
+    et.innerHTML=r?("🏆 <b>"+r+"</b>"+(dd&&DIFS[dd]?" <span style='opacity:.6'>"+(ICONO_DIF[dd]||"")+" "+DIFS[dd].nom+"</span>":"")):"<span style='opacity:.45'>sin récord</span>";
   });
   const t=$("recTabla"); if(!t) return;
   const filas=Object.keys(NAVES).map(b=>({b,nom:NAVES[b].nom,r:recordDe(b)})).sort((a,c)=>c.r-a.r);
   const mejor=filas[0]&&filas[0].r;
   t.innerHTML="<div class='rt'>🏆 TUS RÉCORDS POR NAVE</div>"+filas.map(x=>
     "<div class='rf'"+(x.b===G.bando?" style='color:#ffe81f'":"")+"><span>"+
-    (x.r&&x.r===mejor?"👑 ":"")+x.nom+"</span><b>"+(x.r||"—")+"</b></div>").join("");
+    (x.r&&x.r===mejor?"👑 ":"")+x.nom+(x.r&&difDe(x.b)&&DIFS[difDe(x.b)]?" <span style='opacity:.55'>"+(ICONO_DIF[difDe(x.b)]||"")+"</span>":"")+
+    "</span><b>"+(x.r||"—")+"</b></div>").join("")+
+    "<div class='rt' style='margin-top:8px'>🎚️ Y POR DIFICULTAD</div>"+
+    Object.keys(DIFS).map(d=>"<div class='rf'"+(d===G.dif?" style='color:#ffe81f'":"")+"><span>"+
+      (ICONO_DIF[d]||"")+" "+DIFS[d].nom+"</span><b>"+(recordDif(d)||"—")+"</b></div>").join("");
 }
 
 /* ---------- estado ---------- */
@@ -1833,15 +1842,19 @@ function finPartida(){
   const recNave=recordDe(G.bando);
   const recordNave=G.score>recNave;
   if(recordNave) guardaRecord(G.bando,G.score);
+  const recDif=recordDif(G.dif);
+  const recordDificultad=G.score>recDif;
+  if(recordDificultad) guardaRecordDif(G.dif,G.score);
   const record=G.score>G.best;
   if(record){ G.best=G.score; try{ localStorage.setItem("edtu_sw_best",G.score); }catch(e){} }
   guardaDiario(seg,punt);
-  $("overTitle").textContent=record?"¡NUEVO RÉCORD!":(recordNave?"¡RÉCORD CON ESTA NAVE!":"DERRIBADO");
+  $("overTitle").textContent=record?"¡NUEVO RÉCORD!":(recordNave?"¡RÉCORD CON ESTA NAVE!":(recordDificultad?"¡RÉCORD EN "+DIF().nom+"!":"DERRIBADO"));
   $("overStats").innerHTML="<div><b>"+G.score+"</b> battle points</div><div>🎯 "+G.kills+" cazas derribados</div>"+
     "<div>🔫 puntería <b>"+punt+"%</b></div><div>🌊 oleada <b>"+Math.max(1,G.wave)+"</b></div>"+
     "<div>⏱️ "+seg+" s en vuelo · "+NAVE().nom+"</div><div>🎚️ dificultad <b>"+DIF().nom+"</b>"+(DIF().puntos!==1?" (x"+DIF().puntos.toString().replace(".",",")+" puntos)":"")+
     "</div><div style='color:#8fd0ff;margin-top:6px'>récord general: "+G.best+
-    " · con "+NAVE().nom+": "+Math.max(recNave,G.score)+"</div>";
+    " · con "+NAVE().nom+": "+Math.max(recNave,G.score)+
+    " · en "+DIF().nom+": "+Math.max(recDif,G.score)+"</div>";
   pintaRecords();
   { const ganadas=calculaMedallas(), tenia=medallasGanadas();
     const nuevas=ganadas.filter(m=>!tenia.includes(m.id));
