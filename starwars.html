@@ -227,7 +227,7 @@
   </div>
   <div id="recTabla"></div>
   <div id="medallero"></div>
-  <div class="row" id="filaJugar"><button class="btn go" id="startBtn">▶ DESPEGAR</button><button class="btn gh" id="novBtn">❇️ NOVEDADES</button><button class="btn gh" id="backBtn">✕ SALIR</button></div>
+  <div class="row" id="filaJugar"><button class="btn go" id="startBtn">▶ DESPEGAR</button><button class="btn go" id="segBtn" style="display:none">▶ CONTINUAR</button><button class="btn gh" id="novBtn">❇️ NOVEDADES</button><button class="btn gh" id="backBtn">✕ SALIR</button></div>
   <details class="keys" id="ayuda"><summary>❔ CONTROLES — tócame para verlos</summary>
     🖱️ <b>mueve el ratón</b> para volar en cualquier dirección (360°)<br/>
     🔫 <b>clic o ESPACIO</b> dispara &nbsp;·&nbsp; 🔭 <b>clic derecho</b> zoom x2,50 &nbsp;·&nbsp; ⚡ <b>SHIFT</b> turbo<br/>
@@ -641,7 +641,7 @@ function nuevaPartida(){
   for(let i=0;i<3;i++) nuevoAmigo(i);
   G.chispas=[];
   G.score=0; G.wave=0; G.jefe=false; misionLimpia(); G.kills=0; G.disparos=0; G.aciertos=0; G.quedan=0; G.spawn=0; G.waveT=0; G.cad=0;
-  hiper=0; G.refuerzos=2; G.refT=0; G.jefeT=0; G.jefesLlamados=0; G.curaT=60; G.capsulas=[]; G.torpedos=[]; G.torp=TORP_MAX; G.torpCarga=0;
+  hiper=0; G.guardaT=20; G.refuerzos=2; G.refT=0; G.jefeT=0; G.jefesLlamados=0; G.curaT=60; G.capsulas=[]; G.torpedos=[]; G.torp=TORP_MAX; G.torpCarga=0;
   G.jefes=0; G.caidos=0; G.torpKills=0; G.misionesOK=0; G.trincherasOK=0; G.golpes=0; G.gensRotos=0; G.refPedidos=0;
   G.gas=1; G.gasObj=1; G.yaw=0; G.pitch=0; G.roll=0; G.t=0; G.over=false; G.paused=false; G.inicio=Date.now();
   estrellasNuevas(); destructoresNuevos();
@@ -1601,6 +1601,61 @@ function pintaNodriza(){
   }
 }
 
+/* ---------- partida guardada ---------- */
+const GUARDA="edtu_sw_partida", GUARDA_DURA=24*60*60*1000;   /* vale durante un día */
+function guardaPartida(){
+  if(!G.run||G.over) return;
+  try{
+    localStorage.setItem(GUARDA, JSON.stringify({
+      ts:Date.now(), v:1,
+      bando:G.bando, dif:G.dif, modo:G.modo,
+      score:G.score, wave:G.wave, kills:G.kills,
+      disparos:G.disparos, aciertos:G.aciertos,
+      shield:Math.round(G.shield), torp:G.torp, refuerzos:G.refuerzos,
+      jefes:G.jefes||0, caidos:G.caidos||0, torpKills:G.torpKills||0,
+      misionesOK:G.misionesOK||0, trincherasOK:G.trincherasOK||0, golpes:G.golpes||0,
+      gensRotos:G.gensRotos||0, refPedidos:G.refPedidos||0,
+      seg:Math.max(0,Math.round((Date.now()-G.inicio)/1000))
+    }));
+  }catch(e){}
+}
+function leePartida(){
+  try{
+    const d=JSON.parse(localStorage.getItem(GUARDA)||"null");
+    if(!d||d.v!==1) return null;
+    if(Date.now()-d.ts>GUARDA_DURA) return null;             /* más de un día: ya no vale */
+    if(!NAVES[d.bando]||!DIFS[d.dif]||!MODOS[d.modo]) return null;
+    if(!(d.wave>=2)&&d.modo==="campana") return null;         /* no vale la pena guardar la oleada 1 */
+    return d;
+  }catch(e){ return null; }
+}
+function borraPartida(){ try{ localStorage.removeItem(GUARDA); }catch(e){} }
+function pintaContinuar(){
+  const b=$("segBtn"); if(!b) return;
+  const d=leePartida();
+  if(!d){ b.style.display="none"; return; }
+  b.style.display="";
+  b.textContent="▶ CONTINUAR · "+(d.modo==="super"
+    ? ("♾️ "+Math.floor(d.seg/60)+":"+String(d.seg%60).padStart(2,"0"))
+    : ("oleada "+d.wave))+" · "+d.score+" pts";
+}
+function continuaPartida(){
+  const d=leePartida(); if(!d) return;
+  G.bando=d.bando; G.dif=d.dif; G.modo=d.modo;
+  empezar();                                                  /* arranca limpia y luego se rellena */
+  G.score=d.score; G.wave=d.wave; G.kills=d.kills;
+  G.disparos=d.disparos; G.aciertos=d.aciertos;
+  G.shield=Math.min(G.vidaMax, Math.max(1,d.shield));
+  G.torp=Math.min(TORP_MAX,d.torp); G.refuerzos=d.refuerzos;
+  G.jefes=d.jefes; G.caidos=d.caidos; G.torpKills=d.torpKills;
+  G.misionesOK=d.misionesOK; G.trincherasOK=d.trincherasOK; G.golpes=d.golpes;
+  G.gensRotos=d.gensRotos; G.refPedidos=d.refPedidos;
+  G.inicio=Date.now()-d.seg*1000;                             /* el cronómetro sigue donde estaba */
+  if(G.modo==="campana"){ G.quedan=Math.max(2, 3+G.wave+DIF().cuantos); G.waveT=1.2; G.jefe=(G.wave%5===0); misionNueva(); }
+  $("hudScore").textContent=G.score;
+  aviso("💾 seguimos donde lo dejaste");
+}
+
 /* ---------- primer vuelo: el tutorial ---------- */
 const PASOS=[
   { txt:"🖱️ <b>Mueve el ratón</b> (o arrastra el dedo) para volar. Puedes girar en todas las direcciones, hasta dar la vuelta entera",
@@ -2150,6 +2205,7 @@ function update(dt){
     G.torp=Math.min(TORP_MAX,G.torp+2);                    /* te reponen munición entre oleadas */
     for(const a of G.amigos) a.protegido=false;
     misionNueva();
+    guardaPartida();                                          /* punto de guardado: cada oleada */
   }
   if(esSuper()){ /* en supervivencia el goteo ya se hizo arriba */ }
   else if(G.waveT>0) G.waveT-=dt;
@@ -2168,6 +2224,8 @@ function update(dt){
   G.estelas=G.estelas.filter(e=>e.vida>0);
 
   tutoCorre(dt);
+  G.guardaT=(G.guardaT||0)-dt;
+  if(G.guardaT<=0){ G.guardaT=20; if(esSuper()) guardaPartida(); }   /* en supervivencia, cada 20 s */
   refuerzosCorren(dt);
   capsulasCorren(dt);
   { const j=jefeVivo(); if(j) jefeCorre(j,dt); }
@@ -2390,7 +2448,7 @@ function pintaMedallas(nuevas, todas){
     (nuevas.length?"<div class='mn'>¡"+nuevas.length+" nueva"+(nuevas.length>1?"s":"")+"!</div>":"");
 }
 function finPartida(){
-  G.over=true; G.run=false; G.shield=0; $("pauseBtn").style.display="none"; musPara(); motorApaga(); sacude(1.2); tactilVisible(false);
+  G.over=true; G.run=false; G.shield=0; $("pauseBtn").style.display="none"; musPara(); motorApaga(); sacude(1.2); tactilVisible(false); borraPartida();
   try{ document.exitPointerLock&&document.exitPointerLock(); }catch(e){}
   const seg=Math.round((Date.now()-G.inicio)/1000), punt=G.disparos?Math.round(100*G.aciertos/G.disparos):0;
   if(esSuper()&&G.score>recordSuper()){ try{ localStorage.setItem("edtu_sw_surv",G.score); }catch(e){} }
@@ -2418,7 +2476,7 @@ function finPartida(){
     if(nuevas.length){ guardaMedallas(todas); sfx("wave"); }
     pintaMedallero();
     pintaMedallas(nuevas, ganadas.map(m=>m.id)); }
-  $("over").classList.remove("hide");
+  $("over").classList.remove("hide"); pintaContinuar();
 }
 function guardaDiario(seg,punt){ try{
   localStorage.setItem("edtu_sw_diary",JSON.stringify({ts:Date.now(),score:G.score,kills:G.kills,wave:Math.max(1,G.wave),seg,punt,nave:G.bando}));
@@ -2435,10 +2493,11 @@ function pausar(v){
       "<div>🌊 oleada <b>"+Math.max(1,G.wave)+"</b> · quedan <b>"+(G.quedan+G.enem.length)+"</b> enemigos</div>"+
       "<div>🛡️ escudo <b>"+Math.max(0,Math.round(G.shield))+"</b>/"+G.vidaMax+" · 🎯 "+G.kills+" derribados</div>"+
       "<div>🔫 puntería <b>"+punt+"%</b> · pilotando "+NAVE().nom+"</div>";
-    $("pause").classList.remove("hide"); musPara(true); motorApaga(); tactilVisible(false);
+    $("pause").classList.remove("hide"); musPara(true); motorApaga(); tactilVisible(false); guardaPartida();
   } else { $("pause").classList.add("hide"); tactilVisible(true); if(!mute){ musArranca(); motorEnciende(); } try{ cv.requestPointerLock&&cv.requestPointerLock(); }catch(e){} last=performance.now(); }
 }
 const salir=()=>{
+  guardaPartida();
   try{ if(window.parent&&window.parent!==window){          /* si estoy dentro del cuartel, solo cierro la pantalla */
     const b=window.parent.document.getElementById("swCloseBtn"); if(b){ b.click(); return; } } }catch(e){}
   location.href="index.html";
@@ -2526,7 +2585,7 @@ document.addEventListener("pointerlockchange",()=>{ if(G.run&&!G.over&&document.
 resize(); estrellasNuevas(); destructoresNuevos();
 $("best").textContent=G.best?"🏆 tu récord: "+G.best+" battle points":"";
 pintaRecords();
-const NOVEDADES_V=4;                                         /* sube este número cuando haya cosas nuevas */
+const NOVEDADES_V=5;                                         /* sube este número cuando haya cosas nuevas */
 const NOVEDADES=[
   ["🎚️","Mandas tú la velocidad","<span class='tec'>W</span> y <span class='tec'>S</span> (o la rueda del ratón) mueven el acelerador · <span class='tec'>X</span> para en seco · <span class='tec'>Z</span> a fondo. Parado giras hasta un 75% más cerrado: frena y el que te persigue se te pasa de largo"],
   ["🚀","Torpedos que persiguen","<span class='tec'>F</span> suelta dos torpedos al enemigo que tengas fichado. Pegan 260 (casi cinco veces un láser). Llevas 6 y te dan 2 en cada oleada"],
@@ -2539,6 +2598,7 @@ const NOVEDADES=[
   ["🎯","Misiones en cada oleada","Proteger a un compañero, callar las torretas de un Destructor, cruzar los 7 arcos del desfiladero o cazar contrarreloj"],
   ["🎖️","Trece medallas","Se ganan por CÓMO juegas: sin perder compañeros, sin que te den, con torpedos, con puntería, aguantando 5 minutos en supervivencia, desmantelando una nodriza, sin pedir refuerzos o pasando la oleada 5 en IMPOSIBLE. El medallero está en la pantalla de inicio"],
   ["😠","Cuatro dificultades","De FÁCIL a IMPOSIBLE. Las difíciles pagan más: en IMPOSIBLE cada derribo vale x2,5"],
+  ["💾","Continuar la partida","Si te tienes que ir a mitad, el juego guarda solo al terminar cada oleada (o cada 20 s en supervivencia). Al volver sale un botón <b>▶ CONTINUAR</b> con tu oleada y tus puntos. Dura un día"],
   ["🎓","Primer vuelo","La primera vez que juegas, el juego te enseña paso a paso: volar, disparar, la mirilla, el acelerador, el turbo, los torpedos y las órdenes. Se salta con <span class='tec'>T</span> y se puede repetir desde aquí"],
   ["📻","Pedir refuerzos","<span class='tec'>H</span> llama por radio al escuadrón ORO (o GRIS si eres del Imperio): llegan 2 cazas extra que pelean contigo 32 segundos y luego vuelven a la base. Llevas 2 llamadas, tardan 75 s en recargar, y ganas una más por cada jefe que derribes"],
   ["♾️","Modo supervivencia","Sin oleadas ni descansos: los enemigos no paran de venir y cada 30 segundos vienen más y más rápido, con un jefe cada minuto y medio (se turnan corbeta y nodriza). Cada minuto te dan un poco de escudo y un torpedo. Tiene su propio récord"],
@@ -2560,7 +2620,7 @@ function repiteTutorial(){
   aviso("🎓 el primer vuelo volverá a salir");
   const b=$("tutoBtn"); if(b){ b.textContent="🎓 ¡listo! sale al despegar"; b.disabled=true; }
 }
-function cierraNovedades(){ $("novedades").classList.add("hide"); $("intro").classList.remove("hide"); }
+function cierraNovedades(){ $("novedades").classList.add("hide"); $("intro").classList.remove("hide"); pintaContinuar(); }
 function pintaMedallero(){
   const el=$("medallero"); if(!el) return;
   const tengo=medallasGanadas();
@@ -2570,6 +2630,9 @@ function pintaMedallero(){
       (tengo.includes(m.id)?m.nom:m.dice)+"</span>").join("");
 }
 pintaMedallero();
+$("segBtn").onclick=continuaPartida;
+pintaContinuar();
+addEventListener("visibilitychange",()=>{ if(document.hidden) guardaPartida(); });
 $("novBtn").onclick=abreNovedades;
 $("novCerrar").onclick=cierraNovedades;
 $("tutoBtn").onclick=repiteTutorial;
