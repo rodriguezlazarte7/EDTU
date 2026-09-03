@@ -9,7 +9,7 @@ const trozos = [...HTML.matchAll(/<script>([\s\S]*?)<\/script>/g)].map(m => m[1]
 if (!trozos.length) { console.error("❌ no encontré el <script> del juego"); process.exit(1); }
 /* las cosas declaradas con const/let no salen solas del guion: se piden al final */
 const CODIGO = trozos.join("\n;\n") +
-  "\n;globalThis.__G=G; globalThis.__NAVES=NAVES; globalThis.__CLASES=CLASES; globalThis.__MOD=MOD;\n";
+  "\n;globalThis.__G=G; globalThis.__NAVES=NAVES; globalThis.__CLASES=CLASES; globalThis.__MOD=MOD; globalThis.__jefeVivo=jefeVivo;\n";
 
 /* --- una pantalla y un navegador de mentira --- */
 const nada = () => {};
@@ -157,6 +157,40 @@ for (let w = 1; w <= 12; w++) {
 }
 for (const t of ["protege", "torres", "trinchera", "rapido", "jefe"])
   if (!vistas.has(t)) F("en 12 oleadas nunca salió la misión '" + t + "'");
+
+/* --- la nave jefe: rayo, fases y escoltas --- */
+{
+  G.bando = "x"; G.dif = "normal"; ctxVM.nuevaPartida();
+  G.run = true; G.wave = 5;
+  try { ctxVM.nuevoEnemigo("jefe"); } catch (e) { F("no se puede crear la nave jefe: " + e.message); }
+  const jefe = ctxVM.__jefeVivo();
+  if (!jefe) F("la nave jefe no aparece");
+  else {
+    const fases = new Set();
+    let furia = false, dañoRayo = 0;
+    for (let i = 0; i < 45 / DT; i++) {                       /* 45 segundos peleando con él */
+      G.shield = G.vidaMax;                                   /* que no muera el jugador */
+      const antes = G.shield;
+      /* colocarse justo delante de su morro para comerse el rayo */
+      if (i % 120 < 60) {
+        const d = jefe.b.f;
+        G.pos = { x: jefe.p.x + d.x * 400, y: jefe.p.y + d.y * 400, z: jefe.p.z + d.z * 400 };
+      }
+      try { ctxVM.update(DT); ctxVM.render(); }
+      catch (e) { F("la nave jefe peta en el segundo " + (i * DT).toFixed(1) + ": " + e.message); console.log(e.stack); break; }
+      if (jefe.rayoFase) fases.add(jefe.rayoFase);
+      if (G.shield < antes) dañoRayo++;
+      if (i === Math.round(20 / DT)) { jefe.vida = jefe.vidaMax * 0.4; }   /* forzar la segunda fase */
+      if (jefe.furia) furia = true;
+    }
+    for (const q of ["espera", "carga", "dispara"])
+      if (!fases.has(q)) F("la nave jefe nunca llegó a la fase '" + q + "' del rayo");
+    if (!furia) F("la nave jefe nunca se enfureció al bajar de la mitad de vida");
+    if (!dañoRayo) F("el rayo de la nave jefe no hace daño nunca");
+    console.log("  ☠️ nave jefe: fases del rayo " + [...fases].join(" → ") +
+      " · se enfurece: " + (furia ? "sí" : "no") + " · te alcanza el rayo: " + dañoRayo + " veces");
+  }
+}
 
 /* --- que se pueda perder y volver a empezar --- */
 try { G.shield = -1; ctxVM.update(DT); ctxVM.render(); } catch (e) { F("morir peta: " + e.message); }
