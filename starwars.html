@@ -1254,7 +1254,7 @@ function render(){
       if(!V) return;
       for(const m of mo.motores){ const w=add(rel,aLocal(e.b,mul(m,esc))); const c=aCamara(G.base,w); if(c.z>6){ const p=proyecta(c); glows.push({z:c.z,x:p.x,y:p.y,r:Math.max(2,Math.min(24*esc,1.1*p.s*esc)),c:mo.motorCol,a:.4}); } } }, e.k&&e.k.col); }
   /* mi nave, delante de la cámara (tercera persona) */
-  const miPos=add(add(G.pos, add(mul(G.base.f,26), mul(G.base.u,-3.2))), G.naveOff);
+  const miPos=add(add(G.pos, add(mul(G.base.f,CAM_D()), mul(G.base.u,CAM_Y()))), G.naveOff);
   pintaModelo(G.mod, miPos, G.naveBase, 1, caras, (V,rel,cam,esc)=>{
     for(const m of G.mod.motores){ const w=add(rel,aLocal(G.naveBase,m)); const c=aCamara(G.base,w); if(c.z>6){ const p=proyecta(c);
       glows.push({z:c.z,x:p.x,y:p.y,r:Math.max(3,Math.min(G.turbo?52:34,(G.turbo?2.4:1.5)*p.s)),c:G.mod.motorCol,a:G.turbo?.5:.32}); } } });
@@ -1461,7 +1461,7 @@ function naveTocada(dt){
   const vida=Math.max(0,G.shield)/G.vidaMax;
   if(vida>=0.45||G.over){ alarmaT=0; return; }
   const mal=(0.45-vida)/0.45;                                /* 0 = tocada · 1 = a punto de caer */
-  const miPos=add(add(G.pos, add(mul(G.base.f,26), mul(G.base.u,-3.2))), G.naveOff);
+  const miPos=add(add(G.pos, add(mul(G.base.f,CAM_D()), mul(G.base.u,CAM_Y()))), G.naveOff);
   /* humo (y fuego si va muy mal) saliendo de un motor */
   humoT-=dt;
   if(humoT<=0){
@@ -1709,11 +1709,15 @@ function pintaTorpedos(){
 
 /* ---------- disparar ---------- */
 const CADENCIA=()=>NAVE().cad;
+/* a qué distancia va la cámara de tu nave, y cuánto por debajo:
+   Ala-X (radio 5,2) → 26 y -3,2, como siempre · Corbeta (radio 21) → 69 y -11,1 */
+const CAM_D=()=>12+((G.mod&&G.mod.r)||5.2)*2.7;
+const CAM_Y=()=>-0.6-((G.mod&&G.mod.r)||5.2)*0.5;
 const dmgBala=b=>Math.round(((b.yo!==false?55:40))*(b.yo!==false?(NAVE().dano||1):1));                             /* cada nave tiene su ritmo de tiro */
 function disparar(){
   if(!G.run||G.paused||G.over||G.cad>0) return;
   G.cad=CADENCIA(); G.disparos++;
-  const miPos=add(add(G.pos, add(mul(G.base.f,26), mul(G.base.u,-3.2))), G.naveOff);
+  const miPos=add(add(G.pos, add(mul(G.base.f,CAM_D()), mul(G.base.u,CAM_Y()))), G.naveOff);
   const cols=G.mod.canonCol;                               /* si la nave tiene colores propios, se usan */
   G.mod.canones.forEach((cn,i)=>{
     const o=add(miPos, aLocal(G.naveBase,cn));
@@ -1774,7 +1778,7 @@ function estelasSuelta(dt){
   estelaT-=dt;
   if(estelaT>0) return;
   estelaT=0.016;                                            /* un punto por fotograma, como mucho */
-  const miPos=add(add(G.pos, add(mul(G.base.f,26), mul(G.base.u,-3.2))), G.naveOff);
+  const miPos=add(add(G.pos, add(mul(G.base.f,CAM_D()), mul(G.base.u,CAM_Y()))), G.naveOff);
   const puntas=G.mod.canones;
   for(let k=0;k<puntas.length;k++){
     G.estelas.push({ k, p:add(miPos, aLocal(G.naveBase, puntas[k])), vida:ESTELA_VIDA, a:cuanto });
@@ -2698,18 +2702,18 @@ function update(dt){
   G.naveBase.u=norm(add(G.naveBase.u, mul(sub(G.base.u,G.naveBase.u), kN)));
   G.naveBase.r=norm(cross(G.naveBase.u,G.naveBase.f)); G.naveBase.u=cross(G.naveBase.f,G.naveBase.r);
   const desfase=sub(G.base.f,G.naveBase.f);
-  G.naveOff=add(G.naveOff, mul(sub(mul(desfase,-46), G.naveOff), kN*1.6));
+  G.naveOff=add(G.naveOff, mul(sub(mul(desfase,-46*(CAM_D()/26)), G.naveOff), kN*1.6));
   {
     /* dónde queda la nave respecto a la cámara, en sus tres ejes */
     const o=aCamara(G.base, G.naveOff);
-    const X=o.x, Y=-3.2+o.y, Z=26+o.z;
+    const X=o.x, Y=CAM_Y()+o.y, Z=CAM_D()+o.z;
     if(Z>4&&FOV>0){
       const margenX=(W/2)*0.62/FOV, margenY=(H/2)*0.58/FOV;   /* el marco donde puede moverse */
       const limX=Z*margenX, limY=Z*margenY;
       const nx=Math.max(-limX,Math.min(limX,X));
       const ny=Math.max(-limY,Math.min(limY,Y));
       if(nx!==X||ny!==Y){                                    /* se salía: la traemos al borde */
-        G.naveOff=add(add(mul(G.base.r,nx), mul(G.base.u,ny+3.2)), mul(G.base.f,o.z));
+        G.naveOff=add(add(mul(G.base.r,nx), mul(G.base.u,ny-CAM_Y())), mul(G.base.f,o.z));
       }
     }
   }
