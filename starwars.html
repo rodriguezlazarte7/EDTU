@@ -128,6 +128,12 @@
     background:rgba(6,16,30,.5);border:1px solid rgba(143,208,255,.2);border-radius:12px;padding:8px 14px}
   #recTabla .rt{font-weight:800;letter-spacing:.08em;color:#8fd0ff;margin-bottom:5px;font-size:11px}
   #recTabla .rf{display:flex;justify-content:space-between;gap:14px;padding:1px 0}
+  #novLista{max-width:min(680px,94vw);text-align:left;font-family:"Consolas",monospace;
+    font-size:clamp(11px,2.5vw,13px);line-height:1.75;color:#cfe0ff;margin:10px 0}
+  #novLista .nv{margin:9px 0;padding-left:4px}
+  #novLista .nv b{color:#ffe81f}
+  #novLista .nv .tec{color:#8fd0ff;font-weight:800}
+  #novLista .nv small{display:block;color:#9fb6c9}
   #medallero{margin:6px auto 2px;max-width:min(520px,94vw);text-align:center;font-size:11px;color:#9fb6c9}
   #medallero .mg{display:inline-block;margin:2px;padding:3px 9px;border-radius:999px;border:1px solid rgba(255,209,102,.35);color:#ffd166}
   #medallero .mg.falta{opacity:.32;border-color:rgba(159,182,201,.3);color:#9fb6c9}
@@ -203,7 +209,7 @@
   </div>
   <div id="recTabla"></div>
   <div id="medallero"></div>
-  <div class="row" id="filaJugar"><button class="btn go" id="startBtn">▶ DESPEGAR</button><button class="btn gh" id="backBtn">✕ SALIR</button></div>
+  <div class="row" id="filaJugar"><button class="btn go" id="startBtn">▶ DESPEGAR</button><button class="btn gh" id="novBtn">❇️ NOVEDADES</button><button class="btn gh" id="backBtn">✕ SALIR</button></div>
   <details class="keys" id="ayuda"><summary>❔ CONTROLES — tócame para verlos</summary>
     🖱️ <b>mueve el ratón</b> para volar en cualquier dirección (360°)<br/>
     🔫 <b>clic o ESPACIO</b> dispara &nbsp;·&nbsp; 🔭 <b>clic derecho</b> zoom x2,50 &nbsp;·&nbsp; ⚡ <b>SHIFT</b> turbo<br/>
@@ -222,6 +228,9 @@
 <div class="screen hide" id="pause"><h1 style="font-size:clamp(22px,6vw,40px)">PAUSA</h1><div id="pauseState"></div>
   <div class="row"><button class="btn go" id="resumeBtn">▶ SEGUIR</button><button class="btn gh" id="quitBtn">✕ SALIR</button></div></div>
 
+<div class="screen hide" id="novedades"><h1>❇️ NOVEDADES</h1><h2>LO NUEVO DE STAR WARS</h2>
+  <div id="novLista"></div>
+  <div class="row"><button class="btn go" id="novCerrar">✕ ENTENDIDO</button></div></div>
 <div class="screen hide" id="over"><h1 id="overTitle">DERRIBADO</h1><div id="overStats"></div><div id="medallas"></div>
   <div class="row"><button class="btn go" id="againBtn">▶ OTRA VEZ</button><button class="btn gh" id="menuBtn">✕ AL CUARTEL</button></div></div>
 
@@ -2152,6 +2161,31 @@ document.addEventListener("pointerlockchange",()=>{ if(G.run&&!G.over&&document.
 resize(); estrellasNuevas(); destructoresNuevos();
 $("best").textContent=G.best?"🏆 tu récord: "+G.best+" battle points":"";
 pintaRecords();
+const NOVEDADES_V=1;                                         /* sube este número cuando haya cosas nuevas */
+const NOVEDADES=[
+  ["🎚️","Mandas tú la velocidad","<span class='tec'>W</span> y <span class='tec'>S</span> (o la rueda del ratón) mueven el acelerador · <span class='tec'>X</span> para en seco · <span class='tec'>Z</span> a fondo. Parado giras hasta un 75% más cerrado: frena y el que te persigue se te pasa de largo"],
+  ["🚀","Torpedos que persiguen","<span class='tec'>F</span> suelta dos torpedos al enemigo que tengas fichado. Pegan 260 (casi cinco veces un láser). Llevas 6 y te dan 2 en cada oleada"],
+  ["🫡","Órdenes a tu escuadrón","<span class='tec'>G</span> cambia entre «a su aire», «¡a mi blanco!», «¡cúbranme!» y «formación». Con «¡a mi blanco!» los cuatro concentráis el fuego y un ÉLITE cae en segundos"],
+  ["🎯","La mirilla que adivina","Te dice dónde apuntar para acertar a una nave que se mueve. Cuando se pone <b>verde</b>, es tiro seguro"],
+  ["📡","Radar 3D","<span class='tec'>R</span> lo enciende y lo apaga. El palito de cada punto dice si está por encima o por debajo de ti"],
+  ["🛩️","Seis naves","Ala-X, Ala-A, Ala-Y, TIE, TIE Interceptor y TIE Defender. Cada una con su escudo, su velocidad, su cadencia y su fuerza de disparo — y su propio récord"],
+  ["👾","Cuatro clases de enemigo","CAZA, ÉLITE (dorado), BOMBARDERO (verde) y NAVE JEFE (rosa), cada uno con su nave. Y esquivan de verdad: cuanto mejor les apuntas, más zigzaguean"],
+  ["☠️","La nave jefe, cada 5 oleadas","Corbeta de mando con barra de vida. Carga un <b>rayo</b> avisando con una línea de puntos: sal de ahí <b>de lado</b>. A media vida se enfurece y llama a dos escoltas"],
+  ["🎯","Misiones en cada oleada","Proteger a un compañero, callar las torretas de un Destructor, cruzar los 7 arcos del desfiladero o cazar contrarreloj"],
+  ["🎖️","Nueve medallas","Se ganan por CÓMO juegas: sin perder compañeros, sin que te den, con torpedos, con puntería... El medallero está en la pantalla de inicio"],
+  ["😠","Cuatro dificultades","De FÁCIL a IMPOSIBLE. Las difíciles pagan más: en IMPOSIBLE cada derribo vale x2,5"],
+  ["🎧","Sonido con sitio","Con auriculares oyes por qué lado te disparan. Y hay música que cambia cuando aparece el jefe"],
+  ["📱","Mandos en el celular","Acelerador a la izquierda y botones de fuego, turbo, mira, torpedos y órdenes a la derecha"],
+  ["🎮","Mando de consola","Palancas para volar · RT dispara · LT puntería · LB/RB tonel · B turbo · cruceta acelerador y órdenes · START pausa"]
+];
+function abreNovedades(){
+  const el=$("novLista");
+  if(el) el.innerHTML=NOVEDADES.map(x=>"<div class='nv'>"+x[0]+" <b>"+x[1]+"</b><small>"+x[2]+"</small></div>").join("");
+  $("intro").classList.add("hide");
+  $("novedades").classList.remove("hide");
+  try{ localStorage.setItem("edtu_sw_nov",NOVEDADES_V); }catch(e){}
+}
+function cierraNovedades(){ $("novedades").classList.add("hide"); $("intro").classList.remove("hide"); }
 function pintaMedallero(){
   const el=$("medallero"); if(!el) return;
   const tengo=medallasGanadas();
@@ -2161,6 +2195,12 @@ function pintaMedallero(){
       (tengo.includes(m.id)?m.nom:m.dice)+"</span>").join("");
 }
 pintaMedallero();
+$("novBtn").onclick=abreNovedades;
+$("novCerrar").onclick=cierraNovedades;
+{ /* la primera vez se avisa con una chapita, para que no se pierdan */
+  let visto=0; try{ visto=+(localStorage.getItem("edtu_sw_nov")||0); }catch(e){}
+  if(visto<NOVEDADES_V){ const b=$("novBtn"); if(b){ b.textContent="❇️ NOVEDADES ·"+NOVEDADES.length+" nuevas"; b.style.borderColor="#ffe81f"; b.style.color="#ffe81f"; } }
+}
 try{ G.dif=localStorage.getItem("edtu_sw_dif")||"normal"; }catch(e){ G.dif="normal"; }
 if(!DIFS[G.dif]) G.dif="normal";
 document.querySelectorAll(".dif").forEach(el=>{
