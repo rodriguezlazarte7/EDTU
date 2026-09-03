@@ -9,7 +9,7 @@ const trozos = [...HTML.matchAll(/<script>([\s\S]*?)<\/script>/g)].map(m => m[1]
 if (!trozos.length) { console.error("❌ no encontré el <script> del juego"); process.exit(1); }
 /* las cosas declaradas con const/let no salen solas del guion: se piden al final */
 const CODIGO = trozos.join("\n;\n") +
-  "\n;globalThis.__G=G; globalThis.__NAVES=NAVES; globalThis.__CLASES=CLASES; globalThis.__MOD=MOD; globalThis.__jefeVivo=jefeVivo; globalThis.__hiperEmpieza=hiperEmpieza; globalThis.__nodrizaVive=nodrizaVive; globalThis.__nodrizaGolpe=nodrizaGolpe; globalThis.__hiper=()=>hiper;\n";
+  "\n;globalThis.__G=G; globalThis.__NAVES=NAVES; globalThis.__CLASES=CLASES; globalThis.__MOD=MOD; globalThis.__jefeVivo=jefeVivo; globalThis.__hiperEmpieza=hiperEmpieza; globalThis.__nodrizaVive=nodrizaVive; globalThis.__MODOS=MODOS; globalThis.__nodrizaGolpe=nodrizaGolpe; globalThis.__hiper=()=>hiper;\n";
 
 /* --- una pantalla y un navegador de mentira --- */
 const nada = () => {};
@@ -247,6 +247,35 @@ for (const t of ["protege", "torres", "trinchera", "rapido", "jefe"])
       " cazas en 12 s · sin generadores se le puede dar");
   }
   for (let i = 0; i < 3 / DT; i++) { try { ctxVM.update(DT); ctxVM.render(); } catch (e) { F("la nodriza peta: " + e.message); break; } }
+}
+
+/* --- modo SUPERVIVENCIA --- */
+{
+  G.bando = "x"; G.dif = "normal"; G.modo = "super";
+  ctxVM.nuevaPartida(); G.run = true;
+  const foto = [];
+  /* se simulan 5 minutos moviendo el reloj hacia atrás, para ver cómo aprieta */
+  for (let minuto = 0; minuto < 5; minuto++) {
+    G.inicio = Date.now() - minuto * 60000;
+    G.enem.length = 0; G.spawn = 0;
+    for (let i = 0; i < 20 / DT; i++) {                       /* 20 s de cada minuto */
+      G.shield = G.vidaMax;
+      try { ctxVM.update(DT); ctxVM.render(); }
+      catch (e) { F("supervivencia peta en el minuto " + minuto + ": " + e.message); console.log(e.stack); break; }
+    }
+    foto.push({ min: minuto, enem: G.enem.length });
+  }
+  if (G.mision) F("en supervivencia no debería haber misiones y hay una: " + G.mision.tipo);
+  if (!(foto[4].enem > foto[0].enem)) F("en supervivencia no vienen más enemigos con el tiempo (" +
+    foto.map(x => x.min + "min:" + x.enem).join(" ") + ")");
+  console.log("  ♾️ supervivencia: enemigos a la vez → " + foto.map(x => x.min + " min: " + x.enem).join(" · ") +
+    " · sin misiones");
+  /* y que la campaña sigue teniendo sus oleadas y sus misiones */
+  G.modo = "campana"; ctxVM.nuevaPartida(); G.run = true;
+  for (let i = 0; i < 4 / DT; i++) { ctxVM.update(DT); ctxVM.render(); }
+  if (G.wave < 1) F("la campaña ya no arranca las oleadas");
+  if (!G.mision) F("la campaña se quedó sin misiones");
+  console.log("  ⚔️ campaña intacta: oleada " + G.wave + " y misión '" + (G.mision ? G.mision.tipo : "—") + "'");
 }
 
 /* --- que se pueda perder y volver a empezar --- */
