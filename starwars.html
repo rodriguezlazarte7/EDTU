@@ -119,7 +119,7 @@
     🎮 <b>mando</b>: palancas para volar · RT dispara · LT puntería · LB/RB tonel · B turbo · START pausa<br/>
     🎚️ <b>W / S</b> (o la rueda del ratón) acelerador · <b>X</b> parar en seco · <b>Z</b> a fondo<br/>
     ↩️ <b>A / D</b> giro de barril &nbsp;·&nbsp;
-    ⏸ <b>P</b> pausa &nbsp;·&nbsp; 🎵 <b>M</b> música y sonido &nbsp;·&nbsp; 📱 en el celular: arrastra y toca<br/>
+    📡 <b>R</b> radar &nbsp;·&nbsp; ⏸ <b>P</b> pausa &nbsp;·&nbsp; 🎵 <b>M</b> música y sonido &nbsp;·&nbsp; 📱 en el celular: arrastra y toca<br/>
     🤝 vuelas con <b>3 cazas aliados</b> que atacan contigo
   </div>
   <div class="row"><button class="btn go" id="startBtn">▶ DESPEGAR</button><button class="btn gh" id="backBtn">✕ SALIR</button></div>
@@ -678,10 +678,64 @@ function render(){
   if(sx||sy) ctx.restore();                                  /* la mira y el aviso no tiemblan */
   deslumbra();
   pintaCabina();
+  pintaRadar();
   dibujaMira();
   if(warnT>0){ warnT-=.016; ctx.fillStyle="rgba(255,40,40,"+(0.2*Math.max(0,warnT/.5))+")"; ctx.fillRect(0,0,W,H); }
 }
 
+const RADAR={ on:true, alcance:2600 };
+function pintaRadar(){
+  if(!RADAR.on) return;
+  const R=Math.max(46,Math.min(W,H)*0.115);                  /* de qué tamaño sale el plato */
+  const cx=W-R-Math.max(14,W*0.022), cy=H-R-Math.max(26,H*0.075);
+  ctx.save();
+  /* el plato */
+  ctx.fillStyle="rgba(4,14,24,.55)"; ctx.beginPath(); ctx.arc(cx,cy,R,0,7); ctx.fill();
+  ctx.strokeStyle="rgba(120,220,255,.35)"; ctx.lineWidth=1.4; ctx.beginPath(); ctx.arc(cx,cy,R,0,7); ctx.stroke();
+  ctx.strokeStyle="rgba(120,220,255,.13)"; ctx.lineWidth=1;
+  ctx.beginPath(); ctx.arc(cx,cy,R*.62,0,7); ctx.stroke();
+  ctx.beginPath(); ctx.arc(cx,cy,R*.31,0,7); ctx.stroke();
+  ctx.beginPath(); ctx.moveTo(cx-R,cy); ctx.lineTo(cx+R,cy); ctx.moveTo(cx,cy-R); ctx.lineTo(cx,cy+R); ctx.stroke();
+  /* el cono de delante: hacia dónde apunta tu morro */
+  ctx.fillStyle="rgba(120,220,255,.07)";
+  ctx.beginPath(); ctx.moveTo(cx,cy); ctx.arc(cx,cy,R,-Math.PI/2-0.42,-Math.PI/2+0.42); ctx.closePath(); ctx.fill();
+  /* la aguja que da vueltas, como los radares de verdad */
+  const ang=-Math.PI/2+(G.t*1.7)%(Math.PI*2);
+  const gr=ctx.createLinearGradient(cx,cy,cx+Math.cos(ang)*R,cy+Math.sin(ang)*R);
+  gr.addColorStop(0,"rgba(120,255,220,.30)"); gr.addColorStop(1,"rgba(120,255,220,0)");
+  ctx.strokeStyle=gr; ctx.lineWidth=2; ctx.beginPath(); ctx.moveTo(cx,cy); ctx.lineTo(cx+Math.cos(ang)*R,cy+Math.sin(ang)*R); ctx.stroke();
+
+  /* pinta una cosa en el radar */
+  const marca=(p, col, tam, texto)=>{
+    const loc=aCamara(G.base, sub(p,G.pos));                 /* en coordenadas de TU nave */
+    let rx=loc.x/RADAR.alcance*R, ry=-loc.z/RADAR.alcance*R;
+    const l=Math.hypot(rx,ry), fuera=l>R*0.96;
+    if(fuera&&l>0){ rx=rx/l*R*0.96; ry=ry/l*R*0.96; }        /* si está lejísimos, se pega al borde */
+    const x=cx+rx, y=cy+ry;
+    /* el palito de la altura: hacia arriba si está por encima de ti, hacia abajo si está debajo */
+    const alt=Math.max(-1,Math.min(1, loc.y/RADAR.alcance))*R*0.42;
+    if(Math.abs(alt)>1.5){
+      ctx.strokeStyle=col+".35)"; ctx.lineWidth=1;
+      ctx.beginPath(); ctx.moveTo(x,y); ctx.lineTo(x,y-alt); ctx.stroke();
+    }
+    ctx.fillStyle=col+(fuera?".55)":"1)");
+    ctx.beginPath(); ctx.arc(x,y-alt,tam,0,7); ctx.fill();
+    if(texto){ ctx.font="700 8px Consolas,monospace"; ctx.textAlign="center"; ctx.fillStyle=col+".9)";
+      ctx.fillText(texto,x,y-alt-tam-3); }
+  };
+  for(const t of G.torres){ if(t.vida>0) marca(t.p,"rgba(120,255,190,",2.6,null); }
+  for(const a of G.amigos){ if(a.revive<=0) marca(a.p,"rgba(110,200,255,",2.4,a.protegido?"🛡":null); }
+  for(const e of G.enem){
+    const jefe=e.k===CLASES.jefe;
+    marca(e.p, e.ardiendo>0?"rgba(255,150,60,":(e.k?e.k.marca:"rgba(255,77,77,"), jefe?5:(e.k&&e.k!==CLASES.caza?3.4:2.6), jefe?"☠":null);
+  }
+  /* tú, en el centro: una flechita mirando arriba */
+  ctx.fillStyle="rgba(255,232,31,.95)";
+  ctx.beginPath(); ctx.moveTo(cx,cy-5.5); ctx.lineTo(cx-4,cy+4); ctx.lineTo(cx,cy+1.6); ctx.lineTo(cx+4,cy+4); ctx.closePath(); ctx.fill();
+  ctx.font="700 8px Consolas,monospace"; ctx.textAlign="center"; ctx.fillStyle="rgba(120,220,255,.55)";
+  ctx.fillText("RADAR "+RADAR.alcance,cx,cy+R+11);
+  ctx.restore();
+}
 function pintaCabina(){
   /* esquinas oscuras: como estar dentro de un casco */
   const v=ctx.createRadialGradient(CX,CY,Math.min(W,H)*0.32,CX,CY,Math.max(W,H)*0.78);
@@ -1280,6 +1334,7 @@ addEventListener("keydown",e=>{
   else if(k==="a"||k==="arrowleft") G.roll=-1;
   else if(k==="d"||k==="arrowright") G.roll=1;
   else if(k==="shift"){ teclaTurbo=true; if(!G.turbo){ G.turbo=true; sfx("turbo"); } }
+  else if(k==="r"){ RADAR.on=!RADAR.on; aviso(RADAR.on?"📡 radar encendido":"📡 radar apagado"); }
   else if(k==="p") pausar();
   else if(k==="m"){ mute=!mute; if(mute){ musPara(true); motorApaga(); } else if(G.run&&!G.paused&&!G.over){ musArranca(); motorEnciende(); } avisoM(); }
   else if(k==="escape"&&G.run&&!G.over) pausar(true);
