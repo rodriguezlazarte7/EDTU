@@ -12,6 +12,19 @@
   #c{display:block;width:100%;height:100%;touch-action:none;cursor:none}
   /* ---- HUD ---- */
   #hud{position:fixed;inset:0;z-index:5;pointer-events:none;font-family:"Consolas",monospace}
+  #tactil.off{display:none}
+  #tGas{position:fixed;left:calc(10px + env(safe-area-inset-left));top:50%;transform:translateY(-50%);
+    width:52px;height:min(46vh,220px);z-index:30;border-radius:26px;border:1.5px solid rgba(143,208,255,.35);
+    background:rgba(6,16,30,.5);overflow:hidden;touch-action:none;-webkit-user-select:none;user-select:none}
+  #tGasFill{position:absolute;left:0;right:0;bottom:0;height:100%;background:linear-gradient(180deg,rgba(126,240,168,.55),rgba(126,240,168,.18))}
+  #tGasTxt{position:absolute;left:0;right:0;bottom:8px;text-align:center;font:700 11px Consolas,monospace;color:#dff;pointer-events:none}
+  #tBotones{position:fixed;right:calc(10px + env(safe-area-inset-right));bottom:calc(12px + env(safe-area-inset-bottom));
+    z-index:30;display:grid;grid-template-columns:repeat(2,1fr);gap:9px}
+  .tb{width:60px;height:60px;border-radius:50%;border:1.5px solid rgba(143,208,255,.4);background:rgba(6,16,30,.55);
+    color:#eaf6ff;font-size:23px;line-height:1;touch-action:none;-webkit-user-select:none;user-select:none;
+    display:flex;align-items:center;justify-content:center;padding:0}
+  .tb.on{background:rgba(255,232,31,.28);border-color:#ffe81f;transform:scale(.94)}
+  #tbFuego{width:76px;height:76px;font-size:29px;grid-column:span 2;justify-self:center;border-color:rgba(255,90,90,.55)}
   #torp{position:absolute;left:50%;transform:translateX(-50%);bottom:calc(30px + env(safe-area-inset-bottom));
     font-size:clamp(12px,2.6vw,16px);font-weight:800;color:#ffd166;text-shadow:0 0 10px rgba(255,209,102,.5);pointer-events:none}
   #mision{position:absolute;left:50%;top:6%;transform:translateX(-50%);opacity:0;transition:opacity .3s;text-align:center;
@@ -103,6 +116,15 @@
   <div id="aviso"></div>
   <div id="mision"></div>
 </div>
+<div id="tactil" class="off">
+  <div id="tGas"><div id="tGasFill"></div><div id="tGasTxt">100%</div></div>
+  <div id="tBotones">
+    <button class="tb" id="tbTurbo">⚡</button>
+    <button class="tb" id="tbZoom">🔭</button>
+    <button class="tb" id="tbTorp">🚀</button>
+    <button class="tb" id="tbFuego">🔫</button>
+  </div>
+</div>
 <div id="pauseBtn" title="Pausa (P)">⏸</div>
 
 <div class="screen" id="intro">
@@ -130,7 +152,7 @@
     🚀 <b>F</b> lanza torpedos al blanco fichado (persiguen solos) &nbsp;·&nbsp; 6 por partida, +2 por oleada<br/>
     🎯 la <b>mirilla verde</b> te dice dónde apuntar para acertar · frena para <b>girar más cerrado</b><br/>
     ↩️ <b>A / D</b> giro de barril &nbsp;·&nbsp;
-    📡 <b>R</b> radar &nbsp;·&nbsp; ⏸ <b>P</b> pausa &nbsp;·&nbsp; 🎵 <b>M</b> música y sonido &nbsp;·&nbsp; 📱 en el celular: arrastra y toca<br/>
+    📡 <b>R</b> radar &nbsp;·&nbsp; ⏸ <b>P</b> pausa &nbsp;·&nbsp; 🎵 <b>M</b> música y sonido &nbsp;·&nbsp; 📱 en el celular: arrastra para volar, con <b>acelerador</b> a la izquierda y botones de fuego, turbo, mira y torpedos a la derecha<br/>
     🤝 vuelas con <b>3 cazas aliados</b> que atacan contigo &nbsp;·&nbsp; 👾 enfrente hay <b>4 clases de nave</b> distintas
   </div>
   <div class="row"><button class="btn go" id="startBtn">▶ DESPEGAR</button><button class="btn gh" id="backBtn">✕ SALIR</button></div>
@@ -1352,6 +1374,9 @@ function update(dt){
   $("spN").textContent=Math.round(vel);
   motorSuena(Math.min(1, vel/G.vel*.45 + (G.turbo&&G.boost>0?.4:0)));   /* parado calla, a fondo ruge */
   { const tn=$("torpN"); if(tn) tn.textContent=G.torp; }
+  if(ESTACTIL){ const gf=$("tGasFill"), gt=$("tGasTxt");
+    if(gf) gf.style.height=Math.round(G.gasObj*100)+"%";
+    if(gt) gt.textContent=G.gas<=0?"STOP":Math.round(G.gasObj*100)+"%"; }
   { const el=$("gasFill"); if(el){ el.style.width=Math.round(G.gasObj*100)+"%";
       el.style.background=G.gasObj<=0?"#ff5a5a":G.gasObj<.35?"#ffb84d":"#7ef0a8"; }
     const t=$("gasTxt"); if(t) t.textContent=(G.gas<=0?"PARADO":Math.round(G.gasObj*100)+"%")+(G.gas<.6?" · 🛞 giro cerrado":""); }
@@ -1516,6 +1541,37 @@ function update(dt){
 }
 
 /* ---------- partida ---------- */
+const ESTACTIL=(("ontouchstart" in window)||(navigator.maxTouchPoints>0));
+function tactilVisible(v){ const el=$("tactil"); if(el) el.classList.toggle("off", !(v&&ESTACTIL)); }
+function montaTactil(){
+  if(!ESTACTIL) return;
+  const pega=(id,abajo,arriba)=>{
+    const b=$(id); if(!b) return;
+    const on=e=>{ e.preventDefault(); e.stopPropagation(); b.classList.add("on"); abajo(); };
+    const off=e=>{ if(e){ e.preventDefault(); e.stopPropagation(); } b.classList.remove("on"); if(arriba) arriba(); };
+    b.addEventListener("touchstart",on,{passive:false});
+    b.addEventListener("touchend",off,{passive:false});
+    b.addEventListener("touchcancel",off,{passive:false});
+  };
+  pega("tbFuego",()=>{ G.disparando=true; disparar(); },()=>{ G.disparando=false; });
+  pega("tbTurbo",()=>{ if(!G.turbo){ G.turbo=true; sfx("turbo"); } },()=>{ G.turbo=false; });
+  pega("tbZoom",()=>{ ZOOM_OBJ=ZOOM; },()=>{ ZOOM_OBJ=1; });
+  pega("tbTorp",()=>lanzaTorpedo(),null);
+  /* la barra de la izquierda es el acelerador: se arrastra con el pulgar */
+  const g=$("tGas");
+  if(g){
+    const mueve=e=>{
+      e.preventDefault(); e.stopPropagation();
+      const t=e.touches&&e.touches[0]; if(!t) return;
+      const r=g.getBoundingClientRect();
+      G.gasObj=Math.max(0,Math.min(1,1-(t.clientY-r.top)/r.height));   /* arriba = a fondo, abajo = parado */
+    };
+    g.addEventListener("touchstart",mueve,{passive:false});
+    g.addEventListener("touchmove",mueve,{passive:false});
+    g.addEventListener("touchend",e=>{ e.preventDefault(); e.stopPropagation(); },{passive:false});
+  }
+}
+montaTactil();
 function empezar(){
   ZOOM_ACT=1; ZOOM_OBJ=1;
   try{ if(screen.orientation&&screen.orientation.lock&&innerWidth<900){ const el=document.documentElement;
@@ -1524,13 +1580,13 @@ function empezar(){
   $("intro").classList.add("hide"); $("over").classList.add("hide"); $("pause").classList.add("hide");
   $("pauseBtn").style.display="block"; $("pts").style.opacity=.4; $("ptsN").textContent="0";
   try{ cv.requestPointerLock&&cv.requestPointerLock(); }catch(e){}
-  MUS.intens=0; SACUDE=0; TEMA=TEMAS.batalla; if(!mute){ musArranca(); motorEnciende(); }
+  MUS.intens=0; SACUDE=0; TEMA=TEMAS.batalla; tactilVisible(true); if(!mute){ musArranca(); motorEnciende(); }
   last=performance.now(); requestAnimationFrame(frame);
 }
 /* si no se está jugando, hay que seguir mirando el mando para que START arranque */
 setInterval(()=>{ if(!G.run) leeMando(); },100);
 function finPartida(){
-  G.over=true; G.run=false; G.shield=0; $("pauseBtn").style.display="none"; musPara(); motorApaga(); sacude(1.2);
+  G.over=true; G.run=false; G.shield=0; $("pauseBtn").style.display="none"; musPara(); motorApaga(); sacude(1.2); tactilVisible(false);
   try{ document.exitPointerLock&&document.exitPointerLock(); }catch(e){}
   const seg=Math.round((Date.now()-G.inicio)/1000), punt=G.disparos?Math.round(100*G.aciertos/G.disparos):0;
   const recNave=recordDe(G.bando);
@@ -1562,8 +1618,8 @@ function pausar(v){
       "<div>🌊 oleada <b>"+Math.max(1,G.wave)+"</b> · quedan <b>"+(G.quedan+G.enem.length)+"</b> enemigos</div>"+
       "<div>🛡️ escudo <b>"+Math.max(0,Math.round(G.shield))+"</b>/"+G.vidaMax+" · 🎯 "+G.kills+" derribados</div>"+
       "<div>🔫 puntería <b>"+punt+"%</b> · pilotando "+NAVE().nom+"</div>";
-    $("pause").classList.remove("hide"); musPara(true); motorApaga();
-  } else { $("pause").classList.add("hide"); if(!mute){ musArranca(); motorEnciende(); } try{ cv.requestPointerLock&&cv.requestPointerLock(); }catch(e){} last=performance.now(); }
+    $("pause").classList.remove("hide"); musPara(true); motorApaga(); tactilVisible(false);
+  } else { $("pause").classList.add("hide"); tactilVisible(true); if(!mute){ musArranca(); motorEnciende(); } try{ cv.requestPointerLock&&cv.requestPointerLock(); }catch(e){} last=performance.now(); }
 }
 const salir=()=>{
   try{ if(window.parent&&window.parent!==window){          /* si estoy dentro del cuartel, solo cierro la pantalla */
@@ -1588,7 +1644,7 @@ cv.addEventListener("mousedown",e=>{ if(e.button===2) return; if(G.run&&!G.pause
 addEventListener("mouseup",()=>G.disparando=false);
 /* táctil: arrastrar gira, tocar dispara */
 let tocando=null;
-cv.addEventListener("touchstart",e=>{ const t=e.touches[0]; tocando={x:t.clientX,y:t.clientY}; G.disparando=true; disparar(); e.preventDefault(); },{passive:false});
+cv.addEventListener("touchstart",e=>{ if(e.target!==cv) return; const t=e.touches[0]; tocando={x:t.clientX,y:t.clientY}; G.disparando=true; disparar(); e.preventDefault(); },{passive:false});
 cv.addEventListener("touchmove",e=>{ const t=e.touches[0]; if(tocando){ G.yaw=Math.max(-3,Math.min(3,G.yaw+(t.clientX-tocando.x)*0.02)); G.pitch=Math.max(-3,Math.min(3,G.pitch+(t.clientY-tocando.y)*0.02)); tocando={x:t.clientX,y:t.clientY}; } e.preventDefault(); },{passive:false});
 cv.addEventListener("touchend",()=>{ tocando=null; G.disparando=false; });
 addEventListener("keydown",e=>{
