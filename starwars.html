@@ -3165,20 +3165,33 @@ addEventListener("keyup",e=>{ const k=e.key.toLowerCase();
 document.querySelectorAll(".nave").forEach(el=>{ el.onclick=()=>{
   document.querySelectorAll(".nave").forEach(x=>x.classList.remove("sel")); el.classList.add("sel"); G.bando=el.dataset.n; pintaRecords(); }; });
 /* miniaturas 3D girando */
+const _radioReal={};
+function radioReal(mod){
+  /* la punta más lejana del modelo (se calcula una vez y se guarda) */
+  if(mod._rr) return mod._rr;
+  let m=0;
+  for(const v of mod.V) m=Math.max(m, Math.hypot(v.x,v.y,v.z));
+  mod._rr=m||mod.r;
+  return mod._rr;
+}
 document.querySelectorAll(".prev").forEach(pc=>{
   const mod=MOD[pc.dataset.p], c2=pc.getContext("2d"); let ang=Math.random()*6;
   function dib(){
-    const w=pc.clientWidth||180, h=96; if(pc.width!==w*2){ pc.width=w*2; pc.height=h*2; c2.setTransform(2,0,0,2,0,0); }
+    const w=pc.clientWidth||180, h=pc.clientHeight||78;   /* la altura, la de verdad: estaba fija en 96 y deformaba */
+    if(pc.width!==w*2||pc.height!==h*2){ pc.width=w*2; pc.height=h*2; c2.setTransform(2,0,0,2,0,0); }
     c2.clearRect(0,0,w,h); ang+=.012;
     const b=baseNueva(); girar(b,ang,Math.sin(ang*.7)*.3,Math.sin(ang*.4)*.25);
-    const esc=Math.min(w,h)/(mod.r*2.6), fov=w*1.4, cxx=w/2, cyy=h/2, dz=mod.r*2.7;
+    /* la cámara ya se aleja en proporción al tamaño (dz), así que TODAS las naves salen
+       del mismo tamaño en la ficha sin escalar nada más */
+    const rr=radioReal(mod);
+    const fov=Math.min(w,h)*1.15, cxx=w/2, cyy=h/2, dz=rr*3.1;
     const caras=[];
     for(const f of mod.C){
       const P=f.i.map(k=>{ const v=aLocal(b,mod.V[k]); return v3(v.x,v.y,v.z+dz); });
       if(P.some(p=>p.z<.5)) continue;
       const n=norm(cross(sub(P[1],P[0]),sub(P[2],P[0]))); if(n.z>0.02) continue;
       const luz=Math.max(0,-dot(n,norm(v3(.4,.7,-.55))));
-      caras.push({ z:P.reduce((a,p)=>a+p.z,0)/P.length, pts:P.map(p=>({x:cxx+p.x/p.z*fov*esc*.9,y:cyy-p.y/p.z*fov*esc*.9})), c:f.c, l:.4+luz*.8 });
+      caras.push({ z:P.reduce((a,p)=>a+p.z,0)/P.length, pts:P.map(p=>({x:cxx+p.x/p.z*fov,y:cyy-p.y/p.z*fov})), c:f.c, l:.4+luz*.8 });
     }
     caras.sort((a,b)=>b.z-a.z);
     for(const f of caras){ c2.fillStyle=tinte(f.c,f.l); c2.beginPath(); c2.moveTo(f.pts[0].x,f.pts[0].y);
