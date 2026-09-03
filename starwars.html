@@ -297,6 +297,14 @@ MOD.i=(()=>{                                            /* TIE INTERCEPTOR: alas
   m.canones=[v3(-3.8,-1.6,3.2),v3(3.8,-1.6,3.2)];
   m.r=4.5; m.motorCol="#8fd0ff"; return m;
 })();
+MOD.aro=(()=>{                                          /* ARCO del desfiladero */
+  const A=34, g=3.4, col="#ffe81f";
+  const m=junta( caja(0,A,0,A*2+g,g,g,col), caja(0,-A,0,A*2+g,g,g,col),
+                 caja(-A,0,0,g,A*2+g,g,col), caja(A,0,0,g,A*2+g,g,col),
+                 caja(-A,A,0,g*2.2,g*2.2,g*1.4,col), caja(A,A,0,g*2.2,g*2.2,g*1.4,col),
+                 caja(-A,-A,0,g*2.2,g*2.2,g*1.4,col), caja(A,-A,0,g*2.2,g*2.2,g*1.4,col) );
+  m.r=A*1.5; m.motores=[]; m.canones=[]; m.motorCol=col; return m;
+})();
 MOD.torre=(()=>{
   const gris="#8a90a0", osc="#454b5c", rojo="#ff4d4d";
   const m=junta( caja(0,0,0,7,4.5,7,gris), caja(0,3.6,0,4.6,3.2,4.6,osc),
@@ -333,7 +341,7 @@ const NAVE=()=>NAVES[G.bando]||NAVES.x;
 /* ---------- estado ---------- */
 const G={ run:false,over:false,paused:false,t:0, score:0,wave:0,kills:0,disparos:0,aciertos:0,
   bando:"x", vidaMax:130, shield:130, boost:100, vel:150, gas:1, gasObj:1, base:baseNueva(), pos:v3(0,0,0),
-  enem:[], amigos:[], torres:[], mision:null, balas:[], chispas:[], estelas:[], destructores:[], estrellas:[], polvo:[], danos:[],
+  enem:[], amigos:[], torres:[], aros:[], mision:null, balas:[], chispas:[], estelas:[], destructores:[], estrellas:[], polvo:[], danos:[],
   naveBase:baseNueva(), naveOff:v3(0,0,0),
   cad:0, quedan:0, spawn:0, waveT:0, best:+(localStorage.getItem("edtu_sw_best")||0), inicio:0,
   yaw:0, pitch:0, roll:0, turbo:false, disparando:false };
@@ -591,6 +599,11 @@ function render(){
 
   /* destructores estelares */
   for(const d of G.destructores) pintaModelo(MOD.destructor, d.p, d.b, 1, caras);
+  /* arcos del desfiladero */
+  for(const a of G.aros){
+    const toca=G.mision&&!G.mision.fin&&a.i===G.mision.prog;
+    pintaModelo(MOD.aro, a.p, a.b, toca?1.06:1, caras, null, a.hecho?"#3a4a2a":(toca?"#ffe81f":"#8a7a20"));
+  }
   /* torretas de la misión */
   for(const t of G.torres){ if(t.vida>0) pintaModelo(MOD.torre, t.p, t.b, 1, caras, null, "#9ff0c0"); }
   /* escuadrón amigo */
@@ -723,6 +736,7 @@ function pintaRadar(){
     if(texto){ ctx.font="700 8px Consolas,monospace"; ctx.textAlign="center"; ctx.fillStyle=col+".9)";
       ctx.fillText(texto,x,y-alt-tam-3); }
   };
+  for(const a of G.aros){ if(!a.hecho) marca(a.p,"rgba(255,232,31,",2.4,a.i===(G.mision?G.mision.prog:-1)?"🏁":null); }
   for(const t of G.torres){ if(t.vida>0) marca(t.p,"rgba(120,255,190,",2.6,null); }
   for(const a of G.amigos){ if(a.revive<=0) marca(a.p,"rgba(110,200,255,",2.4,a.protegido?"🛡":null); }
   for(const e of G.enem){
@@ -966,7 +980,7 @@ function estelasPinta(){
 }
 
 /* ---------- misiones ---------- */
-function misionLimpia(){ G.mision=null; G.torres=[]; pintaMision(); }
+function misionLimpia(){ G.mision=null; G.torres=[]; G.aros=[]; pintaMision(); }
 function pintaMision(){
   const el=$("mision"); if(!el) return;
   const m=G.mision;
@@ -977,7 +991,7 @@ function pintaMision(){
     (m.tiempo!==undefined?" · ⏱️ <b>"+Math.max(0,Math.ceil(m.tiempo))+"s</b>":"");
 }
 function misionNueva(){
-  G.torres=[];
+  G.torres=[]; G.aros=[];
   const w=G.wave, prem=350+w*60;
   if(w%5===0){                                              /* la oleada del jefe ya es bastante */
     G.mision={ tipo:"jefe", texto:"derriba la NAVE JEFE", meta:1, prog:0, prem:prem*2 };
@@ -987,6 +1001,8 @@ function misionNueva(){
     const a=vivos[(Math.random()*vivos.length)|0];
     a.protegido=true;
     G.mision={ tipo:"protege", texto:"que no derriben a <b>"+(G.imperial?NOMBRES_T:NOMBRES)[a.idx%3]+"</b>", meta:1, prog:0, prem, quien:a };
+  } else if(w%4===1&&trincheraNueva()){                      /* el desfiladero */
+    G.mision={ tipo:"trinchera", texto:"cruza los 7 arcos del desfiladero, en orden", meta:7, prog:0, prem:prem+400 };
   } else if(w%3===0){                                        /* volar hasta un Destructor y callar sus torretas */
     torresNuevas(4);
     G.mision={ tipo:"torres", texto:"destruye las torretas del Destructor", meta:4, prog:0, prem:prem+250 };
@@ -995,6 +1011,39 @@ function misionNueva(){
     G.mision={ tipo:"rapido", texto:"derriba "+meta+" cazas antes de que acabe el tiempo", meta, prog:0, tiempo:12+meta*5, prem };
   }
   pintaMision(); if(G.mision) aviso("🎯 "+G.mision.texto.replace(/<[^>]+>/g,""));
+}
+function trincheraNueva(){
+  /* se busca el Destructor más cercano, se acerca, y se traza un pasillo por encima de su cubierta */
+  let d=null, mejor=1e9;
+  for(const x of G.destructores){ const l=len(sub(x.p,G.pos)); if(l<mejor){ mejor=l; d=x; } }
+  if(!d) return false;
+  d.p=add(G.pos, mul(norm(sub(d.p,G.pos)), 1500));
+  G.aros=[]; G.torres=[];
+  const N=7;
+  for(let i=0;i<N;i++){
+    const t=i/(N-1);
+    /* el pasillo va de la popa a la proa, zigzagueando un poco para que haya que volar de verdad */
+    const local=v3( Math.sin(i*1.7)*46, 34+Math.sin(i*0.9)*10, -150+t*310 );
+    G.aros.push({ d, local, p:add(d.p, aLocal(d.b, local)), b:d.b, i, hecho:false });
+    if(i%2===1) G.torres.push({ d, local:v3(local.x+(i%4===1?70:-70), 18, local.z-20),
+      p:v3(0,0,0), b:d.b, vida:160, vidaMax:160, fuego:1+Math.random()*2 });
+  }
+  for(const t of G.torres) t.p=add(t.d.p, aLocal(t.d.b, t.local));
+  return true;
+}
+function trincheraCorre(dt){
+  const m=G.mision; if(!m||m.fin||m.tipo!=="trinchera") return;
+  for(const a of G.aros){
+    a.p=add(a.d.p, aLocal(a.d.b, a.local));                 /* el Destructor no se mueve, pero por si acaso */
+    if(a.hecho) continue;
+    if(a.i!==m.prog) continue;                               /* hay que pasarlos EN ORDEN */
+    if(len(sub(G.pos,a.p))<44){                              /* ¡pasaste por el arco! */
+      a.hecho=true; m.prog++; sfx("wave"); pts(120); G.score+=120;
+      aviso("🏁 arco "+m.prog+"/"+m.meta);
+      pintaMision();
+      if(m.prog>=m.meta) misionLogro();
+    }
+  }
 }
 function torresNuevas(cuantas){
   /* se elige el Destructor más cercano y se le pegan torretas por encima del casco */
@@ -1027,6 +1076,7 @@ function misionCorre(dt){
   const m=G.mision; if(!m||m.fin) return;
   if(m.tiempo!==undefined){ m.tiempo-=dt; if(m.tiempo<=0) misionFallo("se acabó el tiempo"); }
   pintaMision();
+  trincheraCorre(dt);
   /* las torretas te disparan si te acercas */
   for(const t of G.torres){
     if(t.vida<=0) continue;
@@ -1244,7 +1294,18 @@ function update(dt){
   G.chispas=G.chispas.filter(s=>s.vida>0);
 
   /* ---- chocar con un destructor ---- */
-  for(const d of G.destructores){ if(len(sub(G.pos,d.p))<260){ golpe(dt*70); const fuera=norm(sub(G.pos,d.p)); G.pos=add(d.p,mul(fuera,262)); } }
+  const dTrinchera=(G.mision&&!G.mision.fin&&G.mision.tipo==="trinchera"&&G.aros[0])?G.aros[0].d:null;
+  for(const d of G.destructores){
+    if(d===dTrinchera){                                      /* estás corriendo su desfiladero */
+      const loc=aCamara(d.b, sub(G.pos,d.p));                /* dónde estás respecto a SU casco */
+      const dentro=Math.abs(loc.x)<150&&Math.abs(loc.z)<230;
+      if(dentro&&loc.y<16&&loc.y>-40){                       /* te metiste en la chapa */
+        golpe(dt*70); G.pos=add(d.p, aLocal(d.b, v3(loc.x,16,loc.z)));
+      }
+      continue;
+    }
+    if(len(sub(G.pos,d.p))<260){ golpe(dt*70); const fuera=norm(sub(G.pos,d.p)); G.pos=add(d.p,mul(fuera,262)); }
+  }
 
   /* ---- HUD ---- */
   $("hudScore").textContent=G.score;
