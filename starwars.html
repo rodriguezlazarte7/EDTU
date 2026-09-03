@@ -126,6 +126,12 @@
   .nave.sel{border-color:#ffe81f;box-shadow:0 0 24px rgba(255,232,31,.3)}
   .nave canvas{width:100%;height:78px;display:block}
   .nave .rec{margin-top:6px;font-size:11px;color:#ffd166;letter-spacing:.04em}
+  #pestanas{display:flex;gap:8px;justify-content:center;margin:10px 0 2px}
+  .pes{cursor:pointer;padding:7px 18px;border-radius:999px;border:1.5px solid rgba(143,208,255,.3);
+    background:rgba(8,18,36,.6);color:#8fd0ff;font-family:"Consolas",monospace;font-weight:800;
+    letter-spacing:.08em;font-size:clamp(11px,2.4vw,13px);transition:border-color .2s,color .2s}
+  .pes.sel{border-color:#ffe81f;color:#ffe81f;box-shadow:0 0 14px rgba(255,232,31,.22)}
+  .hoja.hide{display:none}
   #modos{display:flex;gap:8px;flex-wrap:wrap;justify-content:center;margin:10px 0 0}
   #modos .modo{cursor:pointer;padding:8px 16px;border-radius:12px;border:1.5px solid rgba(143,208,255,.3);
     background:rgba(8,18,36,.6);font-size:12px;line-height:1.35;transition:border-color .2s,transform .15s}
@@ -208,6 +214,11 @@
 
 <div class="screen" id="intro">
   <h1>STAR WARS</h1><h2>BATALLA ESPACIAL 3D</h2>
+  <div id="pestanas">
+    <button class="pes sel" data-p="volar">🚀 VOLAR</button>
+    <button class="pes" data-p="marcas">🏆 TUS MARCAS</button>
+  </div>
+  <div class="hoja" id="hojaVolar">
   <div id="naves">
     <div class="nave sel" data-n="x"><canvas class="prev" data-p="x"></canvas><div class="n">ALA-X</div>
       <div class="d">Rebelde · <i>resistente</i><br/>escudo 130 · 4 cañones</div></div>
@@ -232,9 +243,12 @@
     <div class="dif" data-d="dificil"><b>😠 DIFÍCIL</b><span>vienen más y pegan más · x1,6 puntos</span></div>
     <div class="dif" data-d="imposible"><b>💀 IMPOSIBLE</b><span>suerte con eso · x2,5 puntos</span></div>
   </div>
+  </div>
+  <div class="hoja hide" id="hojaMarcas">
   <div id="recTabla"></div>
   <div id="medallero"></div>
   <div id="hist"></div>
+  </div>
   <div class="row" id="filaJugar"><button class="btn go" id="startBtn">▶ DESPEGAR</button><button class="btn go" id="segBtn" style="display:none">▶ CONTINUAR</button><button class="btn gh" id="novBtn">❇️ NOVEDADES</button><button class="btn gh" id="backBtn">✕ SALIR</button></div>
   <details class="keys" id="ayuda"><summary>❔ CONTROLES — tócame para verlos</summary>
     🖱️ <b>mueve el ratón</b> para volar en cualquier dirección (360°)<br/>
@@ -2527,6 +2541,9 @@ function finPartida(){
     pintaMedallero(); pintaHistorial();
     pintaMedallas(nuevas, ganadas.map(m=>m.id)); }
   $("over").classList.remove("hide"); pintaContinuar();
+  { const b=$("hojaMarcas"), a=$("hojaVolar");                /* al terminar, la pantalla de inicio ya queda en TUS MARCAS */
+    if(a&&b){ a.classList.add("hide"); b.classList.remove("hide");
+      document.querySelectorAll(".pes").forEach(x=>x.classList.toggle("sel", x.dataset.p==="marcas")); } }
 }
 function guardaDiario(seg,punt){ try{
   localStorage.setItem("edtu_sw_diary",JSON.stringify({ts:Date.now(),score:G.score,kills:G.kills,wave:Math.max(1,G.wave),seg,punt,nave:G.bando}));
@@ -2671,7 +2688,13 @@ function repiteTutorial(){
   aviso("🎓 el primer vuelo volverá a salir");
   const b=$("tutoBtn"); if(b){ b.textContent="🎓 ¡listo! sale al despegar"; b.disabled=true; }
 }
-function cierraNovedades(){ $("novedades").classList.add("hide"); $("intro").classList.remove("hide"); pintaContinuar(); pintaHistorial(); }
+function pestanaVolar(){
+  document.querySelectorAll(".pes").forEach(x=>x.classList.toggle("sel", x.dataset.p==="volar"));
+  const a=$("hojaVolar"), b=$("hojaMarcas");
+  if(a) a.classList.remove("hide");
+  if(b) b.classList.add("hide");
+}
+function cierraNovedades(){ $("novedades").classList.add("hide"); $("intro").classList.remove("hide"); pintaContinuar(); pintaHistorial(); pestanaVolar(); }
 function pintaMedallero(){
   const el=$("medallero"); if(!el) return;
   const tengo=medallasGanadas();
@@ -2682,6 +2705,16 @@ function pintaMedallero(){
 }
 pintaMedallero();
 pintaHistorial();
+document.querySelectorAll(".pes").forEach(b=>{
+  b.onclick=()=>{
+    document.querySelectorAll(".pes").forEach(x=>x.classList.remove("sel"));
+    b.classList.add("sel");
+    const cual=b.dataset.p;
+    $("hojaVolar").classList.toggle("hide", cual!=="volar");
+    $("hojaMarcas").classList.toggle("hide", cual!=="marcas");
+    if(cual==="marcas"){ pintaRecords(); pintaMedallero(); pintaHistorial(); }
+  };
+});
 $("segBtn").onclick=continuaPartida;
 pintaContinuar();
 addEventListener("visibilitychange",()=>{ if(document.hidden) guardaPartida(); });
