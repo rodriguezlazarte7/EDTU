@@ -1237,6 +1237,20 @@ function update(dt){
   G.naveBase.r=norm(cross(G.naveBase.u,G.naveBase.f)); G.naveBase.u=cross(G.naveBase.f,G.naveBase.r);
   const desfase=sub(G.base.f,G.naveBase.f);
   G.naveOff=add(G.naveOff, mul(sub(mul(desfase,-46), G.naveOff), kN*1.6));
+  {
+    /* dónde queda la nave respecto a la cámara, en sus tres ejes */
+    const o=aCamara(G.base, G.naveOff);
+    const X=o.x, Y=-3.2+o.y, Z=26+o.z;
+    if(Z>4&&FOV>0){
+      const margenX=(W/2)*0.62/FOV, margenY=(H/2)*0.58/FOV;   /* el marco donde puede moverse */
+      const limX=Z*margenX, limY=Z*margenY;
+      const nx=Math.max(-limX,Math.min(limX,X));
+      const ny=Math.max(-limY,Math.min(limY,Y));
+      if(nx!==X||ny!==Y){                                    /* se salía: la traemos al borde */
+        G.naveOff=add(add(mul(G.base.r,nx), mul(G.base.u,ny+3.2)), mul(G.base.f,o.z));
+      }
+    }
+  }
   G.yaw*=Math.pow(.02,dt); G.pitch*=Math.pow(.02,dt);        /* el giro se va frenando solo */
 
   /* ---- acelerador: tú decides a qué velocidad vas, hasta pararte ---- */
