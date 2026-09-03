@@ -52,15 +52,20 @@ const doc = {
 lienzo = doc.getElementById("cv");
 
 function audioFalso() {
+  /* un parámetro de sonido de mentira (frecuencia, volumen, filtro...) */
+  const par = () => ({
+    setValueAtTime: nada, linearRampToValueAtTime: nada, exponentialRampToValueAtTime: nada,
+    cancelScheduledValues: nada, setTargetAtTime: nada, value: 0
+  });
   const nodo = () => ({
-    connect: () => nodo(), disconnect: nada, start: nada, stop: nada, type: "",
-    frequency: { setValueAtTime: nada, exponentialRampToValueAtTime: nada, setTargetAtTime: nada, value: 0 },
-    gain: { setValueAtTime: nada, linearRampToValueAtTime: nada, exponentialRampToValueAtTime: nada, cancelScheduledValues: nada, setTargetAtTime: nada, value: 0 },
-    pan: { setValueAtTime: nada, value: 0 }
+    connect: () => nodo(), disconnect: nada, start: nada, stop: nada, type: "", loop: false, buffer: null,
+    frequency: par(), gain: par(), pan: par(), Q: par(), detune: par(), playbackRate: par()
   });
   return {
-    currentTime: 0, state: "running", resume: nada, destination: nodo(),
-    createOscillator: nodo, createGain: nodo, createBiquadFilter: nodo, createStereoPanner: nodo
+    currentTime: 0, state: "running", resume: nada, destination: nodo(), sampleRate: 44100,
+    createOscillator: nodo, createGain: nodo, createBiquadFilter: nodo, createStereoPanner: nodo,
+    createBufferSource: nodo, createDynamicsCompressor: nodo, createConvolver: nodo,
+    createBuffer: (canales, n) => ({ length: n, numberOfChannels: canales, getChannelData: () => new Float32Array(n) })
   };
 }
 const almacen = {};

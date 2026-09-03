@@ -1057,6 +1057,74 @@ function musPara(rapido){
   if(MUS.gan&&a){ const t=a.currentTime; MUS.gan.gain.cancelScheduledValues(t);
     MUS.gan.gain.setValueAtTime(MUS.gan.gain.value,t); MUS.gan.gain.linearRampToValueAtTime(0,t+(rapido?.15:.7)); }
 }
+const AMB={ on:false, nodos:[], gan:null, reloj:null, ruido:null };
+function ruidoBuffer(a){
+  /* dos segundos de ruido: sirve de "viento estelar" y de fondo de los estruendos */
+  const n=a.sampleRate*2, b=a.createBuffer(1,n,a.sampleRate), d=b.getChannelData(0);
+  let ult=0;
+  for(let i=0;i<n;i++){ const bl=Math.random()*2-1; ult=(ult+0.02*bl)/1.02; d[i]=ult*3.2; }   /* ruido "marrón": suena a espacio, no a tele */
+  return b;
+}
+function ambienteEnciende(){
+  const a=ac(); if(!a||AMB.on||mute) return;
+  try{ if(a.state==="suspended") a.resume(); }catch(e){}
+  AMB.on=true; AMB.nodos=[];
+  AMB.gan=a.createGain(); AMB.gan.gain.value=0; AMB.gan.connect(a.destination);
+  AMB.gan.gain.linearRampToValueAtTime(.55, a.currentTime+3);        /* entra muy despacio */
+
+  /* 1) el zumbido grave: tres osciladores casi iguales, y ese "casi" es lo que hace que respire */
+  const filtro=a.createBiquadFilter(); filtro.type="lowpass"; filtro.frequency.value=320; filtro.Q.value=1.2;
+  filtro.connect(AMB.gan);
+  const base=[36.7, 55.0, 73.4];                                     /* re grave y sus armónicos */
+  for(let i=0;i<base.length;i++){
+    const o=a.createOscillator(), g=a.createGain();
+    o.type=i?"sawtooth":"sine"; o.frequency.value=base[i]*(1+(i-1)*0.0025);   /* desafinados a propósito */
+    g.gain.value=i?0.055:0.14;
+    o.connect(g); g.connect(filtro); o.start();
+    AMB.nodos.push(o,g);
+    /* cada uno late a su ritmo, lentísimo: eso es lo que hace que "respire" */
+    const lfo=a.createOscillator(), lg=a.createGain();
+    lfo.type="sine"; lfo.frequency.value=0.045+i*0.021; lg.gain.value=i?0.03:0.06;
+    lfo.connect(lg); lg.connect(g.gain); lfo.start();
+    AMB.nodos.push(lfo,lg);
+  }
+  /* 2) el viento estelar: ruido muy filtrado, moviéndose */
+  AMB.ruido=a.createBufferSource(); AMB.ruido.buffer=ruidoBuffer(a); AMB.ruido.loop=true;
+  const fv=a.createBiquadFilter(); fv.type="bandpass"; fv.frequency.value=420; fv.Q.value=0.7;
+  const gv=a.createGain(); gv.gain.value=0.05;
+  AMB.ruido.connect(fv); fv.connect(gv); gv.connect(AMB.gan); AMB.ruido.start();
+  AMB.nodos.push(AMB.ruido,fv,gv);
+  const lfv=a.createOscillator(), lfg=a.createGain();
+  lfv.type="sine"; lfv.frequency.value=0.03; lfg.gain.value=260;
+  lfv.connect(lfg); lfg.connect(fv.frequency); lfv.start();
+  AMB.nodos.push(lfv,lfg);
+
+  /* 3) estruendos lejanos: cada 6-16 segundos, una explosión que no se ve */
+  AMB.reloj=setInterval(()=>{
+    if(!AMB.on||mute||Math.random()>0.35) return;
+    const t=a.currentTime;
+    const o=a.createOscillator(), g=a.createGain(), fl=a.createBiquadFilter();
+    fl.type="lowpass"; fl.frequency.value=140;
+    o.type="sine"; o.frequency.setValueAtTime(70+Math.random()*40,t);
+    o.frequency.exponentialRampToValueAtTime(22,t+1.6);
+    g.gain.setValueAtTime(0.0001,t);
+    g.gain.exponentialRampToValueAtTime(0.10+Math.random()*0.06,t+0.25);   /* llega rodando, no de golpe */
+    g.gain.exponentialRampToValueAtTime(0.0001,t+2.2);
+    o.connect(fl); fl.connect(g); g.connect(AMB.gan); o.start(t); o.stop(t+2.4);
+  },3000);
+}
+function ambienteApaga(){
+  if(!AMB.on) return;
+  AMB.on=false;
+  clearInterval(AMB.reloj); AMB.reloj=null;
+  const a=ac();
+  try{
+    if(AMB.gan&&a){ const t=a.currentTime; AMB.gan.gain.cancelScheduledValues(t);
+      AMB.gan.gain.setValueAtTime(AMB.gan.gain.value,t); AMB.gan.gain.linearRampToValueAtTime(0,t+.8); }
+    const viejos=AMB.nodos; AMB.nodos=[];
+    setTimeout(()=>{ for(const x of viejos){ try{ x.stop&&x.stop(); }catch(e){} try{ x.disconnect(); }catch(e){} } },900);
+  }catch(e){}
+}
 const MOT={ o:null, g:null, f:null };
 function motorEnciende(){
   const a=ac(); if(!a||MOT.o||mute) return;
@@ -3023,6 +3091,7 @@ function empezar(){
   $("pauseBtn").style.display="block"; $("pts").style.opacity=.4; $("ptsN").textContent="0";
   try{ cv.requestPointerLock&&cv.requestPointerLock(); }catch(e){}
   musMenuPara(); MUS.intens=0; SACUDE=0; TEMA=TEMAS.batalla; tactilVisible(true); hiperEmpieza();
+  if(!mute) ambienteEnciende();
   tutoEmpieza();
   ordenN=0; { const el=$("orden"); if(el){ el.textContent=ordenActual().nom; el.style.opacity=1; } } if(!mute){ musArranca(); motorEnciende(); }
   last=performance.now(); requestAnimationFrame(frame);
@@ -3066,7 +3135,7 @@ function pintaMedallas(nuevas, todas){
     (nuevas.length?"<div class='mn'>¡"+nuevas.length+" nueva"+(nuevas.length>1?"s":"")+"!</div>":"");
 }
 function finPartida(){
-  G.over=true; G.run=false; G.shield=0; $("pauseBtn").style.display="none"; musPara(); motorApaga(); sacude(1.2); tactilVisible(false); borraPartida();
+  G.over=true; G.run=false; G.shield=0; $("pauseBtn").style.display="none"; musPara(); motorApaga(); ambienteApaga(); sacude(1.2); tactilVisible(false); borraPartida();
   try{ document.exitPointerLock&&document.exitPointerLock(); }catch(e){}
   const seg=Math.round((Date.now()-G.inicio)/1000), punt=G.disparos?Math.round(100*G.aciertos/G.disparos):0;
   if(esSuper()&&G.score>recordSuper()){ try{ localStorage.setItem("edtu_sw_surv",G.score); }catch(e){} }
@@ -3116,8 +3185,8 @@ function pausar(v){
       "<div>🌊 oleada <b>"+Math.max(1,G.wave)+"</b> · quedan <b>"+(G.quedan+G.enem.length)+"</b> enemigos</div>"+
       "<div>🛡️ escudo <b>"+Math.max(0,Math.round(G.shield))+"</b>/"+G.vidaMax+" · 🎯 "+G.kills+" derribados</div>"+
       "<div>🔫 puntería <b>"+punt+"%</b> · pilotando "+NAVE().nom+"</div>";
-    $("pause").classList.remove("hide"); musPara(true); motorApaga(); tactilVisible(false); guardaPartida();
-  } else { $("pause").classList.add("hide"); tactilVisible(true); if(!mute){ musArranca(); motorEnciende(); } try{ cv.requestPointerLock&&cv.requestPointerLock(); }catch(e){} last=performance.now(); }
+    $("pause").classList.remove("hide"); musPara(true); motorApaga(); ambienteApaga(); tactilVisible(false); guardaPartida();
+  } else { $("pause").classList.add("hide"); tactilVisible(true); if(!mute){ musArranca(); motorEnciende(); ambienteEnciende(); } try{ cv.requestPointerLock&&cv.requestPointerLock(); }catch(e){} last=performance.now(); }
 }
 const salir=()=>{
   guardaPartida();
@@ -3170,8 +3239,8 @@ addEventListener("keydown",e=>{
   else if(k==="r"){ RADAR.on=!RADAR.on; aviso(RADAR.on?"📡 radar encendido":"📡 radar apagado"); }
   else if(k==="p") pausar();
   else if(k==="m"){ mute=!mute;
-    if(mute){ musPara(true); motorApaga(); musMenu=false; }
-    else if(G.run&&!G.paused&&!G.over){ musArranca(); motorEnciende(); }
+    if(mute){ musPara(true); motorApaga(); ambienteApaga(); musMenu=false; }
+    else if(G.run&&!G.paused&&!G.over){ musArranca(); motorEnciende(); ambienteEnciende(); }
     else { musMenu=false; musMenuArranca(); }
     avisoM(); }
   else if(k==="escape"&&G.run&&!G.over) pausar(true);
@@ -3232,7 +3301,7 @@ document.addEventListener("pointerlockchange",()=>{ if(G.run&&!G.over&&document.
 resize(); estrellasNuevas(); destructoresNuevos();
 $("best").textContent=G.best?"🏆 tu récord: "+G.best+" battle points":"";
 pintaRecords();
-const NOVEDADES_V=12;                                         /* sube este número cuando haya cosas nuevas */
+const NOVEDADES_V=13;                                         /* sube este número cuando haya cosas nuevas */
 const NOVEDADES=[
   ["🎚️","Mandas tú la velocidad","<span class='tec'>W</span> y <span class='tec'>S</span> (o la rueda del ratón) mueven el acelerador · <span class='tec'>X</span> para en seco · <span class='tec'>Z</span> a fondo. Parado giras hasta un 75% más cerrado: frena y el que te persigue se te pasa de largo"],
   ["🚀","Torpedos que persiguen","<span class='tec'>F</span> suelta dos torpedos al enemigo que tengas fichado. Pegan 260 (casi cinco veces un láser). Llevas 6 y te dan 2 en cada oleada"],
@@ -3246,6 +3315,7 @@ const NOVEDADES=[
   ["🎖️","Catorce medallas","Se ganan por CÓMO juegas: sin perder compañeros, sin que te den, con torpedos, con puntería, aguantando 5 minutos en supervivencia, desmantelando una nodriza, sin pedir refuerzos o pasando la oleada 5 en IMPOSIBLE. El medallero está en la pantalla de inicio"],
   ["😠","Cuatro dificultades","De FÁCIL a IMPOSIBLE. Las difíciles pagan más: en IMPOSIBLE cada derribo vale x2,5"],
   ["🌐","Sala online","Como en SWARM: entras a la sala y VES A LOS DEMÁS PILOTOS volando en el mismo espacio, con su nombre, su nave, su puntuación y sus disparos. Salen también en el radar en verde. Cada uno pelea contra sus propios enemigos, así que nadie te puede fastidiar la partida"],
+  ["🌌","Ambiente de batalla espacial","Debajo de todo suena ahora el espacio: el zumbido grave de una nave enorme (tres tonos casi iguales que laten a distinto ritmo, por eso «respira»), viento estelar y estruendos lejanos de explosiones que no ves. Todo generado en el momento: no descarga ni un byte"],
   ["🎺","Tema de EDTU","Una marcha de metales propia que suena en bucle en la pantalla de inicio, compuesta para el juego (la de las películas es de John Williams y no se puede copiar). Empieza en cuanto tocas algo, y se calla al despegar para dejar paso al tema de batalla"],
   ["💥","Destructores que se hunden","Los Destructores Estelares ya no son decorado: tienen 9.000 de vida, TE DISPARAN desde 2.600 unidades con cañones verdes gordísimos que hacen mucho daño, y se pueden HUNDIR. Cuando revientas uno se va a pique 3,5 segundos explotando por dentro, suelta 3 cápsulas y te da 6.000 puntos"],
   ["🛡️","Jefes de tu equipo","En cada oleada de jefe llega una nave capital AMIGA (la CORBETA REPÚBLICA si vuelas el CAZA DAVID) con 5.200 de vida y torretas que apuntan adelantado. Pelea contigo contra el jefe... pero también se la pueden hundir"],
