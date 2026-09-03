@@ -144,6 +144,8 @@
   .nave.sel{border-color:#ffe81f;box-shadow:0 0 24px rgba(255,232,31,.3)}
   .nave canvas{width:100%;height:78px;display:block}
   .nave .rec{margin-top:6px;font-size:11px;color:#ffd166;letter-spacing:.04em}
+  #netCaja{margin:8px auto 2px;max-width:min(520px,94vw)}
+  #netEstado{margin-top:6px;font-family:"Consolas",monospace;font-size:11px;line-height:1.5;color:#9fc8e8}
   #pestanas{display:flex;gap:8px;justify-content:center;margin:10px 0 2px}
   .pes{cursor:pointer;padding:7px 18px;border-radius:999px;border:1.5px solid rgba(143,208,255,.3);
     background:rgba(8,18,36,.6);color:#8fd0ff;font-family:"Consolas",monospace;font-weight:800;
@@ -276,6 +278,7 @@
   <div id="medallero"></div>
   <div id="hist"></div>
   </div>
+  <div id="netCaja"><button class="btn gh" id="netBtn">🌐 SALA ONLINE</button><div id="netEstado">👇 Toca para volar en la misma sala que los demás</div></div>
   <div class="row" id="filaJugar"><button class="btn go" id="startBtn">▶ DESPEGAR</button><button class="btn go" id="segBtn" style="display:none">▶ CONTINUAR</button><button class="btn gh" id="novBtn">❇️ NOVEDADES</button><button class="btn gh" id="backBtn">✕ SALIR</button></div>
   <details class="keys" id="ayuda"><summary>❔ CONTROLES — tócame para verlos</summary>
     🖱️ <b>mueve el ratón</b> para volar en cualquier dirección (360°)<br/>
@@ -1239,6 +1242,7 @@ function render(){
   }
   /* torretas de la misión */
   for(const t of G.torres){ if(t.vida>0) pintaModelo(MOD.torre, t.p, t.b, 1, caras, null, "#9ff0c0"); }
+  pintaRed(caras,glows);
   pintaAliado(caras,glows);
   /* escuadrón amigo */
   for(const a of G.amigos){ if(a.revive>0) continue; pintaModelo(G.mod, a.p, a.b, 1, caras, (V,rel)=>{
@@ -1302,6 +1306,7 @@ function render(){
   pintaRayo();
   pintaNodriza();
   pintaCapsulas();
+  pintaBalasRed();
   pintaTorpedos();
   estelasPinta();
   /* chispas, fuego y humo */
@@ -1381,6 +1386,7 @@ function pintaRadar(){
       ctx.fillText(texto,x,y-alt-tam-3); }
   };
   { const a=G.aliado; if(a&&a.vida>0) marca(a.p,"rgba(111,224,255,",4.2,"🛡"); }
+  for(const k in RED.otros){ const o=RED.otros[k]; if(o.p) marca(v3(o.p[0],o.p[1],o.p[2]),"rgba(160,240,192,",3.0,"🟢"); }
   { const nd=nodrizaVive(); if(nd&&nd.gens) for(const g of nd.gens){ if(g.vida>0) marca(g.p,"rgba(57,224,138,",2.6,"⚡"); } }
   for(const c of G.capsulas){ const k=CAPSULAS[c.tipo]; marca(c.p, k.col==="#4de08a"?"rgba(77,224,138,":k.col==="#ffd166"?"rgba(255,209,102,":k.col==="#8fd0ff"?"rgba(143,208,255,":"rgba(196,143,255,", 2.2, k.ic); }
   for(const a of G.aros){ if(!a.hecho) marca(a.p,"rgba(255,232,31,",2.4,a.i===(G.mision?G.mision.prog:-1)?"🏁":null); }
@@ -1551,6 +1557,7 @@ function dibujaMira(){
     ctx.save(); ctx.translate(ax,ay); ctx.rotate(ang);
     ctx.fillStyle="rgba(120,255,190,.7)"; ctx.beginPath(); ctx.moveTo(10,0); ctx.lineTo(-6,6); ctx.lineTo(-6,-6); ctx.closePath(); ctx.fill(); ctx.restore();
   }
+  pintaNombresRed();
   /* marcas del escuadrón amigo */
   for(const a of G.amigos){ if(a.revive>0) continue;
     const c=aCamara(G.base,sub(a.p,G.pos)); if(c.z<=6) continue;
@@ -1710,7 +1717,9 @@ function disparar(){
   const cols=G.mod.canonCol;                               /* si la nave tiene colores propios, se usan */
   G.mod.canones.forEach((cn,i)=>{
     const o=add(miPos, aLocal(G.naveBase,cn));
-    G.balas.push({ p:o, d:mul(G.base.f,900), vida:2.2, mia:true, yo:true, c:cols?cols[i]:G.colorMio });
+    const col=cols?cols[i]:G.colorMio;
+    G.balas.push({ p:o, d:mul(G.base.f,900), vida:2.2, mia:true, yo:true, c:col });
+    redApuntaTiro(o, mul(G.base.f,900), col);                /* que los demás vean tus disparos */
   });
   sfx("laser");
 }
@@ -1789,6 +1798,142 @@ function estelasPinta(){
       ctx.lineWidth=Math.max(1,Math.min(9, 0.055*pa.s*(0.35+v*0.65)));
       ctx.beginPath(); ctx.moveTo(pa.x,pa.y); ctx.lineTo(pb.x,pb.y); ctx.stroke();
     }
+  }
+}
+
+/* ---------- sala online ---------- */
+const RED={
+  sala:"STARWARS-GLOBAL", ch:null, on:false, id:null, nom:"Piloto",
+  otros:{}, balas:[], _envio:0, _tiros:[], _err:""
+};
+function nube(){
+  /* el juego va dentro del cuartel: se aprovecha SU conexión, sin cargar nada nuevo */
+  try{
+    const p=window.parent;
+    if(p&&p!==window&&p.Cloud&&p.Cloud.enabled&&p.Cloud.sb) return p.Cloud;
+  }catch(e){}
+  return null;
+}
+function redEstado(txt){ const el=$("netEstado"); if(el) el.innerHTML=txt; }
+function redNombre(){
+  let nm="";
+  try{ nm=localStorage.getItem("swarm_name")||localStorage.getItem("edtu_sw_nombre")||""; }catch(e){}
+  try{ const p=window.parent; if(!nm&&p&&p!==window&&typeof p.currentDisplayName==="function") nm=p.currentDisplayName(); }catch(e){}
+  return (nm||"Piloto").slice(0,14);
+}
+function redEntra(){
+  const c=nube();
+  if(!c){ redEstado("⚠ Sin nube: la sala online solo funciona en <b>edtu.cl</b> con internet, entrando desde el cuartel"); return; }
+  redSale(true);
+  RED.id=RED.id||("sw"+Math.floor(Math.random()*1e9).toString(36));
+  RED.nom=redNombre(); RED.otros={}; RED.balas=[]; RED._tiros=[];
+  try{
+    const ch=c.sb.channel("sw:"+RED.sala,{config:{broadcast:{self:false},presence:{key:RED.id}}});
+    ch.on("broadcast",{event:"v"},({payload})=>{                 /* "v" = vuelo: dónde está y hacia dónde mira */
+      if(!payload||payload.id===RED.id) return;
+      payload.t=performance.now();
+      const y=RED.otros[payload.id];
+      RED.otros[payload.id]=payload;
+      if(payload.sh) for(const b of payload.sh){                  /* sus disparos */
+        if(RED.balas.length<300) RED.balas.push({ p:v3(b[0],b[1],b[2]), d:v3(b[3],b[4],b[5]), vida:1.6, c:b[6] });
+      }
+    });
+    ch.on("presence",{event:"sync"},()=>redRecuenta());
+    ch.subscribe(st=>{
+      if(st==="SUBSCRIBED"){
+        RED.on=true;                                             /* ya estás dentro */
+        const b=$("netBtn"); if(b) b.textContent="🟢 EN LÍNEA — tocar para salir";
+        redRecuenta();
+        try{ const pr=ch.track({ nom:RED.nom, nave:G.bando });    /* y ahora te presentas */
+             if(pr&&pr.then) pr.then(()=>redRecuenta()).catch(()=>{}); }catch(e){}
+      } else if(st==="CHANNEL_ERROR"||st==="TIMED_OUT"){
+        redEstado("✖ no se pudo entrar a la sala ("+st+"). Prueba otra vez.");
+        RED.on=false;
+      }
+    });
+    RED.ch=ch;
+  }catch(e){ redEstado("✖ "+((e&&e.message)||e)); }
+}
+function redSale(callado){
+  if(RED.ch){ try{ nube()&&nube().sb.removeChannel(RED.ch); }catch(e){} RED.ch=null; }
+  RED.on=false; RED.otros={}; RED.balas=[];
+  if(!callado){
+    const b=$("netBtn"); if(b) b.textContent="🌐 SALA ONLINE";
+    redEstado("👇 Toca para volar en la misma sala que los demás");
+  }
+}
+function redRecuenta(){
+  let cuantos=1, nombres=[];
+  try{
+    const st=RED.ch.presenceState();
+    const ks=Object.keys(st); cuantos=ks.length||1;
+    for(const k of ks){ const v=st[k]&&st[k][0]; if(v&&v.nom) nombres.push(v.nom); }
+  }catch(e){}
+  redEstado("🟢 En línea como <b>"+RED.nom+"</b> · 👥 <b>"+cuantos+"</b> pilotos en la sala"+
+    (nombres.length>1?"<br><span style='opacity:.75'>"+nombres.slice(0,8).join(" · ")+"</span>":""));
+}
+function redApuntaTiro(o,d,col){
+  if(!RED.on) return;
+  if(RED._tiros.length<8) RED._tiros.push([Math.round(o.x),Math.round(o.y),Math.round(o.z),
+                                           Math.round(d.x),Math.round(d.y),Math.round(d.z),col]);
+}
+function redCorre(dt){
+  /* las balas de los demás vuelan y se apagan (no te hacen daño: cada uno pelea su partida) */
+  for(const b of RED.balas){ b.p=add(b.p,mul(b.d,dt)); b.vida-=dt; }
+  if(RED.balas.length) RED.balas=RED.balas.filter(b=>b.vida>0);
+  if(!RED.on||!RED.ch) return;
+  /* se olvidan los pilotos que dejaron de mandar (se fueron o se les cayó internet) */
+  const ahora=performance.now();
+  for(const k in RED.otros){ if(ahora-(RED.otros[k].t||0)>4000) delete RED.otros[k]; }
+  /* se manda tu posición 10 veces por segundo: suficiente y no satura */
+  if(ahora-RED._envio<100) return;
+  RED._envio=ahora;
+  try{
+    RED.ch.send({ type:"broadcast", event:"v", payload:{
+      id:RED.id, nom:RED.nom, nave:G.bando, pts:G.score, ol:G.wave,
+      p:[Math.round(G.pos.x),Math.round(G.pos.y),Math.round(G.pos.z)],
+      f:[+G.base.f.x.toFixed(3),+G.base.f.y.toFixed(3),+G.base.f.z.toFixed(3)],
+      u:[+G.base.u.x.toFixed(3),+G.base.u.y.toFixed(3),+G.base.u.z.toFixed(3)],
+      sh:RED._tiros.length?RED._tiros:undefined
+    }});
+  }catch(e){}
+  RED._tiros=[];
+}
+function pintaRed(caras,glows){
+  /* las naves de los demás pilotos, con su nombre */
+  for(const k in RED.otros){
+    const o=RED.otros[k]; if(!o.p||!o.f||!o.u) continue;
+    const mod=(NAVES[o.nave]?NAVES[o.nave].mod():MOD.x);
+    const b={ f:norm(v3(o.f[0],o.f[1],o.f[2])), u:norm(v3(o.u[0],o.u[1],o.u[2])), r:v3(1,0,0) };
+    b.r=norm(cross(b.u,b.f)); b.u=cross(b.f,b.r);
+    const p=v3(o.p[0],o.p[1],o.p[2]);
+    pintaModelo(mod, p, b, 1, caras, (V,rel,cam)=>{
+      if(!V) return;
+      for(const m of mod.motores){ const w=add(rel,aLocal(b,m)); const c=aCamara(G.base,w);
+        if(c.z>6){ const q=proyecta(c); glows.push({z:c.z,x:q.x,y:q.y,r:Math.max(2,Math.min(22,0.9*q.s)),c:mod.motorCol,a:.35}); } }
+    }, "#a0f0c0");
+  }
+}
+function pintaNombresRed(){
+  for(const k in RED.otros){
+    const o=RED.otros[k]; if(!o.p) continue;
+    const c=aCamara(G.base, sub(v3(o.p[0],o.p[1],o.p[2]),G.pos)); if(c.z<=6) continue;
+    const p=proyecta(c);
+    if(p.x<4||p.x>W-4||p.y<4||p.y>H-4) continue;
+    const d=Math.round(len(sub(v3(o.p[0],o.p[1],o.p[2]),G.pos)));
+    ctx.font="700 10px Consolas,monospace"; ctx.textAlign="center";
+    ctx.fillStyle="rgba(160,240,192,.9)";
+    ctx.fillText("🟢 "+(o.nom||"piloto")+"  "+d, p.x, p.y-16);
+    if(o.pts) { ctx.fillStyle="rgba(160,240,192,.55)"; ctx.fillText(o.pts+" pts", p.x, p.y-5); }
+  }
+}
+function pintaBalasRed(){
+  for(const b of RED.balas){
+    const a=aCamara(G.base, sub(b.p,G.pos)); if(a.z<6) continue;
+    const c=aCamara(G.base, sub(sub(b.p,mul(norm(b.d),30)),G.pos));
+    const p1=proyecta(a), p2=proyecta(c.z<6?a:c);
+    ctx.strokeStyle=b.c||"#a0f0c0"; ctx.lineWidth=Math.max(1.5,Math.min(7,0.045*p1.s)); ctx.lineCap="round";
+    ctx.beginPath(); ctx.moveTo(p1.x,p1.y); ctx.lineTo(p2.x,p2.y); ctx.stroke();
   }
 }
 
@@ -2654,6 +2799,7 @@ function update(dt){
   G.guardaT=(G.guardaT||0)-dt;
   if(G.guardaT<=0){ G.guardaT=20; if(esSuper()) guardaPartida(); }   /* en supervivencia, cada 20 s */
   refuerzosCorren(dt);
+  redCorre(dt);
   aliadoCorre(dt);
   destructoresCorren(dt);
   pintaBarraDestructor();
@@ -3036,7 +3182,7 @@ document.addEventListener("pointerlockchange",()=>{ if(G.run&&!G.over&&document.
 resize(); estrellasNuevas(); destructoresNuevos();
 $("best").textContent=G.best?"🏆 tu récord: "+G.best+" battle points":"";
 pintaRecords();
-const NOVEDADES_V=11;                                         /* sube este número cuando haya cosas nuevas */
+const NOVEDADES_V=12;                                         /* sube este número cuando haya cosas nuevas */
 const NOVEDADES=[
   ["🎚️","Mandas tú la velocidad","<span class='tec'>W</span> y <span class='tec'>S</span> (o la rueda del ratón) mueven el acelerador · <span class='tec'>X</span> para en seco · <span class='tec'>Z</span> a fondo. Parado giras hasta un 75% más cerrado: frena y el que te persigue se te pasa de largo"],
   ["🚀","Torpedos que persiguen","<span class='tec'>F</span> suelta dos torpedos al enemigo que tengas fichado. Pegan 260 (casi cinco veces un láser). Llevas 6 y te dan 2 en cada oleada"],
@@ -3049,6 +3195,7 @@ const NOVEDADES=[
   ["🎯","Misiones en cada oleada","Proteger a un compañero, callar las torretas de un Destructor, cruzar los 7 arcos del desfiladero o cazar contrarreloj"],
   ["🎖️","Catorce medallas","Se ganan por CÓMO juegas: sin perder compañeros, sin que te den, con torpedos, con puntería, aguantando 5 minutos en supervivencia, desmantelando una nodriza, sin pedir refuerzos o pasando la oleada 5 en IMPOSIBLE. El medallero está en la pantalla de inicio"],
   ["😠","Cuatro dificultades","De FÁCIL a IMPOSIBLE. Las difíciles pagan más: en IMPOSIBLE cada derribo vale x2,5"],
+  ["🌐","Sala online","Como en SWARM: entras a la sala y VES A LOS DEMÁS PILOTOS volando en el mismo espacio, con su nombre, su nave, su puntuación y sus disparos. Salen también en el radar en verde. Cada uno pelea contra sus propios enemigos, así que nadie te puede fastidiar la partida"],
   ["🎺","Tema de EDTU","Una marcha de metales propia que suena en bucle en la pantalla de inicio, compuesta para el juego (la de las películas es de John Williams y no se puede copiar). Empieza en cuanto tocas algo, y se calla al despegar para dejar paso al tema de batalla"],
   ["💥","Destructores que se hunden","Los Destructores Estelares ya no son decorado: tienen 9.000 de vida, TE DISPARAN desde 2.600 unidades con cañones verdes gordísimos que hacen mucho daño, y se pueden HUNDIR. Cuando revientas uno se va a pique 3,5 segundos explotando por dentro, suelta 3 cápsulas y te da 6.000 puntos"],
   ["🛡️","Jefes de tu equipo","En cada oleada de jefe llega una nave capital AMIGA (la CORBETA REPÚBLICA si vuelas el CAZA DAVID) con 5.200 de vida y torretas que apuntan adelantado. Pelea contigo contra el jefe... pero también se la pueden hundir"],
@@ -3117,6 +3264,8 @@ document.querySelectorAll(".pes").forEach(b=>{
   };
 });
 $("segBtn").onclick=continuaPartida;
+$("netBtn").onclick=()=>{ if(RED.on) redSale(); else redEntra(); };
+if(!nube()) redEstado("⚠ La sala online necesita internet y entrar desde el cuartel (edtu.cl)");
 pintaContinuar();
 addEventListener("visibilitychange",()=>{ if(document.hidden) guardaPartida(); });
 $("novBtn").onclick=abreNovedades;
