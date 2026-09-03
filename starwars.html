@@ -633,9 +633,20 @@ function deslumbra(){
   const k=Math.pow(1-d/R,2.2)*0.30;
   ctx.fillStyle="rgba(255,246,225,"+k.toFixed(3)+")"; ctx.fillRect(0,0,W,H);
 }
+let CARAS_N=0, LEJOS_N=0;                                    /* para poder medir cuánto cuesta cada fotograma */
 function pintaModelo(mod, pos, base, escala, caras, extra, tinta){
   const rel=sub(pos,G.pos), cam=aCamara(G.base,rel);
   if(cam.z<-mod.r*escala) return;                            /* del todo detrás */
+  /* ¿de qué tamaño se va a ver en la pantalla? */
+  const tam=cam.z>1 ? (mod.r*escala/cam.z)*FOV*2 : 1e9;
+  if(tam<7 && cam.z>6){                                      /* una manchita: con un cuadrado basta */
+    const p=proyecta(cam), r=Math.max(1.1,tam*0.5);
+    caras.push({ z:cam.z, l:1, c:colorLuz(tinta||mod.C[0].c,0.72),
+      pts:[{x:p.x-r,y:p.y-r},{x:p.x+r,y:p.y-r},{x:p.x+r,y:p.y+r},{x:p.x-r,y:p.y+r}] });
+    LEJOS_N++;
+    if(extra) extra(null,rel,cam,escala);                    /* los motores sí se siguen viendo brillar */
+    return;
+  }
   const V=[];
   for(const v of mod.V){ const w=add(rel, aLocal(base, mul(v,escala))); V.push(aCamara(G.base,w)); }
   for(const f of mod.C){
@@ -710,7 +721,7 @@ function render(){
   ctx.globalAlpha=1;
   pintaSol();
 
-  const caras=[], glows=[];
+  const caras=[], glows=[]; LEJOS_N=0;
 
   /* destructores estelares */
   for(const d of G.destructores) pintaModelo(MOD.destructor, d.p, d.b, 1, caras);
@@ -723,10 +734,12 @@ function render(){
   for(const t of G.torres){ if(t.vida>0) pintaModelo(MOD.torre, t.p, t.b, 1, caras, null, "#9ff0c0"); }
   /* escuadrón amigo */
   for(const a of G.amigos){ if(a.revive>0) continue; pintaModelo(G.mod, a.p, a.b, 1, caras, (V,rel)=>{
+      if(!V) return;
       for(const m of G.mod.motores){ const w=add(rel,aLocal(a.b,m)); const c=aCamara(G.base,w); if(c.z>6){ const p=proyecta(c);
         glows.push({z:c.z,x:p.x,y:p.y,r:Math.max(2,Math.min(20,0.9*p.s)),c:G.mod.motorCol,a:.3}); } } }); }
   /* enemigos */
   for(const e of G.enem){ const mo=e.mod||G.modEnem; pintaModelo(mo, e.p, e.b, e.esc||1, caras, (V,rel,cam,esc)=>{
+      if(!V) return;
       for(const m of mo.motores){ const w=add(rel,aLocal(e.b,mul(m,esc))); const c=aCamara(G.base,w); if(c.z>6){ const p=proyecta(c); glows.push({z:c.z,x:p.x,y:p.y,r:Math.max(2,Math.min(24*esc,1.1*p.s*esc)),c:mo.motorCol,a:.4}); } } }, e.k&&e.k.col); }
   /* mi nave, delante de la cámara (tercera persona) */
   const miPos=add(add(G.pos, add(mul(G.base.f,26), mul(G.base.u,-3.2))), G.naveOff);
@@ -735,6 +748,7 @@ function render(){
       glows.push({z:c.z,x:p.x,y:p.y,r:Math.max(3,Math.min(G.turbo?52:34,(G.turbo?2.4:1.5)*p.s)),c:G.mod.motorCol,a:G.turbo?.5:.32}); } } });
 
   /* caras ordenadas de lejos a cerca */
+  CARAS_N=caras.length;
   caras.sort((a,b)=>b.z-a.z);
   for(const f of caras){
     ctx.fillStyle=tinte(f.c,f.l); ctx.beginPath();
@@ -815,6 +829,7 @@ function render(){
 }
 
 const RADAR={ on:true, alcance:2600 };
+function costeFotograma(){ return { caras:CARAS_N, lejanos:LEJOS_N }; }
 function pintaRadar(){
   if(!RADAR.on) return;
   const R=Math.max(46,Math.min(W,H)*0.115);                  /* de qué tamaño sale el plato */

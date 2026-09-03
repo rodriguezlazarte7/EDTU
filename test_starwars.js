@@ -116,7 +116,7 @@ for (const bando of Object.keys(NAVES)) {
   G.bando = bando;
   try { ctxVM.nuevaPartida(); } catch (e) { F(bando + ": nuevaPartida peta: " + e.message); continue; }
   G.run = true; G.over = false; G.paused = false;
-  let maxBalas = 0, maxChispas = 0, roto = false;
+  let maxBalas = 0, maxChispas = 0, maxCaras = 0, roto = false;
   for (let i = 0; i < SEG / DT; i++) {
     /* se pilota "al azar" pero siempre igual, para que la prueba sea repetible */
     G.yaw = Math.sin(i * 0.013) * 2.4; G.pitch = Math.cos(i * 0.021) * 2.0; G.roll = Math.sin(i * 0.007);
@@ -127,14 +127,16 @@ for (const bando of Object.keys(NAVES)) {
     try { ctxVM.update(DT); } catch (e) { F(bando + ": update peta en el segundo " + (i * DT).toFixed(1) + ": " + e.message); console.log(e.stack); roto = true; break; }
     try { ctxVM.render(); } catch (e) { F(bando + ": render peta en el segundo " + (i * DT).toFixed(1) + ": " + e.message); console.log(e.stack); roto = true; break; }
     maxBalas = Math.max(maxBalas, G.balas.length); maxChispas = Math.max(maxChispas, G.chispas.length);
+    if (ctxVM.costeFotograma) maxCaras = Math.max(maxCaras, ctxVM.costeFotograma().caras);
     if (i % 600 === 0) revisa(bando + " seg " + (i * DT).toFixed(0));
   }
   if (roto) continue;
   revisa(bando + " final");
   if (maxBalas > 1500) F(bando + ": demasiados láseres a la vez (" + maxBalas + ")");
   if (maxChispas > 8000) F(bando + ": demasiadas partículas a la vez (" + maxChispas + ")");
+  if (maxCaras > 4000) F(bando + ": demasiadas caras que pintar en un fotograma (" + maxCaras + ")");
   console.log("  " + NAVES[bando].nom.padEnd(16) + " oleada " + G.wave + " · " + G.kills + " derribos · " +
-    maxBalas + " láseres y " + maxChispas + " partículas como mucho");
+    maxBalas + " láseres, " + maxChispas + " partículas y " + maxCaras + " caras como mucho");
 }
 
 /* --- las misiones, una por una --- */
