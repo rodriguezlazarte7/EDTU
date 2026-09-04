@@ -13,7 +13,8 @@ const codigo = html.slice(ini, fin);
 /* un navegador de mentira, solo lo que FLY usa */
 const nada = () => {};
 const ctxFalso = new Proxy({}, {
-  get: (o, k) => (k === "createLinearGradient" ? () => ({ addColorStop: nada }) : nada),
+  get: (o, k) => ((k === "createLinearGradient" || k === "createRadialGradient")
+    ? () => ({ addColorStop: nada }) : nada),
   set: () => true
 });
 const guardado = {};
@@ -90,6 +91,31 @@ if (guardado["edtu_fly_best"] !== "7") MAL("no guarda el récord");
 /* --- 6) al morir deja de volar y suelta el acelerador --- */
 if (Fly.run || Fly.sube) MAL("tras morir sigue en marcha");
 else console.log("  ✅ al chocar se detiene y suelta el acelerador");
+
+/* --- 7) LA EXPLOSIÓN: salta al chocar, se mueve y se acaba sola --- */
+Fly.setup(); Fly.run = true;
+Fly.pipes = [{ x: 46, top: 300, scored: false }];
+Fly.y = 100;
+Fly.tick();                                                   /* choca */
+if (!Fly.boom) MAL("al chocar no hay explosión");
+else {
+  const trozos = Fly.boom.P.length;
+  const fuego = Fly.boom.P.filter(p => p.t === "fuego").length;
+  const humo = Fly.boom.P.filter(p => p.t === "humo").length;
+  const restos = Fly.boom.P.filter(p => p.t === "trozo").length;
+  console.log("  explosión: " + trozos + " pedazos (" + fuego + " de fuego, " + humo + " de humo, " + restos + " trozos del avión) · sacudida " + Fly.sacude.toFixed(0));
+  if (fuego < 10 || humo < 5 || restos < 5) MAL("la explosión no tiene de todo");
+  if (!(Fly.sacude > 3)) MAL("la pantalla no se sacude al explotar");
+  const x0 = Fly.boom.P[0].x, y0 = Fly.boom.P[0].y;
+  Fly.boomTick();
+  if (Fly.boom && Fly.boom.P[0] && Fly.boom.P[0].x === x0 && Fly.boom.P[0].y === y0) MAL("los pedazos no se mueven");
+  else console.log("  ✅ los pedazos salen despedidos");
+  let cuadros = 1;
+  while (Fly.boom && cuadros < 400) { Fly.boomTick(); cuadros++; }
+  console.log("  la explosión dura " + cuadros + " fotogramas (" + (cuadros / 60).toFixed(1) + " s) y se acaba sola");
+  if (Fly.boom) MAL("la explosión no se acaba nunca");
+  if (Fly.raf) MAL("tras la explosión el juego sigue dibujando para siempre");
+}
 
 console.log("");
 if (malos) { console.log("❌ " + malos + " fallo(s)"); process.exit(1); }
