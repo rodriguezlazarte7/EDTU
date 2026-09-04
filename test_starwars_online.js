@@ -10,7 +10,7 @@ const t = fs.readFileSync("test_starwars.js", "utf8");
 let cab = t.slice(0, t.indexOf("/* --- que las piezas estén todas --- */"))
   .replace("globalThis.__MODOS=MODOS;",
     "globalThis.__MODOS=MODOS; globalThis.__RED=RED; globalThis.__entra=redEntra; " +
-    "globalThis.__sale=redSale; globalThis.__corre=redCorre; globalThis.__nube=nube;");
+    "globalThis.__sale=redSale; globalThis.__pideNombre=redPideNombre; globalThis.__nombreGuardado=redNombreGuardado; globalThis.__corre=redCorre; globalThis.__nube=nube;");
 
 /* el canal de mentira: guarda lo que se manda y deja meter mensajes de otros */
 const falso = `
@@ -98,6 +98,28 @@ catch(e){ MAL("el juego peta al dibujar a los demás: "+e.message); }
 ctxVM.__sale();
 if(RED.on||Object.keys(RED.otros).length||RED.balas.length) MAL("al salir queda basura");
 else console.log("  ✅ al salir se limpia todo");
+
+/* 8b) EL NOMBRE: se pide al entrar, se limpia y se guarda */
+{
+  const L=ventana.localStorage;
+  L.removeItem("edtu_sw_nombre"); L.removeItem("swarm_name");
+  if(ctxVM.__nombreGuardado()) MAL("cree que ya tienes nombre cuando no lo has puesto");
+  else console.log("  ✅ sin nombre guardado, sabe que hay que pedirlo");
+  /* el jugador escribe algo con espacios de más y símbolos raros */
+  ventana.prompt=()=>"   Da<vid>   el   Piloto Espacial Numero Uno   ";
+  const nm=ctxVM.__pideNombre();
+  console.log("  escribió: «   Da<vid>   el   Piloto Espacial Numero Uno   » → quedó: «"+nm+"»");
+  if(/[<>&"]/.test(nm)) MAL("no limpia los símbolos raros del nombre");
+  if(nm.length>14) MAL("el nombre puede pasar de 14 letras: taparía la pantalla de los demás");
+  if(/  /.test(nm)) MAL("no quita los espacios de sobra");
+  if(L.getItem("edtu_sw_nombre")!==nm) MAL("el nombre no se guarda");
+  else console.log("  ✅ se limpia, se corta a 14 letras y se guarda para la próxima");
+  /* y si le da a cancelar, no se pierde el que tenía */
+  ventana.prompt=()=>null;
+  const nm2=ctxVM.__pideNombre();
+  if(nm2!==nm) MAL("al cancelar se pierde el nombre que ya tenías");
+  else console.log("  ✅ si cancelas, se queda el que tenías");
+}
 
 /* 9) PLAN B: si el cuartel no exporta Cloud (versión vieja en la caché), el juego
       tiene que armar el cliente él mismo con la dirección y la clave del cuartel */

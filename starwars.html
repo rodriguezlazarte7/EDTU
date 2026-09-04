@@ -145,6 +145,8 @@
   .nave canvas{width:100%;height:78px;display:block}
   .nave .rec{margin-top:6px;font-size:11px;color:#ffd166;letter-spacing:.04em}
   #netCaja{margin:8px auto 2px;max-width:min(520px,94vw)}
+  #netNombre{margin-top:6px;font-family:"Consolas",monospace;font-size:11px;color:#ffd166;cursor:pointer}
+  #netNombre b{color:#ffe81f}
   #netEstado{margin-top:6px;font-family:"Consolas",monospace;font-size:11px;line-height:1.5;color:#9fc8e8}
   #pestanas{display:flex;gap:8px;justify-content:center;margin:10px 0 2px}
   .pes{cursor:pointer;padding:7px 18px;border-radius:999px;border:1.5px solid rgba(143,208,255,.3);
@@ -278,7 +280,7 @@
   <div id="medallero"></div>
   <div id="hist"></div>
   </div>
-  <div id="netCaja"><button class="btn gh" id="netBtn">🌐 SALA ONLINE</button><div id="netEstado">👇 Toca para volar en la misma sala que los demás</div></div>
+  <div id="netCaja"><button class="btn gh" id="netBtn">🌐 SALA ONLINE</button><div id="netNombre"></div><div id="netEstado">👇 Toca para volar en la misma sala que los demás</div></div>
   <div class="row" id="filaJugar"><button class="btn go" id="startBtn">▶ DESPEGAR</button><button class="btn go" id="segBtn" style="display:none">▶ CONTINUAR</button><button class="btn gh" id="novBtn">❇️ NOVEDADES</button><button class="btn gh" id="backBtn">✕ SALIR</button></div>
   <details class="keys" id="ayuda"><summary>❔ CONTROLES — tócame para verlos</summary>
     🖱️ <b>mueve el ratón</b> para volar en cualquier dirección (360°)<br/>
@@ -2039,12 +2041,41 @@ function nube(){
   return null;
 }
 function redEstado(txt){ const el=$("netEstado"); if(el) el.innerHTML=txt; }
-function redNombre(){
+function redNombreGuardado(){
   let nm="";
-  try{ nm=localStorage.getItem("swarm_name")||localStorage.getItem("edtu_sw_nombre")||""; }catch(e){}
+  try{ nm=localStorage.getItem("edtu_sw_nombre")||localStorage.getItem("swarm_name")||""; }catch(e){}
   try{ const p=window.parent; if(!nm&&p&&p!==window&&typeof p.currentDisplayName==="function") nm=p.currentDisplayName(); }catch(e){}
-  return (nm||"Piloto").slice(0,14);
+  return (nm||"").trim().slice(0,14);
 }
+function limpiaNombre(x){
+  /* sin espacios de sobra, sin cosas raras y como mucho 14 letras */
+  return String(x||"").replace(/[<>&"']/g,"").replace(/\s+/g," ").trim().slice(0,14);
+}
+function redGuardaNombre(nm){
+  try{ localStorage.setItem("edtu_sw_nombre",nm); localStorage.setItem("swarm_name",nm); }catch(e){}
+  RED.nom=nm;
+  if(RED.on&&RED.ch){ try{ RED.ch.track({ nom:nm, nave:G.bando }); }catch(e){} redRecuenta(); }
+  pintaNombre();
+}
+function pintaNombre(){
+  const el=$("netNombre"); if(!el) return;
+  const nm=redNombreGuardado();
+  el.innerHTML = nm ? ("🪪 vuelas como <b>"+nm+"</b> · <u style='cursor:pointer'>cambiar</u>")
+                    : "🪪 <u style='cursor:pointer'>ponte un nombre</u> para que te reconozcan";
+}
+function redPideNombre(){
+  /* devuelve el nombre, preguntándolo si hace falta. Si dice que no, no entra */
+  const antes=redNombreGuardado();
+  let nm=null;
+  try{ nm=prompt("¿Cómo te llamas, piloto?\nAsí te verán los demás en la sala:", antes||"Piloto"); }
+  catch(e){ nm=antes; }
+  if(nm===null) return antes||null;                          /* le dio a cancelar */
+  nm=limpiaNombre(nm);
+  if(!nm) return antes||null;
+  redGuardaNombre(nm);
+  return nm;
+}
+function redNombre(){ return redNombreGuardado()||"Piloto"; }
 function redEntra(){
   const c=nube();
   if(!c){ redEstado("⚠ Sin nube: la sala online solo funciona en <b>edtu.cl</b> con internet, entrando desde el cuartel"); return; }
@@ -3436,7 +3467,7 @@ document.addEventListener("pointerlockchange",()=>{ if(G.run&&!G.over&&document.
 resize(); estrellasNuevas(); destructoresNuevos();
 $("best").textContent=G.best?"🏆 tu récord: "+G.best+" battle points":"";
 pintaRecords();
-const NOVEDADES_V=14;                                         /* sube este número cuando haya cosas nuevas */
+const NOVEDADES_V=15;                                         /* sube este número cuando haya cosas nuevas */
 const NOVEDADES=[
   ["🎚️","Mandas tú la velocidad","<span class='tec'>W</span> y <span class='tec'>S</span> (o la rueda del ratón) mueven el acelerador · <span class='tec'>X</span> para en seco · <span class='tec'>Z</span> a fondo. Parado giras hasta un 75% más cerrado: frena y el que te persigue se te pasa de largo"],
   ["🚀","Torpedos que persiguen","<span class='tec'>F</span> suelta dos torpedos al enemigo que tengas fichado. Pegan 260 (casi cinco veces un láser). Llevas 6 y te dan 2 en cada oleada"],
@@ -3449,6 +3480,7 @@ const NOVEDADES=[
   ["🎯","Misiones en cada oleada","Proteger a un compañero, callar las torretas de un Destructor, cruzar los 7 arcos del desfiladero o cazar contrarreloj"],
   ["🎖️","Catorce medallas","Se ganan por CÓMO juegas: sin perder compañeros, sin que te den, con torpedos, con puntería, aguantando 5 minutos en supervivencia, desmantelando una nodriza, sin pedir refuerzos o pasando la oleada 5 en IMPOSIBLE. El medallero está en la pantalla de inicio"],
   ["😠","Cuatro dificultades","De FÁCIL a IMPOSIBLE. Las difíciles pagan más: en IMPOSIBLE cada derribo vale x2,5"],
+  ["🪪","Tu nombre en la sala","Al entrar por primera vez a la sala online el juego te pregunta cómo te llamas, y ese nombre es el que ven los demás flotando sobre tu nave. Se guarda para siempre y se puede cambiar cuando quieras tocando «cambiar»"],
   ["🌐","Sala online","Como en SWARM: entras a la sala y VES A LOS DEMÁS PILOTOS volando en el mismo espacio, con su nombre, su nave, su puntuación y sus disparos. Salen también en el radar en verde. Cada uno pelea contra sus propios enemigos, así que nadie te puede fastidiar la partida"],
   ["🔊","El motor suena de verdad","Antes el motor era UN pitido con un filtro. Ahora son cuatro capas (subgrave, cuerpo, chorro de plasma y chillido) y CADA NAVE SUENA DISTINTA: los TIE chillan agudo, la Corbeta retumba grave, el Halcón ronronea. Y responde a lo que haces: acelerar abre el sonido, el turbo lo rompe y al virar fuerte el motor carga"],
   ["🌌","Ambiente de batalla espacial","Debajo de todo suena ahora el espacio: el zumbido grave de una nave enorme (tres tonos casi iguales que laten a distinto ritmo, por eso «respira»), viento estelar y estruendos lejanos de explosiones que no ves. Todo generado en el momento: no descarga ni un byte"],
@@ -3520,7 +3552,16 @@ document.querySelectorAll(".pes").forEach(b=>{
   };
 });
 $("segBtn").onclick=continuaPartida;
-$("netBtn").onclick=()=>{ if(RED.on) redSale(); else redEntra(); };
+$("netBtn").onclick=()=>{
+  if(RED.on){ redSale(); return; }
+  if(!redNombreGuardado()){                                  /* la primera vez, se pregunta */
+    const nm=redPideNombre();
+    if(!nm){ redEstado("🪪 necesitas un nombre para entrar a la sala"); return; }
+  }
+  redEntra();
+};
+{ const el=$("netNombre"); if(el) el.onclick=()=>redPideNombre(); }
+pintaNombre();
 if(!nube()) redEstado("⚠ La sala online necesita internet y entrar desde el cuartel (edtu.cl)");
 pintaContinuar();
 addEventListener("visibilitychange",()=>{ if(document.hidden) guardaPartida(); });
