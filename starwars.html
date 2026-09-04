@@ -964,11 +964,36 @@ const MUS={ on:false, gan:null, filtro:null, paso:0, prox:0, reloj:null, intens:
 const NOTA=n=>55*Math.pow(2,n/12);                          /* n = semitonos desde el LA grave */
 /* ocho compases en re menor: el bajo late, los metales sostienen y la melodía la lleva encima */
 const TEMAS={
-  batalla:{                                                 /* re menor, heroico: el de siempre */
-    bajo:[0,0,12,0, 7,7,19,7, 5,5,17,5, 3,3,15,3, 0,0,12,0, 8,8,20,8, 10,10,22,10, 7,7,7,7].map(x=>x+5),
-    acorde:[[5,17,20],[5,17,20],[12,24,27],[12,24,27],[10,22,25],[10,22,25],[8,20,24],[15,22,27]],
-    melo:[ 24,null,26,27, 29,null,27,null, 26,null,24,null, 22,null,null,null,
-           24,null,27,26, 24,null,22,null, 20,null,22,24, 22,null,null,null ].map(x=>x==null?null:x+5),
+  batalla:{        /* 🎺 BATALLA ÉPICA — 16 compases en re menor: tema, puente y clímax */
+    /* el bajo camina con el acorde de cada compás */
+    bajo:[ 0,0,7,0,   0,0,7,0,   8,8,15,8,  7,7,14,7,
+           0,0,7,0,   0,0,7,0,   3,3,10,3,  10,10,17,10,
+           8,8,15,8,  3,3,10,3,  5,5,12,5,  7,7,14,7,
+           0,0,12,0,  8,8,20,8,  5,5,17,5,  7,7,11,14 ].map(x=>x+5),
+    /* los acordes, uno por compás: i · i · VI · V · i · i · III · VII · VI · III · iv · V · i · VI · iv · V */
+    acorde:[[0,7,12],[0,7,12],[8,12,15],[7,11,14],
+            [0,7,12],[0,7,12],[3,7,10],[10,14,17],
+            [8,12,15],[3,7,10],[5,8,12],[7,11,14],
+            [0,7,12],[8,12,15],[5,8,12],[7,11,14]].map(a=>a.map(x=>x+5)),
+    /* LA MELODÍA: empieza con el salto de quinta (lo que suena "a aventura"),
+       baja contestando, se repite más arriba, se oscurece en el puente
+       y vuelve una octava arriba en el clímax */
+    melo:[  7,null,null,12,  12,null,10,8,   7,null,null,null,  null,null,3,5,
+            7,null,null,12,  12,null,14,15,  14,null,null,null, null,null,10,12,
+            8,null,7,5,      3,null,null,7,  5,null,3,2,        0,null,null,null,
+            19,null,null,24, 24,null,22,20,  19,null,17,15,     14,null,12,null ].map(x=>x==null?null:x+5),
+    /* la segunda voz va una tercera por debajo: dos voces suenan a orquesta, una sola suena a pito */
+    melo2:[ 3,null,null,7,   7,null,5,3,     2,null,null,null,  null,null,0,2,
+            3,null,null,7,   7,null,10,12,   10,null,null,null, null,null,7,8,
+            5,null,3,2,      0,null,null,3,  2,null,0,-1,       -5,null,null,null,
+            15,null,null,19, 19,null,17,15,  14,null,12,10,     8,null,7,null ].map(x=>x==null?null:x+5),
+    /* la batería: 1 bombo · 2 caja · 3 tom · 4 platillo */
+    perc:[  1,0,2,0,  1,0,2,0,  1,0,2,0,  1,0,2,3,
+            1,0,2,0,  1,0,2,0,  1,0,2,0,  1,3,3,3,
+            1,0,2,0,  1,0,2,0,  1,0,2,0,  1,0,3,3,
+            4,0,2,1,  1,0,2,0,  1,0,2,0,  1,3,2,3 ],
+    /* la dinámica: el tema empieza contenido, crece y estalla en el clímax */
+    din:[ .82,.82,.90,.95,  1,1,1,1,  .80,.80,.92,1.05,  1.20,1.18,1.15,1.10 ],
     paso:.1875, tambor:.13, bajoTipo:"triangle", metalTipo:"sawtooth", meloTipo:"square", tono:0
   },
   apertura:{                                                /* 🎺 el TEMA DE EDTU: marcha de metales, en bucle */
@@ -1020,16 +1045,51 @@ function musVoz(tipo,frec,t,dur,vol){
   g.gain.exponentialRampToValueAtTime(.0001,t+dur);
   o.connect(g); g.connect(MUS.filtro||a.destination); o.start(t); o.stop(t+dur+.03);
 }
+/* ---- la batería: bombo, caja, tom y platillo, hechos a mano ---- */
+function perc(tipo,t,vol){
+  const a=ac(); if(!a) return;
+  const sal=MUS.filtro||a.destination;
+  if(tipo===1||tipo===3){                                    /* bombo (1) y tom (3): un tono que cae */
+    const o=a.createOscillator(), g=a.createGain();
+    o.type="sine";
+    const f0=tipo===1?120:200, f1=tipo===1?38:70, dur=tipo===1?.20:.24;
+    o.frequency.setValueAtTime(f0,t); o.frequency.exponentialRampToValueAtTime(f1,t+dur*0.8);
+    g.gain.setValueAtTime(vol,t); g.gain.exponentialRampToValueAtTime(.0001,t+dur);
+    o.connect(g); g.connect(sal); o.start(t); o.stop(t+dur+.02);
+  } else {                                                   /* caja (2) y platillo (4): ruido */
+    const src=a.createBufferSource(); src.buffer=ruidoBuffer(a); src.loop=true;
+    const fl=a.createBiquadFilter(), g=a.createGain();
+    if(tipo===2){ fl.type="bandpass"; fl.frequency.value=1900; fl.Q.value=0.8; }
+    else        { fl.type="highpass"; fl.frequency.value=4200; }
+    const dur=tipo===2?.16:.9;
+    g.gain.setValueAtTime(vol*(tipo===2?2.6:1.6),t); g.gain.exponentialRampToValueAtTime(.0001,t+dur);
+    src.connect(fl); fl.connect(g); g.connect(sal); src.start(t); src.stop(t+dur+.05);
+    /* la caja lleva además un golpe de cuerpo, si no suena a siseo */
+    if(tipo===2){ const o=a.createOscillator(), g2=a.createGain();
+      o.type="triangle"; o.frequency.setValueAtTime(210,t); o.frequency.exponentialRampToValueAtTime(90,t+.09);
+      g2.gain.setValueAtTime(vol*.9,t); g2.gain.exponentialRampToValueAtTime(.0001,t+.11);
+      o.connect(g2); g2.connect(sal); o.start(t); o.stop(t+.13); }
+  }
+}
 function musPaso(t){
-  const T=TEMA, p=MUS.paso, compas=Math.floor(p/4)%8, i=p%32, viva=MUS.intens, tono=T.tono;
-  musVoz(T.bajoTipo, NOTA(T.bajo[i%T.bajo.length]-12+tono), t, .22, .16+viva*.05);   /* el bajo, siempre */
-  if(p%4===0){ for(const c of T.acorde[compas]) musVoz(T.metalTipo, NOTA(c-12+tono), t, .62, .028+viva*.02); }  /* metales */
+  const T=TEMA, p=MUS.paso, viva=MUS.intens, tono=T.tono;
+  const LM=T.melo.length, LA=T.acorde.length;
+  const compas=Math.floor(p/4)%LA, i=p%LM;
+  const din=T.din?T.din[compas]:1;                            /* la dinámica: sube y baja a lo largo del tema */
+  musVoz(T.bajoTipo, NOTA(T.bajo[i%T.bajo.length]-12+tono), t, .22, (.16+viva*.05)*din);   /* el bajo, siempre */
+  if(p%4===0){ for(const c of T.acorde[compas]) musVoz(T.metalTipo, NOTA(c-12+tono), t, .62, (.028+viva*.02)*din); }  /* metales */
+  /* la segunda voz: la melodía armonizada, que es lo que hace que suene a orquesta y no a pito */
+  if(T.melo2){ const m2=T.melo2[i];
+    if(m2!==null&&m2!==undefined) musVoz(T.meloTipo||"sawtooth", NOTA(m2+tono), t, .34, .026*din*Math.min(1,.55+viva)); }
+  /* la batería del tema, si lo trae */
+  if(T.perc){ const g=T.perc[i];
+    if(g) perc(g, t, (g===4?.10:g===2?.075:.13)*din); }
   const m=T.melo[i%T.melo.length];
   if(m!==null&&(viva>.15||T===TEMAS.jefe||T===TEMAS.apertura))
     musVoz(T.meloTipo, NOTA(m+tono), t, T===TEMAS.apertura?.42:.30,
            T===TEMAS.apertura?.045:.034*Math.min(1,viva*1.4+(T===TEMAS.jefe?.5:0)));
   if(T===TEMAS.apertura&&m!==null) musVoz("triangle", NOTA(m+tono-12), t, .40, .030);   /* la melodía doblada una octava abajo: suena a orquesta */
-  if(p%8===4||p%8===0||(T===TEMAS.jefe&&p%4===2)){          /* golpe de tambor (el jefe marca más) */
+  if(!T.perc&&(p%8===4||p%8===0||(T===TEMAS.jefe&&p%4===2))){   /* golpe de tambor (los temas sin batería propia) */
     const a=ac(); const o=a.createOscillator(), g=a.createGain();
     o.type="sine"; o.frequency.setValueAtTime(p%8===0?110:150,t); o.frequency.exponentialRampToValueAtTime(40,t+.13);
     g.gain.setValueAtTime(T.tambor,t); g.gain.exponentialRampToValueAtTime(.0001,t+.16);
