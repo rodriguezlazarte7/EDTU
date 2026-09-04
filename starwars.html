@@ -1857,13 +1857,13 @@ function leeMando(){
 
 /* ---------- torpedos de protones ---------- */
 const TORP_MAX=6, TORP_DANO=260, TORP_VEL=520, TORP_GIRO=2.6;
+const TORP_TOPE=80;                                          /* tope de torpedos a la vez, para que el juego no se atasque */
 function lanzaTorpedo(){
   if(!G.run||G.paused||G.over) return;
-  if(G.torpCarga>0){ aviso("🚀 recargando…"); return; }
+  if(G.torpedos.length>=TORP_TOPE) return;                   /* único límite: que no haya cientos volando a la vez */
   if(G.torp<=0&&!NAVE().torpInf){ aviso("🚀 sin torpedos"); return; }
   if(!BLANCO){ aviso("🎯 primero ficha un blanco"); return; }
-  if(!NAVE().torpInf) G.torp--;                            /* el CAZA DAVID no gasta torpedos */
-  G.torpCarga=1.1;                                 /* no se pueden soltar todos de golpe */
+  if(!NAVE().torpInf) G.torp--;                            /* el CAZA DAVID no gasta torpedos */                                 /* no se pueden soltar todos de golpe */
   const salida=add(add(G.pos, add(mul(G.base.f,24), mul(G.base.u,-5))), G.naveOff);
   for(const lado of [-1,1]){
     G.torpedos.push({ p:add(salida, mul(G.base.r, lado*6)), d:v3(G.base.f.x,G.base.f.y,G.base.f.z),
@@ -1872,7 +1872,6 @@ function lanzaTorpedo(){
   sfx("turbo"); aviso("🚀 ¡TORPEDOS FUERA!");
 }
 function torpedosCorren(dt){
-  if(G.torpCarga>0) G.torpCarga-=dt;
   for(const t of G.torpedos){
     t.vida-=dt; t.edad+=dt;
     const o=t.obj;
@@ -3401,7 +3400,7 @@ addEventListener("keydown",e=>{
   else if(k==="t"){ if(tutoActivo()){ tutoTermina(); aviso("🎓 tutorial saltado"); } }
   else if(k==="h") pideRefuerzos();
   else if(k==="g") cambiaOrden();
-  else if(k==="f") lanzaTorpedo();
+  else if(k==="f"){ if(!e.repeat) lanzaTorpedo(); }         /* una pulsación, una tanda (el teclado repite solo si lo mantienes) */
   else if(k==="r"){ RADAR.on=!RADAR.on; aviso(RADAR.on?"📡 radar encendido":"📡 radar apagado"); }
   else if(k==="p") pausar();
   else if(k==="m"){ mute=!mute;
@@ -3467,7 +3466,7 @@ document.addEventListener("pointerlockchange",()=>{ if(G.run&&!G.over&&document.
 resize(); estrellasNuevas(); destructoresNuevos();
 $("best").textContent=G.best?"🏆 tu récord: "+G.best+" battle points":"";
 pintaRecords();
-const NOVEDADES_V=15;                                         /* sube este número cuando haya cosas nuevas */
+const NOVEDADES_V=16;                                         /* sube este número cuando haya cosas nuevas */
 const NOVEDADES=[
   ["🎚️","Mandas tú la velocidad","<span class='tec'>W</span> y <span class='tec'>S</span> (o la rueda del ratón) mueven el acelerador · <span class='tec'>X</span> para en seco · <span class='tec'>Z</span> a fondo. Parado giras hasta un 75% más cerrado: frena y el que te persigue se te pasa de largo"],
   ["🚀","Torpedos que persiguen","<span class='tec'>F</span> suelta dos torpedos al enemigo que tengas fichado. Pegan 260 (casi cinco veces un láser). Llevas 6 y te dan 2 en cada oleada"],
@@ -3480,6 +3479,7 @@ const NOVEDADES=[
   ["🎯","Misiones en cada oleada","Proteger a un compañero, callar las torretas de un Destructor, cruzar los 7 arcos del desfiladero o cazar contrarreloj"],
   ["🎖️","Catorce medallas","Se ganan por CÓMO juegas: sin perder compañeros, sin que te den, con torpedos, con puntería, aguantando 5 minutos en supervivencia, desmantelando una nodriza, sin pedir refuerzos o pasando la oleada 5 en IMPOSIBLE. El medallero está en la pantalla de inicio"],
   ["😠","Cuatro dificultades","De FÁCIL a IMPOSIBLE. Las difíciles pagan más: en IMPOSIBLE cada derribo vale x2,5"],
+  ["🚀","Torpedos sin recarga","Ya no hay que esperar entre tanda y tanda: aprietas <span class='tec'>F</span> y salen, aprietas otra vez y salen otra vez. Con el CAZA DAVID, que los tiene infinitos, puedes soltar una lluvia entera"],
   ["🪪","Tu nombre en la sala","Al entrar por primera vez a la sala online el juego te pregunta cómo te llamas, y ese nombre es el que ven los demás flotando sobre tu nave. Se guarda para siempre y se puede cambiar cuando quieras tocando «cambiar»"],
   ["🌐","Sala online","Como en SWARM: entras a la sala y VES A LOS DEMÁS PILOTOS volando en el mismo espacio, con su nombre, su nave, su puntuación y sus disparos. Salen también en el radar en verde. Cada uno pelea contra sus propios enemigos, así que nadie te puede fastidiar la partida"],
   ["🔊","El motor suena de verdad","Antes el motor era UN pitido con un filtro. Ahora son cuatro capas (subgrave, cuerpo, chorro de plasma y chillido) y CADA NAVE SUENA DISTINTA: los TIE chillan agudo, la Corbeta retumba grave, el Halcón ronronea. Y responde a lo que haces: acelerar abre el sonido, el turbo lo rompe y al virar fuerte el motor carga"],
