@@ -167,6 +167,19 @@ else {
   global.setInterval = si; global.clearInterval = ci;
 }
 
+/* --- 10) el avión NO puede reaparecer cuando acaba la explosión --- */
+Fly.setup(); Fly.run = true;
+Fly.pipes = [{ x: 46, top: 300, scored: false }];
+Fly.y = 100;
+Fly.tick();                                                   /* choca */
+if (!Fly.roto) MAL("tras chocar el avión no se marca como destruido");
+let vueltas = 0;
+while (Fly.boom && vueltas < 400) { Fly.boomTick(); vueltas++; }
+Fly.draw();                                                   /* el dibujo final, cuando ya no hay humo */
+console.log("  acabada la explosión, ¿el avión sigue destruido? " + Fly.roto);
+if (!Fly.roto) MAL("el avión reaparece de la nada al acabar la explosión");
+else console.log("  ✅ el avión ya no vuelve a aparecer");
+
 console.log("");
 if (malos) { console.log("❌ " + malos + " fallo(s)"); process.exit(1); }
 console.log("✅ FLY sano · mantener sube, soltar baja, vuelo suave, choca, puntúa y guarda el récord");
