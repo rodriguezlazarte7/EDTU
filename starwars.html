@@ -735,6 +735,31 @@ MOD.nodriza=(()=>{                                      /* NODRIZA: fábrica de 
   m.canones=[v3(-10.4,0,5.6),v3(10.4,0,5.6)];
   m.r=14.5; m.motorCol="#8fd0ff"; return m;
 })();
+MOD.misil=(()=>{                                        /* MISIL DIRIGIDO */
+  const casco="#d8dce6", casco2="#9aa2b4", osc="#3d4356", naranja="#ff8a2b", metal="#b9c0cf";
+  const partes=[];
+  /* el cuerpo, largo y fino */
+  partes.push(caja(0,0,0,1.5,1.5,9,casco));
+  partes.push(caja(0,0,3.4,1.15,1.15,3.2,casco2));
+  /* el morro, afilado en tres trozos */
+  partes.push(caja(0,0,5.6,0.85,0.85,1.6,casco));
+  partes.push(caja(0,0,6.7,0.5,0.5,1.0,metal));
+  partes.push(caja(0,0,7.4,0.24,0.24,0.6,naranja));          /* la punta */
+  /* la franja naranja, para verlo bien contra el negro */
+  partes.push(caja(0,0,1.2,1.58,0.34,1.4,naranja));
+  partes.push(caja(0,0,-1.6,1.58,0.34,1.4,naranja));
+  /* las cuatro aletas */
+  for(const [dx,dy] of [[1,0],[-1,0],[0,1],[0,-1]]){
+    partes.push(caja(dx*1.5,dy*1.5,-3.2, dx?2.0:0.28, dy?2.0:0.28, 3.0, casco2));
+    partes.push(caja(dx*2.3,dy*2.3,-4.0, dx?0.9:0.22, dy?0.9:0.22, 1.4, osc));
+  }
+  /* la tobera */
+  partes.push(caja(0,0,-4.9,1.25,1.25,0.7,osc));
+  partes.push(caja(0,0,-5.4,1.5,1.5,0.35,metal));
+  const m=junta(...partes);
+  m.motores=[v3(0,0,-5.8)];
+  m.canones=[]; m.r=3.2; m.motorCol="#ffb347"; return m;
+})();
 MOD.torre=(()=>{
   const gris="#8a90a0", osc="#454b5c", rojo="#ff4d4d";
   const m=junta( caja(0,0,0,7,4.5,7,gris), caja(0,3.6,0,4.6,3.2,4.6,osc),
@@ -1477,6 +1502,17 @@ function renderDentro(yoPos,yoBase){
   for(const e of G.enem){ const mo=e.mod||G.modEnem; pintaModelo(mo, e.p, e.b, e.esc||1, caras, (V,rel,cam,esc)=>{
       if(!V) return;
       for(const m of mo.motores){ const w=add(rel,aLocal(e.b,mul(m,esc))); const c=aCamara(G.base,w); if(c.z>6){ const p=proyecta(c); glows.push({z:c.z,x:p.x,y:p.y,r:Math.max(2,Math.min(24*esc,1.1*p.s*esc)),c:mo.motorCol,a:.4}); } } }, e.k&&e.k.col); }
+  /* el misil que estás pilotando, delante de la cámara: se ve como si fuera tu nave */
+  if(G.misil){
+    const mp=add(G.misil.p, add(mul(G.misil.b.f,MIS_CAM_D), mul(G.misil.b.u,MIS_CAM_Y)));
+    pintaModelo(MOD.misil, mp, G.misil.b, 1, caras, (V,rel,cam,esc)=>{
+      if(!V) return;
+      for(const m of MOD.misil.motores){ const w=add(rel,aLocal(G.misil.b,m)); const c=aCamara(G.base,w);
+        if(c.z>3){ const p=proyecta(c);
+          glows.push({z:c.z,x:p.x,y:p.y,r:Math.max(4,Math.min(46,2.2*p.s)),c:"#ffb347",a:.55}); } }
+    });
+  }
+
   /* mi nave: delante de la cámara (tercera persona), o allá lejos si vas en el misil */
   const miPos=G.misil ? add(yoPos, add(mul(yoBase.f,CAM_D()), mul(yoBase.u,CAM_Y())))
                       : add(add(G.pos, add(mul(G.base.f,CAM_D()), mul(G.base.u,CAM_Y()))), G.naveOff);
@@ -1534,14 +1570,7 @@ function renderDentro(yoPos,yoBase){
   pintaCapsulas();
   pintaBalasRed();
   pintaTorpedos();
-  if(G.misil&&!G.misil._dentro){                             /* el morro del misil, para saber dónde estás */
-    const c=aCamara(G.base, sub(add(G.misil.p, mul(G.misil.b.f,18)),G.pos));
-    if(c.z>2){ const p=proyecta(c);
-      ctx.save(); ctx.globalCompositeOperation="lighter";
-      const g=ctx.createRadialGradient(p.x,p.y,0,p.x,p.y,26);
-      g.addColorStop(0,"rgba(255,220,140,.5)"); g.addColorStop(1,"rgba(255,140,40,0)");
-      ctx.fillStyle=g; ctx.beginPath(); ctx.arc(p.x,p.y,26,0,7); ctx.fill(); ctx.restore(); }
-  }
+
   estelasPinta();
   /* chispas, fuego y humo */
   for(const s of G.chispas){
@@ -2045,6 +2074,7 @@ function estelasPinta(){
 
 /* ---------- misil dirigido: lo pilotas tú ---------- */
 const MIS_VEL=560, MIS_GIRO=1.7, MIS_VIDA=9, MIS_DANO=460;
+const MIS_CAM_D=17, MIS_CAM_Y=-2.2;                          /* a qué distancia va la cámara del misil */
 function lanzaMisil(){
   if(!G.run||G.paused||G.over) return;
   if(G.misil){ abortaMisil(); return; }                      /* si ya llevas uno, la Q lo suelta */
@@ -2052,7 +2082,7 @@ function lanzaMisil(){
   if(!NAVE().torpInf) G.torp--;
   const b=baseNueva();
   b.r=v3(G.base.r.x,G.base.r.y,G.base.r.z); b.u=v3(G.base.u.x,G.base.u.y,G.base.u.z); b.f=v3(G.base.f.x,G.base.f.y,G.base.f.z);
-  const salida=add(add(G.pos, add(mul(G.base.f,CAM_D()+14), mul(G.base.u,CAM_Y()))), G.naveOff);
+  const salida=add(add(G.pos, add(mul(G.base.f,CAM_D()+20), mul(G.base.u,CAM_Y()))), G.naveOff);
   G.misil={ p:salida, b, vida:MIS_VIDA, edad:0 };
   G.yaw=0; G.pitch=0;                                        /* el ratón pasa a mandar el misil */
   aviso("🎯 ¡MISIL DIRIGIDO! guíalo con el ratón · <b>clic</b> para soltarlo");
@@ -3559,7 +3589,7 @@ document.addEventListener("pointerlockchange",()=>{ if(G.run&&!G.over&&document.
 resize(); estrellasNuevas(); destructoresNuevos();
 $("best").textContent=G.best?"🏆 tu récord: "+G.best+" battle points":"";
 pintaRecords();
-const NOVEDADES_V=17;                                         /* sube este número cuando haya cosas nuevas */
+const NOVEDADES_V=18;                                         /* sube este número cuando haya cosas nuevas */
 const NOVEDADES=[
   ["🎚️","Mandas tú la velocidad","<span class='tec'>W</span> y <span class='tec'>S</span> (o la rueda del ratón) mueven el acelerador · <span class='tec'>X</span> para en seco · <span class='tec'>Z</span> a fondo. Parado giras hasta un 75% más cerrado: frena y el que te persigue se te pasa de largo"],
   ["🚀","Torpedos que persiguen","<span class='tec'>F</span> suelta dos torpedos al enemigo que tengas fichado. Pegan 260 (casi cinco veces un láser). Llevas 6 y te dan 2 en cada oleada"],
@@ -3572,7 +3602,7 @@ const NOVEDADES=[
   ["🎯","Misiones en cada oleada","Proteger a un compañero, callar las torretas de un Destructor, cruzar los 7 arcos del desfiladero o cazar contrarreloj"],
   ["🎖️","Catorce medallas","Se ganan por CÓMO juegas: sin perder compañeros, sin que te den, con torpedos, con puntería, aguantando 5 minutos en supervivencia, desmantelando una nodriza, sin pedir refuerzos o pasando la oleada 5 en IMPOSIBLE. El medallero está en la pantalla de inicio"],
   ["😠","Cuatro dificultades","De FÁCIL a IMPOSIBLE. Las difíciles pagan más: en IMPOSIBLE cada derribo vale x2,5"],
-  ["🎯","Misil que pilotas TÚ","La tecla <span class='tec'>Q</span> lanza un misil y la cámara se mete DENTRO: lo guías con el ratón como si fueras tú, mientras tu nave sigue volando allá atrás. Pega 460 (casi el doble que un torpedo) y dura 9 segundos de combustible. Con cualquier <b>clic</b> lo sueltas y vuelves a tu nave. Los torpedos normales pasan a la tecla <span class='tec'>E</span>"],
+  ["🎯","Misil que pilotas TÚ","La tecla <span class='tec'>Q</span> lanza un misil y <b>lo VES delante de ti</b>, como si fuera una nave: cuerpo, aletas, franjas naranjas y su llama detrás. Lo guías con el ratón, mientras tu nave sigue volando allá atrás. Pega 460 (casi el doble que un torpedo) y dura 9 segundos de combustible. Con cualquier <b>clic</b> lo sueltas y vuelves a tu nave. Los torpedos normales pasan a la tecla <span class='tec'>E</span>"],
   ["🚀","Torpedos sin recarga","Ya no hay que esperar entre tanda y tanda: aprietas <span class='tec'>F</span> y salen, aprietas otra vez y salen otra vez. Con el CAZA DAVID, que los tiene infinitos, puedes soltar una lluvia entera"],
   ["🪪","Tu nombre en la sala","Al entrar por primera vez a la sala online el juego te pregunta cómo te llamas, y ese nombre es el que ven los demás flotando sobre tu nave. Se guarda para siempre y se puede cambiar cuando quieras tocando «cambiar»"],
   ["🌐","Sala online","Como en SWARM: entras a la sala y VES A LOS DEMÁS PILOTOS volando en el mismo espacio, con su nombre, su nave, su puntuación y sus disparos. Salen también en el radar en verde. Cada uno pelea contra sus propios enemigos, así que nadie te puede fastidiar la partida"],
