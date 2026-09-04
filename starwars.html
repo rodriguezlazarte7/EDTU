@@ -860,7 +860,7 @@ function nuevaPartida(){
   for(let i=0;i<3;i++) nuevoAmigo(i);
   G.chispas=[];
   G.score=0; G.wave=0; G.jefe=false; misionLimpia(); G.kills=0; G.disparos=0; G.aciertos=0; G.quedan=0; G.spawn=0; G.waveT=0; G.cad=0;
-  hiper=0; G.misil=null; G.regenT=0; G.aliado=null; { const el=$("aliBar"); if(el) el.style.opacity=0; } G.destruidos=0; G.racha=0; G.rachaT=0; G.rachaMulti=1; G.rachaMax=0; G.guardaT=20; G.refuerzos=2; G.refT=0; G.jefeT=0; G.jefesLlamados=0; G.curaT=60; G.capsulas=[]; G.torpedos=[]; G.torp=TORP_MAX; G.torpCarga=0;
+  hiper=0; saliendo=0; G.misil=null; G.regenT=0; G.aliado=null; { const el=$("aliBar"); if(el) el.style.opacity=0; } G.destruidos=0; G.racha=0; G.rachaT=0; G.rachaMulti=1; G.rachaMax=0; G.guardaT=20; G.refuerzos=2; G.refT=0; G.jefeT=0; G.jefesLlamados=0; G.curaT=60; G.capsulas=[]; G.torpedos=[]; G.torp=TORP_MAX; G.torpCarga=0;
   G.jefes=0; G.caidos=0; G.torpKills=0; G.misionesOK=0; G.trincherasOK=0; G.golpes=0; G.gensRotos=0; G.refPedidos=0;
   G.gas=1; G.gasObj=1; G.yaw=0; G.pitch=0; G.roll=0; G.t=0; G.over=false; G.paused=false; G.inicio=Date.now();
   estrellasNuevas(); destructoresNuevos();
@@ -876,6 +876,59 @@ function polvoMueve(){                                  /* lo que queda lejos re
 }
 const HIPER_DURA=1.7;                                        /* lo que dura el frenazo */
 let hiper=0;
+const SALIDA_DURA=2.0;                                       /* lo que dura el salto de salida */
+let saliendo=0;
+function saltoDeSalida(){
+  if(saliendo>0) return;
+  if(!G.run||G.over){ vuelveAlInicio(); return; }             /* si no estás volando, al menú directo */
+  saliendo=0.0001;
+  G.paused=false; $("pause").classList.add("hide");
+  guardaPartida();                                            /* se guarda antes de irse */
+  abortaMisil(false);
+  aviso("🌠 ¡SALTANDO AL HIPERESPACIO!");
+  musPara(true); ambienteApaga();
+  const a=ac();
+  if(a&&!mute){
+    /* el sonido al revés que el de entrada: aquí SUBE, porque estás acelerando */
+    const t=a.currentTime;
+    const o=a.createOscillator(), g=a.createGain();
+    o.type="sawtooth";
+    o.frequency.setValueAtTime(60,t); o.frequency.exponentialRampToValueAtTime(2600,t+SALIDA_DURA*0.85);
+    g.gain.setValueAtTime(.05,t); g.gain.linearRampToValueAtTime(.13,t+SALIDA_DURA*0.7);
+    g.gain.exponentialRampToValueAtTime(.0001,t+SALIDA_DURA);
+    o.connect(g); g.connect(a.destination); o.start(t); o.stop(t+SALIDA_DURA+.05);
+    /* y el golpe del salto, justo al final */
+    const o2=a.createOscillator(), g2=a.createGain();
+    o2.type="sine"; o2.frequency.setValueAtTime(220,t+SALIDA_DURA*0.8);
+    o2.frequency.exponentialRampToValueAtTime(40,t+SALIDA_DURA*0.8+.5);
+    g2.gain.setValueAtTime(.18,t+SALIDA_DURA*0.8); g2.gain.exponentialRampToValueAtTime(.0001,t+SALIDA_DURA*0.8+.55);
+    o2.connect(g2); g2.connect(a.destination); o2.start(t+SALIDA_DURA*0.8); o2.stop(t+SALIDA_DURA*0.8+.6);
+  }
+}
+function vuelveAlInicio(){
+  /* de vuelta a la pantalla del botón de play */
+  saliendo=0; hiper=0;
+  G.run=false; G.over=false; G.paused=false;
+  abortaMisil(false); motorApaga(); ambienteApaga(); musPara(true);
+  tactilVisible(false);
+  try{ document.exitPointerLock&&document.exitPointerLock(); }catch(e){}
+  $("pauseBtn").style.display="none";
+  $("pause").classList.add("hide"); $("over").classList.add("hide");
+  $("intro").classList.remove("hide");
+  pintaContinuar(); pintaRecords(); pintaMedallero(); pintaHistorial(); pestanaVolar();
+  { const el=$("misilCaja"); if(el) el.style.opacity=0; }
+  { const el=$("racha"); if(el) el.style.opacity=0; }
+  if(!mute){ musMenu=false; musMenuArranca(); }
+}
+function saltoCorre(dt){
+  if(saliendo<=0) return;
+  saliendo+=dt;
+  const k=Math.min(1, saliendo/SALIDA_DURA);
+  hiper=HIPER_DURA*k;                                         /* las rayas crecen: el mismo túnel, al revés */
+  G.pos=add(G.pos, mul(G.base.f, G.vel*(1+k*k*14)*dt));       /* acelerando hasta desaparecer */
+  G.yaw*=Math.pow(.02,dt); G.pitch*=Math.pow(.02,dt);
+  if(saliendo>=SALIDA_DURA) vuelveAlInicio();
+}
 function hiperEmpieza(){
   hiper=HIPER_DURA;
   const a=ac(); if(!a||mute) return;
@@ -2027,7 +2080,7 @@ function aviso(txt){ const el=$("aviso"); if(!el) return; el.textContent=txt; el
 function avisoM(){ aviso(mute?"🔇 silencio":"🔊 música y sonido"); }
 let warnT=0;
 function textoDano(p,txt,col){ G.danos.push({ p:v3(p.x,p.y,p.z), txt:(typeof txt==="number"?"-"+txt:txt), c:col||"#ffe81f", vida:1.1, max:1.1 }); }
-function golpe(d){ if(hiper>0) return;                     /* mientras sales del salto eres intocable */
+function golpe(d){ if(hiper>0||saliendo>0) return;          /* saliendo o entrando del salto, eres intocable */
   G.regenT=NAVE().regenT||0;                               /* al recibir un golpe, la reparación se pausa */
   cortaRacha(true);                                        /* que te den te corta la racha */
   G.shield-=d; G.golpes=(G.golpes||0)+1; sacude(.22+Math.min(.5,d/70)); if(d>=1){ const q=add(G.pos, add(mul(G.base.f,40), mul(G.base.u,-6))); textoDano(q, Math.round(d), "#ff5a5a"); } warnT=.5; $("warn").style.opacity=1; setTimeout(()=>{$("warn").style.opacity=0;},350); sfx("hit"); }
@@ -3042,7 +3095,9 @@ function frame(ts){ leeMando(); if(!G.run) return; const dt=Math.min(.05,(ts-las
   if(!G.paused&&!G.over) update(dt); render(); requestAnimationFrame(frame); }
 
 function update(dt){
-  G.t+=dt; G.cad-=dt;
+  G.t+=dt;
+  if(saliendo>0){ saltoCorre(dt); return; }                   /* saltando: solo el salto */
+  G.cad-=dt;
   if(G.disparando) disparar();                             /* mantener apretado dispara a tu cadencia */
   if(ptsTimer>0){ ptsTimer-=dt; if(ptsTimer<=0) $("pts").style.opacity=.4; }
   if(msgT>0){ msgT-=dt; if(msgT<=0&&$("aviso")) $("aviso").style.opacity=0; }
@@ -3531,7 +3586,7 @@ addEventListener("keydown",e=>{
     else if(G.run&&!G.paused&&!G.over){ musArranca(); motorEnciende(); ambienteEnciende(); }
     else { musMenu=false; musMenuArranca(); }
     avisoM(); }
-  else if(k==="escape"&&G.run&&!G.over) pausar(true);
+  else if(k==="escape"&&G.run&&!G.over){ if(G.paused) saltoDeSalida(); else pausar(true); }   /* Esc pausa, y otra vez salta al hiperespacio */
 });
 addEventListener("keyup",e=>{ const k=e.key.toLowerCase();
   if(k==="w"||k==="arrowup") gasSube=false;
@@ -3583,13 +3638,15 @@ document.querySelectorAll(".prev").forEach(pc=>{
 
 $("startBtn").onclick=empezar; $("againBtn").onclick=()=>{ $("over").classList.add("hide"); $("intro").classList.remove("hide"); };
 $("resumeBtn").onclick=()=>pausar(false); $("pauseBtn").onclick=()=>pausar();
-$("backBtn").onclick=salir; $("quitBtn").onclick=salir; $("menuBtn").onclick=salir;
+$("backBtn").onclick=salir;                                 /* desde el menú: al cuartel */
+$("quitBtn").onclick=saltoDeSalida;                          /* desde la pausa: salto al hiperespacio y al menú */
+$("menuBtn").onclick=salir;                                  /* tras perder: al cuartel */
 document.addEventListener("pointerlockchange",()=>{ if(G.run&&!G.over&&document.pointerLockElement!==cv&&!G.paused) pausar(true); });
 
 resize(); estrellasNuevas(); destructoresNuevos();
 $("best").textContent=G.best?"🏆 tu récord: "+G.best+" battle points":"";
 pintaRecords();
-const NOVEDADES_V=18;                                         /* sube este número cuando haya cosas nuevas */
+const NOVEDADES_V=19;                                         /* sube este número cuando haya cosas nuevas */
 const NOVEDADES=[
   ["🎚️","Mandas tú la velocidad","<span class='tec'>W</span> y <span class='tec'>S</span> (o la rueda del ratón) mueven el acelerador · <span class='tec'>X</span> para en seco · <span class='tec'>Z</span> a fondo. Parado giras hasta un 75% más cerrado: frena y el que te persigue se te pasa de largo"],
   ["🚀","Torpedos que persiguen","<span class='tec'>F</span> suelta dos torpedos al enemigo que tengas fichado. Pegan 260 (casi cinco veces un láser). Llevas 6 y te dan 2 en cada oleada"],
@@ -3602,6 +3659,7 @@ const NOVEDADES=[
   ["🎯","Misiones en cada oleada","Proteger a un compañero, callar las torretas de un Destructor, cruzar los 7 arcos del desfiladero o cazar contrarreloj"],
   ["🎖️","Catorce medallas","Se ganan por CÓMO juegas: sin perder compañeros, sin que te den, con torpedos, con puntería, aguantando 5 minutos en supervivencia, desmantelando una nodriza, sin pedir refuerzos o pasando la oleada 5 en IMPOSIBLE. El medallero está en la pantalla de inicio"],
   ["😠","Cuatro dificultades","De FÁCIL a IMPOSIBLE. Las difíciles pagan más: en IMPOSIBLE cada derribo vale x2,5"],
+  ["🌠","Salida al hiperespacio","Al darle a SALIR desde la pausa, tu nave no desaparece de golpe: acelera, las estrellas se estiran en rayas y SALTA AL HIPERESPACIO durante 2 segundos, con el sonido subiendo. Al terminar el salto aparece la pantalla del botón de play. Y mientras saltas no te pueden dar"],
   ["🎯","Misil que pilotas TÚ","La tecla <span class='tec'>Q</span> lanza un misil y <b>lo VES delante de ti</b>, como si fuera una nave: cuerpo, aletas, franjas naranjas y su llama detrás. Lo guías con el ratón, mientras tu nave sigue volando allá atrás. Pega 460 (casi el doble que un torpedo) y dura 9 segundos de combustible. Con cualquier <b>clic</b> lo sueltas y vuelves a tu nave. Los torpedos normales pasan a la tecla <span class='tec'>E</span>"],
   ["🚀","Torpedos sin recarga","Ya no hay que esperar entre tanda y tanda: aprietas <span class='tec'>F</span> y salen, aprietas otra vez y salen otra vez. Con el CAZA DAVID, que los tiene infinitos, puedes soltar una lluvia entera"],
   ["🪪","Tu nombre en la sala","Al entrar por primera vez a la sala online el juego te pregunta cómo te llamas, y ese nombre es el que ven los demás flotando sobre tu nave. Se guarda para siempre y se puede cambiar cuando quieras tocando «cambiar»"],
