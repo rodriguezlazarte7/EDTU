@@ -6753,16 +6753,16 @@ const Flap={ cv:null,ctx:null,raf:null,run:false,W:0,H:0,by:0,vy:0,pipes:[],scor
 
 /* ✈️ FLY — el primo suave de FLAPPY: mantienes apretado y SUBE, sueltas y BAJA */
 const Fly={ cv:null,ctx:null,raf:null,run:false,W:0,H:0,y:0,vy:0,ang:0,sube:false,
-  pipes:[],score:0,best:0,gap:150,t:0,humo:[],boom:null,sacude:0,
+  pipes:[],score:0,best:0,gap:150,t:0,humo:[],boom:null,sacude:0,gente:[],mus:null,
   open(){ $("flyFs").classList.add("open"); this.best=+(localStorage.getItem("edtu_fly_best")||0);
     this.cv=$("flyCv"); this.W=this.cv.width=Math.min(innerWidth*0.9,380); this.H=this.cv.height=Math.min(innerHeight*0.6,520);
     this.ctx=this.cv.getContext("2d"); this.setup(); this.draw();
     $("flyOver").innerHTML="✈️ MANTÉN APRETADO para subir<br><span style='font-size:12px;opacity:.8'>suelta y el avión baja solo</span>";
     $("flyHud").textContent="Récord: "+this.best; },
-  close(){ this.stop(); this.sube=false; this.boom=null; this.sacude=0; $("flyFs").classList.remove("open"); },
-  setup(){ this.y=this.H/2; this.vy=0; this.ang=0; this.pipes=[]; this.humo=[]; this.score=0; this.t=0; this.boom=null; this.sacude=0; this.spawn(); },
+  close(){ this.stop(); this.musOff(); this.sube=false; this.boom=null; this.sacude=0; this.gente=[]; $("flyFs").classList.remove("open"); },
+  setup(){ this.y=this.H/2; this.vy=0; this.ang=0; this.pipes=[]; this.humo=[]; this.gente=[]; this.score=0; this.t=0; this.boom=null; this.sacude=0; this.spawn(); },
   spawn(){ const top=50+Math.random()*(this.H-this.gap-140); this.pipes.push({x:this.W+40,top,scored:false}); },
-  start(){ this.setup(); this.run=true; $("flyOver").textContent="";
+  start(){ this.setup(); this.run=true; $("flyOver").textContent=""; this.musOn();
     if(!this.raf){ const f=()=>{
       if(!this.run&&!this.boom){ this.raf=null; return; }
       if(this.run) this.tick(); else this.boomTick();          /* muerto: sigue dibujando la explosión */
@@ -6799,10 +6799,119 @@ const Fly={ cv:null,ctx:null,raf:null,run:false,W:0,H:0,y:0,vy:0,ang:0,sube:fals
   },
   dead(){
     this.run=false; this.sube=false;                          /* NO se corta el dibujo: falta la explosión */
+    this.musOff();
     this.explota();
     if(this.score>this.best){ this.best=this.score; localStorage.setItem("edtu_fly_best",this.score); }
     try{ edtuPlayDay("✈️ FLY",this.score+" pts",this.score); }catch(e){}
     $("flyOver").textContent="💥 Fin · "+this.score+" pts"+(function(sc){ try{ return edtuMiniAvg("✈️ FLY",sc); }catch(e){ return ""; } })(this.score); },
+  /* ---------- la música de FLY, generada (no descarga nada) ---------- */
+  musOn(){
+    try{
+      const AC=window.AudioContext||window.webkitAudioContext; if(!AC) return;
+      window._gac=window._gac||new AC(); const a=window._gac;
+      if(a.state==="suspended") a.resume();
+      if(this.mus) return;
+      const master=a.createGain(); master.gain.value=0; master.connect(a.destination);
+      master.gain.linearRampToValueAtTime(.5, a.currentTime+1.2);
+      /* en la menor, alegre y con ritmo: engancha y no cansa */
+      const BAJO=[9,9,16,9,  5,5,12,5,  7,7,14,7,  4,4,11,4];
+      const ARP =[21,25,28,25, 17,21,24,21, 19,23,26,23, 16,20,23,20];
+      const MELO=[33,null,35,36, null,35,33,null, 31,null,33,35, null,33,31,null];
+      const nota=n=>55*Math.pow(2,n/12);
+      const voz=(tipo,fr,t,dur,vol)=>{
+        const o=a.createOscillator(), g=a.createGain();
+        o.type=tipo; o.frequency.setValueAtTime(fr,t);
+        g.gain.setValueAtTime(0,t); g.gain.linearRampToValueAtTime(vol,t+Math.min(.03,dur*.3));
+        g.gain.exponentialRampToValueAtTime(.0001,t+dur);
+        o.connect(g); g.connect(master); o.start(t); o.stop(t+dur+.03);
+      };
+      const M={ paso:0, prox:a.currentTime+.08, master, reloj:null };
+      M.reloj=setInterval(()=>{
+        if(!this.mus) return;
+        const ah=a.currentTime;
+        /* cuanto más puntúas, más rápido va: eso es lo que pone nervioso */
+        const dt=Math.max(.105, .145-Math.min(.04, this.score*0.0016));
+        while(M.prox<ah+.25){
+          const p=M.paso, i=p%16, t=M.prox;
+          voz("triangle", nota(BAJO[i]-12), t, .20, .16);                  /* el bajo */
+          voz("square",   nota(ARP[i]),     t, .085, .038);                /* el arpegio */
+          if(MELO[i]!==null) voz("sawtooth", nota(MELO[i]), t, .16, .030); /* la melodía */
+          if(i%4===0||i%8===6){                                            /* el bombo */
+            const o=a.createOscillator(), g=a.createGain();
+            o.type="sine"; o.frequency.setValueAtTime(130,t); o.frequency.exponentialRampToValueAtTime(45,t+.11);
+            g.gain.setValueAtTime(.12,t); g.gain.exponentialRampToValueAtTime(.0001,t+.14);
+            o.connect(g); g.connect(master); o.start(t); o.stop(t+.16);
+          }
+          M.paso++; M.prox+=dt;
+        }
+      },40);
+      this.mus=M;
+    }catch(e){}
+  },
+  musOff(){
+    const M=this.mus; if(!M) return;
+    this.mus=null;
+    try{
+      clearInterval(M.reloj);
+      const a=window._gac, t=a.currentTime;
+      M.master.gain.cancelScheduledValues(t);
+      M.master.gain.setValueAtTime(M.master.gain.value,t);
+      M.master.gain.linearRampToValueAtTime(0,t+.35);
+      setTimeout(()=>{ try{ M.master.disconnect(); }catch(e){} },500);
+    }catch(e){}
+  },
+  /* ---------- la gente que salta del avión ---------- */
+  saltaGente(){
+    this.gente=[];
+    const cuantos=3+Math.floor(Math.random()*3);               /* de 3 a 5 */
+    for(let i=0;i<cuantos;i++){
+      this.gente.push({
+        x:46+(Math.random()*2-1)*10, y:this.y+(Math.random()*2-1)*8,
+        vx:1.1+Math.random()*2.2, vy:-1.6-Math.random()*2.2,
+        abre:14+Math.random()*22,                              /* cuándo abre el paracaídas */
+        t:0, para:false, bal:Math.random()*6, col:["#ffd166","#ff8a5c","#7ef0a8","#a0d8ff","#ffffff"][i%5]
+      });
+    }
+  },
+  genteTick(){
+    for(const g of this.gente){
+      g.t++;
+      if(!g.para&&g.t>g.abre){ g.para=true; g.vy=Math.min(g.vy,0.6); }     /* ¡se abre! */
+      if(g.para){
+        g.vy+=(0.85-g.vy)*0.08;                                /* baja despacito, como un paracaídas */
+        g.bal+=0.07;
+        g.x+=g.vx*0.35+Math.sin(g.bal)*0.5;                    /* se balancea */
+      } else {
+        g.vy+=0.24; g.x+=g.vx; g.vx*=0.99;                     /* aún cayendo a plomo */
+      }
+      g.y+=g.vy;
+    }
+    this.gente=this.gente.filter(g=>g.y<this.H+40&&g.x<this.W+60);
+  },
+  pintaGente(c){
+    for(const g of this.gente){
+      if(g.para){
+        /* el paracaídas */
+        c.fillStyle=g.col;
+        c.beginPath(); c.arc(g.x,g.y-13,10,Math.PI,0); c.closePath(); c.fill();
+        c.strokeStyle="rgba(255,255,255,.55)"; c.lineWidth=1;
+        c.beginPath(); c.moveTo(g.x-9,g.y-13); c.lineTo(g.x-2,g.y-3);
+        c.moveTo(g.x+9,g.y-13); c.lineTo(g.x+2,g.y-3); c.stroke();
+      }
+      /* la personita */
+      c.fillStyle="#ffe0bd";
+      c.beginPath(); c.arc(g.x,g.y-3.5,2.2,0,7); c.fill();     /* la cabeza */
+      c.strokeStyle="#2b3b52"; c.lineWidth=1.7; c.lineCap="round";
+      c.beginPath();
+      c.moveTo(g.x,g.y-1.6); c.lineTo(g.x,g.y+2.4);            /* el cuerpo */
+      const mov=g.para?0:Math.sin(g.t*0.5)*2.5;                /* si cae, patalea */
+      c.moveTo(g.x,g.y+2.4); c.lineTo(g.x-2.2,g.y+5.4+mov);
+      c.moveTo(g.x,g.y+2.4); c.lineTo(g.x+2.2,g.y+5.4-mov);
+      c.moveTo(g.x,g.y-0.4); c.lineTo(g.x-3,g.y+(g.para?-2.6:1.4));   /* los brazos: arriba si va colgado */
+      c.moveTo(g.x,g.y-0.4); c.lineTo(g.x+3,g.y+(g.para?-2.6:1.4));
+      c.stroke();
+    }
+  },
   explota(){
     /* trozos que salen volando, bolas de fuego y humo */
     const P=[];
@@ -6821,11 +6930,13 @@ const Fly={ cv:null,ctx:null,raf:null,run:false,W:0,H:0,y:0,vy:0,ang:0,sube:fals
     }
     this.boom={ x:46, y:this.y, t:0, P };
     this.sacude=9;
+    this.saltaGente();                                         /* ¡todos fuera! */
     try{ gBeep(150); setTimeout(()=>gBeep(90),90); }catch(e){}
   },
   boomTick(){
     const b=this.boom; if(!b){ this.stop(); return; }
     b.t++;
+    this.genteTick();
     for(const p of b.P){
       p.x+=p.vx; p.y+=p.vy;
       p.vy+=(p.t==="humo"?0.02:0.14);                          /* el humo casi flota, lo demás cae */
@@ -6837,7 +6948,7 @@ const Fly={ cv:null,ctx:null,raf:null,run:false,W:0,H:0,y:0,vy:0,ang:0,sube:fals
     this.pipes.forEach(p=>p.x-=1.1);                           /* el mundo sigue moviéndose, más lento */
     this.sacude*=0.9;
     this.draw();
-    if(b.t>110||!b.P.length){ this.boom=null; this.sacude=0; this.stop(); this.draw(); }
+    if(b.t>150||(!b.P.length&&!this.gente.length)){ this.boom=null; this.sacude=0; this.stop(); this.draw(); }
   },
   draw(){
     const c=this.ctx, W=this.W, H=this.H;
@@ -6888,6 +6999,7 @@ const Fly={ cv:null,ctx:null,raf:null,run:false,W:0,H:0,y:0,vy:0,ang:0,sube:fals
         c.fillRect(0,0,W,H);
       }
     }
+    this.pintaGente(c);                                        /* los paracaidistas, por delante del humo */
     /* ---- el avión ---- */
     if(!this.boom){
     c.save(); c.translate(46,this.y); c.rotate(this.ang);
