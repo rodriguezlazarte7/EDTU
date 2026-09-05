@@ -1,5 +1,5 @@
 // EDTU Service Worker — cache del "shell" para que funcione offline.
-const CACHE = "edtu-v3";
+const CACHE = "edtu-v4";
 const SHELL = ["./", "./index.html", "./starwars.html", "./wally-kb.js", "./manifest.json", "./icon-192.png", "./icon-512.png"];
 // Estas SIEMPRE se piden a la red primero: son las que cambian con cada mejora.
 const FRESCOS = [".html", "/"];

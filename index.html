@@ -1498,11 +1498,44 @@
 #wallyFsHint{color:#5b7a95;font-size:clamp(11px,2.6vw,13px);letter-spacing:.06em;text-align:center}
 #wallyFsClose{position:absolute;top:14px;right:16px;background:none;border:1px solid rgba(143,208,255,.3);color:#8fd0ff;border-radius:10px;padding:5px 12px;font:700 15px Consolas,monospace;cursor:pointer;opacity:.65}
 #wallyFsClose:hover{opacity:1}
+/* 😊 WALLY LIFE: la cara que habla */
+#wallyFs #wallyBot,#wallyFs #wallyPresenter .bzr,#wallyFs #wallyPresenter .bzb{display:none}
+#wallyCara{width:clamp(150px,34vw,230px);height:clamp(150px,34vw,230px);display:block;margin:0 auto;
+  filter:drop-shadow(0 0 26px rgba(56,182,255,.30));touch-action:none}
+#wlBotones{display:flex;gap:clamp(10px,3vw,20px);align-items:center;justify-content:center;flex-wrap:wrap}
+.wlBtn{width:clamp(66px,17vw,92px);height:clamp(66px,17vw,92px);border-radius:50%;
+  font-size:clamp(26px,7vw,38px);line-height:1;cursor:pointer;color:#8fd0ff;
+  background:radial-gradient(circle at 50% 32%,#12374f,#0a1420);border:2px solid rgba(56,182,255,.45);
+  box-shadow:0 0 22px rgba(56,182,255,.16);transition:transform .14s ease,box-shadow .25s ease,border-color .25s}
+.wlBtn:active{transform:scale(.92)}
+.wlBtn.on{border-color:#7CFFB2;color:#7CFFB2;box-shadow:0 0 40px rgba(124,255,178,.42)}
+.wlEtq{font:700 clamp(9px,2.2vw,11px)/1.4 Consolas,monospace;color:#5b7a95;letter-spacing:.08em;text-align:center;margin-top:5px}
+.wlCol{display:flex;flex-direction:column;align-items:center}
+#wlCamBox{display:none;width:min(420px,92vw);background:#060b14;border:1px solid rgba(56,182,255,.35);
+  border-radius:14px;padding:8px;box-shadow:0 0 30px rgba(56,182,255,.14)}
+#wlCamBox.on{display:block}
+#wlVideo{width:100%;border-radius:10px;background:#000;transform:scaleX(-1);display:block;max-height:44vh;object-fit:cover}
+#wlCamMsg{font:700 clamp(11px,2.6vw,13px)/1.5 Consolas,monospace;color:#9fd8ff;text-align:center;margin-top:7px;min-height:2.6em}
+#wlCamPie{display:flex;gap:6px;justify-content:center;margin-top:6px}
 </style>
 <div id="wallyFs">
   <button id="wallyFsClose" title="Cerrar (Esc)">✕</button>
     <div id="wallyPresenter"><span class="bzr">🔴</span><span class="bot" id="wallyBot">🤖</span><span class="bzb">🔵</span><div id="wallySpeech" style="font:700 12px Consolas,monospace;color:#8fd0ff;margin-top:2px;min-height:16px"></div></div>
-  <button id="wallyMicBig" title="Toca y háblame">🎤</button>
+  <canvas id="wallyCara" width="300" height="300" title="soy WALLY"></canvas>
+  <div id="wlBotones">
+    <div class="wlCol"><button id="wallyMicBig" class="wlBtn" title="Toca y háblame">🎤</button><div class="wlEtq">HABLAR</div></div>
+    <div class="wlCol"><button id="wlCam" class="wlBtn" title="Enséñame algo con tu cámara">📷</button><div class="wlEtq">CÁMARA</div></div>
+    <div class="wlCol"><button id="wlLife" class="wlBtn" title="WALLY LIFE: te contesto hablando y con la cara">😊</button><div class="wlEtq">WALLY LIFE</div></div>
+  </div>
+  <div id="wlCamBox">
+    <video id="wlVideo" playsinline muted autoplay></video>
+    <div id="wlCamMsg"></div>
+    <div id="wlCamPie">
+      <button class="btn btn-sm" id="wlMirar" style="border-color:rgba(56,182,255,.5);color:#8fd0ff">👀 mira esto</button>
+      <button class="btn btn-sm" id="wlGirar" style="border-color:rgba(56,182,255,.5);color:#8fd0ff">🔄 girar</button>
+      <button class="btn btn-sm" id="wlCamOff" style="border-color:rgba(255,107,107,.5);color:#ff9b9b">✕ apagar</button>
+    </div>
+  </div>
   <div id="wallyFsHint">toca el micrófono y háblame</div>
   <div id="wallyFsTeclado" style="display:none;width:min(560px,94vw)">
     <div style="display:flex;gap:6px;margin-bottom:8px"><input id="wallyIn" placeholder="háblale a WALLY... o toca un chip 👇 (escribe ayuda para ver qué sé)" maxlength="60" style="flex:1;background:#0a1420;border:1px solid rgba(56,182,255,.4);border-radius:8px;padding:6px 10px;color:#cfe0ff;font:700 12px Consolas,monospace"><button class="btn btn-sm" id="wallySend" style="border-color:rgba(56,182,255,.5);color:#8fd0ff">➤</button><button class="btn btn-sm" id="wallyMic" title="háblale a WALLY con tu voz" style="border-color:rgba(56,182,255,.5);color:#8fd0ff">🎤</button></div>
@@ -8836,6 +8869,228 @@ function buildTrophies(){ try{
 $("pickWally").onclick=()=>{ try{ window.abrirWallyFs(); }catch(e){} };   /* 🤖 hablar con WALLY desde el menú */
 $("pickTrophies").onclick=()=>{ buildTrophies(); $("trophyFs").style.display="flex"; };
 /* 🤖 pantalla de WALLY: su voz y su respuesta en grande, sin nada más alrededor */
+/* ==================== 😊 WALLY LIFE ====================
+   Una cara que te mira, parpadea, cambia de humor y MUEVE LA BOCA cuando habla,
+   con una voz elegida para que suene natural y amable en vez de a robot de lata. */
+const WLIFE=(function(){
+  const cv=()=>document.getElementById("wallyCara");
+  let ctx=null, W=300, H=300, t=0, raf=0;
+  const S={ humor:"feliz", boca:0, bocaObj:0, parpadeo:0, proxParpadeo:1.6,
+            mirX:0, mirY:0, mirXObj:0, mirYObj:0, brillo:0, hablando:false, escuchando:false };
+
+  /* ---------- humores: cada uno cambia ojos, cejas y sonrisa ---------- */
+  const HUMOR={
+    feliz:     { ceja:-0.10, ojo:1.00, sonrisa: 0.55, col:"#7fd4ff" },
+    hablando:  { ceja:-0.05, ojo:1.00, sonrisa: 0.30, col:"#8fe0ff" },
+    escuchando:{ ceja: 0.16, ojo:1.18, sonrisa: 0.12, col:"#7CFFB2" },
+    pensando:  { ceja: 0.22, ojo:0.86, sonrisa:-0.10, col:"#ffd166" },
+    sorpresa:  { ceja:-0.30, ojo:1.40, sonrisa: 0.05, col:"#ff9ad5" },
+    mirando:   { ceja: 0.02, ojo:1.10, sonrisa: 0.35, col:"#c0a6ff" }
+  };
+  function humor(h,seg){ if(!HUMOR[h]) return; S.humor=h;
+    if(seg){ clearTimeout(S._ht); S._ht=setTimeout(()=>{ S.humor=S.hablando?"hablando":"feliz"; },seg*1000); } }
+
+  /* ---------- dibujar ---------- */
+  function redondo(c,x,y,w,h,r){ c.beginPath();
+    c.moveTo(x+r,y); c.lineTo(x+w-r,y); c.quadraticCurveTo(x+w,y,x+w,y+r);
+    c.lineTo(x+w,y+h-r); c.quadraticCurveTo(x+w,y+h,x+w-r,y+h);
+    c.lineTo(x+r,y+h); c.quadraticCurveTo(x,y+h,x,y+h-r);
+    c.lineTo(x,y+r); c.quadraticCurveTo(x,y,x+r,y); c.closePath(); }
+
+  function pinta(){
+    const c=ctx; if(!c) return;
+    const hm=HUMOR[S.humor]||HUMOR.feliz;
+    c.clearRect(0,0,W,H);
+    const cx=W/2, cy=H*0.53, lat=1+S.brillo*0.35;
+
+    /* el halo que late cuando habla */
+    const halo=c.createRadialGradient(cx,cy,W*0.18,cx,cy,W*0.52);
+    halo.addColorStop(0,"rgba(56,182,255,"+(0.16+S.brillo*0.28).toFixed(3)+")");
+    halo.addColorStop(1,"rgba(56,182,255,0)");
+    c.fillStyle=halo; c.beginPath(); c.arc(cx,cy,W*0.52,0,7); c.fill();
+
+    /* la antena, con su lucecita */
+    c.strokeStyle="#5f7c94"; c.lineWidth=W*0.022; c.lineCap="round";
+    c.beginPath(); c.moveTo(cx,cy-H*0.30); c.lineTo(cx+Math.sin(t*1.3)*W*0.03,cy-H*0.40); c.stroke();
+    const lx=cx+Math.sin(t*1.3)*W*0.03, ly=cy-H*0.40;
+    const lg=c.createRadialGradient(lx,ly,0,lx,ly,W*0.06);
+    lg.addColorStop(0,hm.col); lg.addColorStop(1,"rgba(0,0,0,0)");
+    c.fillStyle=lg; c.beginPath(); c.arc(lx,ly,W*0.06,0,7); c.fill();
+    c.fillStyle=hm.col; c.beginPath(); c.arc(lx,ly,W*0.018*lat,0,7); c.fill();
+
+    /* la cabeza */
+    const hw=W*0.62, hh=H*0.56, hx=cx-hw/2, hy=cy-hh*0.52;
+    const cuerpo=c.createLinearGradient(0,hy,0,hy+hh);
+    cuerpo.addColorStop(0,"#2b4a63"); cuerpo.addColorStop(0.55,"#1a2f42"); cuerpo.addColorStop(1,"#101d2b");
+    c.fillStyle=cuerpo; redondo(c,hx,hy,hw,hh,W*0.15); c.fill();
+    c.strokeStyle="rgba(143,208,255,"+(0.35+S.brillo*0.4).toFixed(3)+")"; c.lineWidth=W*0.010; c.stroke();
+
+    /* las orejeras */
+    c.fillStyle="#22405a";
+    redondo(c,hx-W*0.055,cy-hh*0.06,W*0.055,hh*0.30,W*0.02); c.fill();
+    redondo(c,hx+hw,cy-hh*0.06,W*0.055,hh*0.30,W*0.02); c.fill();
+
+    /* el visor oscuro donde viven los ojos */
+    const vw=hw*0.82, vh=hh*0.42, vx=cx-vw/2, vy=hy+hh*0.16;
+    c.fillStyle="#050c15"; redondo(c,vx,vy,vw,vh,vh*0.42); c.fill();
+
+    /* los ojos: parpadean y te siguen */
+    const ab=1-S.parpadeo;
+    const oR=W*0.052*hm.ojo*Math.max(0.06,ab);
+    const oW=W*0.052*hm.ojo;
+    const ox=[cx-vw*0.23, cx+vw*0.23], oy=vy+vh/2;
+    for(let i=0;i<2;i++){
+      const px=ox[i]+S.mirX*W*0.020, py=oy+S.mirY*W*0.016;
+      const g=c.createRadialGradient(px,py-oR*0.3,0,px,py,oW*2.2);
+      g.addColorStop(0,hm.col); g.addColorStop(0.42,hm.col); g.addColorStop(1,"rgba(56,182,255,0)");
+      c.fillStyle=g; c.beginPath(); c.ellipse(px,py,oW*2.2,Math.max(1,oR*2.2),0,0,7); c.fill();
+      c.fillStyle="#eaf8ff"; c.beginPath(); c.ellipse(px,py,oW,Math.max(0.8,oR),0,0,7); c.fill();
+      c.fillStyle="#0a1a28"; c.beginPath();
+      c.ellipse(px+S.mirX*W*0.012,py+S.mirY*W*0.010,oW*0.44,Math.max(0.6,oR*0.44),0,0,7); c.fill();
+      /* el brillito que le da vida */
+      c.fillStyle="rgba(255,255,255,.9)"; c.beginPath();
+      c.ellipse(px-oW*0.30,py-Math.max(0.6,oR*0.34),oW*0.16,Math.max(0.4,oR*0.16),0,0,7); c.fill();
+      /* la ceja */
+      c.strokeStyle=hm.col; c.lineWidth=W*0.016; c.globalAlpha=0.75;
+      c.beginPath();
+      const bx=px-oW*1.25, by=py-oR-W*0.045;
+      c.moveTo(bx,by+hm.ceja*W*0.05*(i?-1:1));
+      c.lineTo(px+oW*1.25,by-hm.ceja*W*0.05*(i?-1:1));
+      c.stroke(); c.globalAlpha=1;
+    }
+
+    /* LA BOCA: es lo que hace que parezca que habla de verdad */
+    const bw=W*0.20+S.boca*W*0.08, bh=W*0.020+S.boca*W*0.085;
+    const bx2=cx-bw/2, by2=hy+hh*0.70;
+    c.fillStyle="#050c15"; redondo(c,bx2,by2-bh/2,bw,bh,Math.min(bh/2,W*0.03)); c.fill();
+    if(S.boca>0.12){ /* la lengua/luz de dentro */
+      c.fillStyle="rgba(255,120,150,"+(0.30*S.boca).toFixed(3)+")";
+      redondo(c,bx2+bw*0.18,by2-bh*0.10,bw*0.64,bh*0.42,bh*0.2); c.fill(); }
+    /* y cuando calla, sonríe */
+    if(S.boca<0.30 && hm.sonrisa!==0){
+      c.strokeStyle=hm.col; c.lineWidth=W*0.018; c.lineCap="round"; c.globalAlpha=0.9-S.boca*2;
+      c.beginPath(); c.moveTo(cx-bw*0.55,by2);
+      c.quadraticCurveTo(cx,by2+hm.sonrisa*W*0.09,cx+bw*0.55,by2); c.stroke(); c.globalAlpha=1; }
+
+    /* las dos mejillas que brillan al hablar */
+    for(const sx of [-1,1]){
+      const mx=cx+sx*hw*0.36, my=by2-W*0.02;
+      c.fillStyle="rgba(255,140,180,"+(0.05+S.brillo*0.16).toFixed(3)+")";
+      c.beginPath(); c.arc(mx,my,W*0.045,0,7); c.fill(); }
+
+    /* la barbilla-altavoz */
+    c.fillStyle="rgba(143,208,255,.13)";
+    for(let i=0;i<3;i++) { redondo(c,cx-hw*0.13,hy+hh*0.86+i*W*0.017,hw*0.26,W*0.008,W*0.004); c.fill(); }
+  }
+
+  /* ---------- el latido ---------- */
+  let ult=0;
+  function late(ts){
+    raf=requestAnimationFrame(late);
+    const dt=Math.min(0.05,(ts-ult)/1000)||1/60; ult=ts; t+=dt;
+    const panel=document.getElementById("wallyFs");
+    if(!panel || panel.style.display!=="flex") return;      /* cerrado: no gastes pilas */
+    if(!ctx){ const k=cv(); if(!k) return; ctx=k.getContext("2d"); W=k.width; H=k.height; }
+
+    /* parpadeo cada 2-6 segundos, rapidito */
+    S.proxParpadeo-=dt;
+    if(S.proxParpadeo<=0){ S.parpadeo=1; S.proxParpadeo=2+Math.random()*4; }
+    if(S.parpadeo>0) S.parpadeo=Math.max(0,S.parpadeo-dt*9);
+
+    /* la boca persigue su objetivo (suave, si no parece una marioneta) */
+    if(S.hablando){
+      const r=Math.abs(Math.sin(t*11.5))*0.55+Math.abs(Math.sin(t*4.3+1.1))*0.35;
+      S.bocaObj=Math.max(0.12,Math.min(1,S.bocaObj*0.55+r*0.75));
+    } else S.bocaObj*=0.86;
+    S.boca+=(S.bocaObj-S.boca)*Math.min(1,dt*18);
+    S.brillo+=((S.hablando?S.boca:(S.escuchando?0.35+Math.sin(t*4)*0.15:0.10))-S.brillo)*Math.min(1,dt*7);
+
+    /* la mirada: te sigue, y si no hay ratón se pasea sola */
+    if(t-(S._mouseT||-9)>2.5){ S.mirXObj=Math.sin(t*0.7)*0.5; S.mirYObj=Math.sin(t*0.53+2)*0.35; }
+    S.mirX+=(S.mirXObj-S.mirX)*Math.min(1,dt*6);
+    S.mirY+=(S.mirYObj-S.mirY)*Math.min(1,dt*6);
+    pinta();
+  }
+
+  /* ---------- la mirada sigue al dedo o al ratón ---------- */
+  function sigue(e){
+    const k=cv(); if(!k) return; const r=k.getBoundingClientRect();
+    const px=(e.clientX!==undefined?e.clientX:(e.touches&&e.touches[0]?e.touches[0].clientX:0));
+    const py=(e.clientY!==undefined?e.clientY:(e.touches&&e.touches[0]?e.touches[0].clientY:0));
+    S.mirXObj=Math.max(-1,Math.min(1,(px-(r.left+r.width/2))/(r.width*0.9)));
+    S.mirYObj=Math.max(-1,Math.min(1,(py-(r.top+r.height/2))/(r.height*0.9)));
+    S._mouseT=t;
+  }
+
+  /* ---------- LA VOZ: buscamos la más humana que tenga el aparato ---------- */
+  let vozBuena=null, vozLista=false;
+  function eligeVoz(){
+    try{
+      const vs=speechSynthesis.getVoices().filter(v=>/^es/i.test(v.lang));
+      if(!vs.length) return null;
+      const nota=v=>{
+        let p=0; const nm=(v.name||"");
+        if(/natural|neural/i.test(nm)) p+=60;               /* las nuevas de Windows: casi humanas */
+        if(/google/i.test(nm)) p+=45;                       /* la de Chrome también suena muy bien */
+        if(v.localService===false) p+=12;                   /* las de internet suelen ser mejores */
+        if(/dalia|paulina|sabina|helena|elvira|luc[ií]a|laura|m[oó]nica|catalina|isidora|ximena/i.test(nm)) p+=14;
+        if(/^es-CL/i.test(v.lang)) p+=10;                   /* ¡chilena, como David! */
+        else if(/^es-(MX|US|AR|CO)/i.test(v.lang)) p+=7;
+        else if(/^es-ES/i.test(v.lang)) p+=4;
+        if(/pablo|jorge|raul|miguel/i.test(nm)) p+=2;
+        return p; };
+      vs.sort((a,b)=>nota(b)-nota(a));
+      return vs[0]||null;
+    }catch(e){ return null; }
+  }
+  function voz(){ if(!vozLista){ vozBuena=eligeVoz(); if(vozBuena) vozLista=true; } return vozBuena; }
+  try{ speechSynthesis.addEventListener("voiceschanged",()=>{ vozLista=false; voz(); }); }catch(e){}
+  setTimeout(voz,300); setTimeout(voz,1500);
+
+  /* ---------- que TODO lo que diga WALLY mueva la boca y use la voz buena ---------- */
+  function enchufa(){
+    try{
+      if(!window.speechSynthesis || speechSynthesis._wlife) return;
+      const orig=speechSynthesis.speak.bind(speechSynthesis);
+      speechSynthesis.speak=function(u){
+        try{
+          if(!/^en/i.test(u.lang||"")){
+            /* amable y natural: ni chillona ni de lata */
+            const v=voz(); if(v && !u._forzada && !u.voice) u.voice=v;   /* al inglés y a las voces ya elegidas, ni las toco */
+            if(u.pitch===undefined||u.pitch===1||u.pitch>1.15) u.pitch=1.06;
+            if(u.rate===undefined||u.rate===1) u.rate=0.99;
+            if(u.volume===undefined) u.volume=1;
+          }
+          const antes=u.onstart, fin=u.onend, mal=u.onerror;
+          u.onstart=function(){ S.hablando=true; humor("hablando"); if(antes) try{antes.apply(this,arguments);}catch(e){} };
+          const parar=function(){ if(!speechSynthesis.pending&&!speechSynthesis.speaking){ S.hablando=false; S.bocaObj=0; if(S.humor==="hablando") humor("feliz"); } };
+          u.onend=function(){ setTimeout(parar,40); if(fin) try{fin.apply(this,arguments);}catch(e){} };
+          u.onerror=function(){ setTimeout(parar,40); if(mal) try{mal.apply(this,arguments);}catch(e){} };
+          u.onboundary=function(){ S.bocaObj=0.55+Math.random()*0.45; };   /* cada palabra, un golpe de boca */
+        }catch(e){}
+        return orig(u);
+      };
+      speechSynthesis._wlife=true;
+    }catch(e){}
+  }
+
+  /* ---------- hablar a propósito ---------- */
+  function habla(txt){
+    try{
+      if(!window.speechSynthesis) return false;
+      const limpio=String(txt||"").replace(/<[^>]+>/g,"")
+        .replace(/[\u{1F300}-\u{1FAFF}\u{2600}-\u{27BF}\u{FE0F}\u{200D}]/gu,"")
+        .replace(/\s+/g," ").trim().slice(0,260);
+      if(!limpio) return false;
+      const u=new SpeechSynthesisUtterance(limpio); u.lang="es-CL";
+      speechSynthesis.cancel(); speechSynthesis.speak(u); return true;
+    }catch(e){ return false; }
+  }
+
+  return { S, humor, habla, enchufa, sigue, arranca(){ if(!raf) raf=requestAnimationFrame(late); }, voz };
+})();
+window.WLIFE=WLIFE;
+
 window.wallyCerrarPaneles=function(){ try{ const t=$("trophyFs"); if(t) t.style.display="none"; }catch(e){} try{ const w=$("wallyFs"); if(w) w.style.display="none"; }catch(e){} };
 window.abrirWallyFs=function(){ const w=$("wallyFs"); if(!w) return; w.style.display="flex";
   const hayVoz=!!(window.SpeechRecognition||window.webkitSpeechRecognition), big=$("wallyMicBig"), tec=$("wallyFsTeclado"), hint=$("wallyFsHint");
@@ -8843,12 +9098,133 @@ window.abrirWallyFs=function(){ const w=$("wallyFs"); if(!w) return; w.style.dis
   try{ buildTrophies(); }catch(e){}
   try{ const ws=$("wallySpeech"); if(!ws||!String(ws.textContent||"").trim()) wallyType(pick(["🎤 toca el micrófono y pregúntame lo que quieras","🎤 te escucho: toca el micrófono y habla","🎤 dime, agente — toca el micrófono"])); }catch(e){}
   if(hayVoz){ try{ const b=$("wallyMicBig"); if(b) setTimeout(()=>b.focus(),80); }catch(e){} } };
-try{ $("wallyFsClose").onclick=()=>{ $("wallyFs").style.display="none"; }; }catch(e){}
-try{ $("wallyFs").addEventListener("click",e=>{ if(e.target===$("wallyFs")) $("wallyFs").style.display="none"; }); }catch(e){}
+/* la cara arranca al abrir el panel y la mirada te sigue */
+try{ WLIFE.enchufa(); WLIFE.arranca();
+  const ca=$("wallyCara");
+  if(ca){ ["mousemove","touchmove","touchstart"].forEach(ev=>
+    $("wallyFs").addEventListener(ev,e=>WLIFE.sigue(e),{passive:true}));
+    ca.addEventListener("click",()=>{ WLIFE.humor("sorpresa",1.0);
+      try{ wallyType(pick(["¡ey! me hiciste cosquillas 😄","beep… ¿me llamabas, agente?","¡estoy despierto! dime qué necesitas"])); }catch(e){} }); }
+}catch(e){}
+/* al cerrar el panel: silencio y cámara apagada */
+try{ const cerrar=()=>{ try{ if(window.speechSynthesis) speechSynthesis.cancel(); }catch(e){} try{ WLIFE.S.hablando=false; }catch(e){} try{ WCAM.apaga(); }catch(e){} };
+  window._wallyAlCerrar=cerrar; }catch(e){}
+try{ $("wallyFsClose").onclick=()=>{ $("wallyFs").style.display="none"; try{ window._wallyAlCerrar(); }catch(e){} }; }catch(e){}
+try{ $("wallyFs").addEventListener("click",e=>{ if(e.target===$("wallyFs")){ $("wallyFs").style.display="none"; try{ window._wallyAlCerrar(); }catch(er){} } }); }catch(e){}
+
+/* ================= 😊 BOTÓN WALLY LIFE ================= */
+try{ const bl=$("wlLife");
+  const estado=()=>{ let on=false; try{ on=localStorage.getItem("edtu_wally_voice")==="1"; }catch(e){}
+    if(bl){ bl.classList.toggle("on",on); bl.textContent=on?"😄":"😊";
+      bl.title=on?"WALLY LIFE encendido: te contesto hablando":"WALLY LIFE: te contesto hablando y con la cara"; }
+    const vb=$("wallyVoice"); if(vb) vb.textContent=on?"🔊 voz ON":"🔈 voz"; };
+  if(bl){ bl.onclick=()=>{ let on=false;
+      try{ on=localStorage.getItem("edtu_wally_voice")==="1"; localStorage.setItem("edtu_wally_voice",on?"0":"1"); }catch(e){}
+      if(on){ try{ speechSynthesis.cancel(); }catch(e){} WLIFE.S.hablando=false; estado();
+        try{ wallyType("😴 WALLY LIFE apagado — sigo aquí, pero calladito"); }catch(e){} }
+      else { estado(); WLIFE.humor("feliz");
+        const nm=(function(){ try{ return (window.wallyName&&window.wallyName())||""; }catch(e){ return ""; } })();
+        const hola="Hola"+(nm?", "+nm:", agente")+". Soy WALLY, y ahora te contesto hablando. Pregúntame lo que quieras.";
+        try{ wallyType("😄 ¡WALLY LIFE encendido! te contesto hablando y me ves la cara"); }catch(e){}
+        setTimeout(()=>WLIFE.habla(hola),120); } };
+    estado(); }
+}catch(e){}
+
+/* ================= 📷 LA CÁMARA: WALLY MIRA ================= */
+const WCAM=(function(){
+  let stream=null, lienzo=null, previa=null, reloj=0, frontal=true;
+  const V=()=>document.getElementById("wlVideo");
+  const msg=(t)=>{ const m=document.getElementById("wlCamMsg"); if(m) m.textContent=t; };
+
+  /* de lo que ve, saca lo que SÍ puede medir de verdad: luz, color y movimiento */
+  function mide(){
+    const v=V(); if(!v||!v.videoWidth) return null;
+    if(!lienzo){ lienzo=document.createElement("canvas"); lienzo.width=40; lienzo.height=30; }
+    const c=lienzo.getContext("2d",{willReadFrequently:true});
+    c.drawImage(v,0,0,40,30);
+    const d=c.getImageData(0,0,40,30).data;
+    const N=40*30, act=new Float32Array(N);
+    let r=0,g=0,b=0,lum=0,mov=0;
+    for(let i=0;i<N;i++){ const j=i*4;
+      r+=d[j]; g+=d[j+1]; b+=d[j+2];
+      const l=d[j]*0.299+d[j+1]*0.587+d[j+2]*0.114;
+      lum+=l; act[i]=l;
+      if(previa) mov+=Math.abs(l-previa[i]); }
+    const tenia=!!previa; previa=act;
+    return { r:r/N, g:g/N, b:b/N, luz:lum/N, mov: tenia? mov/N : 0 };
+  }
+  function nombreColor(r,g,b){
+    const mx=Math.max(r,g,b), mn=Math.min(r,g,b);
+    if(mx-mn<18) return mx>150?"blanco":mx>70?"gris":"negro";
+    if(r===mx) return g>b+30?"naranja":(b>g+30?"rosado":"rojo");
+    if(g===mx) return b>r+30?"turquesa":"verde";
+    return r>g+30?"morado":"azul";
+  }
+  function comenta(){
+    const m=mide(); if(!m) return "…enfocando…";
+    const col=nombreColor(m.r,m.g,m.b);
+    const luz = m.luz<35?"está muy oscuro ahí — enciende una luz 💡"
+              : m.luz<75?"está algo oscuro, pero te veo"
+              : m.luz>195?"¡uf, cuánta luz! me deslumbras 😎"
+              : "hay buena luz ✨";
+    const movt= m.mov>17?"y te mueves un montón 🌀"
+              : m.mov>6 ?"y algo se mueve ahí"
+              : "y todo está quietecito";
+    return "👀 veo sobre todo "+col+", "+luz+", "+movt;
+  }
+  function bucle(){
+    const m=mide(); if(m){
+      WLIFE.S.escuchando=false;
+      if(m.mov>17) WLIFE.humor("sorpresa",0.9);
+      else if(WLIFE.S.humor!=="hablando") WLIFE.humor("mirando");
+      msg(comenta());
+    }
+  }
+  async function enciende(){
+    if(stream) return apaga();
+    const caja=document.getElementById("wlCamBox"), bt=document.getElementById("wlCam");
+    try{
+      if(!navigator.mediaDevices||!navigator.mediaDevices.getUserMedia){
+        try{ wallyType("📷 este navegador no me deja usar la cámara"); }catch(e){} return; }
+      stream=await navigator.mediaDevices.getUserMedia({video:{facingMode:frontal?"user":"environment",width:{ideal:640}},audio:false});
+      const v=V(); v.srcObject=stream; v.style.transform=frontal?"scaleX(-1)":"none"; await v.play().catch(()=>{});
+      if(caja) caja.classList.add("on"); if(bt){ bt.classList.add("on"); bt.textContent="📸"; }
+      previa=null; WLIFE.humor("mirando");
+      msg("👀 te veo… enséñame lo que quieras");
+      clearInterval(reloj); reloj=setInterval(bucle,700);
+      try{ wallyType("📷 ¡cámara encendida! te veo. Toca 👀 «mira esto» y te digo lo que distingo — ojo: sé ver luz, colores y movimiento, todavía no sé leer lo que hay en la foto"); }catch(e){}
+    }catch(err){
+      stream=null;
+      const no=(err&&(err.name==="NotAllowedError"||err.name==="SecurityError"));
+      try{ wallyType(no?"📷 necesito permiso para la cámara — toca el candado 🔒 de la barra del navegador y déjame verte (y tiene que ser https, como www.edtu.cl)"
+                       :"📷 no encontré ninguna cámara en este aparato 😕"); }catch(e){}
+    }
+  }
+  function apaga(){
+    clearInterval(reloj); reloj=0; previa=null;
+    try{ if(stream) stream.getTracks().forEach(x=>x.stop()); }catch(e){}
+    stream=null;
+    const v=V(); if(v) v.srcObject=null;
+    const caja=document.getElementById("wlCamBox"); if(caja) caja.classList.remove("on");
+    const bt=document.getElementById("wlCam"); if(bt){ bt.classList.remove("on"); bt.textContent="📷"; }
+    if(WLIFE.S.humor==="mirando") WLIFE.humor("feliz");
+  }
+  return { enciende, apaga, comenta, gira(){ frontal=!frontal; if(stream){ apaga(); setTimeout(enciende,180); } }, activa(){ return !!stream; } };
+})();
+window.WCAM=WCAM;
+try{
+  const bc=$("wlCam"); if(bc) bc.onclick=()=>WCAM.enciende();
+  const bo=$("wlCamOff"); if(bo) bo.onclick=()=>{ WCAM.apaga(); try{ wallyType("📷 cámara apagada — nada de lo que vi sale de tu aparato 🔒"); }catch(e){} };
+  const bg=$("wlGirar"); if(bg) bg.onclick=()=>WCAM.gira();
+  const bm=$("wlMirar"); if(bm) bm.onclick=()=>{ if(!WCAM.activa()){ WCAM.enciende(); return; }
+    WLIFE.humor("pensando",1.2);
+    setTimeout(()=>{ const t=WCAM.comenta(); try{ wallyType(t+" — si es un problema del cole, cuéntamelo también con el 🎤 y te ayudo"); }catch(e){} },700); };
+}catch(e){}
 try{ document.addEventListener("keydown",e=>{ const w=$("wallyFs"); if(e.key==="Escape"&&w&&w.style.display==="flex") w.style.display="none"; }); }catch(e){}
 /* el micrófono grande manda sobre el chico de siempre y copia su estado */
 try{ const big=$("wallyMicBig"), small=$("wallyMic"); if(big&&small){ big.onclick=()=>small.click();
-  const sync=()=>{ const t=(small.textContent||"🎤").trim(); big.textContent=t; big.classList.toggle("rec",t==="🔴"); const h=$("wallyFsHint"); if(h) h.textContent=(t==="🔴")?"te escucho...":"toca el micrófono y háblame"; };
+  const sync=()=>{ const t=(small.textContent||"🎤").trim(); big.textContent=t; big.classList.toggle("rec",t==="🔴"); const h=$("wallyFsHint"); if(h) h.textContent=(t==="🔴")?"te escucho...":"toca el micrófono y háblame";
+    try{ WLIFE.S.escuchando=(t==="🔴"); WLIFE.humor(t==="🔴"?"escuchando":(WLIFE.S.hablando?"hablando":"feliz")); }catch(e){} };
   try{ new MutationObserver(sync).observe(small,{childList:true,characterData:true,subtree:true}); }catch(e){} sync(); } }catch(e){}
 // 🎲 SORPRÉNDEME: un juego al azar de todo el menú (sin repetir el último)
 { const rb=$("pickRandom"); if(rb) rb.onclick=()=>{ const ids=["pickSw","pickFly","pickSal","pickRsc","pickTrr","pickTor","pickAbd","pickIma","pickCue","pickFra","pickAtz","pickRush","pickFoot","pickMon","pickF1","pickGato","pickChess","pickSnake","pickC4","pickMem","pick2048","pickMines","pickBreak","pickInv","pickFlap","pickPong","pickRps","pickSimon","pickHang","pickNag","pickRk","pickJp","pickScr"].filter(id=>$(id)); let last=""; try{ last=localStorage.getItem("edtu_random_last")||""; }catch(e){} const pool=ids.filter(id=>id!==last); const id=pool[Math.floor(Math.random()*pool.length)]; try{ localStorage.setItem("edtu_random_last",id); }catch(e){} const b=$(id); if(b) b.click(); }; }
@@ -8925,6 +9301,9 @@ function wallyType(txt){ const ws=$("wallySpeech"); if(!ws) return; try{ const n
     try{ const A3=new (window.AudioContext||window.webkitAudioContext)(); const o=A3.createOscillator(),g3=A3.createGain(); o.type="square"; o.frequency.value=1046; g3.gain.value=0.04; o.connect(g3); g3.connect(A3.destination); o.start(); o.stop(A3.currentTime+0.08); }catch(e){}
     typing=setInterval(()=>{ i++; if(i>=txt.length){ ws.textContent="«"+txt+"»"; clearInterval(typing); typing=null; } else ws.textContent="«"+txt.slice(0,i)+"▌"; },26); }
   function wallyReply(q){ try{ q=(q||"").toLowerCase();
+    /* 😊📷 los botones nuevos: van los primeros para que ninguna otra regla se los coma */
+    if(/wally ?life|tu cara|tienes cara|cara nueva|carita|hablas de verdad|mueves la boca/.test(q)) return "😊 eso es WALLY LIFE: toca el botón 😊 y te contesto HABLANDO, con la cara moviendo la boca de verdad. Te miro (mis ojos siguen a tu dedo), parpadeo y cambio de cara según lo que hago: 🟢 verde cuando te escucho, 🟡 amarilla cuando pienso, 💜 morada cuando miro por la cámara. Toca 😊 otra vez y me callo";
+    if(/c[aá]mara|webcam|me ves|puedes ver(me)?|mira esto|te ense[ñn]o/.test(q) && !/permiso|privacidad|para qu[eé]|rostro|perfil|micr[oó]fono/.test(q))   /* lo de los permisos lo explica la regla de privacidad */ return "📷 ¡sí! toca el botón 📷 CÁMARA y te veo. Sé decirte qué COLORES hay, si tienes buena LUZ y si algo se MUEVE — todavía NO sé leer lo que sale en la imagen, así que cuéntame tú con el 🎤 qué me estás enseñando y te ayudo con eso. Nada de lo que veo sale de tu aparato 🔒";
     if(/\bbmw\b|b m w|beemer|bimmer|(cu[aá]l|qu[eé]) es (tu|la) (marca|mejor marca)( de (autos?|coches?|carros?))?( favorit[oa]| preferid[oa])?|(cu[aá]l|qu[eé]) (marca|auto|coche|carro) (de autos? )?(te gusta|prefieres|es tu favorit[oa]|te gustar[ií]a|te comprar[ií]as|quieres|manejar[ií]as|elegir[ií]as)|(tu|cu[aá]l es tu) (auto|coche|carro) favorito|mejor marca de (autos?|coches?|carros?)|qu[eé] opinas de (ferrari|mercedes|audi|porsche|lamborghini|toyota|honda|nissan|ford|chevrolet|volkswagen|tesla|mazda|hyundai|kia|subaru|jeep|renault|peugeot|fiat|volvo|jaguar|bentley|rolls ?royce|mclaren|bugatti|alfa romeo|suzuki|mitsubishi|dodge|land rover|citro[eë]n|skoda|opel|lexus|maserati|aston martin|koenigsegg|pagani|red bull)|te gusta(n)? (ferrari|mercedes|audi|porsche|lamborghini|toyota|tesla|mclaren|bugatti|maserati|aston martin)/.test(q)){ const M="(ferrari|mercedes|audi|porsche|lamborghini|toyota|honda|nissan|ford|chevrolet|volkswagen|tesla|mazda|hyundai|kia|subaru|jeep|renault|peugeot|fiat|volvo|jaguar|bentley|rolls ?royce|mclaren|bugatti|alfa romeo|suzuki|mitsubishi|dodge|land rover|citro[eë]n|skoda|opel|lexus|maserati|aston martin|koenigsegg|pagani|red bull)"; const otra=(q.match(new RegExp(M))||[])[0]; const bmw=/\bbmw\b|b m w|beemer|bimmer/.test(q); if(bmw&&otra) return "🚙 BMW, sin dudarlo. "+otra.charAt(0).toUpperCase()+otra.slice(1)+" tiene lo suyo, pero para mí BMW gana: chasis equilibrado, motor delante y tracción trasera bien repartida, y esa parrilla de dos riñones que se reconoce a un kilómetro. mi lado robot valora la ingeniería alemana ⚙️"; if(bmw&&/(qu[eé] es|qu[eé] significa|de d[oó]nde es|historia)/.test(q)) return "🚙 BMW significa Bayerische Motoren Werke: Fábricas de Motores de Baviera, fundada en Múnich en 1916. empezó haciendo motores de avión y hoy hace autos y motos; el azul y blanco del logo son los colores de Baviera. es mi marca favorita, por si no se notaba ⚙️"; if(bmw) return "🚙 BMW es mi marca favorita: alemana, de Múnich, con motor equilibrado, tracción trasera y la parrilla de dos riñones que la delata de lejos. si algún día tengo ruedas, quiero ser un BMW ⚙️"; if(otra) return "🚗 "+otra.charAt(0).toUpperCase()+otra.slice(1)+" está bien, no lo discuto... pero mi favorita es BMW: ingeniería alemana, equilibrio y esa parrilla de dos riñones ⚙️ — ¿cuál te gusta a ti?"; return "🚙 mi marca favorita es BMW, sin discusión: alemana, de Múnich desde 1916, equilibrada y con la parrilla de dos riñones más reconocible del mundo ⚙️ — en el juego manejas un RB18 🏎️, pero si me dieran a elegir en la calle, un BMW"; }   /* 🚙 la marca favorita de WALLY */
     if(/ens[eé][ñn]ame algo|ens[eé][ñn]ame un dato|dime algo al azar|algo que no sepa|dato al azar|dato random|sorpr[eé]ndeme con un tema|qu[eé] sabes t[uú]|de qu[eé] sabes|qu[eé] temas sabes|de qu[eé] puedo preguntarte/.test(q)){ try{ const KB=window.EDTU_KB; if(KB&&KB.length){ if(/qu[eé] sabes t[uú]|de qu[eé] sabes|qu[eé] temas sabes|de qu[eé] puedo preguntarte/.test(q)) return "🎓 sé de mates, lenguaje, ciencias, el cuerpo, animales, plantas, historia de Chile y del mundo, geografía, espacio, dinosaurios, tecnología, programación, robótica, deportes, música, cine, comida, emociones, colegio, seguridad, leyendas y mucho más ("+KB.length+" temas) — pregúntame cualquier cosa, o di 'enséñame algo' y elijo yo"; return "🎓 "+KB[Math.floor(Math.random()*KB.length)][2]+"   (di 'enséñame algo' otra vez para otro tema)"; } }catch(e){} return "🎓 pregúntame lo que quieras: mates, ciencias, animales, historia, espacio, deportes..."; }   /* 🎓 enséñame algo */
     if(/cu[aá]nto (dura|es) (un a[ñn]o|un d[ií]a) en (marte|venus|j[uú]piter|mercurio|saturno|urano|neptuno|la luna|plut[oó]n)|se puede (vivir|respirar|caminar) en (marte|la luna|venus|otro planeta)|(vamos a|podremos|se podr[aá]) (vivir|ir) (a|en) marte|hay vida en (otros planetas|el espacio|otro planeta)|existen? (los )?(extraterrestres|alien[ií]genas|aliens|marcianos|ovnis?)|hay (extraterrestres|alien[ií]genas|vida extraterrestre)|qu[eé] es (un )?(ovni|la estaci[oó]n espacial|la iss|un asteroide|una estrella fugaz|la v[ií]a l[aá]ctea|el big bang|un a[ñn]o luz|la gravedad cero|un telescopio|una constelaci[oó]n|la cruz del sur|una supernova|un agujero de gusano|la nasa|un cohete|un sat[eé]lite natural|el sistema solar)|c[oó]mo (van al ba[ñn]o|hacen pip[ií]|duermen|comen|se duchan|se lavan) los astronautas|qu[eé] comen los astronautas|cu[aá]nto (tarda|se demora|dura el viaje) (en llegar )?(a|hasta) (marte|la luna|el sol|j[uú]piter)|qui[eé]n fue (el|la) (primer|primera) (hombre|persona|humano|astronauta|mujer|animal|ser vivo)( en (la luna|el espacio)| del espacio)?|qui[eé]n (lleg[oó]|pis[oó]) (primero )?(a )?la luna|(el hombre|llegamos|llegaron) (lleg[oó] )?a la luna|hay astronautas chilenos|astronautas? (chilen[oa]s?|de chile)|va a chocar un asteroide|(nos va a caer|caer[aá]) un (asteroide|meteorito)|por qu[eé] (saturno tiene anillos|tiene anillos saturno)|por qu[eé] (plut[oó]n no es (un )?planeta|ya no es planeta plut[oó]n)|cu[aá]ntos a[ñn]os tiene el universo|qu[eé] (hay|existe) (fuera|afuera|m[aá]s all[aá]) del universo|qu[eé] es la luz(?![a-z])|qu[eé] tan r[aá]pido (va|viaja) la luz|a qu[eé] velocidad (va|viaja) la luz|velocidad de la luz|c[oó]mo (veo|puedo ver|miro) las estrellas( desde chile| en chile)?|d[oó]nde (ver|mirar) (las )?estrellas|por qu[eé] chile tiene (los mejores )?(cielos|telescopios|observatorios)|qu[eé] es (alma|paranal|el observatorio)|cu[aá]nto pesa (la tierra|el sol|la luna)|(la tierra es (redonda|plana)|es plana la tierra|la tierra es una esfera)|cu[aá]ndo se (apaga|apagar[aá]|muere|morir[aá]) el sol|qu[eé] tan grande es el sol|cu[aá]ntas tierras caben en el sol|cu[aá]ntos planetas hay/.test(q)){ let m; const K=[[/cu[aá]nto (dura|es) (un a[ñn]o|un d[ií]a) en/,(function(){ const P={marte:["687 días (1 año y 10 meses: ¡tendrías la mitad de años!)","24 horas y 37 minutos (¡casi igual al nuestro!)"],venus:["225 días","243 días terrestres — ¡en Venus el DÍA dura más que el AÑO! 🤯 y además gira al revés"],"j[uú]piter":["12 años terrestres","¡solo 10 horas! es el planeta que gira más rápido (y es el más grande)"],mercurio:["88 días: el año más corto del sistema solar","59 días terrestres"],saturno:["29 años","10 horas y media"],urano:["84 años","17 horas (y gira acostado, como una pelota rodando 🎳)"],neptuno:["165 años (¡desde que lo descubrieron solo ha dado una vuelta!)","16 horas"],"la luna":["la Luna no da vueltas al Sol sola: viaja con la Tierra, así que su «año» es el nuestro","29,5 días: ¡un día lunar dura casi un mes! por eso hay 14 días de sol y 14 de noche"],"plut[oó]n":["248 años terrestres","6,4 días"]}; return function(q){ const k=Object.keys(P).find(x=>new RegExp(x).test(q)); if(!k) return null; const dia=/un d[ií]a/.test(q); const nm=k==="j[uú]piter"?"Júpiter":k==="plut[oó]n"?"Plutón":k==="la luna"?"la Luna":k.charAt(0).toUpperCase()+k.slice(1); return "🪐 "+(dia?"un día":"un año")+" en "+nm+" dura "+P[k][dia?1:0]+(dia?"":" — un año es lo que tarda en dar la vuelta al Sol, y mientras más lejos, más lento va"); }; })()],[/se puede (vivir|respirar|caminar) en|(vamos a|podremos|se podr[aá]) (vivir|ir) (a|en) marte/,"🔴 en Marte NO se puede vivir todavía: el aire es casi puro CO₂ (no se respira), hace −60 °C, no hay agua líquida y la radiación es peligrosa; habría que vivir en bases selladas con trajes para salir; la NASA y SpaceX quieren llevar gente en los años 2030 — ¡podrías ser tú! 🚀 (en la Luna es aún más difícil: ni aire tiene)"],[/hay vida en|existen? (los )?(extraterrestres|alien[ií]genas|aliens|marcianos)|hay (extraterrestres|alien[ií]genas|vida extraterrestre)/,"👽 nadie ha encontrado vida fuera de la Tierra todavía... pero hay 200.000 millones de estrellas solo en nuestra galaxia y miles de planetas descubiertos, así que muchos científicos creen que ALGO debe haber (aunque sea bacterias 🦠); los lugares favoritos para buscar: Marte, Europa (luna de Júpiter con océano bajo el hielo) y Encélado (Saturno); mientras tanto: somos la única vida que conocemos, así que cuidemos este planeta 🌍"],[/ovnis?/,"🛸 un OVNI es un «Objeto Volador No Identificado»: algo en el cielo que no se sabe qué es; casi siempre resultan ser drones, globos, aviones, satélites (¡los Starlink parecen un tren de luces!) o planetas brillantes como Venus; «no identificado» no significa «nave alienígena» — significa «todavía no sabemos qué era» 🕵️"],[/estaci[oó]n espacial|\biss\b/,"🛰️ la Estación Espacial Internacional (ISS) es un laboratorio del tamaño de una cancha de fútbol que da vueltas a la Tierra a 400 km de altura y 28.000 km/h: ¡una vuelta cada 90 minutos, 16 amaneceres al día! 🌅 viven 7 astronautas de varios países, lleva habitada sin parar desde el año 2000 y se puede ver a simple vista desde el patio (busca «avistamiento ISS» y sal a mirar: parece una estrella que cruza rápido y no titila)"],[/van al ba[ñn]o|hacen pip[ií]/,"🚽 el baño espacial no tiene agua: es una aspiradora 😄 — un tubo con succión para el pipí (que se recicla y se convierte en agua para tomar, ¡sí, en serio!) y un asiento con succión y una bolsa para lo demás, que se guarda y se quema en la atmósfera; hay que agarrarse con correas para no salir flotando 🪐"],[/duermen los astronautas/,"😴 los astronautas duermen en sacos de dormir amarrados a la pared (si no, flotan y chocan con todo 🛸); no necesitan almohada y da lo mismo si están «de cabeza»; usan antifaz y tapones porque hay 16 amaneceres al día y la estación es ruidosa"],[/comen los astronautas|se duchan|se lavan/,"🍽️ los astronautas comen comida deshidratada a la que le inyectan agua caliente, y todo pegado con velcro a la bandeja para que no flote; nada de sal ni pimienta en polvo (¡se escaparía y les entraría a los ojos!): las usan líquidas; y sí, hay tortillas en vez de pan (no hacen migas) y hasta helado especial 🍦 — ducha no hay: se lavan con toallitas y champú sin agua"],[/cu[aá]nto (tarda|se demora|dura el viaje)/,(function(){ return function(q){ if(/la luna/.test(q)) return "🌙 llegar a la Luna toma unos 3 días (384.000 km); las Apolo lo hacían así; con un auto a 100 km/h serían 160 días sin parar 🚗"; if(/el sol/.test(q)) return "☀️ llegar al Sol tomaría unos 6 meses en cohete (150 millones de km)... pero nadie va: te derretirías; la sonda Parker se acercó lo más posible con un escudo de 1.400 °C 🔥"; if(/j[uú]piter/.test(q)) return "🪐 llegar a Júpiter toma entre 2 y 6 años según la ruta (la sonda Juno tardó 5)"; return "🔴 llegar a Marte toma entre 7 y 9 meses, y solo se puede salir cada 26 meses, cuando los planetas se alinean bien; el viaje de vuelta es otro tanto: por eso una misión completa dura casi 3 años 🚀"; }; })()],[/primer|lleg[oó]|pis[oó]|llegamos|llegaron/,(function(){ return function(q){ if(/mujer/.test(q)) return "👩‍🚀 la primera mujer en el espacio fue Valentina Tereshkova (Unión Soviética, 1963); la primera en caminar por el espacio, Svetlana Savítskaya (1984); y la NASA quiere que una mujer pise la Luna en la misión Artemis 🌙"; if(/animal|ser vivo/.test(q)) return "🐕 la primera en orbitar fue Laika, una perrita callejera rusa (1957) — no pudo volver, y hoy se recuerda como una historia triste que cambió las reglas; antes habían subido moscas y monos, y los primeros en volver vivos de la órbita fueron los perros Belka y Strelka (1960)"; if(/astronauta|persona|humano|en el espacio/.test(q)&&!/luna/.test(q)) return "👨‍🚀 el primer humano en el espacio fue Yuri Gagarin (Unión Soviética) el 12 de abril de 1961: dio una vuelta a la Tierra en 108 minutos y dijo «la Tierra es azul» 🌍"; return "🌙 el primer hombre en pisar la Luna fue Neil Armstrong, el 20 de julio de 1969 (misión Apolo 11), con Buzz Aldrin detrás y Michael Collins esperando en órbita; dijo «un pequeño paso para el hombre, un gran salto para la humanidad» 👣 — han caminado por la Luna 12 personas, todas entre 1969 y 1972"; }; })()],[/astronautas? (chilen|de chile)/,"🇨🇱 Chile todavía no ha mandado astronautas al espacio (no tenemos programa tripulado)... ¡pero sí tiene los mejores telescopios del mundo 🔭 y muchos ingenieros y astrónomos chilenos trabajan con la NASA y la ESA!; además Chile tiene sus propios satélites (FASat) y el SUCHAI, hecho por estudiantes de la Universidad de Chile — puede que el primer astronauta chileno esté leyendo esto 👀"],[/asteroide|meteorito/,(function(){ return function(q){ if(/va a chocar|nos va a caer|caer[aá]/.test(q)) return "☄️ tranquilo: la NASA vigila los asteroides cercanos y NINGUNO conocido va a chocar con la Tierra en los próximos 100 años 🙌; además ya probaron que se pueden desviar: en 2022 la nave DART chocó contra el asteroide Dimorfos y le cambió la órbita 🎯 — los grandes caen cada millones de años (el de los dinosaurios fue hace 66)"; return "🪨 un ASTEROIDE es una roca del espacio que quedó de cuando se formaron los planetas: la mayoría vive en el cinturón entre Marte y Júpiter; los hay de metros o de cientos de kilómetros; si entra a la atmósfera y se quema, es un meteoro (estrella fugaz) y si llega al suelo, un meteorito"; }; })()],[/estrella fugaz/,"🌠 una ESTRELLA FUGAZ no es una estrella: es un granito de polvo del espacio (a veces del tamaño de un poroto) que entra a la atmósfera a 200.000 km/h y se quema por el rozamiento, dejando una raya de luz; caen millones al día; las lluvias de estrellas ocurren cuando la Tierra cruza la basurita que deja un cometa (las Perseidas en agosto, las Gemínidas en diciembre) — pide un deseo 💫"],[/v[ií]a l[aá]ctea/,"🌌 la VÍA LÁCTEA es nuestra galaxia: una espiral gigante con 200.000 millones de estrellas (el Sol es una de ellas, en un brazo cualquiera); mide 100.000 años luz de lado a lado y tiene un agujero negro gigante en el centro; se llama así porque desde la Tierra se ve como una mancha de leche derramada en el cielo 🥛 — desde el norte de Chile se ve INCREÍBLE ✨"],[/saturno tiene anillos|tiene anillos saturno/,"🪐 los anillos de Saturno son miles de millones de trozos de hielo y roca (del tamaño de un grano de arena a una casa) dando vueltas: probablemente una luna que se acercó demasiado y se despedazó; son anchísimos (280.000 km) pero finísimos: ¡solo 10-100 metros de espesor! Júpiter, Urano y Neptuno también tienen anillos, pero muy débiles"],[/plut[oó]n/,"🥺 Plutón dejó de ser planeta en 2006 porque los astrónomos hicieron una definición nueva: un planeta tiene que 1) girar alrededor del Sol ✅ 2) ser redondo por su gravedad ✅ y 3) haber «limpiado» su órbita de otros objetos ❌ — Plutón comparte su zona con miles de rocas heladas del Cinturón de Kuiper; ahora es «planeta enano», como Ceres, Eris y Makemake; para muchos sigue siendo planeta de corazón 💙"],[/big bang/,"💥 el BIG BANG es el comienzo de todo: hace 13.800 millones de años el universo entero estaba concentrado en un punto más chico que un átomo, y de pronto empezó a expandirse (no fue una explosión EN el espacio: fue el espacio mismo estirándose, y sigue estirándose ahora); lo sabemos porque las galaxias se alejan unas de otras y porque queda un «eco» de calor en todo el cielo 📡"],[/a[ñn]os tiene el universo/,"🌌 el universo tiene 13.800 millones de años (la Tierra, 4.500 millones; el ser humano moderno, solo 300.000: si el universo fuera un año, aparecimos a las 23:59:47 del 31 de diciembre 😅)"],[/fuera|afuera|m[aá]s all[aá]/,"🤯 nadie lo sabe: preguntar qué hay «fuera» del universo es como preguntar qué hay al norte del Polo Norte — el universo incluye TODO el espacio, así que puede que no haya un «afuera»; algunos científicos imaginan multiversos (otros universos), pero no hay forma de comprobarlo todavía; lo que sí sabemos es que vemos hasta 46.000 millones de años luz: más allá, la luz aún no llega ✨"],[/qu[eé] es la luz/,"💡 la LUZ es energía que viaja en ondas y a la vez en partículas (fotones): lo más raro de la física 🤯; viaja a 300.000 km por segundo (¡7 vueltas a la Tierra en 1 segundo!), no necesita aire (por eso cruza el espacio) y trae todos los colores mezclados: el arcoíris los separa 🌈"],[/r[aá]pido (va|viaja) la luz|velocidad (va|viaja) la luz|velocidad de la luz/,"⚡ la luz va a 299.792 km por segundo (redondeando: 300.000): da 7 vueltas y media a la Tierra en un segundo, llega de la Luna en 1,3 segundos y del Sol en 8 minutos ☀️; es el límite de velocidad del universo: nada puede ir más rápido, y por eso viajar a otras estrellas es tan difícil"],[/a[ñn]o luz/,"📏 un AÑO LUZ no es tiempo: es DISTANCIA — lo que viaja la luz en un año: 9,5 billones de kilómetros; la estrella más cercana está a 4,2 años luz (o sea, la ves como era hace 4 años ⏳); mirar el cielo es mirar el pasado: ¡algunas estrellas que ves ya no existen! 😱"],[/gravedad cero/,"🌌 en la estación espacial NO hay «gravedad cero» de verdad: la gravedad ahí es casi igual a la de acá; flotan porque están CAYENDO todo el tiempo alrededor de la Tierra sin llegar a chocar (van tan rápido de lado que la Tierra se les «curva» debajo) — es como el ascensor que baja de golpe y sientes cosquillas en la guata, pero para siempre 🎢; se llama caída libre o microgravedad"],[/telescopio|alma|paranal|observatorio|veo|puedo ver|miro|ver (las )?estrellas|mirar (las )?estrellas|cielos/,(function(){ return function(q){ if(/qu[eé] es (un )?telescopio/.test(q)) return "🔭 un TELESCOPIO junta luz con un espejo o un lente grande y la concentra: mientras más grande el espejo, más lejos y más débil puede ver; Galileo usó uno de 3 cm en 1609 y vio las lunas de Júpiter; hoy el más grande del mundo se está construyendo... ¡en Chile! (el ELT, con un espejo de 39 metros 🇨🇱)"; if(/alma|paranal|observatorio|chile tiene/.test(q)) return "🔭 Chile tiene los mejores cielos del mundo para mirar estrellas: el desierto de Atacama es seco, alto y sin nubes ni luces; por eso están ALMA (66 antenas a 5.000 m que ven el nacimiento de las estrellas), Paranal (VLT), La Silla, Las Campanas y el futuro ELT — ¡el 70% de la capacidad astronómica del planeta estará en Chile 🇨🇱!"; return "✨ para ver estrellas desde Chile: aléjate de las luces (una plaza oscura, el campo, la playa), deja los ojos 20 minutos sin mirar pantallas 📵, acuéstate mirando arriba y usa una app de estrellas para identificar; en invierno busca a Orión 🏹 (las «Tres Marías») y todo el año la Cruz del Sur ✝️; con unos binoculares ya ves las lunas de Júpiter y los cráteres de la Luna 🌙 — y en el norte, la Vía Láctea entera"; }; })()],[/constelaci[oó]n/,"⭐ una CONSTELACIÓN es un dibujo imaginario que las personas trazaron uniendo estrellas: un cazador, un escorpión, una cruz; las estrellas de una constelación casi nunca están cerca de verdad (unas están mucho más lejos que otras): solo se ven juntas desde aquí; hay 88 oficiales, y desde Chile se ven las del sur, que en Europa no se ven nunca 🇨🇱"],[/cruz del sur/,"✝️ la CRUZ DEL SUR es la constelación más famosa del hemisferio sur: 4 estrellas brillantes en forma de cruz (Acrux, Mimosa, Gacrux e Imai) que solo se ven desde el sur del mundo; sirve para orientarse: alarga el palo largo de la cruz 4 veces y ahí está el sur 🧭; está en la bandera de Brasil, Australia y Nueva Zelanda — y en Chile se ve toda la noche en primavera"],[/supernova/,"💥 una SUPERNOVA es la explosión de una estrella gigante cuando se le acaba el combustible: brilla más que toda su galaxia durante semanas y esparce por el espacio el hierro, el oro y el calcio que hoy están en tu cuerpo 🌟 — literalmente estás hecho de polvo de estrellas; la última que se vio a simple vista fue en 1987"],[/agujero de gusano/,"🕳️ un AGUJERO DE GUSANO es un atajo teórico entre dos puntos lejanos del universo (como doblar una hoja y perforarla): las ecuaciones de Einstein lo permiten, pero nunca se ha visto ninguno y probablemente serían inestables; por ahora, solo en las películas 🎬"],[/nasa/,"🚀 la NASA es la agencia espacial de Estados Unidos (1958): mandó gente a la Luna, los rovers a Marte, el telescopio Hubble y el James Webb; también existen la ESA (Europa), Roscosmos (Rusia), la CNSA (China) y la ISRO (India), y empresas privadas como SpaceX (los cohetes que aterrizan solos 🛬)"],[/cohete/,"🚀 un COHETE funciona por la 3ª ley de Newton: bota gases hacia abajo a toda velocidad y eso lo empuja hacia arriba (como soltar un globo inflado 🎈); necesita ir a 28.000 km/h para quedar en órbita y a 40.000 para escapar de la Tierra; por eso son casi puro combustible y van soltando pedazos — pídeme 'cómo hago un cohete de botella' y hacemos uno 💦"],[/sistema solar|cu[aá]ntos planetas/,"🪐 el SISTEMA SOLAR tiene 8 planetas: Mercurio, Venus, Tierra y Marte (rocosos) y Júpiter, Saturno, Urano y Neptuno (gigantes de gas y hielo); más planetas enanos (Plutón, Ceres, Eris), 200+ lunas, asteroides y cometas — todo girando alrededor del Sol, que tiene el 99,8% de toda la masa 😮 (truco para el orden: «Mi VecinaТи... » mejor: Me Ven Tan Mal Jugando Sudokus Un Novato)"],[/pesa (la tierra|el sol|la luna)/,(function(){ return function(q){ if(/el sol/.test(q)) return "☀️ el Sol pesa 2.000 cuatrillones de toneladas (2 seguido de 27 ceros): 333.000 veces la Tierra y el 99,8% de todo el sistema solar"; if(/la luna/.test(q)) return "🌙 la Luna pesa 81 veces menos que la Tierra: por eso allá pesarías 6 veces menos (¡saltarías 6 veces más alto! 🦘)"; return "🌍 la Tierra pesa 6.000 trillones de toneladas (un 6 con 21 ceros): se calculó midiendo cómo atrae a otras cosas, no en una pesa 😄"; }; })()],[/la tierra es (redonda|plana)|es plana la tierra|una esfera/,"🌍 la Tierra es redonda (una esfera un poco achatada en los polos) y se sabe hace 2.300 años: Eratóstenes lo midió con dos palos y una sombra 200 años antes de Cristo; pruebas fáciles: los barcos desaparecen primero por abajo en el horizonte 🚢, la sombra de la Tierra en la Luna durante un eclipse siempre es curva 🌕, ves más lejos mientras más alto subes, y las estrellas cambian según dónde estés — más las miles de fotos desde el espacio 📸"],[/se (apaga|apagar[aá]|muere|morir[aá]) el sol/,"☀️ al Sol le quedan unos 5.000 millones de años: cuando se le acabe el hidrógeno se hinchará como gigante roja (se tragará a Mercurio y Venus) y después soltará sus capas y quedará como una enana blanca del tamaño de la Tierra; falta muchísimo — pero antes, en 1.000 millones de años, será tan caliente que la Tierra ya no será habitable; tranquilo, tenemos tiempo 😄"],[/tan grande es el sol|cu[aá]ntas tierras caben/,"☀️ en el Sol caben 1.300.000 Tierras: mide 1,4 millones de km de diámetro (109 Tierras en fila) y aun así es una estrella mediana-chica; la estrella UY Scuti es tan grande que si la pusieras en el lugar del Sol, ¡se tragaría a Júpiter! 🤯"]]; for(const [re,val] of K){ if(re.test(q)){ const r=typeof val==="function"?val(q):val; if(r) return r; } } return "🚀 pregúntame por Marte, la estación espacial, los astronautas, el Big Bang, un año luz, la Cruz del Sur o por qué Plutón ya no es planeta"; }   /* 🚀 el espacio */
