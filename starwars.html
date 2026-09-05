@@ -301,7 +301,7 @@
     🚀 <b>E</b> lanza torpedos al blanco fichado (persiguen solos) &nbsp;·&nbsp; 6 por partida, +2 por oleada<br/>
     🎯 la <b>mirilla verde</b> te dice dónde apuntar para acertar · frena para <b>girar más cerrado</b><br/>
     ↩️ <b>A / D</b> giro de barril &nbsp;·&nbsp;
-    📡 <b>R</b> radar &nbsp;·&nbsp; ⏸ <b>P</b> pausa &nbsp;·&nbsp; 🌠 <b>ESC</b> salta al hiperespacio y sales &nbsp;·&nbsp; 🎧 <b>con auriculares se oye de dónde vienen los disparos</b> &nbsp;·&nbsp; 🎵 <b>M</b> música y sonido &nbsp;·&nbsp; 📱 en el celular: arrastra para volar, con <b>acelerador</b> a la izquierda y botones de fuego, turbo, mira y torpedos a la derecha<br/>
+    📡 <b>R</b> radar &nbsp;·&nbsp; ⏸ <b>P</b> pausa &nbsp;·&nbsp; 🌠 <b>ESC</b> salta al hiperespacio y sales &nbsp;·&nbsp; 🎧 <b>con auriculares se oye de dónde vienen los disparos</b> &nbsp;·&nbsp; 🎵 <b>M</b> música y sonido &nbsp;·&nbsp; 📱 en el celular: <b>arrastra el dedo</b> para volar (y para dirigir el misil), el <b>🔫 mantenido</b> dispara sin parar (y suelta el misil), <b>acelerador</b> a la izquierda<br/>
     🤝 vuelas con <b>3 cazas aliados</b> que atacan contigo &nbsp;·&nbsp; 👾 enfrente hay <b>4 clases de nave</b> distintas
   </details>
   <div id="best"></div>
@@ -858,9 +858,9 @@ function nuevaPartida(){
   G.base=baseNueva(); G.pos=v3(0,0,0); G.enem=[]; G.amigos=[]; G.balas=[]; G.chispas=[]; G.estelas=[]; G.danos=[];
   G.naveBase=baseNueva(); G.naveOff=v3(0,0,0); polvoNuevo();
   for(let i=0;i<3;i++) nuevoAmigo(i);
-  G.chispas=[];
+  G.chispas=[]; G.ondas=[]; G.fogonazo=0; G.eco=null;
   G.score=0; G.wave=0; G.jefe=false; misionLimpia(); G.kills=0; G.disparos=0; G.aciertos=0; G.quedan=0; G.spawn=0; G.waveT=0; G.cad=0;
-  hiper=0; saliendo=0; G.misil=null; G.regenT=0; G.aliado=null; { const el=$("aliBar"); if(el) el.style.opacity=0; } G.destruidos=0; G.racha=0; G.rachaT=0; G.rachaMulti=1; G.rachaMax=0; G.guardaT=20; G.refuerzos=2; G.refT=0; G.jefeT=0; G.jefesLlamados=0; G.curaT=60; G.capsulas=[]; G.torpedos=[]; G.torp=TORP_MAX; G.torpCarga=0;
+  hiper=0; saliendo=0; G.misil=null; G.ondas=[]; G.fogonazo=0; G.eco=null; G.regenT=0; G.aliado=null; { const el=$("aliBar"); if(el) el.style.opacity=0; } G.destruidos=0; G.racha=0; G.rachaT=0; G.rachaMulti=1; G.rachaMax=0; G.guardaT=20; G.refuerzos=2; G.refT=0; G.jefeT=0; G.jefesLlamados=0; G.curaT=60; G.capsulas=[]; G.torpedos=[]; G.torp=TORP_MAX; G.torpCarga=0;
   G.jefes=0; G.caidos=0; G.torpKills=0; G.misionesOK=0; G.trincherasOK=0; G.golpes=0; G.gensRotos=0; G.refPedidos=0;
   G.gas=1; G.gasObj=1; G.yaw=0; G.pitch=0; G.roll=0; G.t=0; G.over=false; G.paused=false; G.inicio=Date.now();
   estrellasNuevas(); destructoresNuevos();
@@ -1537,6 +1537,7 @@ function render(){
      y se devuelve al final, pase lo que pase */
   const yoPos=G.pos, yoBase=G.base;
   if(G.misil){ G.pos=G.misil.p; G.base=G.misil.b; }
+  else if(G.eco&&G.eco.t>0){ G.pos=G.eco.p; G.base=G.eco.b; }   /* 💥 el eco: ves reventar tu misil */
   try{ renderDentro(yoPos,yoBase); }
   finally{ G.pos=yoPos; G.base=yoBase; }
 }
@@ -1677,7 +1678,26 @@ function renderDentro(yoPos,yoBase){
                   : (a>.5?"rgba(255,240,180,"+a+")":"rgba(255,120,40,"+a+")");
     ctx.beginPath(); ctx.arc(p.x,p.y,r,0,7); ctx.fill();
   }
+  /* 💥 las ondas expansivas del misil: anillos que se abren y se apagan */
+  for(const o of G.ondas){
+    const c=aCamara(G.base,sub(o.p,G.pos)); if(c.z<6) continue;
+    const p=proyecta(c), a=Math.max(0,o.vida/o.max);
+    const rr=o.r*p.s;
+    if(rr<1||rr>Math.max(W,H)*2.2) continue;
+    ctx.strokeStyle="rgba("+o.c+","+(a*a*0.75).toFixed(3)+")";
+    ctx.lineWidth=Math.max(1.5, rr*0.05*a+2);            /* el anillo se afina al abrirse */
+    ctx.beginPath(); ctx.arc(p.x,p.y,rr,0,7); ctx.stroke();
+  }
   ctx.globalCompositeOperation="source-over";
+  /* y el fogonazo que te deslumbra */
+  if(G.fogonazo>0.01){
+    const k=Math.min(1,G.fogonazo);
+    const fg=ctx.createRadialGradient(CX,CY,0,CX,CY,Math.max(W,H)*0.8);
+    fg.addColorStop(0,"rgba(255,240,205,"+(0.55*k).toFixed(3)+")");
+    fg.addColorStop(0.4,"rgba(255,150,60,"+(0.22*k).toFixed(3)+")");
+    fg.addColorStop(1,"rgba(0,0,0,0)");
+    ctx.fillStyle=fg; ctx.fillRect(0,0,W,H);
+  }
 
   /* números de daño flotando */
   ctx.textAlign="center";
@@ -2114,6 +2134,27 @@ function bum(p,esc){ const n=Math.round(30*(esc||1));
   const d=len(sub(p,G.pos)); if(d<700) sacude((esc||1)*.55*(1-d/700));   /* si estalla cerca, se nota */
   for(let i=0;i<n;i++){ const d=norm(v3(Math.random()*2-1,Math.random()*2-1,Math.random()*2-1));
     G.chispas.push({ p:v3(p.x,p.y,p.z), v:mul(d,30+Math.random()*130), vida:.5+Math.random()*.8, max:1.3 }); } }
+/* 💥 el reventón del misil: no es una chispa más, es una película de dos segundos.
+      Núcleo blanco → bola de fuego naranja → metralla que sale despedida → humo que queda,
+      más DOS ondas expansivas y un fogonazo que te ciega si estalla cerca. */
+function bumMisil(p,b){
+  sacude(1.3);
+  G.fogonazo=Math.min(1.4,(G.fogonazo||0)+1.0);
+  G.ondas.push({ p:v3(p.x,p.y,p.z), r:6,  v:520, vida:.75, max:.75, c:"255,240,190" });
+  G.ondas.push({ p:v3(p.x,p.y,p.z), r:2,  v:250, vida:1.15, max:1.15, c:"255,140,50" });
+  const dir=()=>norm(v3(Math.random()*2-1,Math.random()*2-1,Math.random()*2-1));
+  for(let i=0;i<26;i++) G.chispas.push({ p:v3(p.x,p.y,p.z), v:mul(dir(),8+Math.random()*45),  vida:.55+Math.random()*.45, max:1.0 });                 /* el núcleo blanco */
+  for(let i=0;i<60;i++) G.chispas.push({ p:v3(p.x,p.y,p.z), v:mul(dir(),40+Math.random()*150), vida:.65+Math.random()*.85, max:1.4, t:"fuego" });      /* la bola de fuego */
+  for(let i=0;i<34;i++) G.chispas.push({ p:v3(p.x,p.y,p.z), v:mul(dir(),180+Math.random()*320), vida:.45+Math.random()*.5, max:1.0 });                 /* la metralla */
+  for(let i=0;i<26;i++) G.chispas.push({ p:v3(p.x,p.y,p.z), v:mul(dir(),10+Math.random()*38),  vida:1.5+Math.random()*1.2, max:2.7, t:"humo" });       /* el humo que queda */
+  if(b) for(let i=0;i<10;i++) G.chispas.push({ p:v3(p.x,p.y,p.z), v:mul(b.f,120+Math.random()*220), vida:.5+Math.random()*.4, max:1.0, t:"fuego" });   /* lo que sigue de largo */
+}
+function ondasCorren(dt){
+  for(const o of G.ondas){ o.vida-=dt; o.r+=o.v*dt; o.v*=Math.pow(0.35,dt); }
+  G.ondas=G.ondas.filter(o=>o.vida>0);
+  if(G.fogonazo>0) G.fogonazo=Math.max(0,G.fogonazo-dt*2.6);
+  if(G.eco&&G.eco.t>0) G.eco.t-=dt;
+}
 let ptsTimer=0;
 function pts(n){ $("ptsN").textContent=n; ptsTimer=1.5; $("pts").style.opacity=1; }
 let msgT=0;
@@ -2185,7 +2226,10 @@ function lanzaMisil(){
 function abortaMisil(reventar){
   const m=G.misil; if(!m) return;
   G.misil=null; G.yaw=0; G.pitch=0;
-  if(reventar!==false){ bum(m.p,1.4); sfx("boom",m.p); }
+  if(reventar!==false){
+    bumMisil(m.p,m.b); sfx("boom",m.p);
+    G.eco={ p:m.p, b:m.b, t:0.9 };                          /* la cámara se queda 0,9 s viendo el estallido */
+  }
   const el=$("misilCaja"); if(el) el.style.opacity=0;
 }
 function misilGolpea(m){
@@ -2685,7 +2729,7 @@ function continuaPartida(){
   G.misionesOK=d.misionesOK; G.trincherasOK=d.trincherasOK; G.golpes=d.golpes;
   G.gensRotos=d.gensRotos; G.refPedidos=d.refPedidos;
   G.inicio=Date.now()-d.seg*1000;                             /* el cronómetro sigue donde estaba */
-  if(G.modo==="campana"){ G.quedan=Math.max(2, 3+G.wave+DIF().cuantos); G.waveT=1.2; G.jefe=(G.wave%5===0); misionNueva(); }
+  if(G.modo==="campana"){ G.quedan=Math.max(2, 5+G.wave*2+DIF().cuantos); G.waveT=1.2; G.jefe=(G.wave%5===0); misionNueva(); }
   $("hudScore").textContent=G.score;
   aviso("💾 seguimos donde lo dejaste");
 }
@@ -3225,10 +3269,10 @@ function update(dt){
     /* ---- supervivencia: el goteo se va apretando con los minutos ---- */
     const min=(Date.now()-G.inicio)/60000;
     G.wave=1+Math.floor(min*2);                              /* "nivel" invisible: sube cada 30 s */
-    const tope=Math.min(14, 4+Math.floor(min*2.2)+DIF().cuantos);
+    const tope=Math.min(22, 7+Math.floor(min*2.6)+DIF().cuantos);   /* 💥 más naves en el cielo a la vez */
     G.spawn-=dt;
     if(G.spawn<=0 && G.enem.length<tope){
-      G.spawn=Math.max(.35, 2.0-min*0.22);                   /* al principio uno cada 2 s; luego uno cada 0,35 */
+      G.spawn=Math.max(.18, 1.1-min*0.22);                   /* llegan mucho más rápido */
       nuevoEnemigo();
     }
     /* cada 90 segundos, un jefe; se van turnando */
@@ -3249,7 +3293,7 @@ function update(dt){
   }
   else if(G.quedan<=0&&G.enem.length===0){
     if(G.wave>=1) musFanfarria();                          /* ¡oleada limpia! */
-    G.wave++; G.quedan=Math.max(2, 3+G.wave+DIF().cuantos-(tutoActivo()?2:0)); G.waveT=1.6;
+    G.wave++; G.quedan=Math.max(2, 5+G.wave*2+DIF().cuantos-(tutoActivo()?4:0)); G.waveT=1.6;   /* 💥 oleadas del doble */
     G.jefe=(G.wave%5===0);                                   /* oleadas 5, 10, 15... traen jefe */
     if(G.jefe) llamaAliado();                                /* y tu nave capital viene a ayudarte */
     if(G.jefe) G.quedan=Math.max(2,G.quedan-3);
@@ -3264,7 +3308,7 @@ function update(dt){
   }
   if(esSuper()){ /* en supervivencia el goteo ya se hizo arriba */ }
   else if(G.waveT>0) G.waveT-=dt;
-  else if(G.quedan>0){ G.spawn-=dt; if(G.spawn<=0){ G.spawn=Math.max(.4,1.6-G.wave*.08);
+  else if(G.quedan>0){ G.spawn-=dt; if(G.spawn<=0){ G.spawn=Math.max(.22,0.9-G.wave*.08);
     if(G.jefe){ nuevoEnemigo(G.wave%10===0?"nodriza":"jefe"); G.jefe=false; } else nuevoEnemigo();
     G.quedan--; } }
   $("hudEnem").textContent=(G.enem.filter(e=>!e.ardiendo).length+G.quedan)+" enemigos · "+G.amigos.filter(a=>a.revive<=0).length+" aliados";
@@ -3284,6 +3328,7 @@ function update(dt){
   if(G.guardaT<=0){ G.guardaT=20; if(esSuper()) guardaPartida(); }   /* en supervivencia, cada 20 s */
   refuerzosCorren(dt);
   misilCorre(dt);
+  ondasCorren(dt);
   redCorre(dt);
   aliadoCorre(dt);
   destructoresCorren(dt);
@@ -3344,8 +3389,11 @@ function update(dt){
     e.p=add(e.p, mul(e.b.f, e.vel*(e.plan==="larga"?1.25:1)*frena*dt));
     e.fuego-=dt;
     const alTiro=dot(norm(haciaMi), e.b.f);               /* ¿te tiene en el punto de mira? */
-    if(e.fuego<=0 && d<(bomba?1300:900) && alTiro>0.90){
-      e.fuego=(1.0+Math.random()*1.6)*(e.k?e.k.cad:1)*DIF().cad;
+    /* 💥 antes te disparaban de higos a brevas y solo si te tenían clavado en el punto
+          de mira. Ahora tiran desde más lejos, con menos puntería y muchísimo más seguido:
+          el cielo no para de cruzarse de rayos */
+    if(e.fuego<=0 && d<(bomba?1900:1500) && alTiro>0.74){
+      e.fuego=(0.30+Math.random()*0.45)*(e.k?e.k.cad:1)*DIF().cad;
       const nt=e.k?e.k.tiros:1;
       for(let i=0;i<nt;i++){
         const sep=nt>1?(i-(nt-1)/2)*7*(e.esc||1):0;
@@ -3441,7 +3489,10 @@ function montaTactil(){
     b.addEventListener("touchend",off,{passive:false});
     b.addEventListener("touchcancel",off,{passive:false});
   };
-  pega("tbFuego",()=>{ G.disparando=true; disparar(); },()=>{ G.disparando=false; });
+  /* 🔫 mantenido = fuego seguido (el bucle usa la cadencia de TU nave).
+        Y si vas dirigiendo un misil, este botón es el que lo suelta: así el dedo
+        de volar nunca te lo quita sin querer. */
+  pega("tbFuego",()=>{ if(G.misil){ abortaMisil(); return; } G.disparando=true; disparar(); },()=>{ G.disparando=false; });
   pega("tbTurbo",()=>{ if(!G.turbo){ G.turbo=true; sfx("turbo"); } },()=>{ G.turbo=false; });
   pega("tbZoom",()=>{ ZOOM_OBJ=ZOOM; },()=>{ ZOOM_OBJ=1; });
   pega("tbTorp",()=>lanzaTorpedo(),null);
@@ -3600,11 +3651,28 @@ cv.addEventListener("mousedown",e=>{
 addEventListener("mouseup",e=>{ if(e.button===2){ ratonDerecho=false; ZOOM_OBJ=1; } });
 cv.addEventListener("mousedown",e=>{ if(e.button===2||G.misil) return; if(G.run&&!G.paused&&!G.over){ if(document.pointerLockElement!==cv){ try{cv.requestPointerLock();}catch(e){} } G.disparando=true; disparar(); } });
 addEventListener("mouseup",()=>G.disparando=false);
-/* táctil: arrastrar gira, tocar dispara */
+/* 📱 táctil: el dedo SOLO vuela (arrastra y giras, como un volante).
+      Disparar es cosa del botón 🔫, así que puedes girar y disparar A LA VEZ.
+      Y si llevas un misil, el dedo también lo dirige: no lo suelta. */
 let tocando=null;
-cv.addEventListener("touchstart",e=>{ if(e.target!==cv) return; if(G.misil){ abortaMisil(); e.preventDefault(); return; } const t=e.touches[0]; tocando={x:t.clientX,y:t.clientY}; G.disparando=true; disparar(); e.preventDefault(); },{passive:false});
-cv.addEventListener("touchmove",e=>{ const t=e.touches[0]; if(tocando){ G.yaw=Math.max(-3,Math.min(3,G.yaw+(t.clientX-tocando.x)*0.02)); G.pitch=Math.max(-3,Math.min(3,G.pitch+(t.clientY-tocando.y)*0.02)); tocando={x:t.clientX,y:t.clientY}; } e.preventDefault(); },{passive:false});
-cv.addEventListener("touchend",()=>{ tocando=null; G.disparando=false; });
+function dedoDe(lista){ if(!tocando) return null; for(const t of lista) if(t.identifier===tocando.id) return t; return null; }
+cv.addEventListener("touchstart",e=>{
+  if(e.target!==cv) return;
+  if(tocando) return;                                        /* ya hay un dedo volando: el segundo es para los botones */
+  const t=e.changedTouches[0]; tocando={ id:t.identifier, x:t.clientX, y:t.clientY };
+  e.preventDefault();
+},{passive:false});
+cv.addEventListener("touchmove",e=>{
+  const t=dedoDe(e.touches); if(!t) return;
+  const gira=G.misil?0.030:0.024;                            /* el misil pide mano más suelta */
+  G.yaw  =Math.max(-3,Math.min(3,G.yaw  +(t.clientX-tocando.x)*gira));
+  G.pitch=Math.max(-3,Math.min(3,G.pitch+(t.clientY-tocando.y)*gira));
+  tocando.x=t.clientX; tocando.y=t.clientY;
+  e.preventDefault();
+},{passive:false});
+const sueltaDedo=e=>{ if(dedoDe(e.changedTouches)) tocando=null; };
+cv.addEventListener("touchend",sueltaDedo);
+cv.addEventListener("touchcancel",sueltaDedo);
 addEventListener("keydown",e=>{
   const k=e.key.toLowerCase();
   if(k===" "){ G.disparando=true; disparar(); e.preventDefault(); }
@@ -3687,7 +3755,7 @@ document.addEventListener("pointerlockchange",()=>{ if(G.run&&!G.over&&document.
 resize(); estrellasNuevas(); destructoresNuevos();
 $("best").textContent=G.best?"🏆 tu récord: "+G.best+" battle points":"";
 pintaRecords();
-const NOVEDADES_V=21;                                         /* sube este número cuando haya cosas nuevas */
+const NOVEDADES_V=22;                                         /* sube este número cuando haya cosas nuevas */
 const NOVEDADES=[
   ["🎚️","Mandas tú la velocidad","<span class='tec'>W</span> y <span class='tec'>S</span> (o la rueda del ratón) mueven el acelerador · <span class='tec'>X</span> para en seco · <span class='tec'>Z</span> a fondo. Parado giras hasta un 75% más cerrado: frena y el que te persigue se te pasa de largo"],
   ["🚀","Torpedos que persiguen","<span class='tec'>F</span> suelta dos torpedos al enemigo que tengas fichado. Pegan 260 (casi cinco veces un láser). Llevas 6 y te dan 2 en cada oleada"],
@@ -3700,6 +3768,9 @@ const NOVEDADES=[
   ["🎯","Misiones en cada oleada","Proteger a un compañero, callar las torretas de un Destructor, cruzar los 7 arcos del desfiladero o cazar contrarreloj"],
   ["🎖️","Catorce medallas","Se ganan por CÓMO juegas: sin perder compañeros, sin que te den, con torpedos, con puntería, aguantando 5 minutos en supervivencia, desmantelando una nodriza, sin pedir refuerzos o pasando la oleada 5 en IMPOSIBLE. El medallero está en la pantalla de inicio"],
   ["😠","Cuatro dificultades","De FÁCIL a IMPOSIBLE. Las difíciles pagan más: en IMPOSIBLE cada derribo vale x2,5"],
+  ["💥","El misil revienta como debe","Ya no es una chispa: al estallar sale un núcleo blanco, una bola de fuego naranja, 34 trozos de metralla despedidos, humo que se queda flotando, DOS ondas expansivas que se abren y un fogonazo que deslumbra. Y la cámara se queda 0,9 segundos en el sitio para que lo veas — antes te devolvía a la nave y te lo perdías"],
+  ["💥","El cielo ya no está tranquilo","Los enemigos disparan CASI SIN PARAR: tiran desde el doble de lejos (1500 en vez de 900), sin necesidad de tenerte clavado en la mira, y cada 0,3-0,75 s en vez de cada 1-2,6. Y hay muchas más naves: las oleadas son del doble y en supervivencia caben 22 a la vez en vez de 14, llegando cada 0,18 s"],
+  ["📱","El dedo es un volante","En el celular arrastras el dedo y la nave gira con él — y ese mismo arrastre dirige el misil, ya no lo suelta sin querer. Disparar es solo del botón 🔫, mantenido dispara sin parar, y él es el que suelta el misil. Así giras y disparas A LA VEZ"],
   ["🌀","El túnel del hiperespacio","Ya no son las estrellas estiradas: ahora es un TÚNEL de verdad. 460 luces vienen hacia ti por un tubo, con su perspectiva (las de delante gordas y brillantes, las del fondo finitas), en seis colores entre blanco y azul, el tubo girando despacio, dos anillos saliendo despedidos, el agujero blanco del fondo hacia donde vas y las esquinas cerrándose a tu alrededor"],
   ["🌠","Salida al hiperespacio","Con la tecla <span class='tec'>ESC</span> (o dándole a SALIR en la pausa), tu nave no desaparece de golpe: acelera, las estrellas se estiran en rayas y SALTA AL HIPERESPACIO durante 2 segundos, con el sonido subiendo. Al terminar el salto aparece la pantalla del botón de play. Y mientras saltas no te pueden dar"],
   ["🎯","Misil que pilotas TÚ","La tecla <span class='tec'>Q</span> lanza un misil y <b>lo VES delante de ti</b>, como si fuera una nave: cuerpo, aletas, franjas naranjas y su llama detrás. Lo guías con el ratón, mientras tu nave sigue volando allá atrás. Pega 460 (casi el doble que un torpedo) y dura 9 segundos de combustible. Con cualquier <b>clic</b> lo sueltas y vuelves a tu nave. Los torpedos normales pasan a la tecla <span class='tec'>E</span>"],
@@ -3723,7 +3794,7 @@ const NOVEDADES=[
   ["🛰️","Dos jefes distintos","En las oleadas 5, 15, 25... viene la CORBETA con su rayo. En las 10, 20, 30... la NODRIZA: no le puedes hacer nada hasta reventar sus 4 generadores verdes, y mientras tanto va soltando cazas por sus hangares"],
   ["📦","Cápsulas","Los enemigos derribados sueltan cápsulas: 🛡 escudo, 🚀 torpedos, ⚡ turbo y 🤝 refuerzo (te devuelve un compañero caído). Sale lo que más te falta, y te atraen si pasas cerca"],
   ["🎧","Sonido con sitio","Con auriculares oyes por qué lado te disparan. Y hay música que cambia cuando aparece el jefe"],
-  ["📱","Mandos en el celular","Acelerador a la izquierda y botones de fuego, turbo, mira, torpedos y órdenes a la derecha"],
+  ["📱","Mandos en el celular","Arrastra el dedo por la pantalla para volar, como un volante — y ese mismo arrastre dirige el misil. El 🔫 mantenido dispara sin parar y es el que suelta el misil, así que puedes girar y disparar a la vez. Acelerador a la izquierda"],
   ["🎮","Mando de consola","Palancas para volar · RT dispara · LT puntería · LB/RB tonel · B turbo · cruceta acelerador y órdenes · START pausa"]
 ];
 function abreNovedades(){
