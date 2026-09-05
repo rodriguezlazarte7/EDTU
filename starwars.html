@@ -915,50 +915,154 @@ function tunelPunto(p,lejos){
   p.g=0.5+Math.random()*0.9;                                 /* grosor */
   return p;
 }
-function tunelArranca(){ TUNEL.length=0; for(let i=0;i<TUNEL_N;i++) TUNEL.push(tunelPunto({},true)); }
+/* 🌀 LAS PAREDES: 16 filamentos que bajan en espiral por el tubo. Son ellos los que hacen
+      que se vea un TUBO por dentro y no una lluvia de rayas sueltas. */
+const TUNEL_FIL=[], FIL_N=16, FIL_PASOS=22;
+const TUNEL_GAS=[], GAS_N=13;
+let TUNEL_T=0;                                               /* reloj propio: sigue corriendo en pausa */
+function tunelArranca(){
+  TUNEL.length=0; for(let i=0;i<TUNEL_N;i++) TUNEL.push(tunelPunto({},true));
+  TUNEL_FIL.length=0;
+  for(let i=0;i<FIL_N;i++) TUNEL_FIL.push({
+    a:(i/FIL_N)*Math.PI*2 + Math.random()*0.25,
+    r:430+Math.random()*260,                                 /* la pared del tubo, con sus bultos */
+    paso:(0.00072+Math.random()*0.00075)*(Math.random()<.5?-1:1),   /* cuánto retuerce */
+    c:TUNEL_COL[(Math.random()*TUNEL_COL.length)|0],
+    g:0.7+Math.random()*1.5, fase:Math.random()*7 });
+  TUNEL_GAS.length=0;
+  for(let i=0;i<GAS_N;i++) TUNEL_GAS.push(gasNuevo({}, true));
+}
+function gasNuevo(b,lejos){                                  /* nubes de gas pegadas a la pared */
+  b.z=lejos?(80+Math.random()*TUNEL_FONDO):TUNEL_FONDO;
+  b.a=Math.random()*Math.PI*2;
+  b.ancho=0.5+Math.random()*1.5;                             /* cuánto abarca alrededor del tubo */
+  b.r=380+Math.random()*330;
+  b.c=TUNEL_COL[(Math.random()*TUNEL_COL.length)|0];
+  b.al=0.10+Math.random()*0.16;
+  return b;
+}
 function pintaTunel(k,dt){
   /* k va de 0 a 1: cuánto de metido estás en el salto */
   if(k<=0.002) return;
   if(!TUNEL.length) tunelArranca();
-  const vel=(600+k*k*26000);                                 /* al principio se acerca, al final es un borrón */
-  const giro=k*0.9;                                          /* el tubo entero gira despacio */
-  ctx.save(); ctx.globalCompositeOperation="lighter"; ctx.lineCap="round";
+  if(!TUNEL_FIL.length) tunelArranca();
+  TUNEL_T+=dt;                                               /* reloj propio: así también late en la pausa */
+  const vel=(520+k*k*30000);                                 /* al principio se acerca, al final es un borrón */
+  const giro=0.30+k*1.05;                                    /* el tubo entero se retuerce */
+  const MAXD=Math.max(W,H)*1.15;
+  ctx.save(); ctx.globalCompositeOperation="lighter"; ctx.lineCap="round"; ctx.lineJoin="round";
+
+  /* ---- 1) EL GAS pegado a la pared: manchones anchos y suaves que pasan de largo ---- */
+  for(const b of TUNEL_GAS){
+    b.z-=vel*0.72*dt; b.a+=giro*0.5*dt;
+    if(b.z<26){ gasNuevo(b,false); continue; }
+    const e=FOV/b.z, rr=b.r*e;
+    if(rr>MAXD*1.6) continue;
+    const cerca=Math.min(1,1500/b.z);
+    const al=b.al*k*cerca;
+    if(al<0.012) continue;
+    ctx.strokeStyle="rgba("+b.c[0]+","+b.c[1]+","+b.c[2]+","+al.toFixed(3)+")";
+    ctx.lineWidth=Math.max(2, 210*e*(1+k));
+    ctx.beginPath(); ctx.arc(CX,CY,rr,b.a,b.a+b.ancho); ctx.stroke();
+  }
+
+  /* ---- 2) LAS PAREDES: filamentos que bajan en espiral desde el fondo hasta ti ---- */
+  for(const fi of TUNEL_FIL){
+    fi.a+=giro*dt;
+    ctx.beginPath();
+    let dibujando=false, alMedia=0, nPts=0;
+    for(let i=0;i<=FIL_PASOS;i++){
+      const z=44+Math.pow(i/FIL_PASOS,2.1)*(TUNEL_FONDO-44);  /* apretados cerca: así se ve la profundidad */
+      const ang=fi.a+z*fi.paso;
+      const e=FOV/z, rr=fi.r*e;
+      const x=CX+Math.cos(ang)*rr, y=CY+Math.sin(ang)*rr;
+      if(rr>MAXD*2.4){ dibujando=false; continue; }
+      if(!dibujando){ ctx.moveTo(x,y); dibujando=true; } else ctx.lineTo(x,y);
+      alMedia+=Math.min(1,900/z); nPts++;
+    }
+    if(!nPts) continue;
+    /* una luz corre por el filamento hacia ti: eso es lo que da la sensación de VELOCIDAD */
+    const late=0.55+0.45*Math.sin(TUNEL_T*(2.4+k*7)+fi.fase);
+    const al=Math.min(1,k*1.3)*(alMedia/nPts)*0.55*late;
+    if(al<0.015) continue;
+    ctx.strokeStyle="rgba("+fi.c[0]+","+fi.c[1]+","+fi.c[2]+","+al.toFixed(3)+")";
+    ctx.lineWidth=Math.max(0.8, fi.g*(0.9+k*2.4));
+    ctx.stroke();
+  }
+
+  /* ---- 3) LAS LUCES que te pasan rozando, ahora con estela larga y borde de color ---- */
+  const recorrido=vel*dt;
   for(const p of TUNEL){
     const zAntes=p.z;
-    p.z-=vel*dt;
+    p.z-=recorrido;
     if(p.z<12){ tunelPunto(p,false); continue; }
     p.a+=giro*dt;
     const co=Math.cos(p.a), si=Math.sin(p.a);
-    /* la misma luz, en dos momentos: eso dibuja la raya */
-    const e1=FOV/p.z, e2=FOV/Math.min(TUNEL_FONDO, zAntes+vel*dt*0.9);
+    /* la estela se estira con la velocidad: parada es un punto, lanzada es una raya larguísima */
+    const zAtras=Math.min(TUNEL_FONDO, zAntes+recorrido*(1.6+k*2.2));
+    const e1=FOV/p.z, e2=FOV/zAtras;
     const x1=CX+co*p.r*e1, y1=CY+si*p.r*e1;
     const x2=CX+co*p.r*e2, y2=CY+si*p.r*e2;
-    const dist=Math.hypot(x1-CX,y1-CY);
-    if(dist>Math.max(W,H)*1.1) continue;
-    const cerca=Math.min(1, 900/p.z);                        /* las de delante, más brillantes y gordas */
-    const al=Math.min(1, k*1.25)*cerca*0.85;
+    if(Math.hypot(x1-CX,y1-CY)>MAXD) continue;
+    const cerca=Math.min(1, 900/p.z);
+    const al=Math.min(1, k*1.25)*cerca*0.9;
     if(al<0.02) continue;
+    const gr=Math.max(0.6, p.g*cerca*(1.4+k*3.2));
+    /* el borde de color: las que van muy rápido se descomponen en azul y rosa, como una lente */
+    if(k>0.55&&gr>1.6){
+      const d=gr*0.55;
+      ctx.strokeStyle="rgba(90,150,255,"+(al*0.34).toFixed(3)+")"; ctx.lineWidth=gr*0.8;
+      ctx.beginPath(); ctx.moveTo(x1-d,y1); ctx.lineTo(x2-d,y2); ctx.stroke();
+      ctx.strokeStyle="rgba(255,140,220,"+(al*0.26).toFixed(3)+")";
+      ctx.beginPath(); ctx.moveTo(x1+d,y1); ctx.lineTo(x2+d,y2); ctx.stroke();
+    }
     ctx.strokeStyle="rgba("+p.c[0]+","+p.c[1]+","+p.c[2]+","+al.toFixed(3)+")";
-    ctx.lineWidth=Math.max(0.6, p.g*cerca*(1.4+k*3.2));
+    ctx.lineWidth=gr;
     ctx.beginPath(); ctx.moveTo(x1,y1); ctx.lineTo(x2,y2); ctx.stroke();
+    /* y la cabeza brillante de la que ya te pasa por al lado */
+    if(cerca>0.85&&k>0.4){
+      ctx.fillStyle="rgba(255,255,255,"+(al*0.55).toFixed(3)+")";
+      ctx.beginPath(); ctx.arc(x1,y1,gr*0.75,0,7); ctx.fill();
+    }
   }
-  /* el agujero blanco del fondo: hacia donde vas */
-  const r0=Math.max(W,H)*(0.03+k*0.10);
-  const g=ctx.createRadialGradient(CX,CY,0,CX,CY,r0*4);
-  g.addColorStop(0,"rgba(255,255,255,"+(0.75*k).toFixed(3)+")");
-  g.addColorStop(0.25,"rgba(190,225,255,"+(0.35*k).toFixed(3)+")");
+
+  /* ---- 4) EL AGUJERO DEL FONDO: hacia donde vas, latiendo y con rayos ---- */
+  const pulso=1+0.10*Math.sin(TUNEL_T*5.5);
+  const r0=Math.max(W,H)*(0.03+k*0.10)*pulso;
+  /* los rayos que salen del agujero */
+  for(let i=0;i<7;i++){
+    const ang=TUNEL_T*0.55+i*Math.PI*2/7;
+    const largo=r0*(3.2+2.6*Math.abs(Math.sin(TUNEL_T*1.7+i)));
+    const gg=ctx.createLinearGradient(CX,CY,CX+Math.cos(ang)*largo,CY+Math.sin(ang)*largo);
+    gg.addColorStop(0,"rgba(235,246,255,"+(0.30*k).toFixed(3)+")");
+    gg.addColorStop(1,"rgba(120,180,255,0)");
+    ctx.strokeStyle=gg; ctx.lineWidth=Math.max(1.5,r0*0.20);
+    ctx.beginPath(); ctx.moveTo(CX,CY); ctx.lineTo(CX+Math.cos(ang)*largo,CY+Math.sin(ang)*largo); ctx.stroke();
+  }
+  const g=ctx.createRadialGradient(CX,CY,0,CX,CY,r0*4.4);
+  g.addColorStop(0,"rgba(255,255,255,"+(0.85*k).toFixed(3)+")");
+  g.addColorStop(0.13,"rgba(226,242,255,"+(0.55*k).toFixed(3)+")");
+  g.addColorStop(0.30,"rgba(150,200,255,"+(0.26*k).toFixed(3)+")");
   g.addColorStop(1,"rgba(60,110,255,0)");
-  ctx.fillStyle=g; ctx.beginPath(); ctx.arc(CX,CY,r0*4,0,7); ctx.fill();
-  /* dos anillos que salen despedidos: es lo que hace que se vea el TUBO y no una mancha */
-  for(let i=0;i<2;i++){
-    const t=((G.t*1.8+i*0.5)%1);
-    const rr=r0*1.2+t*Math.max(W,H)*0.95;
-    ctx.strokeStyle="rgba(200,230,255,"+((1-t)*0.22*k).toFixed(3)+")";
-    ctx.lineWidth=2+ (1-t)*7*k;
+  ctx.fillStyle=g; ctx.beginPath(); ctx.arc(CX,CY,r0*4.4,0,7); ctx.fill();
+
+  /* ---- 5) TRES anillos saliendo despedidos, ya no dos, y con su propio reloj ---- */
+  for(let i=0;i<3;i++){
+    const t=((TUNEL_T*(1.6+k*0.9)+i/3)%1);
+    const rr=r0*1.1+Math.pow(t,0.78)*Math.max(W,H)*1.05;      /* se abren rápido y se frenan */
+    const a=(1-t)*(1-t)*0.30*k;
+    if(a<0.008) continue;
+    ctx.strokeStyle="rgba(205,232,255,"+a.toFixed(3)+")";
+    ctx.lineWidth=1.5+(1-t)*8*k;
     ctx.beginPath(); ctx.arc(CX,CY,rr,0,7); ctx.stroke();
   }
   ctx.restore();
-  /* las esquinas se oscurecen: el tubo se cierra a tu alrededor */
+  /* las esquinas se oscurecen y el tubo se tiñe de azul: ya no es negro entre luz y luz */
+  const nieb=ctx.createRadialGradient(CX,CY,Math.min(W,H)*0.05,CX,CY,Math.max(W,H)*0.62);
+  nieb.addColorStop(0,"rgba(120,175,255,"+(0.13*k).toFixed(3)+")");
+  nieb.addColorStop(0.55,"rgba(40,80,190,"+(0.09*k).toFixed(3)+")");
+  nieb.addColorStop(1,"rgba(0,0,0,0)");
+  ctx.save(); ctx.globalCompositeOperation="lighter"; ctx.fillStyle=nieb; ctx.fillRect(0,0,W,H); ctx.restore();
   const v=ctx.createRadialGradient(CX,CY,Math.min(W,H)*0.16,CX,CY,Math.max(W,H)*0.72);
   v.addColorStop(0,"rgba(0,0,0,0)"); v.addColorStop(1,"rgba(2,6,26,"+(0.72*k).toFixed(3)+")");
   ctx.fillStyle=v; ctx.fillRect(0,0,W,H);
@@ -2523,8 +2627,8 @@ function aliadoCorre(dt){
   if(len(sub(a.p,G.pos))>2400) a.p=add(G.pos, mul(norm(sub(a.p,G.pos)),2300));
   /* sus torretas: disparan al enemigo más cercano a ELLA */
   a.fuego-=dt;
-  if(obj&&a.fuego<=0&&mejor<2000){
-    a.fuego=0.42*DIF().cad;
+  if(obj&&a.fuego<=0&&mejor<3000){
+    a.fuego=0.20*DIF().cad;
     const cn=MOD.corbeta.canones, c=cn[(a.tiro++)%cn.length];
     const o=add(a.p, aLocal(a.b,c));
     const dir=norm(sub(add(obj.p, mul(obj.b.f, obj.vel*len(sub(obj.p,o))/900)), o));   /* apunta adelantado */
@@ -3174,7 +3278,7 @@ function iaAmigo(a,dt){
   const v=obj?a.vel*1.15:Math.min(a.vel*1.6, 80+dist*1.6);
   a.p=add(a.p, mul(a.b.f, (dist<45?v*.3:v)*dt));
   a.fuego-=dt;
-  if(obj&&a.fuego<=0&&mejor<1250&&loc.z>0.72){
+  if(obj&&a.fuego<=0&&mejor<2600&&loc.z>0.15){
     a.fuego=CADENCIA();                                    /* disparan exactamente igual que tú */
     for(const c of G.mod.canones) G.balas.push({ p:add(a.p, aLocal(a.b,c)), d:mul(a.b.f,900), vida:2.2, mia:true, yo:false, c:G.colorMio });
     if(!mute) sfx("laser",a.p);            /* los tiros de tus compañeros */
@@ -3438,7 +3542,9 @@ function update(dt){
           el cielo no para de cruzarse de rayos */
     /* 🔥 disparan desde aún más lejos, casi sin apuntar y CASI SIN PARAR. Y ya no sueltan
           un tiro suelto: sueltan una RÁFAGA de tres, uno detrás de otro, como en las pelis */
-    if(e.fuego<=0 && d<(bomba?2200:1900) && alTiro>0.62){
+    /* 🔫 "que nadie nunca pare de disparar": tiran desde 2600 y les basta con tenerte
+          MÁS O MENOS por delante (0,15). Aunque estén huyendo o dando la vuelta, siguen tirando */
+    if(e.fuego<=0 && d<(bomba?3000:2600) && alTiro>0.15){
       e.fuego=(0.16+Math.random()*0.26)*(e.k?e.k.cad:1)*DIF().cad;
       const nt=e.k?e.k.tiros:1;
       const RAFAGA=bomba?2:3;                                /* los tiros seguidos de cada ráfaga */
@@ -3810,7 +3916,7 @@ document.addEventListener("pointerlockchange",()=>{ if(G.run&&!G.over&&saliendo<
 resize(); estrellasNuevas(); destructoresNuevos();
 $("best").textContent=G.best?"🏆 tu récord: "+G.best+" battle points":"";
 pintaRecords();
-const NOVEDADES_V=23;                                         /* sube este número cuando haya cosas nuevas */
+const NOVEDADES_V=24;                                         /* sube este número cuando haya cosas nuevas */
 const NOVEDADES=[
   ["🎚️","Mandas tú la velocidad","<span class='tec'>W</span> y <span class='tec'>S</span> (o la rueda del ratón) mueven el acelerador · <span class='tec'>X</span> para en seco · <span class='tec'>Z</span> a fondo. Parado giras hasta un 75% más cerrado: frena y el que te persigue se te pasa de largo"],
   ["🚀","Torpedos que persiguen","<span class='tec'>F</span> suelta dos torpedos al enemigo que tengas fichado. Pegan 260 (casi cinco veces un láser). Llevas 6 y te dan 2 en cada oleada"],
@@ -3824,6 +3930,8 @@ const NOVEDADES=[
   ["🎖️","Catorce medallas","Se ganan por CÓMO juegas: sin perder compañeros, sin que te den, con torpedos, con puntería, aguantando 5 minutos en supervivencia, desmantelando una nodriza, sin pedir refuerzos o pasando la oleada 5 en IMPOSIBLE. El medallero está en la pantalla de inicio"],
   ["😠","Cuatro dificultades","De FÁCIL a IMPOSIBLE. Las difíciles pagan más: en IMPOSIBLE cada derribo vale x2,5"],
   ["🔥","Ráfagas de tres","Los enemigos ya no sueltan un tiro suelto: sueltan una RÁFAGA de tres seguidos que te persigue en fila india (el bombardero, de dos, que pega más). Y tiran desde 1900 en vez de 1500, casi sin apuntar (0,62) y cada 0,16-0,42 s. Con las oleadas dobles, el cielo es una tormenta de rayos"],
+  ["🔫","Nadie para de disparar","Ya no hace falta que te tengan clavado en la mira: a los enemigos les basta con tenerte MÁS O MENOS por delante (0,15 en vez de 0,62) y tiran desde 2600 en vez de 1900, incluso mientras huyen o dan la vuelta. Y tus aliados igual: disparan desde 2600 en vez de 1250 y sin esperar a tenerlo centrado; los jefes buenos, el doble de rápido. El cielo no se calla nunca"],
+  ["🌀","El túnel, ahora sí un tubo","Ya no son solo rayas: ahora el túnel tiene PAREDES (16 filamentos que bajan en espiral desde el fondo hasta ti, con una luz corriendo por dentro), GAS pegado a la pared en manchones anchos que pasan de largo, niebla azul que quita el negro de en medio, estelas que se estiran con la velocidad y se descomponen en azul y rosa como una lente de verdad, la cabeza blanca de las luces que te pasan rozando, y un agujero al fondo que LATE y suelta 7 rayos girando. Tres anillos en vez de dos, que se abren rápido y se frenan. Y todo con su propio reloj, así que también corre en la pausa"],
   ["⏸","La pausa, dentro del hiperespacio","El menú de pausa ya no es un telón encima del juego: ahora es un cristal azul con las esquinas de una cabina, flotando DENTRO del túnel del hiperespacio, que se ve corriendo por detrás mientras decides. Y arreglado el bug: al apretar ESCAPE el navegador soltaba el ratón y eso hacía saltar la pausa vieja por encima del salto"],
   ["🌠","Cinco segundos de hiperespacio","Al salir, el viaje dura 5 segundos en vez de 2: 1,8 s de acelerón hasta meterte en el túnel y luego el viaje entero ahí dentro, con un zumbido de dos tonos que laten juntos y el frenazo al final"],
   ["💥","El misil revienta como debe","Ya no es una chispa: al estallar sale un núcleo blanco, una bola de fuego naranja, 34 trozos de metralla despedidos, humo que se queda flotando, DOS ondas expansivas que se abren y un fogonazo que deslumbra. Y la cámara se queda 0,9 segundos en el sitio para que lo veas — antes te devolvía a la nave y te lo perdías"],
