@@ -307,8 +307,37 @@
   <div id="best"></div>
 </div>
 
-<div class="screen hide" id="pause"><h1 style="font-size:clamp(22px,6vw,40px)">PAUSA</h1><div id="pauseState"></div>
-  <div class="row"><button class="btn go" id="resumeBtn">▶ SEGUIR</button><button class="btn gh" id="quitBtn">✕ SALIR</button></div></div>
+<style>
+  /* ⏸ la PAUSA ya no tapa el juego con un telón: es un cristal azul flotando dentro del
+        túnel del hiperespacio, que se ve corriendo por detrás */
+  #pause{background:radial-gradient(circle at 50% 45%,rgba(10,26,48,.30) 0%,rgba(2,5,14,.72) 78%);
+         justify-content:center;backdrop-filter:blur(1.5px)}
+  #pause .caja{position:relative;padding:20px clamp(16px,5vw,38px) 18px;border-radius:18px;
+    background:linear-gradient(180deg,rgba(12,32,54,.80),rgba(4,10,22,.86));
+    border:1px solid rgba(143,208,255,.42);
+    box-shadow:0 0 60px rgba(56,182,255,.24), inset 0 0 44px rgba(56,182,255,.09);
+    max-width:min(520px,92vw)}
+  /* las cuatro esquinas de la cabina */
+  #pause .caja::before,#pause .caja::after{content:"";position:absolute;width:26px;height:26px;
+    border:2px solid #8fd0ff;opacity:.85;pointer-events:none}
+  #pause .caja::before{top:-1px;left:-1px;border-right:none;border-bottom:none;border-radius:16px 0 0 0}
+  #pause .caja::after{bottom:-1px;right:-1px;border-left:none;border-top:none;border-radius:0 0 16px 0}
+  #pause h1{margin:0 0 2px;letter-spacing:.34em;color:#dff0ff;text-shadow:0 0 26px rgba(56,182,255,.75)}
+  #pause .sub{font:700 clamp(9px,2.3vw,11px)/1.6 Consolas,monospace;color:#6f9fc4;letter-spacing:.26em;margin-bottom:12px}
+  #pause .sub b{color:#8fd0ff}
+  #pause #pauseState{font-size:clamp(11px,2.7vw,14px);line-height:1.85}
+  #pause .linea{height:1px;margin:13px auto 14px;width:78%;
+    background:linear-gradient(90deg,transparent,rgba(143,208,255,.55),transparent)}
+  @keyframes pausaLate{0%,100%{opacity:.35}50%{opacity:1}}
+  #pause .sub b{animation:pausaLate 1.9s ease-in-out infinite}
+</style>
+<div class="screen hide" id="pause"><div class="caja">
+  <h1 style="font-size:clamp(22px,6vw,40px)">PAUSA</h1>
+  <div class="sub"><b>◈</b> MOTORES EN ESPERA · HIPERESPACIO ESTABLE <b>◈</b></div>
+  <div id="pauseState"></div>
+  <div class="linea"></div>
+  <div class="row"><button class="btn go" id="resumeBtn">▶ SEGUIR</button><button class="btn gh" id="quitBtn">✕ SALIR</button></div>
+</div></div>
 
 <div class="screen hide" id="novedades"><h1>❇️ NOVEDADES</h1><h2>LO NUEVO DE STAR WARS</h2>
   <div id="novLista"></div>
@@ -935,7 +964,8 @@ function pintaTunel(k,dt){
   ctx.fillStyle=v; ctx.fillRect(0,0,W,H);
 }
 let hiper=0;
-const SALIDA_DURA=2.0;                                       /* lo que dura el salto de salida */
+let PAUSA_K=0;                                              /* cuánto túnel se ve detrás del menú de pausa */
+const SALIDA_DURA=5.0;                                       /* 🌠 cinco segundos enteros de hiperespacio antes de salir */
 let saliendo=0;
 function saltoDeSalida(){
   if(saliendo>0) return;
@@ -952,16 +982,26 @@ function saltoDeSalida(){
     const t=a.currentTime;
     const o=a.createOscillator(), g=a.createGain();
     o.type="sawtooth";
-    o.frequency.setValueAtTime(60,t); o.frequency.exponentialRampToValueAtTime(2600,t+SALIDA_DURA*0.85);
-    g.gain.setValueAtTime(.05,t); g.gain.linearRampToValueAtTime(.13,t+SALIDA_DURA*0.7);
-    g.gain.exponentialRampToValueAtTime(.0001,t+SALIDA_DURA);
-    o.connect(g); g.connect(a.destination); o.start(t); o.stop(t+SALIDA_DURA+.05);
+    const ACEL=1.8;                                          /* el acelerón dura 1,8 s; el resto es viaje */
+    o.frequency.setValueAtTime(60,t); o.frequency.exponentialRampToValueAtTime(2600,t+ACEL);
+    g.gain.setValueAtTime(.05,t); g.gain.linearRampToValueAtTime(.13,t+ACEL*0.8);
+    g.gain.exponentialRampToValueAtTime(.0001,t+ACEL+.3);
+    o.connect(g); g.connect(a.destination); o.start(t); o.stop(t+ACEL+.35);
+    /* y el zumbido del viaje, mientras cruzas */
+    const oz=a.createOscillator(), gz=a.createGain(), oz2=a.createOscillator();
+    oz.type="sawtooth"; oz.frequency.setValueAtTime(48,t+ACEL*0.7);
+    oz2.type="sine"; oz2.frequency.setValueAtTime(72.5,t+ACEL*0.7);   /* dos casi iguales: laten juntos */
+    gz.gain.setValueAtTime(0,t+ACEL*0.7); gz.gain.linearRampToValueAtTime(.075,t+ACEL+.4);
+    gz.gain.setValueAtTime(.075,t+SALIDA_DURA-1.1); gz.gain.exponentialRampToValueAtTime(.0001,t+SALIDA_DURA);
+    oz.connect(gz); oz2.connect(gz); gz.connect(a.destination);
+    oz.start(t+ACEL*0.7); oz2.start(t+ACEL*0.7); oz.stop(t+SALIDA_DURA); oz2.stop(t+SALIDA_DURA);
     /* y el golpe del salto, justo al final */
     const o2=a.createOscillator(), g2=a.createGain();
-    o2.type="sine"; o2.frequency.setValueAtTime(220,t+SALIDA_DURA*0.8);
-    o2.frequency.exponentialRampToValueAtTime(40,t+SALIDA_DURA*0.8+.5);
-    g2.gain.setValueAtTime(.18,t+SALIDA_DURA*0.8); g2.gain.exponentialRampToValueAtTime(.0001,t+SALIDA_DURA*0.8+.55);
-    o2.connect(g2); g2.connect(a.destination); o2.start(t+SALIDA_DURA*0.8); o2.stop(t+SALIDA_DURA*0.8+.6);
+    const SAL=SALIDA_DURA-0.55;                              /* el frenazo del final */
+    o2.type="sine"; o2.frequency.setValueAtTime(220,t+SAL);
+    o2.frequency.exponentialRampToValueAtTime(40,t+SAL+.5);
+    g2.gain.setValueAtTime(.18,t+SAL); g2.gain.exponentialRampToValueAtTime(.0001,t+SAL+.55);
+    o2.connect(g2); g2.connect(a.destination); o2.start(t+SAL); o2.stop(t+SAL+.6);
   }
 }
 function vuelveAlInicio(){
@@ -982,8 +1022,8 @@ function vuelveAlInicio(){
 function saltoCorre(dt){
   if(saliendo<=0) return;
   saliendo+=dt;
-  const k=Math.min(1, saliendo/SALIDA_DURA);
-  hiper=HIPER_DURA*k;                                         /* las rayas crecen: el mismo túnel, al revés */
+  const k=Math.min(1, saliendo/1.8);                          /* en 1,8 s ya estás dentro del túnel... */
+  hiper=HIPER_DURA*k;                                         /* ...y ahí te quedas los 5 segundos */
   G.pos=add(G.pos, mul(G.base.f, G.vel*(1+k*k*14)*dt));       /* acelerando hasta desaparecer */
   G.yaw*=Math.pow(.02,dt); G.pitch*=Math.pow(.02,dt);
   if(saliendo>=SALIDA_DURA) vuelveAlInicio();
@@ -1558,7 +1598,11 @@ function renderDentro(yoPos,yoBase){
   ctx.fillStyle=neb; ctx.fillRect(0,0,W,H);
 
   /* estrellas (dirección fija: giran contigo) */
-  const k=hiper>0 ? Math.pow(Math.min(1,hiper/HIPER_DURA),1.6) : 0;   /* 1 al principio, 0 al terminar */
+  let k=hiper>0 ? Math.pow(Math.min(1,hiper/HIPER_DURA),1.6) : 0;   /* 1 al principio, 0 al terminar */
+  /* ⏸ en PAUSA el mundo se congela, pero el túnel del hiperespacio sigue corriendo detrás
+        del menú: es el mismo túnel del salto, a media máquina */
+  PAUSA_K += ((G.paused&&!G.over ? 0.62 : 0) - PAUSA_K) * 0.055;
+  if(PAUSA_K>0.004) k=Math.max(k,PAUSA_K);
   pintaTunel(k, Math.min(.05, (performance.now()-(TUNEL._t||performance.now()))/1000) || 1/60);
   TUNEL._t=performance.now();
   for(const s of G.estrellas){ const d=aCamara(G.base,s.d); if(d.z<=0.1) continue;
@@ -3392,12 +3436,20 @@ function update(dt){
     /* 💥 antes te disparaban de higos a brevas y solo si te tenían clavado en el punto
           de mira. Ahora tiran desde más lejos, con menos puntería y muchísimo más seguido:
           el cielo no para de cruzarse de rayos */
-    if(e.fuego<=0 && d<(bomba?1900:1500) && alTiro>0.74){
-      e.fuego=(0.30+Math.random()*0.45)*(e.k?e.k.cad:1)*DIF().cad;
+    /* 🔥 disparan desde aún más lejos, casi sin apuntar y CASI SIN PARAR. Y ya no sueltan
+          un tiro suelto: sueltan una RÁFAGA de tres, uno detrás de otro, como en las pelis */
+    if(e.fuego<=0 && d<(bomba?2200:1900) && alTiro>0.62){
+      e.fuego=(0.16+Math.random()*0.26)*(e.k?e.k.cad:1)*DIF().cad;
       const nt=e.k?e.k.tiros:1;
-      for(let i=0;i<nt;i++){
-        const sep=nt>1?(i-(nt-1)/2)*7*(e.esc||1):0;
-        G.balas.push({ p:add(e.p, mul(e.b.r,sep)), d:mul(e.b.f,760), vida:2.2, mia:false, c:G.colorEnem, dano:e.k===CLASES.bomba?1.8:1 });
+      const RAFAGA=bomba?2:3;                                /* los tiros seguidos de cada ráfaga */
+      for(let r=0;r<RAFAGA;r++){
+        for(let i=0;i<nt;i++){
+          const sep=nt>1?(i-(nt-1)/2)*7*(e.esc||1):0;
+          /* los de la ráfaga salen atrasados: como no se pueden crear en el futuro, salen
+             un poco detrás de la nave, y así se ven en fila india persiguiéndote */
+          const atras=mul(e.b.f,-r*46);
+          G.balas.push({ p:add(add(e.p, mul(e.b.r,sep)), atras), d:mul(e.b.f,760), vida:2.2, mia:false, c:G.colorEnem, dano:e.k===CLASES.bomba?1.8:1 });
+        }
       }
       if(!mute) sfx("laser",e.p);            /* los del enemigo, por su lado */
     }
@@ -3612,6 +3664,7 @@ function guardaDiario(seg,punt){ try{
 function pausar(v){
   if(G.over||!G.run) return; G.paused=v===undefined?!G.paused:v;
   if(G.paused){ try{ document.exitPointerLock&&document.exitPointerLock(); }catch(e){}
+    if(!TUNEL.length) tunelArranca();                        /* que haya túnel detrás del menú */
     const punt=G.disparos?Math.round(100*G.aciertos/G.disparos):0;
     $("pauseState").innerHTML="<div><b>"+G.score+"</b> battle points</div>"+                    /* estado en la pausa */
       "<div>🌊 oleada <b>"+Math.max(1,G.wave)+"</b> · quedan <b>"+(G.quedan+G.enem.length)+"</b> enemigos</div>"+
@@ -3750,12 +3803,14 @@ $("resumeBtn").onclick=()=>pausar(false); $("pauseBtn").onclick=()=>pausar();
 $("backBtn").onclick=salir;                                 /* desde el menú: al cuartel */
 $("quitBtn").onclick=saltoDeSalida;                          /* desde la pausa: salto al hiperespacio y al menú */
 $("menuBtn").onclick=salir;                                  /* tras perder: al cuartel */
-document.addEventListener("pointerlockchange",()=>{ if(G.run&&!G.over&&document.pointerLockElement!==cv&&!G.paused) pausar(true); });
+/* 🐛 al apretar ESCAPE el navegador suelta el ratón, y eso disparaba la PAUSA por detrás
+      justo encima del salto al hiperespacio. Si estás saltando, aquí no se pausa nada. */
+document.addEventListener("pointerlockchange",()=>{ if(G.run&&!G.over&&saliendo<=0&&document.pointerLockElement!==cv&&!G.paused) pausar(true); });
 
 resize(); estrellasNuevas(); destructoresNuevos();
 $("best").textContent=G.best?"🏆 tu récord: "+G.best+" battle points":"";
 pintaRecords();
-const NOVEDADES_V=22;                                         /* sube este número cuando haya cosas nuevas */
+const NOVEDADES_V=23;                                         /* sube este número cuando haya cosas nuevas */
 const NOVEDADES=[
   ["🎚️","Mandas tú la velocidad","<span class='tec'>W</span> y <span class='tec'>S</span> (o la rueda del ratón) mueven el acelerador · <span class='tec'>X</span> para en seco · <span class='tec'>Z</span> a fondo. Parado giras hasta un 75% más cerrado: frena y el que te persigue se te pasa de largo"],
   ["🚀","Torpedos que persiguen","<span class='tec'>F</span> suelta dos torpedos al enemigo que tengas fichado. Pegan 260 (casi cinco veces un láser). Llevas 6 y te dan 2 en cada oleada"],
@@ -3768,6 +3823,9 @@ const NOVEDADES=[
   ["🎯","Misiones en cada oleada","Proteger a un compañero, callar las torretas de un Destructor, cruzar los 7 arcos del desfiladero o cazar contrarreloj"],
   ["🎖️","Catorce medallas","Se ganan por CÓMO juegas: sin perder compañeros, sin que te den, con torpedos, con puntería, aguantando 5 minutos en supervivencia, desmantelando una nodriza, sin pedir refuerzos o pasando la oleada 5 en IMPOSIBLE. El medallero está en la pantalla de inicio"],
   ["😠","Cuatro dificultades","De FÁCIL a IMPOSIBLE. Las difíciles pagan más: en IMPOSIBLE cada derribo vale x2,5"],
+  ["🔥","Ráfagas de tres","Los enemigos ya no sueltan un tiro suelto: sueltan una RÁFAGA de tres seguidos que te persigue en fila india (el bombardero, de dos, que pega más). Y tiran desde 1900 en vez de 1500, casi sin apuntar (0,62) y cada 0,16-0,42 s. Con las oleadas dobles, el cielo es una tormenta de rayos"],
+  ["⏸","La pausa, dentro del hiperespacio","El menú de pausa ya no es un telón encima del juego: ahora es un cristal azul con las esquinas de una cabina, flotando DENTRO del túnel del hiperespacio, que se ve corriendo por detrás mientras decides. Y arreglado el bug: al apretar ESCAPE el navegador soltaba el ratón y eso hacía saltar la pausa vieja por encima del salto"],
+  ["🌠","Cinco segundos de hiperespacio","Al salir, el viaje dura 5 segundos en vez de 2: 1,8 s de acelerón hasta meterte en el túnel y luego el viaje entero ahí dentro, con un zumbido de dos tonos que laten juntos y el frenazo al final"],
   ["💥","El misil revienta como debe","Ya no es una chispa: al estallar sale un núcleo blanco, una bola de fuego naranja, 34 trozos de metralla despedidos, humo que se queda flotando, DOS ondas expansivas que se abren y un fogonazo que deslumbra. Y la cámara se queda 0,9 segundos en el sitio para que lo veas — antes te devolvía a la nave y te lo perdías"],
   ["💥","El cielo ya no está tranquilo","Los enemigos disparan CASI SIN PARAR: tiran desde el doble de lejos (1500 en vez de 900), sin necesidad de tenerte clavado en la mira, y cada 0,3-0,75 s en vez de cada 1-2,6. Y hay muchas más naves: las oleadas son del doble y en supervivencia caben 22 a la vez en vez de 14, llegando cada 0,18 s"],
   ["📱","El dedo es un volante","En el celular arrastras el dedo y la nave gira con él — y ese mismo arrastre dirige el misil, ya no lo suelta sin querer. Disparar es solo del botón 🔫, mantenido dispara sin parar, y él es el que suelta el misil. Así giras y disparas A LA VEZ"],
