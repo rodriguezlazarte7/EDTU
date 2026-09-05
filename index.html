@@ -1463,6 +1463,7 @@
     <button class="btn pickgame" id="pickFly" style="background:linear-gradient(90deg,#04121f,#0a2a44);border-color:#4fc3ff">✈️ FLY (el avión)</button>
     <button class="btn pickgame" id="pickSal" style="background:linear-gradient(90deg,#0a1b2e,#123a52);border-color:#7ef0a8">🪂 SALTO (esquiva paracaídas)</button>
     <button class="btn pickgame" id="pickRsc" style="background:linear-gradient(90deg,#12210a,#2d4a12);border-color:#b6e34a">🚁 RESCATE (salva a los paracaidistas)</button>
+    <button class="btn pickgame" id="pickTrr" style="background:linear-gradient(90deg,#241206,#4a2a10);border-color:#ffb347">🏗️ TORRE (apila sin fallar)</button>
     <button class="btn pickgame" id="pickPong">🏓 PONG</button>
     <button class="btn pickgame" id="pickRps">✂️ PIEDRA PAPEL TIJERA</button>
     <button class="btn pickgame" id="pickSimon">🎨 SIMÓN DICE</button>
@@ -1548,6 +1549,8 @@
 <div id="invFs" class="gfull"><h2>👾 SPACE INVADERS</h2><div class="ghud" id="invHud"></div><canvas id="invCv"></canvas><div class="gover" id="invOver"></div><div style="margin-top:8px"><button class="btn btn-primary" id="invStart">▶ Jugar</button><button class="btn btn-ghost" id="invClose" style="margin-left:6px">✕ Salir</button></div></div>
 
 <div id="flapFs" class="gfull"><h2>🐤 FLAPPY</h2><div class="ghud" id="flapHud"></div><canvas id="flapCv"></canvas><div class="gover" id="flapOver"></div><div style="margin-top:8px"><button class="btn btn-primary" id="flapStart">▶ Jugar</button><button class="btn btn-ghost" id="flapClose" style="margin-left:6px">✕ Salir</button></div></div>
+
+<div id="trrFs" class="gfull"><h2>🏗️ TORRE</h2><div class="ghud" id="trrHud"></div><canvas id="trrCv"></canvas><div class="gover" id="trrOver"></div><div style="margin-top:8px"><button class="btn btn-primary" id="trrStart">▶ Jugar</button><button class="btn btn-ghost" id="trrClose" style="margin-left:6px">✕ Salir</button></div></div>
 
 <div id="rscFs" class="gfull"><h2>🚁 RESCATE</h2><div class="ghud" id="rscHud"></div><canvas id="rscCv"></canvas><div class="gover" id="rscOver"></div><div style="margin-top:8px"><button class="btn btn-primary" id="rscStart">▶ Jugar</button><button class="btn btn-ghost" id="rscClose" style="margin-left:6px">✕ Salir</button></div></div>
 
@@ -6757,6 +6760,155 @@ const Flap={ cv:null,ctx:null,raf:null,run:false,W:0,H:0,by:0,vy:0,pipes:[],scor
     const ang=Math.max(-0.45,Math.min(0.9,this.vy/11));   /* pico arriba al aletear, pico abajo al caer */
     c.save(); c.translate(40,this.by); c.scale(-1,1); c.rotate(-ang); c.fillText("🐤",0,0); c.restore(); } };
 
+/* 🏗️ TORRE — un bloque se pasea de lado a lado; lo sueltas y lo que sobresale SE CAE */
+const Trr={ cv:null,ctx:null,raf:null,run:false,W:0,H:0,
+  base:[],mov:null,cae:[],alto:0,score:0,best:0,perfectos:0,combo:0,t:0,cam:0,camObj:0,mus:null,flash:0,
+  ALTO:24,                                                    /* lo que mide cada bloque de alto */
+  open(){ $("trrFs").classList.add("open"); this.best=+(localStorage.getItem("edtu_trr_best")||0);
+    this.cv=$("trrCv"); this.W=this.cv.width=Math.min(innerWidth*0.9,380); this.H=this.cv.height=Math.min(innerHeight*0.6,520);
+    this.ctx=this.cv.getContext("2d"); this.setup(); this.draw();
+    $("trrOver").innerHTML="🏗️ <b>Toca</b> (o ESPACIO) para soltar el bloque<br><span style='font-size:12px;opacity:.8'>lo que sobresalga se cae · si fallas del todo, se acabó</span>";
+    $("trrHud").textContent="Récord: "+this.best; },
+  close(){ this.stop(); this.musOff(); $("trrFs").classList.remove("open"); },
+  setup(){
+    this.base=[]; this.cae=[]; this.score=0; this.perfectos=0; this.combo=0; this.t=0; this.cam=0; this.camObj=0; this.flash=0;
+    const anchoIni=Math.min(150,this.W*0.42);
+    this.base.push({ x:this.W/2-anchoIni/2, w:anchoIni, y:0, col:this.color(0) });   /* y=0 es el suelo */
+    this.nuevoMovil();
+  },
+  color(i){ const h=(200+i*17)%360; return "hsl("+h+",62%,"+(52+((i%3)*6))+"%)"; },
+  nuevoMovil(){
+    const ult=this.base[this.base.length-1];
+    const vel=1.6+Math.min(3.4,this.base.length*0.16);         /* cada vez más rápido */
+    this.mov={ x:(this.base.length%2?this.W-ult.w-6:6), w:ult.w, y:ult.y+1, dir:(this.base.length%2?-1:1), v:vel, col:this.color(this.base.length) };
+  },
+  suelta(){
+    if(!this.run||!this.mov) return;
+    const ult=this.base[this.base.length-1], m=this.mov;
+    const izq=Math.max(m.x, ult.x), der=Math.min(m.x+m.w, ult.x+ult.w);
+    const ancho=der-izq;
+    if(ancho<=1){                                              /* falló del todo */
+      this.cae.push({ x:m.x, w:m.w, y:m.y, col:m.col, vy:0, vx:(m.x<ult.x?-1.4:1.4), gir:0 });
+      return this.fin();
+    }
+    const dif=Math.abs(m.x-ult.x);
+    if(dif<=3){                                                /* ¡clavado! */
+      this.perfectos++; this.combo++;
+      this.score+=2+Math.min(4,this.combo);                    /* encadenar clavados da más */
+      this.flash=1;
+      gBeep(880+Math.min(600,this.combo*60));
+      this.base.push({ x:ult.x, w:ult.w, y:m.y, col:m.col, perfecto:true });
+    } else {
+      this.combo=0; this.score++;
+      gBeep(520);
+      /* el trozo que sobresale se cae de verdad */
+      if(m.x<izq) this.cae.push({ x:m.x, w:izq-m.x, y:m.y, col:m.col, vy:0, vx:-1.1, gir:0 });
+      if(m.x+m.w>der) this.cae.push({ x:der, w:(m.x+m.w)-der, y:m.y, col:m.col, vy:0, vx:1.1, gir:0 });
+      this.base.push({ x:izq, w:ancho, y:m.y, col:m.col });
+    }
+    this.camObj=Math.max(0,(this.base.length-6)*this.ALTO);    /* la cámara sube con la torre */
+    this.nuevoMovil();
+  },
+  start(){ this.setup(); this.run=true; $("trrOver").textContent=""; this.musOn();
+    if(!this.raf){ const f=()=>{ if(!this.run&&!this.cae.length){ this.raf=null; return; }
+      this.tick(); this.raf=requestAnimationFrame(f); }; this.raf=requestAnimationFrame(f); } },
+  stop(){ this.run=false; if(this.raf){ cancelAnimationFrame(this.raf); this.raf=null; } },
+  tick(){
+    this.t++;
+    if(this.flash>0) this.flash-=0.06;
+    this.cam+=(this.camObj-this.cam)*0.10;                     /* la cámara persigue suave */
+    if(this.run&&this.mov){
+      const m=this.mov;
+      m.x+=m.dir*m.v;
+      if(m.x<4){ m.x=4; m.dir=1; }
+      if(m.x+m.w>this.W-4){ m.x=this.W-4-m.w; m.dir=-1; }
+    }
+    for(const c of this.cae){ c.vy+=0.55; c.y-=c.vy; c.x+=c.vx; c.gir+=0.06; }
+    this.cae=this.cae.filter(c=>c.y>this.cam-this.H-60);
+    if(this.run) $("trrHud").textContent="🏗️ "+this.score+" · "+this.base.length+" pisos · Récord: "+this.best;
+    this.draw();
+    if(!this.run&&!this.cae.length){ this.stop(); this.draw(); }
+  },
+  fin(){
+    this.run=false; this.mov=null; this.musOff();
+    if(this.score>this.best){ this.best=this.score; localStorage.setItem("edtu_trr_best",this.score); }
+    try{ edtuPlayDay("🏗️ TORRE",this.score+" pts",this.score); }catch(e){}
+    try{ gBeep(200); setTimeout(()=>gBeep(120),110); }catch(e){}
+    $("trrOver").textContent="🧱 Se cayó · "+this.score+" pts · "+this.base.length+" pisos"+
+      (this.perfectos?" · "+this.perfectos+" clavados":"")+
+      (function(sc){ try{ return edtuMiniAvg("🏗️ TORRE",sc); }catch(e){ return ""; } })(this.score);
+  },
+  pantY(y){ return this.H-40-(y*this.ALTO-this.cam); },        /* de piso a píxeles */
+  bloque(c,b,y){
+    const alto=this.ALTO-3;
+    const g=c.createLinearGradient(b.x,y-alto,b.x,y);
+    g.addColorStop(0,b.col); g.addColorStop(1,"rgba(0,0,0,.35)");
+    c.fillStyle=g; c.fillRect(b.x,y-alto,b.w,alto);
+    c.fillStyle="rgba(255,255,255,.28)"; c.fillRect(b.x,y-alto,b.w,3);
+    if(b.perfecto){ c.strokeStyle="rgba(255,232,31,.85)"; c.lineWidth=1.5; c.strokeRect(b.x+1,y-alto+1,b.w-2,alto-2); }
+  },
+  draw(){
+    const c=this.ctx, W=this.W, H=this.H;
+    const g=c.createLinearGradient(0,0,0,H);
+    g.addColorStop(0,"#0d1430"); g.addColorStop(.7,"#243a6b"); g.addColorStop(1,"#4a6ea8");
+    c.fillStyle=g; c.fillRect(0,0,W,H);
+    /* estrellas de fondo, que se mueven con la cámara */
+    c.fillStyle="rgba(255,255,255,.25)";
+    for(let i=0;i<26;i++){
+      const sx=(i*97)%W, sy=((i*53)+this.cam*0.25)%H;
+      c.fillRect(sx,H-sy,1.6,1.6);
+    }
+    for(const b of this.base) this.bloque(c,b,this.pantY(b.y));
+    for(const cc of this.cae){                                 /* los trozos que se caen, girando */
+      c.save(); c.translate(cc.x+cc.w/2,this.pantY(cc.y)-this.ALTO/2); c.rotate(cc.gir);
+      c.fillStyle=cc.col; c.fillRect(-cc.w/2,-this.ALTO/2,cc.w,this.ALTO-3); c.restore();
+    }
+    if(this.mov) this.bloque(c,this.mov,this.pantY(this.mov.y));
+    if(this.flash>0){ c.fillStyle="rgba(255,232,31,"+(this.flash*0.22).toFixed(3)+")"; c.fillRect(0,0,W,H); }
+    if(this.combo>1&&this.run){
+      c.font="700 15px Consolas,monospace"; c.textAlign="center"; c.fillStyle="rgba(255,232,31,.9)";
+      c.fillText("¡"+this.combo+" CLAVADOS SEGUIDOS!",W/2,34);
+    }
+  },
+  musOn(){
+    try{
+      const AC=window.AudioContext||window.webkitAudioContext; if(!AC||this.mus) return;
+      window._gac=window._gac||new AC(); const a=window._gac;
+      if(a.state==="suspended") a.resume();
+      const master=a.createGain(); master.gain.value=0; master.connect(a.destination);
+      master.gain.linearRampToValueAtTime(.4,a.currentTime+1);
+      const BAJO=[0,0,5,7, 0,0,5,3].map(x=>x+45);
+      const nota=n=>55*Math.pow(2,n/12);
+      const voz=(tipo,fr,t,dur,vol)=>{ const o=a.createOscillator(), g=a.createGain();
+        o.type=tipo; o.frequency.setValueAtTime(fr,t);
+        g.gain.setValueAtTime(0,t); g.gain.linearRampToValueAtTime(vol,t+.03);
+        g.gain.exponentialRampToValueAtTime(.0001,t+dur);
+        o.connect(g); g.connect(master); o.start(t); o.stop(t+dur+.03); };
+      const M={ paso:0, prox:a.currentTime+.1, master, reloj:null };
+      M.reloj=setInterval(()=>{
+        if(!this.mus) return;
+        const ah=a.currentTime;
+        /* la música SUBE DE TONO con la torre: cuanto más alto, más nervioso */
+        const sube=Math.min(12, Math.floor(this.base.length/4));
+        while(M.prox<ah+.3){
+          const i=M.paso%8, t=M.prox;
+          voz("triangle", nota(BAJO[i]-12+sube), t, .26, .13);
+          if(i%2===0) voz("square", nota(BAJO[i]+12+sube), t, .1, .028);
+          M.paso++; M.prox+=.19;
+        }
+      },45);
+      this.mus=M;
+    }catch(e){}
+  },
+  musOff(){ const M=this.mus; if(!M) return; this.mus=null;
+    try{ clearInterval(M.reloj); const a=window._gac,t=a.currentTime;
+      M.master.gain.cancelScheduledValues(t); M.master.gain.setValueAtTime(M.master.gain.value,t);
+      M.master.gain.linearRampToValueAtTime(0,t+.3); setTimeout(()=>{ try{ M.master.disconnect(); }catch(e){} },450); }catch(e){} }
+};
+$("pickTrr").onclick=()=>{ $("gamePick").classList.remove("open"); Trr.open(); };
+$("trrStart").onclick=()=>Trr.start(); $("trrClose").onclick=()=>Trr.close();
+$("trrCv").addEventListener("pointerdown",e=>{ Trr.suelta(); e.preventDefault(); });
+
 /* 🚁 RESCATE — pilotas el helicóptero y recoges a los paracaidistas de FLY antes de que caigan */
 const Rsc={ cv:null,ctx:null,raf:null,run:false,W:0,H:0,x:0,y:0,vx:0,vy:0,pala:0,
   gente:[],nubes:[],salvados:0,perdidos:0,best:0,t:0,mus:null,dedo:null,
@@ -7503,6 +7655,7 @@ document.addEventListener("keydown",e=>{ GK[e.key]=true;
   else if($("invFs").classList.contains("open")&&e.key===" "){ Inv.fire(); e.preventDefault(); }
   else if($("flapFs").classList.contains("open")&&e.key===" "){ Flap.flap(); e.preventDefault(); }
   else if($("flyFs").classList.contains("open")&&e.key===" "){ if(Fly.run) Fly.sube=true; e.preventDefault(); }
+  else if($("trrFs").classList.contains("open")&&e.key===" "){ Trr.suelta(); e.preventDefault(); }
   else if($("salFs").classList.contains("open")&&(e.key==="ArrowLeft"||e.key==="a"||e.key==="A")){ Sal.izq=true; e.preventDefault(); }
   else if($("salFs").classList.contains("open")&&(e.key==="ArrowRight"||e.key==="d"||e.key==="D")){ Sal.der=true; e.preventDefault(); }
 });
@@ -7997,7 +8150,7 @@ function buildTrophies(){ try{
     try{ const ml=JSON.parse(g("edtu_mini_last")||"null"); if(ml&&ml.ts&&ml.g) la.push("🕹️ "+rdt(ml)+": "+ml.g+(ml.score!==""&&ml.score!=null?" · "+ml.score:"")+(function(){ try{ if(typeof ml.num!=="number") return ""; const T=JSON.parse(g("edtu_mini_tot_"+ml.g.replace(/[^a-z0-9]/gi,"").toLowerCase())||"null"); if(!T||T.n<4) return ""; const avg=T.sum/T.n; return ml.num>avg*1.05?" ⬆️":(ml.num<avg*0.95?" ⬇️":""); }catch(e){ return ""; } })()); }catch(e){}   /* 🕹️ último minijuego */
     if(la.length) h+="<div style='margin-top:8px;color:#e8d9a8'><b>📖 ÚLTIMAS AVENTURAS</b></div>"+la.join("<br>"); }catch(e){}
   // 🕹️ MINIJUEGOS: récords de los juegos del menú (los que guardan récord; los demás se van sumando)
-  try{ const mg=[["🏃 Rush","edtu_game_best"," pts",false],["🐍 Snake","edtu_snake_best"," 🍎",false],["🔢 2048","edtu_2048_best"," pts",false],["🐤 Flappy","edtu_flap_best"," pts",false],["✈️ FLY","edtu_fly_best"," pts",false],["🪂 SALTO","edtu_sal_best"," pts",false],["🚁 RESCATE","edtu_rsc_best"," salvados",false],["🐝 SWARM","swarm_best"," kills",false],["👾 Invaders","edtu_inv_best"," pts",false],["🧱 Breakout","edtu_break_best"," pts",false],["🎵 Simon","edtu_simon_best"," niveles",false],["🃏 Memoria","edtu_mem_best"," mov.",true],["🏓 Pong","edtu_pong_wins"," victorias",false],["💣 Buscaminas","edtu_mines_wins"," victorias",false],["🔤 Ahorcado","edtu_hang_wins"," victorias",false],["❌ Gato","edtu_gato_wins"," victorias",false],["♟️ Ajedrez","edtu_chess_wins"," victorias",false],["🔴 4 en línea","edtu_c4_wins"," victorias",false],["✊ Piedra-papel-tijera","edtu_rps_wins"," rondas ganadas",false],["⚽ Fútbol","edtu_foot_wins"," partidos ganados",false]];
+  try{ const mg=[["🏃 Rush","edtu_game_best"," pts",false],["🐍 Snake","edtu_snake_best"," 🍎",false],["🔢 2048","edtu_2048_best"," pts",false],["🐤 Flappy","edtu_flap_best"," pts",false],["✈️ FLY","edtu_fly_best"," pts",false],["🪂 SALTO","edtu_sal_best"," pts",false],["🚁 RESCATE","edtu_rsc_best"," salvados",false],["🏗️ TORRE","edtu_trr_best"," pts",false],["🐝 SWARM","swarm_best"," kills",false],["👾 Invaders","edtu_inv_best"," pts",false],["🧱 Breakout","edtu_break_best"," pts",false],["🎵 Simon","edtu_simon_best"," niveles",false],["🃏 Memoria","edtu_mem_best"," mov.",true],["🏓 Pong","edtu_pong_wins"," victorias",false],["💣 Buscaminas","edtu_mines_wins"," victorias",false],["🔤 Ahorcado","edtu_hang_wins"," victorias",false],["❌ Gato","edtu_gato_wins"," victorias",false],["♟️ Ajedrez","edtu_chess_wins"," victorias",false],["🔴 4 en línea","edtu_c4_wins"," victorias",false],["✊ Piedra-papel-tijera","edtu_rps_wins"," rondas ganadas",false],["⚽ Fútbol","edtu_foot_wins"," partidos ganados",false]];
     const ml=mg.map(([nm,k,u,inv])=>{ const v=parseInt(g(k)||"0",10)||0; return v>0?nm+" <b>"+v+"</b>"+u+(inv?" (menos es mejor)":"")+(function(){ try{ const T=JSON.parse(g("edtu_mini_tot_"+nm.replace(/[^a-z0-9]/gi,"").toLowerCase())||"null"); return (T&&T.n>=4)?" <span style='color:#6a86a8'>(media "+(Math.round(T.sum/T.n*10)/10)+")</span>":""; }catch(e){ return ""; } })():null; }).filter(Boolean);
     if(ml.length) h+="<div style='margin-top:8px;color:#e8d9a8'><b>🕹️ MINIJUEGOS</b></div><div style='font-size:12px;color:#9fb6c9;line-height:1.7'>"+ml.join(" · ")+"</div>"+(function(){ /* 🎮 partidas de minijuegos + próximo hito */ const m=parseInt(g("edtu_mini_games")||"0",10)||0; const bw=["edtu_gato_wins","edtu_chess_wins","edtu_c4_wins","edtu_mines_wins","edtu_hang_wins"].reduce((a,k)=>a+(parseInt(g(k)||"0",10)||0),0); if(!m&&!bw) return ""; const nx=[10,25,50,100,250].find(x=>x>m); return "<div style='font-size:12px;color:#6a86a8'>"+(m?"🎮 "+m+" partida"+(m>1?"s":"")+" de minijuegos"+(nx?" · 🏅 "+(nx-m)+" más para "+nx:""):"")+(bw?(m?" · ":"")+"🏆 "+bw+" victoria"+(bw>1?"s":"")+" en tableros":"")+"</div>"; })(); }catch(e){}
   try{ /* 💬 juegos del chat */ const gb=parseInt(g("edtu_guess_best")||"0",10)||0; const rk=parseInt(g("edtu_riddles_ok")||"0",10)||0; let S={w:0,l:0,d:0}; try{ S=Object.assign(S,JSON.parse(g("edtu_rps_chat")||"{}")); }catch(e){} if(gb||rk||S.w||S.l||S.d||g("edtu_eng_ok")||g("edtu_trivia_ok")||g("edtu_math_ok")||g("edtu_hang_ok")){ const cp=[]; if(gb) cp.push("🎲 adivina: récord "+gb+" intento"+(gb===1?"":"s")); if(rk) cp.push("🧠 "+rk+" adivinanza"+(rk===1?"":"s")+" resuelta"+(rk===1?"":"s")); if(S.w||S.l||S.d) cp.push("✂️ piedra-papel-tijera: tú "+S.w+" · WALLY "+S.l+" · empates "+S.d); try{ const ek=parseInt(g("edtu_eng_ok")||"0",10)||0, tk=parseInt(g("edtu_trivia_ok")||"0",10)||0; const PC=(o,t)=>{ t=parseInt(g(t)||"0",10)||0; if(!t) return ""; const p=Math.round(o/t*100); return " ("+p+"% "+(p>=90?"⭐⭐⭐":p>=70?"⭐⭐":p>=50?"⭐":"💪")+")"; }; if(ek) cp.push("🇬🇧 inglés: "+ek+" acierto"+(ek===1?"":"s")+PC(ek,"edtu_eng_try")); if(tk) cp.push("🧠 trivia: "+tk+" acierto"+(tk===1?"":"s")+PC(tk,"edtu_trivia_try")); const mk=parseInt(g("edtu_math_ok")||"0",10)||0; if(mk) cp.push("🧮 mates: "+mk+" acierto"+(mk===1?"":"s")+PC(mk,"edtu_math_try")); const hk=parseInt(g("edtu_hang_ok")||"0",10)||0; if(hk) cp.push("🪝 ahorcado: "+hk+" palabra"+(hk===1?"":"s")); const RB=[["math","mates"],["eng","inglés"],["trivia","trivia"]].map(x=>{ const b=g("edtu_round_best_"+x[0]); return b!==null?x[1]+" "+b+"/5":""; }).filter(Boolean); if(RB.length) cp.push("🏁 mejores rondas: "+RB.join(", ")); }catch(e){}   /* 🎓 % de aciertos */ h+="<div style='margin-top:8px;color:#e8d9a8'><b>💬 JUEGOS DEL CHAT</b></div><div style='font-size:12px;color:#9fb6c9;line-height:1.7'>"+cp.join(" · ")+"</div>"; } }catch(e){}
@@ -8090,7 +8243,7 @@ try{ const big=$("wallyMicBig"), small=$("wallyMic"); if(big&&small){ big.onclic
   const sync=()=>{ const t=(small.textContent||"🎤").trim(); big.textContent=t; big.classList.toggle("rec",t==="🔴"); const h=$("wallyFsHint"); if(h) h.textContent=(t==="🔴")?"te escucho...":"toca el micrófono y háblame"; };
   try{ new MutationObserver(sync).observe(small,{childList:true,characterData:true,subtree:true}); }catch(e){} sync(); } }catch(e){}
 // 🎲 SORPRÉNDEME: un juego al azar de todo el menú (sin repetir el último)
-{ const rb=$("pickRandom"); if(rb) rb.onclick=()=>{ const ids=["pickSw","pickFly","pickSal","pickRsc","pickRush","pickFoot","pickMon","pickF1","pickGato","pickChess","pickSnake","pickC4","pickMem","pick2048","pickMines","pickBreak","pickInv","pickFlap","pickPong","pickRps","pickSimon","pickHang","pickNag","pickRk","pickJp","pickScr"].filter(id=>$(id)); let last=""; try{ last=localStorage.getItem("edtu_random_last")||""; }catch(e){} const pool=ids.filter(id=>id!==last); const id=pool[Math.floor(Math.random()*pool.length)]; try{ localStorage.setItem("edtu_random_last",id); }catch(e){} const b=$(id); if(b) b.click(); }; }
+{ const rb=$("pickRandom"); if(rb) rb.onclick=()=>{ const ids=["pickSw","pickFly","pickSal","pickRsc","pickTrr","pickRush","pickFoot","pickMon","pickF1","pickGato","pickChess","pickSnake","pickC4","pickMem","pick2048","pickMines","pickBreak","pickInv","pickFlap","pickPong","pickRps","pickSimon","pickHang","pickNag","pickRk","pickJp","pickScr"].filter(id=>$(id)); let last=""; try{ last=localStorage.getItem("edtu_random_last")||""; }catch(e){} const pool=ids.filter(id=>id!==last); const id=pool[Math.floor(Math.random()*pool.length)]; try{ localStorage.setItem("edtu_random_last",id); }catch(e){} const b=$(id); if(b) b.click(); }; }
 $("trophyClose").onclick=()=>{ window.wallyCerrarPaneles(); };
 $("trophyFs").addEventListener("click",e=>{ if(e.target===$("trophyFs")) window.wallyCerrarPaneles(); });
 // 📸 PÓSTER DE RÉCORDS: imagen 600x800 lista para captura de pantalla
