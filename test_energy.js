@@ -42,6 +42,24 @@ if (!azules || !rojos) MAL("no usa los dos colores");
 if (otros.length > 2) MAL("quedan colores que no son ni azul ni rojo: " + otros.slice(0, 5).join(", "));
 if (/#ff6ec7|#1b0620|#3d0f31|#ffe066/.test(codigo)) MAL("quedan los rosas y amarillos del diseño viejo");
 
+/* ---------- 2b) ni un paréntesis en los botones del menú ---------- */
+const botones = [...html.matchAll(/class="btn pickgame"[^>]*>([^<]*)</g)].map(m => m[1].trim());
+const conParentesis = botones.filter(b => /\(/.test(b));
+console.log("  botones del menú: " + botones.length + " · con paréntesis: " + conParentesis.length + (conParentesis.length ? " (" + conParentesis.join(" · ") + ")" : ""));
+if (conParentesis.length) MAL("quedan paréntesis en los botones: " + conParentesis.join(" · "));
+
+/* ---------- 2c) fuera los círculos de atracción, pero el difuminado rojo se queda ---------- */
+/* solo el trozo que DIBUJA el campo (el primer "if(this.iman" es el de la física, no vale) */
+const haz = codigo.slice(codigo.indexOf("/* ---- el campo magnético"), codigo.indexOf("/* ---- las CÉLULAS"));
+const arcos = (haz.match(/c\.arc\(/g) || []).length;
+const rellenos = (haz.match(/c\.fill\(\)/g) || []).length;
+console.log("  el campo magnético dibuja " + arcos + " círculo(s) y " + rellenos + " difuminado(s)");
+if (/for\(let i=0;i<3;i\+\+\)/.test(haz)) MAL("siguen los tres círculos viajando por el haz");
+if (/Math\.sin\(t\*0\.22\)|Math\.sin\(t\*0\.3\)/.test(haz)) MAL("siguen los anillos latiendo");
+if ((haz.match(/c\.stroke\(\)/g) || []).length > 1) MAL("quedan circulitos dibujados con línea");
+if (!/createRadialGradient/.test(haz) || !/255,\s*(120|60)/.test(haz)) MAL("se perdió el difuminado rojo, que David quería conservar");
+console.log("  ✅ sin circulitos girando, con el difuminado rojo intacto");
+
 /* ---------- 3) lo ponemos a correr de verdad ---------- */
 const nada = () => {};
 const pintado = { fill: 0, stroke: 0, fillRect: 0, translate: 0 };
