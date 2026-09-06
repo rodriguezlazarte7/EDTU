@@ -1486,17 +1486,42 @@
   </div>
 </div>
 <style>
-#wallyFs{position:fixed;inset:0;z-index:135;background:radial-gradient(circle at 50% 26%,#0f1e30 0%,#05070d 72%);display:none;flex-direction:column;align-items:center;justify-content:center;gap:20px;padding:26px 18px;font-family:Consolas,monospace}
+#wallyFs{position:fixed;inset:0;z-index:135;background:radial-gradient(circle at 50% 26%,#0f1e30 0%,#05070d 72%);display:none;flex-direction:column;align-items:center;
+  justify-content:flex-start;                      /* 📜 NUNCA centrar de forma que recorte */
+  overflow-y:auto;overflow-x:hidden;-webkit-overflow-scrolling:touch;overscroll-behavior:contain;
+  gap:20px;padding:26px 18px 30px;font-family:Consolas,monospace}
+/* el truco: dos huecos que se reparten el sitio sobrante. Si cabe, todo queda centrado como
+   siempre; si no cabe, se van a cero y el panel se puede subir y bajar con el dedo o la rueda */
+#wallyFs::before,#wallyFs::after{content:"";margin:auto;flex:0 0 0}
+#wallyFs>*{flex-shrink:0;max-width:100%}
 #wallyFs #wallyPresenter{text-align:center;max-width:min(940px,94vw)}
 #wallyFs #wallyPresenter .bot{font-size:clamp(46px,12vw,92px);display:inline-block}
 #wallyFs #wallyPresenter .bzr,#wallyFs #wallyPresenter .bzb{font-size:clamp(13px,3vw,20px);opacity:.8}
-#wallyFs #wallySpeech{font:700 clamp(19px,4.6vw,34px)/1.5 Consolas,monospace !important;color:#8fd0ff;margin-top:16px !important;min-height:3.2em !important;text-align:center;text-shadow:0 0 18px rgba(56,182,255,.28)}
+#wallyFs #wallySpeech{font:700 clamp(19px,4.6vw,34px)/1.5 Consolas,monospace !important;color:#8fd0ff;margin-top:16px !important;min-height:3.2em !important;text-align:center;text-shadow:0 0 18px rgba(56,182,255,.28);
+  max-width:min(900px,92vw);overflow-wrap:anywhere;word-break:break-word}
+/* si la respuesta es un tocho, la letra baja sola para que quepa más */
+#wallyFs #wallySpeech.largo{font-size:clamp(14px,3.1vw,22px) !important}
+/* y en pantallas bajas (el celular tumbado) la cara se hace pequeña para dejar sitio al texto */
+@media (max-height:620px){
+  #wallyCara{width:clamp(96px,20vw,130px);height:clamp(96px,20vw,130px)}
+  #wallyFs{gap:12px;padding:18px 14px 24px}
+  .wlBtn{width:clamp(56px,13vw,70px);height:clamp(56px,13vw,70px);font-size:clamp(22px,5vw,28px)}
+}
+/* la flechita de "hay más abajo" */
+#wallyMas{position:fixed;left:50%;bottom:10px;transform:translateX(-50%);z-index:6;display:none;
+  background:rgba(8,18,30,.85);border:1px solid rgba(143,208,255,.35);color:#8fd0ff;border-radius:99px;
+  padding:4px 13px;font:700 12px Consolas,monospace;cursor:pointer;animation:wmasLate 1.6s ease-in-out infinite}
+#wallyMas.on{display:block}
+@keyframes wmasLate{50%{transform:translateX(-50%) translateY(4px)}}
 #wallyMicBig{width:clamp(104px,27vw,148px);height:clamp(104px,27vw,148px);border-radius:50%;font-size:clamp(40px,10vw,56px);background:radial-gradient(circle at 50% 32%,#12374f,#0a1420);border:2px solid rgba(56,182,255,.55);color:#8fd0ff;cursor:pointer;box-shadow:0 0 34px rgba(56,182,255,.22);transition:transform .14s ease,box-shadow .25s ease;line-height:1}
 #wallyMicBig:active{transform:scale(.93)}
 #wallyMicBig.rec{border-color:#ff6b6b;color:#ff6b6b;box-shadow:0 0 48px rgba(255,107,107,.45);animation:wmicPulse 1.1s infinite}
 @keyframes wmicPulse{50%{box-shadow:0 0 78px rgba(255,107,107,.72)}}
 #wallyFsHint{color:#5b7a95;font-size:clamp(11px,2.6vw,13px);letter-spacing:.06em;text-align:center}
-#wallyFsClose{position:absolute;top:14px;right:16px;background:none;border:1px solid rgba(143,208,255,.3);color:#8fd0ff;border-radius:10px;padding:5px 12px;font:700 15px Consolas,monospace;cursor:pointer;opacity:.65}
+#wallyFsClose{position:fixed;top:14px;right:16px;z-index:6;                    /* 📜 fijo: no se va con el scroll */
+  background:rgba(8,18,30,.82);backdrop-filter:blur(3px);
+  border:1px solid rgba(143,208,255,.35);color:#8fd0ff;border-radius:10px;
+  padding:7px 13px;font:700 16px Consolas,monospace;cursor:pointer;opacity:.8}
 #wallyFsClose:hover{opacity:1}
 /* 😊 WALLY LIFE: la cara que habla */
 #wallyFs #wallyBot,#wallyFs #wallyPresenter .bzr,#wallyFs #wallyPresenter .bzb{display:none}
@@ -1537,6 +1562,7 @@
     </div>
   </div>
   <div id="wallyFsHint">toca el micrófono y háblame</div>
+  <button id="wallyMas" title="hay más texto abajo">▼ hay más</button>
   <div id="wallyFsTeclado" style="display:none;width:min(560px,94vw)">
     <div style="display:flex;gap:6px;margin-bottom:8px"><input id="wallyIn" placeholder="háblale a WALLY... o toca un chip 👇 (escribe ayuda para ver qué sé)" maxlength="60" style="flex:1;background:#0a1420;border:1px solid rgba(56,182,255,.4);border-radius:8px;padding:6px 10px;color:#cfe0ff;font:700 12px Consolas,monospace"><button class="btn btn-sm" id="wallySend" style="border-color:rgba(56,182,255,.5);color:#8fd0ff">➤</button><button class="btn btn-sm" id="wallyMic" title="háblale a WALLY con tu voz" style="border-color:rgba(56,182,255,.5);color:#8fd0ff">🎤</button></div>
   </div>
@@ -9211,6 +9237,8 @@ window.wallyCerrarPaneles=function(){ try{ const t=$("trophyFs"); if(t) t.style.
 window.abrirWallyFs=function(){ const w=$("wallyFs"); if(!w) return; w.style.display="flex";
   const hayVoz=!!(window.SpeechRecognition||window.webkitSpeechRecognition), big=$("wallyMicBig"), tec=$("wallyFsTeclado"), hint=$("wallyFsHint");
   if(!hayVoz){ if(big) big.style.display="none"; if(tec) tec.style.display="block"; if(hint) hint.textContent="este navegador no deja usar el micrófono: escríbeme"; }
+  try{ w.scrollTop=0; }catch(e){}                                  /* 📜 se abre siempre por arriba */
+  try{ setTimeout(()=>{ try{ wallyMiraSiHayMas(); }catch(e){} },120); }catch(e){}
   try{ buildTrophies(); }catch(e){}
   try{ const ws=$("wallySpeech"); if(!ws||!String(ws.textContent||"").trim()) wallyType(pick(["🎤 toca el micrófono y pregúntame lo que quieras","🎤 te escucho: toca el micrófono y habla","🎤 dime, agente — toca el micrófono"])); }catch(e){}
   if(hayVoz){ try{ const b=$("wallyMicBig"); if(b) setTimeout(()=>b.focus(),80); }catch(e){} } };
@@ -9412,10 +9440,27 @@ $("posterFs").addEventListener("click",e=>{ if(e.target===$("posterFs")) $("post
   window._wallyTips=["escríbeme 'araña en inglés' y te la traduzco (con 'voz' la pronuncio) 🇬🇧","di 'adivinanza' y te reto con un acertijo 🧠","escribe 'abre jurassic' y abro el juego por ti 🚀","toca el 🎤 y háblame en vez de escribir","di 'canta' y te canto mi himno 🎵","escribe 'avísame en 10 minutos' y te aviso con voz ⏰","di 'cuéntame un cuento' y te invento uno 📖","escribe 'tabla del 7' y te la recito ✖️","di 'piedra', 'papel' o 'tijera' y jugamos ✂️","escribe 'sabías que' y te cuento un dato curioso 🧠","di 'me llamo ...' y te llamo por tu nombre en todo EDTU 🙋","escribe 'marcador del chat' para ver tus puntos 🏅","di 'cuánto falta para navidad' y cuento los días 🎄","escribe 'estadísticas' y te resumo toda tu vida en EDTU 📈","di 'trabalenguas' y lo digo rapidísimo 👅","escribe 'cuánto es 12 por 7' y calculo 🧮","di 'voz' y te leo todas mis respuestas 🔊","escribe 'repite' si no alcanzaste a leer 🔁","di 'quiz de mates' y practicamos sumas, restas y tablas 🧮","di 'trivia' y te hago una pregunta con a) b) c) 🧠","di 'quiz de inglés' y te pregunto una palabra 🇬🇧","escribe 'cómo se dice gato en inglés' 🐱🇬🇧","di 'mi cumpleaños es el 14 de marzo' y te felicito ese día 🎂","escribe 'cuenta atrás desde 10' 🚀","di 'ronda de mates' (o de inglés, o de trivia) y te hago 5 preguntas seguidas con nota final 🏁","pregúntame 'qué hora es en Japón' o 'cuál es la capital de Francia' 🌍","dime 'estoy aburrido' o 'qué hago' y te doy ideas 🎮","pregúntame 'cuál es tu color favorito' 💙","escríbeme 'hello' o 'how are you' y te contesto en inglés 🇬🇧","di 'habla más despacio' o 'sube el volumen' para ajustar mi voz 🔊","escribe 'dame una misión' y te doy la de hoy 🕵️","di 'veo veo' y adivina la cosita de EDTU 👀","pídeme 'chiste de dinos' o 'chiste de zombies' 😂","escribe 'elige entre jurassic y scream' y decido yo 🎯","pregúntame 'cuántos planetas hay' o 'qué es un bug' 📚","¿primera vez? escribe 'soy nuevo' y te guío paso a paso 🚀","pregúntame 'de qué se trata scream' antes de entrar 🕷️","¿tarea de mates? escribe 'tengo tarea' y te ayudo a practicar 📚","di 'dame un reto' y te doy el desafío del día ⚔️","puedes empezar con mi nombre: 'wally, cuánto es 12 por 7' 🗣️","di 'juguemos a las adivinanzas' o 'examen' y empezamos 🧠","pregúntame 'cuántos minutos faltan para las 8' o 'qué día cae el 25 de diciembre' 📅","escribe 'cuándo es mi cumpleaños' y te lo recuerdo 🎂","di 'llámame capitán' (o jefe, campeón, leyenda...) y te trato con honores 🎖️","hazme una pregunta de sí o no y di 'bola mágica' 🎱","pregúntame 'cuánto es el 20 por ciento de 50' o 'es primo el 7' 🧮","escribe '345 en letras' y te lo escribo con palabras 🔤","pregúntame 'rima con gato' o 'sinónimo de feliz' 🎵","di 'dibuja un dino' y te lo dibujo con emojis 🎨","si algo te preocupa, escríbeme 'necesito hablar' (y cuéntaselo a un adulto de confianza)","di 'ahorcado en el chat' y adivina la palabra letra a letra 🪝","escribe 'toc toc' o 'cuál es el colmo de un robot' 😂","puedo hacer dos cosas a la vez: 'la hora y un chiste' 🔗","pregúntame 'guía de scream' o 'cómo se juega el cubo' antes de entrar 📖","escribe 'cuáles son los 21 logros' y te digo cuáles te faltan 🏅","cuéntame tu marca ('hice 1200 metros') y te digo si te acercas al récord 📏","di 'inventa una historia conmigo' y la escribimos por turnos 📖"];   /* 💡 trucos del chat */
 window.wallyName=function(){ try{ let nm=localStorage.getItem("edtu_agent_name")||""; if(!nm && typeof currentDisplayName==="function"){ const d=String(currentDisplayName()||""); if(d && !/admin/i.test(d)) nm=d.split(" ")[0]; } return nm?nm.slice(0,16):""; }catch(e){ return ""; } };   /* 🙋 nombre del agente para WALLY */
 function wallyType(txt){ const ws=$("wallySpeech"); if(!ws) return; try{ const nm=window.wallyName(); if(nm) txt=String(txt).replace(/\bagente\b(?! jefe)/g,nm); }catch(e){} try{ txt=String(txt).replace(/^((?:[^\p{L}\p{N}"«'(]|\s)*)(\p{Ll})(\p{L}*)/u,function(m,a,b,c){ return (/[A-ZÁÉÍÓÚÑ]/.test(c)||/^ww/.test(c))?m:a+b.toUpperCase()+c; }); if(localStorage.getItem("edtu_wally_short")==="1" && txt.length>170){ const c=txt.slice(0,200).lastIndexOf(" — "); const c2=txt.slice(0,200).lastIndexOf(". "); const cut=Math.max(c,c2); if(cut>60) txt=txt.slice(0,cut)+" …"; } if(localStorage.getItem("edtu_wally_noemoji")==="1") txt=txt.replace(/[\u{1F000}-\u{1FAFF}\u{2600}-\u{27BF}\u{2B00}-\u{2BFF}\u{FE0F}\u{200D}\u{20E3}]/gu,"").replace(/  +/g," ").trim(); if(localStorage.getItem("edtu_wally_caps")==="1") txt=txt.toUpperCase(); }catch(e){}   /* 🎭 estilo: breve / sin emojis / mayúsculas */
-    if(typing) clearInterval(typing); let i=0; ws.textContent=""; try{ if(!/^🔁 /.test(String(txt))) window._wallyLastAns=String(txt); }catch(e){}   /* 🔁 para 'repite' */
+    if(typing) clearInterval(typing); let i=0; ws.textContent="";
+    try{ ws.classList.toggle("largo", String(txt).length>240); }catch(e){}   /* 📜 respuesta larga: letra más pequeña */ try{ if(!/^🔁 /.test(String(txt))) window._wallyLastAns=String(txt); }catch(e){}   /* 🔁 para 'repite' */
     try{ if(localStorage.getItem("edtu_wally_voice")==="1" && window.speechSynthesis && !/^🎵/.test(String(txt))){ const plain=String(txt).replace(/[\u{1F300}-\u{1FAFF}\u{2600}-\u{27BF}\u{FE0F}\u{200D}]/gu,"").replace(/\s+/g," ").trim().slice(0,260); if(plain){ const u=new SpeechSynthesisUtterance(plain); u.lang="es-ES"; u.pitch=1.3; u.rate=(parseFloat(localStorage.getItem("edtu_wally_rate"))||1.05); u.volume=(parseFloat(localStorage.getItem("edtu_wally_vol"))||0.9); try{ const vs=speechSynthesis.getVoices().filter(x=>/^es[-_]?/i.test(x.lang)); const pv=vs.find(x=>/google|m[oó]nica|paulina|helena|elvira|luc[ií]a|sabina|laura/i.test(x.name))||vs[0]; if(pv) u.voice=pv; }catch(e){} speechSynthesis.cancel(); speechSynthesis.speak(u); } } }catch(e){}   /* 🔊 voz de WALLY */
     try{ const A3=new (window.AudioContext||window.webkitAudioContext)(); const o=A3.createOscillator(),g3=A3.createGain(); o.type="square"; o.frequency.value=1046; g3.gain.value=0.04; o.connect(g3); g3.connect(A3.destination); o.start(); o.stop(A3.currentTime+0.08); }catch(e){}
-    typing=setInterval(()=>{ i++; if(i>=txt.length){ ws.textContent="«"+txt+"»"; clearInterval(typing); typing=null; } else ws.textContent="«"+txt.slice(0,i)+"▌"; },26); }
+    typing=setInterval(()=>{ i++;
+      if(i>=txt.length){ ws.textContent="«"+txt+"»"; clearInterval(typing); typing=null;
+        try{ if(ws.scrollIntoView) ws.scrollIntoView({block:"nearest",behavior:"smooth"}); }catch(e){}   /* 📜 que la respuesta quede a la vista */
+        try{ wallyMiraSiHayMas(); }catch(e){} }
+      else ws.textContent="«"+txt.slice(0,i)+"▌"; },26); }
+/* 📜 si el panel se ha quedado con texto por debajo del borde, sale la flechita "▼ hay más" */
+function wallyMiraSiHayMas(){
+  const p=$("wallyFs"), b=$("wallyMas"); if(!p||!b) return;
+  const hay = p.scrollHeight - p.clientHeight - p.scrollTop > 24;
+  b.classList.toggle("on", !!hay && p.style.display==="flex");
+}
+try{
+  const p=$("wallyFs"), b=$("wallyMas");
+  if(p) p.addEventListener("scroll",()=>{ try{ wallyMiraSiHayMas(); }catch(e){} },{passive:true});
+  if(b) b.onclick=()=>{ const q=$("wallyFs"); if(q) q.scrollBy({top:q.clientHeight*0.75,behavior:"smooth"}); };
+  addEventListener("resize",()=>{ try{ wallyMiraSiHayMas(); }catch(e){} });
+}catch(e){}
   function wallyReply(q){ try{ q=(q||"").toLowerCase();
     /* 😊📷 los botones nuevos: van los primeros para que ninguna otra regla se los coma */
     if(/wally ?life|tu cara|tienes cara|cara nueva|carita|hablas de verdad|mueves la boca/.test(q)) return "😊 eso es WALLY LIFE: toca el botón 😊 y te contesto HABLANDO, con la cara moviendo la boca de verdad. Te miro (mis ojos siguen a tu dedo), parpadeo y cambio de cara según lo que hago: 🟢 verde cuando te escucho, 🟡 amarilla cuando pienso, 💜 morada cuando miro por la cámara. Toca 😊 otra vez y me callo";
