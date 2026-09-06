@@ -90,27 +90,27 @@ const corre = (J, n) => { for (let i = 0; i < n && J.run; i++) J.tick(); };
   if (Abd.run) MAL("ABDUCCIÓN: no se acaba al quedarte sin vidas");
 }
 
-/* ================= 🧲 IMÁN ================= */
+/* ================= ⚡ ENERGY ================= */
 {
   Ima.open(); Ima.start();
   Ima.pinchos = []; Ima.estrellas = [];
   const y0 = Ima.y; corre(Ima, 20);
-  if (!(Ima.y > y0)) MAL("IMÁN: sin apretar no cae");
+  if (!(Ima.y > y0)) MAL("ENERGY: sin apretar no cae");
   /* apretando, vuela hacia el puntero */
   Ima.setup(); Ima.run = true; Ima.pinchos = []; Ima.estrellas = [];
   Ima.iman = true; Ima.dedo = { x: Ima.x, y: 20 };
   corre(Ima, 25);
-  console.log("  🧲 IMÁN: apretando hacia arriba sube a y=" + Math.round(Ima.y) + " (empezó en " + Math.round(Ima.H / 2) + ")");
-  if (!(Ima.y < Ima.H / 2)) MAL("IMÁN: el imán no atrae la bola");
+  console.log("  ⚡ ENERGY: apretando hacia arriba sube a y=" + Math.round(Ima.y) + " (empezó en " + Math.round(Ima.H / 2) + ")");
+  if (!(Ima.y < Ima.H / 2)) MAL("ENERGY: el imán no atrae la bola");
   /* las estrellas suman y los pinchos matan */
   Ima.setup(); Ima.run = true; Ima.iman = false; Ima.dedo = null;
   Ima.estrellas = [{ x: Ima.x, y: Ima.y }]; Ima.pinchos = [];
   Ima.tick();
-  if (Ima.score !== 1) MAL("IMÁN: las estrellas no suman");
+  if (Ima.score !== 1) MAL("ENERGY: las estrellas no suman");
   Ima.setup(); Ima.run = true; Ima.pinchos = [{ x: Ima.x, y: Ima.y, r: 12, gir: 0 }]; Ima.estrellas = [];
   Ima.tick();
   console.log("     tras tocar un pincho, ¿sigue? " + Ima.run);
-  if (Ima.run) MAL("IMÁN: los pinchos no matan");
+  if (Ima.run) MAL("ENERGY: los pinchos no matan");
 }
 
 /* ================= 🐉 CUEVA ================= */
