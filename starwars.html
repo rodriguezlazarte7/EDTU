@@ -1907,6 +1907,9 @@ function renderDentro(yoPos,yoBase){
   pintaCabina();
   pintaRadar();
   pintaAdelanto();
+  pintaDanos();                                              /* 🩸 por dónde te están dando */
+  pintaImpacto(1/60);                                        /* 🎯 el acierto en la mira */
+  pintaCola();                                               /* 🚨 te tienen a la cola */
   dibujaMira();
   if(warnT>0){ warnT-=.016; ctx.fillStyle="rgba(255,40,40,"+(0.2*Math.max(0,warnT/.5))+")"; ctx.fillRect(0,0,W,H); }
 }
@@ -1991,6 +1994,21 @@ function puntoAdelanto(e){
   let t=len(sub(e.p,G.pos))/BALA_V;
   for(let i=0;i<2;i++) t=len(sub(add(e.p,mul(vel,t)),G.pos))/BALA_V;
   return { p:add(e.p, mul(vel,t)), t };
+}
+function pintaCola(){
+  const k=G.cola||0; if(k<=0.01) return;
+  ctx.save();
+  /* dos flechas rojas abajo, apuntando hacia atrás, y el borde de abajo encendido */
+  const late=0.55+0.45*Math.sin(G.t*11);
+  const gr=ctx.createLinearGradient(0,H,0,H-Math.min(H*0.22,120));
+  gr.addColorStop(0,"rgba(255,60,60,"+(0.30*k*late).toFixed(3)+")");
+  gr.addColorStop(1,"rgba(255,60,60,0)");
+  ctx.fillStyle=gr; ctx.fillRect(0,H-Math.min(H*0.22,120),W,Math.min(H*0.22,120));
+  ctx.fillStyle="rgba(255,90,90,"+(k*late).toFixed(3)+")";
+  ctx.font="900 "+Math.round(Math.min(W,H)*0.035)+"px Consolas,monospace";
+  ctx.textAlign="center";
+  ctx.fillText("🚨 ¡TE TIENEN A LA COLA!",CX,H-Math.min(H*0.06,44));
+  ctx.restore();
 }
 function pintaAdelanto(){
   if(!BLANCO) return;
@@ -2352,7 +2370,65 @@ function aviso(txt){ const el=$("aviso"); if(!el) return; el.textContent=txt; el
 function avisoM(){ aviso(mute?"🔇 silencio":"🔊 música y sonido"); }
 let warnT=0;
 function textoDano(p,txt,col){ G.danos.push({ p:v3(p.x,p.y,p.z), txt:(typeof txt==="number"?"-"+txt:txt), c:col||"#ffe81f", vida:1.1, max:1.1 }); }
-function golpe(d){ if(hiper>0||saliendo>0) return;          /* saliendo o entrando del salto, eres intocable */
+/* 🩸 los avisos del borde: un arco rojo por el lado por el que te acaban de dar. Ahora que
+      no paran de dispararte, saber DE DÓNDE viene el tiro es media vida */
+const DANOS_DIR=[];
+function avisoDano(desde){
+  if(!desde) return;
+  const rel=sub(desde,G.pos);
+  const dx=dot(rel,G.base.r), dy=dot(rel,G.base.u), dz=dot(rel,G.base.f);
+  /* el ángulo en la pantalla: 0 arriba, y hacia la derecha creciendo */
+  let ang=Math.atan2(dx,dy);
+  if(dz<0){                                                 /* viene de detrás: se marca abajo */
+    ang=Math.atan2(dx, -Math.abs(dy)-40);
+  }
+  /* si ya hay uno parecido, se refresca en vez de amontonar diez */
+  for(const a of DANOS_DIR){
+    if(Math.abs(((a.ang-ang+Math.PI*3)%(Math.PI*2))-Math.PI)<0.45){ a.vida=1; a.detras=dz<0; return; }
+  }
+  DANOS_DIR.push({ ang, vida:1, detras:dz<0 });
+  if(DANOS_DIR.length>6) DANOS_DIR.shift();
+}
+function danosCorren(dt){ for(const a of DANOS_DIR) a.vida-=dt*1.15;
+  for(let i=DANOS_DIR.length-1;i>=0;i--) if(DANOS_DIR[i].vida<=0) DANOS_DIR.splice(i,1); }
+function pintaDanos(){
+  if(!DANOS_DIR.length) return;
+  const R=Math.min(W,H)*0.42, gordo=Math.min(W,H)*0.055;
+  ctx.save(); ctx.lineCap="butt";
+  for(const a of DANOS_DIR){
+    const v=Math.max(0,Math.min(1,a.vida));
+    ctx.strokeStyle="rgba(255,"+(a.detras?60:90)+",70,"+(v*v*0.62).toFixed(3)+")";
+    ctx.lineWidth=gordo*(0.5+v*0.5);
+    /* el arco se dibuja alrededor del centro, en la dirección de donde vino el tiro */
+    ctx.beginPath();
+    ctx.arc(CX,CY,R, a.ang-Math.PI/2-0.32, a.ang-Math.PI/2+0.32);
+    ctx.stroke();
+  }
+  ctx.restore();
+}
+/* 🎯 el golpe acertado: cuatro palitos alrededor de la mira, como en los juegos de disparos */
+let HIT_T=0, HIT_KILL=0;
+function marcaImpacto(mato){ HIT_T=0.16; if(mato) HIT_KILL=0.42; }
+function pintaImpacto(dt){
+  if(HIT_T>0) HIT_T-=dt;
+  if(HIT_KILL>0) HIT_KILL-=dt;
+  if(HIT_T<=0&&HIT_KILL<=0) return;
+  const k=Math.max(HIT_T/0.16, HIT_KILL/0.42);
+  const mato=HIT_KILL>0;
+  const r0=10+(1-k)*7, r1=r0+9;
+  ctx.save(); ctx.strokeStyle=mato?"rgba(255,90,90,"+k.toFixed(3)+")":"rgba(255,255,255,"+(k*0.95).toFixed(3)+")";
+  ctx.lineWidth=mato?3:2; ctx.lineCap="round";
+  for(let i=0;i<4;i++){
+    const a=Math.PI/4+i*Math.PI/2;
+    ctx.beginPath();
+    ctx.moveTo(CX+Math.cos(a)*r0, CY+Math.sin(a)*r0);
+    ctx.lineTo(CX+Math.cos(a)*r1, CY+Math.sin(a)*r1);
+    ctx.stroke();
+  }
+  ctx.restore();
+}
+function golpe(d,desde){ if(hiper>0||saliendo>0) return;    /* saliendo o entrando del salto, eres intocable */
+  avisoDano(desde);
   G.regenT=NAVE().regenT||0;                               /* al recibir un golpe, la reparación se pausa */
   cortaRacha(true);                                        /* que te den te corta la racha */
   G.shield-=d; G.golpes=(G.golpes||0)+1; sacude(.22+Math.min(.5,d/70)); if(d>=1){ const q=add(G.pos, add(mul(G.base.f,40), mul(G.base.u,-6))); textoDano(q, Math.round(d), "#ff5a5a"); } warnT=.5; $("warn").style.opacity=1; setTimeout(()=>{$("warn").style.opacity=0;},350); sfx("hit"); }
@@ -3058,7 +3134,7 @@ function jefeCorre(e,dt){
     const haciaTi=sub(G.pos,e.p), largo=dot(haciaTi,e.b.f);
     if(largo>0&&largo<3000){
       const perp=len(sub(haciaTi, mul(e.b.f,largo)));
-      if(perp<RAYO_RADIO){ golpe(RAYO_DANO*dt*DIF().dano); sacude(dt*2.2); }
+      if(perp<RAYO_RADIO){ golpe(RAYO_DANO*dt*DIF().dano, e.p); sacude(dt*2.2); }
     }
   }
   /* a la mitad de la vida se enfurece y llama a dos escoltas */
@@ -3503,6 +3579,18 @@ function update(dt){
     G.quedan--; } }
   $("hudEnem").textContent=(G.enem.filter(e=>!e.ardiendo).length+G.quedan)+" enemigos · "+G.amigos.filter(a=>a.revive<=0).length+" aliados";
 
+  /* 🚨 ¿alguien te está apuntando por detrás? Es lo que más mata: no lo ves venir */
+  { let cola=null, peor=0;
+    for(const e of G.enem){
+      if(e.ardiendo>0) continue;
+      const rel=sub(G.pos,e.p), d=len(rel);
+      if(d>900) continue;
+      const apunta=dot(norm(rel), e.b.f);                    /* te tiene en su mira */
+      const detras=dot(norm(sub(e.p,G.pos)), G.base.f)<-0.25;/* y está a tu espalda */
+      if(detras&&apunta>0.93&&apunta>peor){ peor=apunta; cola=e; }
+    }
+    G.cola=cola?1:Math.max(0,(G.cola||0)-dt*2.2);
+  }
   buscaBlanco();
   naveTocada(dt);
   torpedosCorren(dt);
@@ -3513,6 +3601,7 @@ function update(dt){
   G.estelas=G.estelas.filter(e=>e.vida>0);
 
   rachaCorre(dt);
+  danosCorren(dt);
   tutoCorre(dt);
   G.guardaT=(G.guardaT||0)-dt;
   if(G.guardaT<=0){ G.guardaT=20; if(esSuper()) guardaPartida(); }   /* en supervivencia, cada 20 s */
@@ -3542,7 +3631,12 @@ function update(dt){
 
   /* ---- IA: te persiguen y disparan ---- */
   for(const e of G.enem){
-    if(e.ardiendo>0){ if(agoniza(e,dt)){ e.muerto=true; bum(e.p,1.5); sfx("boom",e.p); } continue; }
+    if(e.ardiendo>0){ if(agoniza(e,dt)){ e.muerto=true; bum(e.p,1.5); sfx("boom",e.p);
+      /* 💥 la onda expansiva del reventón, como la del misil: se ve de lejos */
+      const grande=(e.k===CLASES.jefe||e.k===CLASES.nodriza);
+      G.ondas.push({ p:v3(e.p.x,e.p.y,e.p.z), r:4, v:grande?420:240, vida:grande?.9:.6, max:grande?.9:.6, c:"255,190,120" });
+      if(grande) G.ondas.push({ p:v3(e.p.x,e.p.y,e.p.z), r:2, v:180, vida:1.3, max:1.3, c:"255,120,60" });
+    } continue; }
     const haciaMi=sub(G.pos,e.p), d=len(haciaMi);
     const bomba=(e.k===CLASES.bomba), jefe=(e.k===CLASES.jefe);
 
@@ -3630,6 +3724,7 @@ function update(dt){
           const dmg=Math.round(((b.yo!==false?55:40)+Math.random()*8)*(b.yo!==false?(NAVE().dano||1):1)*(b.fuerte?3.2:1));
           if(e.k===CLASES.nodriza && nodrizaGolpe(e, b.p, dmg)) break;   /* lo paró el escudo o se lo comió un generador */
           e.vida-=dmg; textoDano(e.p, dmg, b.yo!==false?"#ffe81f":"#8fd0ff");
+          if(b.yo!==false) marcaImpacto(e.vida<=0);      /* 🎯 la mira te dice que le diste */
           if(e.vida<=0&&!e.ardiendo){ seIncendia(e); textoDano(e.p,"¡EN LLAMAS!","#ff8a2b"); sueltaCapsula(e.p); if(b.yo!==false){ sumaRacha(); G.kills++; const gana=Math.round((100+G.wave*10)*(e.k?e.k.pts:1)*DIF().puntos*multiRacha()); G.score+=gana; pts(gana); misionAvanza("rapido"); if(e.k===CLASES.jefe||e.k===CLASES.nodriza){ misionAvanza("jefe"); G.jefes=(G.jefes||0)+1; G.refuerzos++; aviso("📻 +1 refuerzo"); } } else { G.score+=30; } }
           else { bum(e.p,.3); sfx("hit",e.p); }
           break;
@@ -3637,7 +3732,7 @@ function update(dt){
       }
     } else {
       if(aliadoGolpe(b.p, 26*(b.dano||1))){ b.vida=0; }
-      else if(len(sub(b.p,G.pos))<26){ b.vida=0; golpe((9+G.wave)*(b.dano||1)*DIF().dano); }
+      else if(len(sub(b.p,G.pos))<26){ b.vida=0; golpe((9+G.wave)*(b.dano||1)*DIF().dano, b.p); }
       else for(const a of G.amigos){ if(a.revive<=0&&len(sub(b.p,a.p))<G.mod.r*2.4){ b.vida=0; a.vida--; textoDano(a.p,"-1 ❤","#ff8a5c");
         if(a.vida<=0&&!a.ardiendo){ seIncendia(a); G.caidos=(G.caidos||0)+1; if(a.protegido) misionFallo("derribaron a tu compañero"); } else if(a.vida>0){ bum(a.p,.3); sfx("hit",a.p); } break; } }
     }
@@ -3661,11 +3756,11 @@ function update(dt){
       const loc=aCamara(d.b, sub(G.pos,d.p));                /* dónde estás respecto a SU casco */
       const dentro=Math.abs(loc.x)<150&&Math.abs(loc.z)<230;
       if(dentro&&loc.y<16&&loc.y>-40){                       /* te metiste en la chapa */
-        golpe(dt*70); G.pos=add(d.p, aLocal(d.b, v3(loc.x,16,loc.z)));
+        golpe(dt*70, d.p); G.pos=add(d.p, aLocal(d.b, v3(loc.x,16,loc.z)));
       }
       continue;
     }
-    if(len(sub(G.pos,d.p))<260){ golpe(dt*70); const fuera=norm(sub(G.pos,d.p)); G.pos=add(d.p,mul(fuera,262)); }
+    if(len(sub(G.pos,d.p))<260){ golpe(dt*70, d.p); const fuera=norm(sub(G.pos,d.p)); G.pos=add(d.p,mul(fuera,262)); }
   }
 
   /* ---- HUD ---- */
@@ -3958,7 +4053,7 @@ document.addEventListener("pointerlockchange",()=>{ if(G.run&&!G.over&&saliendo<
 resize(); estrellasNuevas(); destructoresNuevos();
 $("best").textContent=G.best?"🏆 tu récord: "+G.best+" battle points":"";
 pintaRecords();
-const NOVEDADES_V=24;                                         /* sube este número cuando haya cosas nuevas */
+const NOVEDADES_V=25;                                         /* sube este número cuando haya cosas nuevas */
 const NOVEDADES=[
   ["🎚️","Mandas tú la velocidad","<span class='tec'>W</span> y <span class='tec'>S</span> (o la rueda del ratón) mueven el acelerador · <span class='tec'>X</span> para en seco · <span class='tec'>Z</span> a fondo. Parado giras hasta un 75% más cerrado: frena y el que te persigue se te pasa de largo"],
   ["🚀","Torpedos que persiguen","<span class='tec'>F</span> suelta dos torpedos al enemigo que tengas fichado. Pegan 260 (casi cinco veces un láser). Llevas 6 y te dan 2 en cada oleada"],
@@ -3973,6 +4068,10 @@ const NOVEDADES=[
   ["😠","Cuatro dificultades","De FÁCIL a IMPOSIBLE. Las difíciles pagan más: en IMPOSIBLE cada derribo vale x2,5"],
   ["🔥","Ráfagas de tres","Los enemigos ya no sueltan un tiro suelto: sueltan una RÁFAGA de tres seguidos que te persigue en fila india (el bombardero, de dos, que pega más). Y tiran desde 1900 en vez de 1500, casi sin apuntar (0,62) y cada 0,16-0,42 s. Con las oleadas dobles, el cielo es una tormenta de rayos"],
   ["🔫","Nadie para de disparar","Ya no hace falta que te tengan clavado en la mira: a los enemigos les basta con tenerte MÁS O MENOS por delante (0,15 en vez de 0,62) y tiran desde 2600 en vez de 1900, incluso mientras huyen o dan la vuelta. Y tus aliados igual: disparan desde 2600 en vez de 1250 y sin esperar a tenerlo centrado; los jefes buenos, el doble de rápido. El cielo no se calla nunca"],
+  ["🩸","Sabes por dónde te disparan","Cuando te dan, se enciende un ARCO ROJO en el borde de la pantalla por el lado del que vino el tiro: derecha, izquierda, arriba, abajo... y en otro tono si vino de tu espalda. Los tiros del mismo sitio se juntan en un solo aviso en vez de amontonarse, y se apagan solos"],
+  ["🎯","La mira te confirma el acierto","Cuatro palitos blancos se abren alrededor de la mira cada vez que le das a alguien, y salen ROJOS y durando el triple cuando lo derribas. Ya no hay que adivinar si tus disparos llegan"],
+  ["💥","Las naves revientan con onda","Al estallar, cada nave suelta una onda expansiva que se abre y se apaga. Los jefes y las nodrizas sueltan DOS, y la suya viaja a 420 en vez de a 240"],
+  ["🚨","Te tienen a la cola","Si un enemigo se te pega a la espalda a menos de 900 y te tiene en su mira, el borde de abajo se enciende en rojo latiendo y salta el aviso. Es lo que más mata: el que no ves venir"],
   ["🌀","El túnel, ahora sí un tubo","Ya no son solo rayas: ahora el túnel tiene PAREDES (16 filamentos que bajan en espiral desde el fondo hasta ti, con una luz corriendo por dentro), GAS pegado a la pared en manchones anchos que pasan de largo, niebla azul que quita el negro de en medio, estelas que se estiran con la velocidad y se descomponen en azul y rosa como una lente de verdad, la cabeza blanca de las luces que te pasan rozando, y un agujero al fondo que LATE y suelta 7 rayos girando. Tres anillos en vez de dos, que se abren rápido y se frenan. Y todo con su propio reloj, así que también corre en la pausa"],
   ["⏸","La pausa, dentro del hiperespacio","El menú de pausa ya no es un telón encima del juego: ahora es un cristal azul con las esquinas de una cabina, flotando DENTRO del túnel del hiperespacio, que se ve corriendo por detrás mientras decides. Y arreglado el bug: al apretar ESCAPE el navegador soltaba el ratón y eso hacía saltar la pausa vieja por encima del salto"],
   ["🌠","Cinco segundos de hiperespacio","Al salir, el viaje dura 5 segundos en vez de 2: 1,8 s de acelerón hasta meterte en el túnel y luego el viaje entero ahí dentro, con un zumbido de dos tonos que laten juntos y el frenazo al final"],
