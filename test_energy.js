@@ -98,6 +98,52 @@ for (let i = 0; i < 40; i++) Ima.tick();
 console.log("  el campo magnético tira del núcleo: y " + Math.round(arriba) + " → " + Math.round(Ima.y));
 if (!(Ima.y < arriba)) MAL("el campo ya no atrae el núcleo");
 
+/* ---------- 3b) la CADENA: encadenar células multiplica ---------- */
+const coge = (veces) => { for (let i = 0; i < veces; i++) { Ima.estrellas = [{ x: Ima.x, y: Ima.y }]; Ima.tick(); } };
+Ima.setup(); Ima.run = true; Ima.pinchos = [];
+coge(3);
+const con3 = { score: Ima.score, multi: Ima.multi };
+coge(1); const con4 = { score: Ima.score, multi: Ima.multi };
+coge(4); const con8 = Ima.multi;
+coge(4); const con12 = Ima.multi;
+console.log("  la cadena: 3 células → x" + con3.multi + " · 4 → x" + con4.multi + " · 8 → x" + con8 + " · 12 → x" + con12);
+if (!(con3.multi === 1 && con4.multi === 2 && con8 === 3 && con12 === 4)) MAL("los multiplicadores no van como deben (x2 a las 4, x3 a las 8, x4 a las 12)");
+console.log("  y cada célula vale por el multiplicador: la 4ª sumó " + (con4.score - con3.score) + " puntos");
+if (con4.score - con3.score !== 2) MAL("la célula no vale por el multiplicador");
+/* si dejas escapar una célula, la cadena se rompe */
+Ima.estrellas = [{ x: -30, y: Ima.y }]; Ima.tick();
+console.log("  dejo escapar una célula por la izquierda → cadena " + Ima.cadena + " · multiplicador x" + Ima.multi);
+if (Ima.multi !== 1) MAL("dejar escapar una célula no rompe la cadena");
+/* y si tardas demasiado, se enfría sola */
+Ima.setup(); Ima.run = true; Ima.pinchos = []; coge(5);
+const antesFrio = Ima.multi;
+/* vaciando las células y sujetando el núcleo en el aire (si no, se estrella y ya no cuenta
+   nada): así lo único que puede romper la cadena es el reloj */
+for (let i = 0; i < 200; i++) { Ima.estrellas = []; Ima.pinchos = []; Ima.y = Ima.H / 2; Ima.vy = 0; Ima.tick(); }
+console.log("  espero 200 fotogramas sin coger nada → x" + antesFrio + " se enfría a x" + Ima.multi);
+if (Ima.multi !== 1) MAL("la cadena no se enfría sola");
+
+/* ---------- 3c) el ROCE: pasar cerca de una mina sin tocarla ---------- */
+Ima.setup(); Ima.run = true; Ima.estrellas = [];
+Ima.pinchos = [{ x: Ima.x - 4, y: Ima.y + 26, r: 11, gir: 0, rozada: false }];
+const puntosAntes = Ima.score;
+Ima.tick();
+console.log("  paso rozando una mina (a 26 px): +" + (Ima.score - puntosAntes) + " punto · destello rojo " + Ima.rojo.toFixed(2) + " · sigo vivo " + Ima.run);
+if (Ima.score - puntosAntes !== 1) MAL("rozar la mina no da el punto");
+if (!(Ima.rojo > 0)) MAL("el roce no enciende el destello rojo");
+if (!Ima.run) MAL("¡el roce te mata! tiene que ser solo un susto");
+/* y no se puede farmear la misma mina dos veces */
+const trasRoce = Ima.score; Ima.tick();
+console.log("  la misma mina, otra vez: +" + (Ima.score - trasRoce) + " (no se puede repetir)");
+if (Ima.score !== trasRoce) MAL("la misma mina da puntos una y otra vez");
+/* pero tocarla de verdad sigue matando */
+Ima.setup(); Ima.run = true; Ima.estrellas = [];
+Ima.pinchos = [{ x: Ima.x, y: Ima.y, r: 11, gir: 0, rozada: false }];
+Ima.tick();
+console.log("  tocarla de verdad: " + (Ima.boom ? "revienta ✅" : "no pasa nada ❌"));
+if (!Ima.boom) MAL("tocar la mina ya no mata");
+Ima.boom = null; Ima.sacude = 0;
+
 /* ---------- 4) al morir, REVIENTA ---------- */
 Ima.setup(); Ima.run = true; Ima.score = 7; Ima.estrellas = [];
 Ima.pinchos = [{ x: Ima.x, y: Ima.y, r: 12, gir: 0 }];

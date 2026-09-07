@@ -917,18 +917,26 @@ function tunelPunto(p,lejos){
 }
 /* 🌀 LAS PAREDES: 16 filamentos que bajan en espiral por el tubo. Son ellos los que hacen
       que se vea un TUBO por dentro y no una lluvia de rayas sueltas. */
-const TUNEL_FIL=[], FIL_N=16, FIL_PASOS=22;
+const TUNEL_FIL=[], FIL_N=24, FIL_PASOS=26;
 const TUNEL_GAS=[], GAS_N=13;
 let TUNEL_T=0;                                               /* reloj propio: sigue corriendo en pausa */
+let TUNEL_ONDA=0;                                            /* el estallido del momento de entrar */
 function tunelArranca(){
+  TUNEL_ONDA=1;                                              /* al entrar, el fogonazo del salto */
   TUNEL.length=0; for(let i=0;i<TUNEL_N;i++) TUNEL.push(tunelPunto({},true));
   TUNEL_FIL.length=0;
-  for(let i=0;i<FIL_N;i++) TUNEL_FIL.push({
-    a:(i/FIL_N)*Math.PI*2 + Math.random()*0.25,
-    r:430+Math.random()*260,                                 /* la pared del tubo, con sus bultos */
-    paso:(0.00072+Math.random()*0.00075)*(Math.random()<.5?-1:1),   /* cuánto retuerce */
-    c:TUNEL_COL[(Math.random()*TUNEL_COL.length)|0],
-    g:0.7+Math.random()*1.5, fase:Math.random()*7 });
+  /* DOS capas: una pared exterior ancha y otra interior más cerrada. Con dos radios distintos
+     el tubo tiene GROSOR, y al pasar entre las dos se nota que estás metido dentro de algo */
+  for(let i=0;i<FIL_N;i++){
+    const fuera=i%2===0;
+    TUNEL_FIL.push({
+      a:(i/FIL_N)*Math.PI*2 + Math.random()*0.22,
+      r: fuera ? 520+Math.random()*300 : 250+Math.random()*180,
+      paso:(0.00060+Math.random()*0.00085)*(Math.random()<.5?-1:1),   /* cuánto retuerce */
+      c:TUNEL_COL[(Math.random()*TUNEL_COL.length)|0],
+      g:(fuera?0.9:0.6)+Math.random()*1.4, fase:Math.random()*7,
+      vel:0.55+Math.random()*0.75 });                         /* a qué ritmo le corre la luz por dentro */
+  }
   TUNEL_GAS.length=0;
   for(let i=0;i<GAS_N;i++) TUNEL_GAS.push(gasNuevo({}, true));
 }
@@ -947,6 +955,10 @@ function pintaTunel(k,dt){
   if(!TUNEL.length) tunelArranca();
   if(!TUNEL_FIL.length) tunelArranca();
   TUNEL_T+=dt;                                               /* reloj propio: así también late en la pausa */
+  /* el tubo se bambolea un poco: sin esto parece una foto, con esto parece que lo pilotas */
+  const cx=CX+Math.sin(TUNEL_T*0.63)*W*0.012*k + Math.sin(TUNEL_T*1.9)*W*0.003*k;
+  const cy=CY+Math.cos(TUNEL_T*0.47)*H*0.014*k + Math.cos(TUNEL_T*2.3)*H*0.003*k;
+  if(TUNEL_ONDA>0) TUNEL_ONDA=Math.max(0,TUNEL_ONDA-dt*1.15);
   const vel=(520+k*k*30000);                                 /* al principio se acerca, al final es un borrón */
   const giro=0.30+k*1.05;                                    /* el tubo entero se retuerce */
   const MAXD=Math.max(W,H)*1.15;
@@ -963,31 +975,35 @@ function pintaTunel(k,dt){
     if(al<0.012) continue;
     ctx.strokeStyle="rgba("+b.c[0]+","+b.c[1]+","+b.c[2]+","+al.toFixed(3)+")";
     ctx.lineWidth=Math.max(2, 210*e*(1+k));
-    ctx.beginPath(); ctx.arc(CX,CY,rr,b.a,b.a+b.ancho); ctx.stroke();
+    ctx.beginPath(); ctx.arc(cx,cy,rr,b.a,b.a+b.ancho); ctx.stroke();
   }
 
-  /* ---- 2) LAS PAREDES: filamentos que bajan en espiral desde el fondo hasta ti ---- */
+  /* ---- 2) LAS PAREDES: filamentos en espiral, y la LUZ CORRIENDO por dentro ----
+        Antes el filamento entero se encendía y se apagaba a la vez, que de lejos parecía un
+        parpadeo tonto. Ahora se dibuja por TRAMOS y cada tramo se ilumina según una ola que
+        viaja por el tubo hacia ti: eso es lo que hace que parezca que vuelas, no que flotas. */
+  const OLA=TUNEL_T*(2.2+k*9);
   for(const fi of TUNEL_FIL){
     fi.a+=giro*dt;
-    ctx.beginPath();
-    let dibujando=false, alMedia=0, nPts=0;
+    let px=0, py=0, hay=false;
     for(let i=0;i<=FIL_PASOS;i++){
       const z=44+Math.pow(i/FIL_PASOS,2.1)*(TUNEL_FONDO-44);  /* apretados cerca: así se ve la profundidad */
       const ang=fi.a+z*fi.paso;
       const e=FOV/z, rr=fi.r*e;
-      const x=CX+Math.cos(ang)*rr, y=CY+Math.sin(ang)*rr;
-      if(rr>MAXD*2.4){ dibujando=false; continue; }
-      if(!dibujando){ ctx.moveTo(x,y); dibujando=true; } else ctx.lineTo(x,y);
-      alMedia+=Math.min(1,900/z); nPts++;
+      const x=cx+Math.cos(ang)*rr, y=cy+Math.sin(ang)*rr;
+      if(rr>MAXD*2.4){ hay=false; continue; }
+      if(!hay){ px=x; py=y; hay=true; continue; }
+      /* la ola: la misma cuenta para todos los filamentos, corrida por su fase */
+      const ola=0.30+0.70*Math.pow(Math.max(0,Math.sin(z*0.0042 - OLA*fi.vel + fi.fase)),3);
+      const cerca=Math.min(1,900/z);
+      const al=Math.min(1,k*1.3)*cerca*0.62*ola;
+      if(al>0.015){
+        ctx.strokeStyle="rgba("+fi.c[0]+","+fi.c[1]+","+fi.c[2]+","+al.toFixed(3)+")";
+        ctx.lineWidth=Math.max(0.7, fi.g*(0.8+k*2.6)*(0.5+ola*0.9));
+        ctx.beginPath(); ctx.moveTo(px,py); ctx.lineTo(x,y); ctx.stroke();
+      }
+      px=x; py=y;
     }
-    if(!nPts) continue;
-    /* una luz corre por el filamento hacia ti: eso es lo que da la sensación de VELOCIDAD */
-    const late=0.55+0.45*Math.sin(TUNEL_T*(2.4+k*7)+fi.fase);
-    const al=Math.min(1,k*1.3)*(alMedia/nPts)*0.55*late;
-    if(al<0.015) continue;
-    ctx.strokeStyle="rgba("+fi.c[0]+","+fi.c[1]+","+fi.c[2]+","+al.toFixed(3)+")";
-    ctx.lineWidth=Math.max(0.8, fi.g*(0.9+k*2.4));
-    ctx.stroke();
   }
 
   /* ---- 3) LAS LUCES que te pasan rozando, ahora con estela larga y borde de color ---- */
@@ -1001,9 +1017,9 @@ function pintaTunel(k,dt){
     /* la estela se estira con la velocidad: parada es un punto, lanzada es una raya larguísima */
     const zAtras=Math.min(TUNEL_FONDO, zAntes+recorrido*(1.6+k*2.2));
     const e1=FOV/p.z, e2=FOV/zAtras;
-    const x1=CX+co*p.r*e1, y1=CY+si*p.r*e1;
-    const x2=CX+co*p.r*e2, y2=CY+si*p.r*e2;
-    if(Math.hypot(x1-CX,y1-CY)>MAXD) continue;
+    const x1=cx+co*p.r*e1, y1=cy+si*p.r*e1;
+    const x2=cx+co*p.r*e2, y2=cy+si*p.r*e2;
+    if(Math.hypot(x1-cx,y1-cy)>MAXD) continue;
     const cerca=Math.min(1, 900/p.z);
     const al=Math.min(1, k*1.25)*cerca*0.9;
     if(al<0.02) continue;
@@ -1033,18 +1049,36 @@ function pintaTunel(k,dt){
   for(let i=0;i<7;i++){
     const ang=TUNEL_T*0.55+i*Math.PI*2/7;
     const largo=r0*(3.2+2.6*Math.abs(Math.sin(TUNEL_T*1.7+i)));
-    const gg=ctx.createLinearGradient(CX,CY,CX+Math.cos(ang)*largo,CY+Math.sin(ang)*largo);
+    const gg=ctx.createLinearGradient(cx,cy,cx+Math.cos(ang)*largo,cy+Math.sin(ang)*largo);
     gg.addColorStop(0,"rgba(235,246,255,"+(0.30*k).toFixed(3)+")");
     gg.addColorStop(1,"rgba(120,180,255,0)");
     ctx.strokeStyle=gg; ctx.lineWidth=Math.max(1.5,r0*0.20);
-    ctx.beginPath(); ctx.moveTo(CX,CY); ctx.lineTo(CX+Math.cos(ang)*largo,CY+Math.sin(ang)*largo); ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(cx,cy); ctx.lineTo(cx+Math.cos(ang)*largo,cy+Math.sin(ang)*largo); ctx.stroke();
   }
-  const g=ctx.createRadialGradient(CX,CY,0,CX,CY,r0*4.4);
-  g.addColorStop(0,"rgba(255,255,255,"+(0.85*k).toFixed(3)+")");
-  g.addColorStop(0.13,"rgba(226,242,255,"+(0.55*k).toFixed(3)+")");
-  g.addColorStop(0.30,"rgba(150,200,255,"+(0.26*k).toFixed(3)+")");
-  g.addColorStop(1,"rgba(60,110,255,0)");
-  ctx.fillStyle=g; ctx.beginPath(); ctx.arc(CX,CY,r0*4.4,0,7); ctx.fill();
+  const g=ctx.createRadialGradient(cx,cy,0,cx,cy,r0*4.4);
+  /* cuanto más lanzado vas, más se va el color del blanco al violeta */
+  const vio=Math.round(150+70*k);
+  g.addColorStop(0,"rgba(255,255,255,"+(0.90*k).toFixed(3)+")");
+  g.addColorStop(0.13,"rgba(230,240,255,"+(0.58*k).toFixed(3)+")");
+  g.addColorStop(0.30,"rgba("+vio+",190,255,"+(0.28*k).toFixed(3)+")");
+  g.addColorStop(1,"rgba(70,90,255,0)");
+  ctx.fillStyle=g; ctx.beginPath(); ctx.arc(cx,cy,r0*4.4,0,7); ctx.fill();
+  /* el DESTELLO ANAMÓRFICO: la raya horizontal de las lentes de cine. Es un detalle tonto
+     que cambia por completo la pinta: pasa de dibujo a fotograma de peli */
+  const lw=Math.max(W,H)*(0.30+k*0.55)*pulso, lh=Math.max(2.4, r0*0.24);
+  const fl=ctx.createLinearGradient(cx-lw,cy,cx+lw,cy);
+  fl.addColorStop(0,"rgba(120,180,255,0)");
+  fl.addColorStop(0.30,"rgba(170,215,255,"+(0.22*k).toFixed(3)+")");
+  fl.addColorStop(0.5,"rgba(255,255,255,"+(0.55*k).toFixed(3)+")");
+  fl.addColorStop(0.70,"rgba(170,215,255,"+(0.22*k).toFixed(3)+")");
+  fl.addColorStop(1,"rgba(120,180,255,0)");
+  ctx.fillStyle=fl; ctx.fillRect(cx-lw,cy-lh/2,lw*2,lh);
+  /* y una más finita en vertical, que las lentes hacen las dos */
+  const fv=ctx.createLinearGradient(cx,cy-lw*0.42,cx,cy+lw*0.42);
+  fv.addColorStop(0,"rgba(150,200,255,0)");
+  fv.addColorStop(0.5,"rgba(255,255,255,"+(0.28*k).toFixed(3)+")");
+  fv.addColorStop(1,"rgba(150,200,255,0)");
+  ctx.fillStyle=fv; ctx.fillRect(cx-lh*0.35,cy-lw*0.42,lh*0.7,lw*0.84);
 
   /* ---- 5) TRES anillos saliendo despedidos, ya no dos, y con su propio reloj ---- */
   for(let i=0;i<3;i++){
@@ -1054,16 +1088,24 @@ function pintaTunel(k,dt){
     if(a<0.008) continue;
     ctx.strokeStyle="rgba(205,232,255,"+a.toFixed(3)+")";
     ctx.lineWidth=1.5+(1-t)*8*k;
-    ctx.beginPath(); ctx.arc(CX,CY,rr,0,7); ctx.stroke();
+    ctx.beginPath(); ctx.arc(cx,cy,rr,0,7); ctx.stroke();
+  }
+  /* 💥 el golpe del momento de entrar: un anillo grueso que sale disparado una sola vez */
+  if(TUNEL_ONDA>0.01){
+    const o=1-TUNEL_ONDA;                                    /* 0 recién entrado, 1 ya pasó */
+    const rr=Math.max(W,H)*(0.02+Math.pow(o,0.55)*1.15);
+    ctx.strokeStyle="rgba(235,246,255,"+(Math.pow(TUNEL_ONDA,1.6)*0.75).toFixed(3)+")";
+    ctx.lineWidth=Math.max(1,26*TUNEL_ONDA*TUNEL_ONDA);
+    ctx.beginPath(); ctx.arc(cx,cy,rr,0,7); ctx.stroke();
   }
   ctx.restore();
   /* las esquinas se oscurecen y el tubo se tiñe de azul: ya no es negro entre luz y luz */
-  const nieb=ctx.createRadialGradient(CX,CY,Math.min(W,H)*0.05,CX,CY,Math.max(W,H)*0.62);
+  const nieb=ctx.createRadialGradient(cx,cy,Math.min(W,H)*0.05,cx,cy,Math.max(W,H)*0.62);
   nieb.addColorStop(0,"rgba(120,175,255,"+(0.13*k).toFixed(3)+")");
   nieb.addColorStop(0.55,"rgba(40,80,190,"+(0.09*k).toFixed(3)+")");
   nieb.addColorStop(1,"rgba(0,0,0,0)");
   ctx.save(); ctx.globalCompositeOperation="lighter"; ctx.fillStyle=nieb; ctx.fillRect(0,0,W,H); ctx.restore();
-  const v=ctx.createRadialGradient(CX,CY,Math.min(W,H)*0.16,CX,CY,Math.max(W,H)*0.72);
+  const v=ctx.createRadialGradient(cx,cy,Math.min(W,H)*0.16,cx,cy,Math.max(W,H)*0.72);
   v.addColorStop(0,"rgba(0,0,0,0)"); v.addColorStop(1,"rgba(2,6,26,"+(0.72*k).toFixed(3)+")");
   ctx.fillStyle=v; ctx.fillRect(0,0,W,H);
 }

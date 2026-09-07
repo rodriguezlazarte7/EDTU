@@ -13,13 +13,18 @@ const codigo = html.slice(ini, fin);
 
 /* ---------- un lienzo de mentira que apunta TODO lo que se le pide ---------- */
 const cuenta = { moveTo: 0, lineTo: 0, arc: 0, stroke: 0, fill: 0, fillRect: 0, grad: 0 };
-let largos = [], ultimoMove = null, reciénMovido = false;
+let largos = [], paredes = 0, ultimoMove = null, ultimoFin = null;
 const ctx = {
   save() {}, restore() {}, beginPath() {}, closePath() {},
-  moveTo(x, y) { cuenta.moveTo++; ultimoMove = [x, y]; reciénMovido = true; },
-  lineTo(x, y) { cuenta.lineTo++; /* una ESTELA es moveTo+lineTo suelto; una PARED es moveTo y muchos lineTo seguidos */
-    if (ultimoMove && reciénMovido) largos.push(Math.hypot(x - ultimoMove[0], y - ultimoMove[1]));
-    ultimoMove = [x, y]; reciénMovido = false; },
+  moveTo(x, y) { cuenta.moveTo++; ultimoMove = [x, y]; },
+  lineTo(x, y) { cuenta.lineTo++;
+    /* las PAREDES se dibujan encadenadas (cada tramo empieza donde acabó el anterior);
+       las ESTELAS salen sueltas por ahí. Así se distinguen sin mirar el código */
+    const enganchado = ultimoFin && ultimoMove &&
+      Math.abs(ultimoMove[0] - ultimoFin[0]) < 0.001 && Math.abs(ultimoMove[1] - ultimoFin[1]) < 0.001;
+    if (enganchado) paredes++;
+    else if (ultimoMove) largos.push(Math.hypot(x - ultimoMove[0], y - ultimoMove[1]));
+    ultimoFin = [x, y]; ultimoMove = null; },
   arc() { cuenta.arc++; }, stroke() { cuenta.stroke++; }, fill() { cuenta.fill++; }, fillRect() { cuenta.fillRect++; },
   createRadialGradient() { cuenta.grad++; return { addColorStop() {} }; },
   createLinearGradient() { cuenta.grad++; return { addColorStop() {} }; },
@@ -42,7 +47,7 @@ if (cuenta.stroke + cuenta.fill !== 0) MAL("gasta dibujando cuando no hay hipere
 
 /* ---------- 2) a fondo dibuja las tres capas ---------- */
 ent.tunelArranca();
-largos = []; cero(); ent.pintaTunel(1, 1 / 60);
+largos = []; paredes = 0; cero(); ent.pintaTunel(1, 1 / 60);
 console.log("  a fondo: " + cuenta.stroke + " trazos · " + cuenta.arc + " arcos (gas y anillos) · " +
             cuenta.lineTo + " tramos de línea · " + cuenta.grad + " degradados");
 if (cuenta.stroke < 200) MAL("dibuja muy poco: no se vería el tubo");
@@ -53,16 +58,16 @@ if (cuenta.grad < 5) MAL("faltan los degradados del núcleo y los rayos");
 console.log("  paredes: " + ent.TUNEL_FIL.length + " filamentos en espiral · gas: " + ent.TUNEL_GAS.length + " manchones · luces: " + ent.TUNEL.length);
 if (ent.TUNEL_FIL.length < 10) MAL("pocas paredes");
 if (!ent.TUNEL_GAS.length) MAL("no hay gas");
-const tramosPorFilamento = (cuenta.lineTo - largos.length) / ent.TUNEL_FIL.length;   /* los lineTo que NO son estelas */
+const tramosPorFilamento = paredes / ent.TUNEL_FIL.length;   /* los tramos encadenados, repartidos entre los filamentos */
 console.log("  cada filamento se dibuja con ~" + tramosPorFilamento.toFixed(0) + " tramos (una espiral, no una recta)");
 if (tramosPorFilamento < 8) MAL("los filamentos son casi rectas: no se ve la espiral");
 
 /* ---------- 3) las estelas se estiran con la velocidad ---------- */
-/* el lienzo falso distingue las dos cosas: una ESTELA es un moveTo con UN lineTo detrás,
-   mientras que una PARED es un moveTo con veintitantos lineTo seguidos. Así medimos solo estelas */
+/* el lienzo falso las distingue por como se enganchan: los tramos de PARED van encadenados
+   (cada uno empieza donde acabo el anterior) y las ESTELAS salen sueltas. Aqui, solo estelas */
 function largoEstela(k) {
   ent.tunelArranca(); ent.pintaTunel(k, 1 / 60);        /* un fotograma para colocar */
-  largos = []; cero(); ent.pintaTunel(k, 1 / 60);
+  largos = []; paredes = 0; cero(); ent.pintaTunel(k, 1 / 60);
   return largos.reduce((a, b) => a + b, 0) / Math.max(1, largos.length);
 }
 const lento = largoEstela(0.25), rapido = largoEstela(1.0);
@@ -87,7 +92,59 @@ console.log("  reloj propio del túnel: " + t0.toFixed(2) + " → " + ent.T.toFi
 if (!(ent.T > t0)) MAL("el túnel no tiene reloj propio: se quedaría quieto en la pausa");
 if (/G\.t\*1\.8/.test(codigo)) MAL("los anillos siguen usando el reloj del juego (se congelan en pausa)");
 
-/* ---------- 6) y sigue siendo barato ---------- */
+/* ---------- 6) lo nuevo: dos capas, ola de luz, bamboleo, destello y estallido ---------- */
+ent.tunelArranca();
+const radios = ent.TUNEL_FIL.map(f => f.r).sort((a, b) => a - b);
+const dentro = radios.filter(r => r < 450).length, fuera = radios.length - dentro;
+console.log("  el tubo tiene GROSOR: " + dentro + " filamentos en la pared de dentro (" + Math.round(radios[0]) + "-" + Math.round(radios[dentro - 1]) + ") y " + fuera + " en la de fuera (" + Math.round(radios[dentro]) + "-" + Math.round(radios[radios.length - 1]) + ")");
+if (!dentro || !fuera) MAL("los filamentos están todos al mismo radio: el tubo no tiene grosor");
+
+/* la OLA de luz: en un mismo fotograma, los tramos de un filamento tienen brillos distintos
+   (antes el filamento entero se encendía a la vez, que parecía un parpadeo tonto) */
+const alfas = [];
+const ctxAlfa = Object.create(ctx);
+Object.defineProperty(ctxAlfa, "strokeStyle", { set(v) { const m = String(v).match(/rgba\([\d, ]+,\s*([\d.]+)\)/); if (m) alfas.push(+m[1]); }, get() { return ""; } });
+const ent2 = new Function("ctx", "W", "H", "CX", "CY", "FOV", "G",
+  codigo + "; return { pintaTunel, tunelArranca };")(ctxAlfa, W, H, CX, CY, FOV, G);
+ent2.tunelArranca(); ent2.pintaTunel(1, 1 / 60);
+alfas.length = 0; ent2.pintaTunel(1, 1 / 60);
+const distintos = new Set(alfas.map(a => a.toFixed(3))).size;
+console.log("  la luz corre por las paredes: " + distintos + " brillos distintos en un solo fotograma");
+if (distintos < 20) MAL("todos los tramos brillan igual: no se ve correr la luz");
+if (!/const OLA=TUNEL_T/.test(codigo)) MAL("no hay ola de luz viajando por el tubo");
+
+/* el BAMBOLEO: el centro del túnel no está clavado */
+if (!/const cx=CX\+Math\.sin\(TUNEL_T/.test(codigo)) MAL("el túnel no se bambolea: parece una foto");
+const centros = [];
+{
+  const f = new Function("TUNEL_T", "W", "H", "CX", "CY", "k",
+    "return [" + codigo.match(/const cx=CX[^;]+;/)[0].replace("const cx=", "").replace(";", "") + "," +
+                 codigo.match(/const cy=CY[^;]+;/)[0].replace("const cy=", "").replace(";", "") + "]");
+  for (let t = 0; t < 6; t += 0.7) centros.push(f(t, W, H, CX, CY, 1).map(v => Math.round(v)));
+}
+const movX = Math.max(...centros.map(c => c[0])) - Math.min(...centros.map(c => c[0]));
+const movY = Math.max(...centros.map(c => c[1])) - Math.min(...centros.map(c => c[1]));
+console.log("  el centro del túnel se mueve " + movX + "×" + movY + " px (de " + W + "×" + H + "): se nota, pero no marea");
+if (movX < 4 || movY < 4) MAL("el bamboleo no se ve");
+if (movX > W * 0.09 || movY > H * 0.09) MAL("el bamboleo es tan bestia que marea");
+/* y parado (k=0) no se bambolea nada */
+{ const f = new Function("TUNEL_T", "W", "H", "CX", "CY", "k", "return " + codigo.match(/const cx=CX[^;]+;/)[0].replace("const cx=", "").replace(";", ""));
+  if (Math.abs(f(3, W, H, CX, CY, 0) - CX) > 0.001) MAL("se bambolea incluso fuera del salto"); }
+
+/* el DESTELLO de lente y el ESTALLIDO de entrar */
+cero(); ent.pintaTunel(1, 1 / 60);
+console.log("  destellos de lente dibujados: " + cuenta.fillRect + " (la raya horizontal, la vertical y el velo)");
+if (cuenta.fillRect < 3) MAL("falta el destello anamórfico");
+ent.tunelArranca();                                        /* al entrar, el estallido */
+cero(); ent.pintaTunel(1, 1 / 60);
+const conEstallido = cuenta.stroke;
+for (let i = 0; i < 90; i++) ent.pintaTunel(1, 1 / 60);    /* segundo y medio después */
+cero(); ent.pintaTunel(1, 1 / 60);
+console.log("  el estallido de entrar: " + conEstallido + " trazos al saltar → " + cuenta.stroke + " ya en ruta (el anillo se gastó)");
+if (!/TUNEL_ONDA/.test(codigo)) MAL("no hay estallido al entrar en el salto");
+if (conEstallido <= cuenta.stroke) MAL("el estallido no se nota al entrar");
+
+/* ---------- 7) y sigue siendo barato ---------- */
 ent.tunelArranca();
 for (let i = 0; i < 60; i++) ent.pintaTunel(1, 1 / 60);
 const t1 = process.hrtime.bigint();

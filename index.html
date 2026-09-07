@@ -7123,12 +7123,17 @@ const Abd=miniArma({ LS:"edtu_abd_best", NOM:"🛸 ABDUCCIÓN",
       campo tira de él hacia el puntero; sueltas y cae. Cargas células AZULES y esquivas minas
       ROJAS. Todo el juego va en azul (lo tuyo, la energía) y rojo (el peligro) */
 const Ima=miniArma({ LS:"edtu_ima_best", NOM:"⚡ ENERGY",
-  AYUDA:"⚡ <b>Mantén apretado</b> y el campo magnético arrastra tu núcleo hacia el puntero<br><span style='font-size:12px;opacity:.8'>suelta y cae · carga las células <b style='color:#4fc3ff'>azules</b> y esquiva las minas <b style='color:#ff4d5e'>rojas</b></span>",
+  AYUDA:"⚡ <b>Mantén apretado</b> y el campo magnético arrastra tu núcleo hacia el puntero<br><span style='font-size:12px;opacity:.8'>suelta y cae · encadena células <b style='color:#4fc3ff'>azules</b> sin dejar escapar ninguna: x2, x3 y x4<br>pasar <b>rozando</b> una mina <b style='color:#ff4d5e'>roja</b> da +1... si no la tocas</span>",
   cv:null,ctx:null,raf:null,run:false,W:0,H:0,x:0,y:0,vx:0,vy:0,score:0,best:0,t:0,mus:null,
   iman:false,dedo:null,estrellas:[],pinchos:[],estela:[],boom:null,sacude:0,
+  cadena:0,cadenaT:0,multi:1,chispas:[],rojo:0,aviso:"",avisoT:0,
   setup(){ this.x=this.W*0.3; this.y=this.H/2; this.vx=0; this.vy=0; this.score=0; this.t=0;
     this.iman=false; this.dedo=null; this.estrellas=[]; this.pinchos=[]; this.estela=[];
-    this.boom=null; this.sacude=0; },
+    this.boom=null; this.sacude=0;
+    this.cadena=0; this.cadenaT=0; this.multi=1; this.chispas=[]; this.rojo=0; this.aviso=""; this.avisoT=0; },
+  /* el multiplicador: encadenar células sin dejar escapar ninguna */
+  mult(){ const c=this.cadena; return c>=12?4:c>=8?3:c>=4?2:1; },
+  dice(txt){ this.aviso=txt; this.avisoT=48; },
   /* mientras quede explosión, el bucle sigue vivo aunque la partida haya acabado */
   sigue(){ return !!this.boom; },
   /* 💥 el mismo reventón que el avión de FLY: fuego, humo y trozos girando (sin paracaidistas) */
@@ -7181,17 +7186,46 @@ const Ima=miniArma({ LS:"edtu_ima_best", NOM:"⚡ ENERGY",
     this.estela.push({x:this.x,y:this.y,v:1}); if(this.estela.length>16) this.estela.shift();
     for(const e of this.estela) e.v-=0.06;
     /* van apareciendo estrellas y pinchos, que se mueven hacia la izquierda */
-    const vel=1.9+Math.min(2.6,this.score*0.09);
+    const vel=1.9+Math.min(3.4,this.score*0.06);
     if(this.t%42===0) this.estrellas.push({x:this.W+16,y:30+Math.random()*(this.H-90)});
-    if(this.t%36===0) this.pinchos.push({x:this.W+16,y:30+Math.random()*(this.H-90),r:11+Math.random()*7,gir:0});
+    if(this.t%36===0) this.pinchos.push({x:this.W+16,y:30+Math.random()*(this.H-90),r:11+Math.random()*7,gir:0,rozada:false});
+    /* a partir de 25 puntos, de vez en cuando caen DOS minas juntas y hay que colarse en medio */
+    if(this.score>=25 && this.t%160===0){
+      const y0=40+Math.random()*(this.H-200);
+      this.pinchos.push({x:this.W+16,y:y0,r:12,gir:0,rozada:false});
+      this.pinchos.push({x:this.W+16,y:y0+95+Math.random()*40,r:12,gir:0,rozada:false});
+    }
     for(const e of this.estrellas) e.x-=vel;
     for(const p of this.pinchos){ p.x-=vel; p.gir+=0.05; }
+    /* la cadena se enfría sola: hay que ir a por la siguiente célula */
+    if(this.cadena>0){ this.cadenaT--; if(this.cadenaT<=0){ if(this.cadena>=4) this.dice("cadena rota"); this.cadena=0; this.multi=1; } }
     this.estrellas=this.estrellas.filter(e=>{
-      if(Math.hypot(e.x-this.x,e.y-this.y)<17){ this.score++; gBeep(880); return false; }
-      return e.x>-20; });
-    for(const p of this.pinchos) if(Math.hypot(p.x-this.x,p.y-this.y)<p.r+7) return this.revienta("💥 ¡Mina roja!");
+      if(Math.hypot(e.x-this.x,e.y-this.y)<17){
+        this.cadena++; this.cadenaT=190;                      /* ~3 segundos para la siguiente */
+        const m=this.mult();
+        if(m>this.multi){ this.dice("⚡ x"+m); gBeep(1320); }
+        this.multi=m;
+        this.score+=m;                                        /* cada célula vale por el multiplicador */
+        gBeep(880);
+        for(let i=0;i<12;i++){ const a=Math.random()*Math.PI*2, v=1+Math.random()*3.2;
+          this.chispas.push({x:e.x,y:e.y,vx:Math.cos(a)*v,vy:Math.sin(a)*v,v:1,az:true}); }
+        return false;
+      }
+      if(e.x<-20){ if(this.cadena>=4) this.dice("cadena rota"); this.cadena=0; this.multi=1; return false; }   /* se te escapó */
+      return true; });
+    for(const p of this.pinchos){
+      const d=Math.hypot(p.x-this.x,p.y-this.y);
+      if(d<p.r+7) return this.revienta("💥 ¡Mina roja!");
+      /* ROCE: pasar rozando una mina sin tocarla da un punto y pone la pantalla roja */
+      if(!p.rozada && d<p.r+26 && p.x<this.x){ p.rozada=true; this.score++; this.rojo=1; gBeep(520); this.dice("¡ROCE! +1"); }
+    }
     this.pinchos=this.pinchos.filter(p=>p.x>-20);
-    $("imaHud").textContent="⚡ "+this.score+" · Récord: "+this.best;
+    /* las chispas de las células y el destello rojo se van apagando */
+    for(const c of this.chispas){ c.x+=c.vx; c.y+=c.vy; c.vy+=0.12; c.vx*=0.97; c.v-=0.035; }
+    this.chispas=this.chispas.filter(c=>c.v>0);
+    if(this.rojo>0) this.rojo=Math.max(0,this.rojo-0.06);
+    if(this.avisoT>0) this.avisoT--;
+    $("imaHud").textContent="⚡ "+this.score+(this.multi>1?" · x"+this.multi:"")+" · Récord: "+this.best;
     this.draw();
   },
   draw(){
@@ -7281,6 +7315,21 @@ const Ima=miniArma({ LS:"edtu_ima_best", NOM:"⚡ ENERGY",
       c.restore();
     }
 
+    /* ---- el destello ROJO del roce: la pantalla entera avisa ---- */
+    if(this.rojo>0.01){
+      const rj=c.createRadialGradient(W/2,H/2,Math.min(W,H)*0.2,W/2,H/2,Math.max(W,H)*0.75);
+      rj.addColorStop(0,"rgba(255,40,70,0)");
+      rj.addColorStop(1,"rgba(255,40,70,"+(this.rojo*0.45).toFixed(3)+")");
+      c.fillStyle=rj; c.fillRect(0,0,W,H);
+    }
+    /* ---- las chispas de las células recogidas ---- */
+    c.save(); c.globalCompositeOperation="lighter";
+    for(const q of this.chispas){
+      c.fillStyle="rgba(140,220,255,"+(q.v*0.85).toFixed(3)+")";
+      c.beginPath(); c.arc(q.x,q.y,2.6*q.v+0.6,0,7); c.fill();
+    }
+    c.restore();
+
     /* ---- la estela: azul cerca de ti, roja al apagarse ---- */
     c.save(); c.globalCompositeOperation="lighter";
     for(const e of this.estela){
@@ -7338,6 +7387,24 @@ const Ima=miniArma({ LS:"edtu_ima_best", NOM:"⚡ ENERGY",
     c.strokeStyle=this.iman?"rgba(255,150,165,.95)":"rgba(180,230,255,.95)"; c.lineWidth=1.4;
     c.beginPath(); c.arc(this.x,this.y,10,0,7); c.stroke();
 
+    /* ---- el cartel de la cadena y los avisos ---- */
+    if(this.multi>1 && !this.boom){
+      c.save(); c.globalCompositeOperation="lighter";
+      c.font="900 "+Math.round(15+this.multi*3)+"px Consolas,monospace"; c.textAlign="center";
+      c.fillStyle="rgba(120,215,255,"+(0.55+0.35*Math.sin(t*0.16)).toFixed(3)+")";
+      c.fillText("x"+this.multi,W/2,26);
+      /* la barra de lo que le queda a la cadena */
+      const w=70*Math.max(0,this.cadenaT/190);
+      c.fillStyle="rgba(255,77,94,.75)"; c.fillRect(W/2-35,32,w,3);
+      c.restore();
+    }
+    if(this.avisoT>0){
+      c.save(); c.globalAlpha=Math.min(1,this.avisoT/18);
+      c.font="900 14px Consolas,monospace"; c.textAlign="center";
+      c.fillStyle=/ROCE/.test(this.aviso)?"#ff8a99":"#8fd8ff";
+      c.fillText(this.aviso,W/2,H-16); c.restore();
+    }
+
     /* ---- el barrido de escáner, para rematar ---- */
     c.save(); c.globalCompositeOperation="lighter";
     const sy=(t*2.4)%(H+120)-60;
@@ -7349,7 +7416,7 @@ const Ima=miniArma({ LS:"edtu_ima_best", NOM:"⚡ ENERGY",
   musOn(){ miniMus(this,[0,7,3,7, 5,10,3,7].map(x=>x+44),true,.18); }
 },"ima");
 /* si sales a mitad de la explosión, se limpia todo */
-{ const cerrar=Ima.close.bind(Ima); Ima.close=function(){ this.boom=null; this.sacude=0; cerrar(); }; }
+{ const cerrar=Ima.close.bind(Ima); Ima.close=function(){ this.boom=null; this.sacude=0; this.chispas=[]; this.rojo=0; this.avisoT=0; cerrar(); }; }
 
 /* 🐉 CUEVA — mantienes para subir y sueltas para bajar; el túnel se estrecha sin parar */
 const Cue=miniArma({ LS:"edtu_cue_best", NOM:"🐉 CUEVA",
