@@ -7332,10 +7332,11 @@ const Ima=miniArma({ LS:"edtu_ima_best", NOM:"⚡ ENERGY",
 
     /* ---- la estela: azul cerca de ti, roja al apagarse ---- */
     c.save(); c.globalCompositeOperation="lighter";
-    for(const e of this.estela){
-      const v=Math.max(0,e.v);
+    for(let i=0;i<this.estela.length;i++){
+      const e=this.estela[i], v=Math.max(0,e.v);
+      const fino=(i+1)/this.estela.length;                    /* la cola se afila hacia atrás */
       c.fillStyle="rgba("+Math.round(255-176*v)+","+Math.round(77+118*v)+","+Math.round(94+161*v)+","+(v*0.42).toFixed(3)+")";
-      c.beginPath(); c.arc(e.x,e.y,7*v,0,7); c.fill();
+      c.beginPath(); c.arc(e.x,e.y,8*v*fino+0.5,0,7); c.fill();
     }
     c.restore();
 
@@ -7369,23 +7370,8 @@ const Ima=miniArma({ LS:"edtu_ima_best", NOM:"⚡ ENERGY",
       c.restore(); return;                                    /* reventado: el núcleo ya no se dibuja */
     }
 
-    /* ---- TU NÚCLEO: plasma azul, y rojo encendido cuando el campo tira ---- */
-    c.save(); c.globalCompositeOperation="lighter";
-    const halo=c.createRadialGradient(this.x,this.y,0,this.x,this.y,26);
-    halo.addColorStop(0,this.iman?"rgba(255,90,110,.55)":"rgba(79,195,255,.45)");
-    halo.addColorStop(1,"rgba(0,0,0,0)");
-    c.fillStyle=halo; c.beginPath(); c.arc(this.x,this.y,26,0,7); c.fill();
-    c.restore();
-    /* los dos polos girando, como un imán de verdad */
-    c.save(); c.translate(this.x,this.y); c.rotate(t*0.06);
-    c.fillStyle="#2f8fe0"; c.beginPath(); c.arc(0,0,10,Math.PI/2,Math.PI*1.5); c.fill();
-    c.fillStyle="#e0344c"; c.beginPath(); c.arc(0,0,10,-Math.PI/2,Math.PI/2); c.fill();
-    c.restore();
-    const gb=c.createRadialGradient(this.x-2,this.y-3,0.5,this.x,this.y,7);
-    gb.addColorStop(0,"#ffffff"); gb.addColorStop(1,this.iman?"rgba(255,120,140,.95)":"rgba(150,215,255,.95)");
-    c.fillStyle=gb; c.beginPath(); c.arc(this.x,this.y,6.5,0,7); c.fill();
-    c.strokeStyle=this.iman?"rgba(255,150,165,.95)":"rgba(180,230,255,.95)"; c.lineWidth=1.4;
-    c.beginPath(); c.arc(this.x,this.y,10,0,7); c.stroke();
+    /* ---- TU NÚCLEO ---- */
+    this.pintaNucleo(c,t);
 
     /* ---- el cartel de la cadena y los avisos ---- */
     if(this.multi>1 && !this.boom){
@@ -7412,6 +7398,90 @@ const Ima=miniArma({ LS:"edtu_ima_best", NOM:"⚡ ENERGY",
     sc.addColorStop(0,"rgba(60,160,255,0)"); sc.addColorStop(.5,"rgba(90,190,255,.07)"); sc.addColorStop(1,"rgba(60,160,255,0)");
     c.fillStyle=sc; c.fillRect(0,sy-40,W,80); c.restore();
     c.restore();                                              /* cierra la sacudida */
+  },
+  /* 🔵🔴 cuánto se estira el núcleo: al ir lanzado se aplasta en la dirección en la que vuela,
+        como una gota. Es lo que hace que se SIENTA rápido en vez de solo moverse rápido */
+  estiron(){
+    const v=Math.hypot(this.vx,this.vy);
+    const k=Math.min(0.55, v*0.055);
+    return { ang:Math.atan2(this.vy,this.vx), largo:1+k, ancho:1-k*0.55, v:v };
+  },
+  pintaNucleo(c,t){
+    const E=this.estiron(), R=10, tira=this.iman;
+    const carga=Math.min(1,(this.multi-1)/3);                  /* 0 sin cadena, 1 con x4 */
+    /* 1) el halo, más grande cuanto más cargado vas */
+    c.save(); c.globalCompositeOperation="lighter";
+    const halo=c.createRadialGradient(this.x,this.y,0,this.x,this.y,26+carga*14);
+    halo.addColorStop(0,tira?"rgba(255,90,110,.55)":"rgba(79,195,255,.45)");
+    halo.addColorStop(0.45,tira?"rgba(255,70,110,.18)":"rgba(79,195,255,.16)");
+    halo.addColorStop(1,"rgba(0,0,0,0)");
+    c.fillStyle=halo; c.beginPath(); c.arc(this.x,this.y,26+carga*14,0,7); c.fill();
+    c.restore();
+
+    c.save(); c.translate(this.x,this.y);
+
+    /* 2) LAS ÓRBITAS: dos anillos inclinados girando alrededor, cada uno con su satélite.
+          Esto es lo que lo saca de "pelota" y lo mete en "núcleo de energía" */
+    c.save(); c.globalCompositeOperation="lighter";
+    for(let o=0;o<2;o++){
+      const gir=t*(o?-0.045:0.062)+o*1.1;
+      const ra=R*1.9, rb=R*1.9*(0.30+0.42*Math.abs(Math.sin(t*(o?0.031:0.024)+o)));
+      c.save(); c.rotate(gir);
+      c.strokeStyle=o?"rgba(255,110,130,.55)":"rgba(120,205,255,.6)";
+      c.lineWidth=1.3; c.beginPath(); c.ellipse(0,0,ra,rb,0,0,7); c.stroke();
+      /* el satélite que da vueltas por esa órbita */
+      const sa=t*(o?-0.14:0.11);
+      const sx=Math.cos(sa)*ra, sy=Math.sin(sa)*rb;
+      c.fillStyle=o?"#ff8fa0":"#9adcff";
+      c.beginPath(); c.arc(sx,sy,2.1,0,7); c.fill();
+      c.restore();
+    }
+    c.restore();
+
+    /* 3) EL CUERPO, aplastado según vuela */
+    c.save(); c.rotate(E.ang); c.scale(E.largo,E.ancho); c.rotate(-E.ang);
+    /* los dos polos girando, como un imán de verdad */
+    c.save(); c.rotate(t*0.06);
+    c.fillStyle="#2f8fe0"; c.beginPath(); c.arc(0,0,R,Math.PI/2,Math.PI*1.5); c.fill();
+    c.fillStyle="#e0344c"; c.beginPath(); c.arc(0,0,R,-Math.PI/2,Math.PI/2); c.fill();
+    /* las bandas de las placas, para que se vea girar */
+    c.strokeStyle="rgba(10,20,35,.45)"; c.lineWidth=1;
+    c.beginPath(); c.moveTo(0,-R); c.lineTo(0,R); c.stroke();
+    c.restore();
+    /* el corazón blanco, latiendo */
+    const late=1+0.10*Math.sin(t*0.28);
+    const gb=c.createRadialGradient(-2,-3,0.5,0,0,7.4*late);
+    gb.addColorStop(0,"#ffffff");
+    gb.addColorStop(0.55,tira?"rgba(255,150,170,.98)":"rgba(170,225,255,.98)");
+    gb.addColorStop(1,tira?"rgba(255,90,120,.55)":"rgba(110,190,255,.55)");
+    c.fillStyle=gb; c.beginPath(); c.arc(0,0,6.6*late,0,7); c.fill();
+    c.restore();
+
+    /* 4) EL ARO DE CARGA: se va cerrando según sube el multiplicador */
+    c.strokeStyle=tira?"rgba(255,150,165,.95)":"rgba(180,230,255,.95)";
+    c.lineWidth=1.4; c.beginPath(); c.arc(0,0,R+2.5,0,7); c.stroke();
+    if(carga>0){
+      c.strokeStyle="rgba(140,225,255,.95)"; c.lineWidth=2.4;
+      c.beginPath(); c.arc(0,0,R+2.5,-Math.PI/2,-Math.PI/2+carga*Math.PI*2); c.stroke();
+    }
+
+    /* 5) LOS RAYOS: solo cuando el campo tira, chispazos cortos saliendo del núcleo */
+    if(tira){
+      c.save(); c.globalCompositeOperation="lighter";
+      c.strokeStyle="rgba(190,230,255,.8)"; c.lineWidth=1.1;
+      for(let i=0;i<3;i++){
+        const a=((t*0.21+i*2.1)%(Math.PI*2));
+        c.beginPath(); c.moveTo(Math.cos(a)*R*0.8, Math.sin(a)*R*0.8);
+        let rr=R*0.8, aa=a;
+        for(let j=0;j<3;j++){
+          rr+=3.4; aa+=(Math.sin(t*0.9+i*3+j)*0.55);
+          c.lineTo(Math.cos(aa)*rr, Math.sin(aa)*rr);
+        }
+        c.stroke();
+      }
+      c.restore();
+    }
+    c.restore();
   },
   musOn(){ miniMus(this,[0,7,3,7, 5,10,3,7].map(x=>x+44),true,.18); }
 },"ima");

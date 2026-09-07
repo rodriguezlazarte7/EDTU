@@ -98,6 +98,35 @@ for (let i = 0; i < 40; i++) Ima.tick();
 console.log("  el campo magnético tira del núcleo: y " + Math.round(arriba) + " → " + Math.round(Ima.y));
 if (!(Ima.y < arriba)) MAL("el campo ya no atrae el núcleo");
 
+/* ---------- 3a) LA PELOTA: ahora es un núcleo de plasma ---------- */
+/* se aplasta en la dirección en la que vuela, como una gota */
+Ima.setup(); Ima.vx = 0; Ima.vy = 0;
+const quieto = Ima.estiron();
+Ima.vx = 9; Ima.vy = 0; const lanzado = Ima.estiron();
+Ima.vx = 0; Ima.vy = -9; const subiendo = Ima.estiron();
+console.log("  el núcleo se estira al volar: parado " + quieto.largo.toFixed(2) + "×" + quieto.ancho.toFixed(2) +
+            " · a tope " + lanzado.largo.toFixed(2) + "×" + lanzado.ancho.toFixed(2));
+if (quieto.largo !== 1 || quieto.ancho !== 1) MAL("parado ya sale deformado");
+if (!(lanzado.largo > 1.2 && lanzado.ancho < 0.9)) MAL("no se aplasta al ir lanzado");
+console.log("  y se estira hacia donde va: volando a la derecha " + Math.round(lanzado.ang * 180 / Math.PI) + "° · subiendo " + Math.round(subiendo.ang * 180 / Math.PI) + "°");
+if (Math.abs(lanzado.ang) > 0.01) MAL("no apunta el estirón hacia donde vuela");
+if (Math.abs(subiendo.ang + Math.PI / 2) > 0.01) MAL("el estirón no gira con la dirección");
+
+/* las órbitas, el corazón, el aro de carga y los rayos: contamos lo que dibuja */
+const dibujaNucleo = (opciones) => {
+  Ima.setup(); Object.assign(Ima, opciones);
+  const antes = { ...pintado };
+  Ima.pintaNucleo(ctx, 30);
+  return { fill: pintado.fill - antes.fill, stroke: pintado.stroke - antes.stroke };
+};
+const suelto = dibujaNucleo({ iman: false, multi: 1 });
+const tirando = dibujaNucleo({ iman: true, multi: 1 });
+const cargado = dibujaNucleo({ iman: false, multi: 4 });
+console.log("  el núcleo dibuja: suelto " + suelto.stroke + " trazos · con el campo tirando " + tirando.stroke + " (le salen rayos) · con la cadena a x4 " + cargado.stroke + " (aro de carga)");
+if (suelto.fill < 5) MAL("el núcleo casi no se dibuja (le faltan las órbitas y el corazón)");
+if (!(tirando.stroke > suelto.stroke)) MAL("no le salen rayos cuando el campo tira");
+if (!(cargado.stroke > suelto.stroke)) MAL("el aro de carga no aparece con la cadena alta");
+
 /* ---------- 3b) la CADENA: encadenar células multiplica ---------- */
 const coge = (veces) => { for (let i = 0; i < veces; i++) { Ima.estrellas = [{ x: Ima.x, y: Ima.y }]; Ima.tick(); } };
 Ima.setup(); Ima.run = true; Ima.pinchos = [];
