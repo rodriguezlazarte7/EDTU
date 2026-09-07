@@ -7601,7 +7601,7 @@ const Cue=miniArma({ LS:"edtu_cue_best", NOM:"🐉 CUEVA",
     for(const m of this.murcis) if(Math.hypot(m.x-60,m.y-this.y)<13) return this.revienta("🦇 ¡Un murciélago!");
     this.chispas.push({x:56,y:this.y,v:1}); if(this.chispas.length>14) this.chispas.shift();
     for(const ch of this.chispas){ ch.x-=vel; ch.v-=0.07; if(ch.vx){ ch.x+=ch.vx; ch.y+=ch.vy; ch.vy+=0.1; } }
-    this.chispas=this.chispas.filter(ch=>ch.v>0||!ch.cr);
+    this.chispas=this.chispas.filter(ch=>ch.v>0);          /* 🐛 TODAS se van al apagarse, no solo las del cristal */
     for(const q of this.polvo){ q.x-=q.v*vel*0.35; if(q.x<-4){ q.x=this.W+4; q.y=Math.random()*this.H; } }
     $("cueHud").textContent="🐉 "+this.score+" · Récord: "+this.best;
     this.draw();
@@ -7693,7 +7693,7 @@ const Cue=miniArma({ LS:"edtu_cue_best", NOM:"🐉 CUEVA",
     /* ---- la estela y las chispas ---- */
     for(const ch of this.chispas){
       c.fillStyle=ch.cr?"rgba(150,225,255,"+(ch.v*0.8).toFixed(3)+")":"rgba(255,180,80,"+(ch.v*0.5).toFixed(3)+")";
-      c.beginPath(); c.arc(ch.x,ch.y,3.4*ch.v,0,7); c.fill(); }
+      c.beginPath(); c.arc(ch.x,ch.y,Math.max(0.2,3.4*ch.v),0,7); c.fill(); }   /* nunca radio negativo */
 
     /* ---- LA LINTERNA de la nave: ilumina la roca de alrededor ---- */
     if(!this.boom){

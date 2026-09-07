@@ -10,6 +10,10 @@ const nada = () => {};
 const pintado = { fill: 0, stroke: 0, fillRect: 0 };
 const ctx = new Proxy({}, { get: (o, k) => {
   if (k === "createLinearGradient" || k === "createRadialGradient") return () => ({ addColorStop: nada });
+  /* 🐛 el lienzo DE VERDAD lanza un error si le pides un círculo de radio negativo, y eso corta
+        el dibujo a medias (fue justo el bug de la nave que desaparecía al coger un cristal).
+        El de mentira hace lo mismo, para que las pruebas lo cacen */
+  if (k === "arc") return (x, y, r) => { if (!(r >= 0)) throw new Error("IndexSizeError: radio negativo (" + r + ")"); pintado.arc = (pintado.arc || 0) + 1; };
   if (k in pintado) return () => { pintado[k]++; };
   return nada; }, set: () => true });
 const guardado = {};
@@ -104,6 +108,27 @@ if (Cue.fondo.length < 2) MAL("no hay fondo con profundidad");
 if (Cue.fondo.some(f => f.vel >= 2.6)) MAL("el fondo va tan rápido como la pared: no se notaría la profundidad");
 if (!/LA LINTERNA de la nave/.test(codigo)) MAL("la nave no lleva linterna");
 if (!/gotas/.test(codigo)) MAL("no caen gotas de las estalactitas");
+
+/* ---------- 6b) 🐛 EL BUG DE LA NAVE QUE DESAPARECÍA ----------
+   Lo encontró David: al coger un cristal, la nave se esfumaba. Entraban 10 chispas de golpe,
+   la lista pasaba de 14 a 24, y como solo se quitaba UNA por fotograma las chispas viejas
+   vivían el doble y su brillo se iba a NEGATIVO. Un círculo de radio negativo hace saltar al
+   lienzo de verdad, y el dibujo se cortaba justo antes de pintar la nave.
+   Aquí se juega una partida larga cogiendo cristales sin parar: si el radio se va a negativo,
+   el lienzo de mentira lanza el mismo error y esta prueba se cae. */
+Cue.setup(); Cue.run = true;
+let reventones = 0, fotograma = 0;
+for (let i = 0; i < 3000 && !Cue.boom; i++) {
+  Cue.murcis = []; Cue.estala = [];
+  const col = Cue.pared.find(p => Math.abs(p.x - 60) < 4);
+  if (col) { Cue.y = col.c; Cue.vy = 0; }
+  if (i % 50 === 0) Cue.cristales.push({ x: 60, y: Cue.y, br: 0 });   /* un cristal cada 50 fotogramas */
+  try { Cue.tick(); } catch (e) { reventones++; fotograma = i; break; }
+}
+console.log("  50 segundos cogiendo cristales sin parar: " + (reventones ? "💥 el dibujo revienta en el fotograma " + fotograma : "sin un solo fallo de dibujo") +
+            " · chispas vivas: " + Cue.chispas.length + " · el brillo más bajo es " + Math.min(...Cue.chispas.map(c => c.v)).toFixed(2));
+if (reventones) MAL("¡vuelve el bug de la nave que desaparece al coger un cristal!");
+if (Cue.chispas.some(c => c.v <= 0)) MAL("quedan chispas ya apagadas en la lista: acabarían en radio negativo");
 
 /* ---------- 7) nada se acumula ni queda colgado ---------- */
 Cue.setup(); Cue.run = true;

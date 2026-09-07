@@ -65,6 +65,10 @@ const nada = () => {};
 const pintado = { fill: 0, stroke: 0, fillRect: 0, translate: 0 };
 const ctx = new Proxy({}, { get: (o, k) => {
   if (k === "createLinearGradient" || k === "createRadialGradient") return () => ({ addColorStop: nada });
+  /* 🐛 el lienzo DE VERDAD lanza un error si le pides un círculo de radio negativo, y eso corta
+        el dibujo a medias (fue justo el bug de la nave que desaparecía al coger un cristal).
+        El de mentira hace lo mismo, para que las pruebas lo cacen */
+  if (k === "arc") return (x, y, r) => { if (!(r >= 0)) throw new Error("IndexSizeError: radio negativo (" + r + ")"); pintado.arc = (pintado.arc || 0) + 1; };
   if (k in pintado) return () => { pintado[k]++; };
   return nada; }, set: () => true });
 const guardado = {};
