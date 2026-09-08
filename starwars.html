@@ -240,6 +240,7 @@
     <button class="tb" id="tbOrden">🫡</button>
     <button class="tb" id="tbTorp">🚀</button>
     <button class="tb" id="tbMisil">🎯</button>
+    <button class="tb" id="tbPlaneta">🪐</button>
     <button class="tb" id="tbFuego">🔫</button>
   </div>
 </div>
@@ -301,7 +302,7 @@
     🚀 <b>E</b> lanza torpedos al blanco fichado (persiguen solos) &nbsp;·&nbsp; 6 por partida, +2 por oleada<br/>
     🎯 la <b>mirilla verde</b> te dice dónde apuntar para acertar · frena para <b>girar más cerrado</b><br/>
     ↩️ <b>A / D</b> giro de barril &nbsp;·&nbsp;
-    📡 <b>R</b> radar &nbsp;·&nbsp; ⏸ <b>P</b> pausa &nbsp;·&nbsp; 🌠 <b>ESC</b> salta al hiperespacio y sales &nbsp;·&nbsp; 🎧 <b>con auriculares se oye de dónde vienen los disparos</b> &nbsp;·&nbsp; 🎵 <b>M</b> música y sonido &nbsp;·&nbsp; 📱 en el celular: <b>arrastra el dedo</b> para volar (y para dirigir el misil), el <b>🔫 mantenido</b> dispara sin parar (y suelta el misil), <b>acelerador</b> a la izquierda<br/>
+    🪐 <b>B</b> bajar al planeta y volver &nbsp;·&nbsp; 📡 <b>R</b> radar &nbsp;·&nbsp; ⏸ <b>P</b> pausa &nbsp;·&nbsp; 🌠 <b>ESC</b> salta al hiperespacio y sales &nbsp;·&nbsp; 🎧 <b>con auriculares se oye de dónde vienen los disparos</b> &nbsp;·&nbsp; 🎵 <b>M</b> música y sonido &nbsp;·&nbsp; 📱 en el celular: <b>arrastra el dedo</b> para volar (y para dirigir el misil), el <b>🔫 mantenido</b> dispara sin parar (y suelta el misil), <b>acelerador</b> a la izquierda<br/>
     🤝 vuelas con <b>3 cazas aliados</b> que atacan contigo &nbsp;·&nbsp; 👾 enfrente hay <b>4 clases de nave</b> distintas
   </details>
   <div id="best"></div>
@@ -889,7 +890,7 @@ function nuevaPartida(){
   for(let i=0;i<3;i++) nuevoAmigo(i);
   G.chispas=[]; G.ondas=[]; G.fogonazo=0; G.eco=null;
   G.score=0; G.wave=0; G.jefe=false; misionLimpia(); G.kills=0; G.disparos=0; G.aciertos=0; G.quedan=0; G.spawn=0; G.waveT=0; G.cad=0;
-  hiper=0; saliendo=0; G.misil=null; G.ondas=[]; G.fogonazo=0; G.eco=null; G.as=null; G.asT=40; G.asGanados=0; G.regenT=0; G.aliado=null; { const el=$("aliBar"); if(el) el.style.opacity=0; } G.destruidos=0; G.racha=0; G.rachaT=0; G.rachaMulti=1; G.rachaMax=0; G.guardaT=20; G.refuerzos=2; G.refT=0; G.jefeT=0; G.jefesLlamados=0; G.curaT=60; G.capsulas=[]; G.torpedos=[]; G.torp=TORP_MAX; G.torpCarga=0;
+  hiper=0; saliendo=0; G.misil=null; G.ondas=[]; G.fogonazo=0; G.eco=null; G.as=null; G.asT=40; G.asGanados=0; ZONA="espacio"; ZONA_T=0; ZONA_K=0; G.regenT=0; G.aliado=null; { const el=$("aliBar"); if(el) el.style.opacity=0; } G.destruidos=0; G.racha=0; G.rachaT=0; G.rachaMulti=1; G.rachaMax=0; G.guardaT=20; G.refuerzos=2; G.refT=0; G.jefeT=0; G.jefesLlamados=0; G.curaT=60; G.capsulas=[]; G.torpedos=[]; G.torp=TORP_MAX; G.torpCarga=0;
   G.jefes=0; G.caidos=0; G.torpKills=0; G.misionesOK=0; G.trincherasOK=0; G.golpes=0; G.gensRotos=0; G.refPedidos=0;
   G.gas=1; G.gasObj=1; G.yaw=0; G.pitch=0; G.roll=0; G.t=0; G.over=false; G.paused=false; G.inicio=Date.now();
   estrellasNuevas(); destructoresNuevos();
@@ -1276,6 +1277,117 @@ function pintaPlaneta(dt){
   lg.addColorStop(0,"#e8ecf2"); lg.addColorStop(1,"#5d6470");
   ctx.fillStyle=lg; ctx.beginPath(); ctx.arc(lx,ly,lr,0,7); ctx.fill();
   ctx.restore();
+}
+/* ================= 🛬 EL PLANETA SE PISA =================
+   ZONA dice dónde estás: en el espacio, bajando, en el planeta o subiendo. La bajada y la
+   subida duran 3 segundos y son una animación: el cielo se tiñe, las estrellas se apagan y el
+   suelo aparece por debajo. En el planeta el suelo es de verdad: tiene relieve, te frena si lo
+   rozas y no te deja pasar. */
+let ZONA="espacio", ZONA_T=0, ZONA_K=0;                      /* K: 0 = espacio puro, 1 = superficie */
+const SUELO=-900;                                            /* a qué altura está el terreno */
+function alturaSuelo(x,z){
+  /* el relieve: tres ondas de distinto tamaño, sin números aleatorios, para que el terreno
+     sea SIEMPRE el mismo y no baile mientras vuelas */
+  return SUELO
+    + Math.sin(x*0.0021)*Math.cos(z*0.0017)*190
+    + Math.sin((x+z)*0.0053)*70
+    + Math.sin(x*0.011)*Math.sin(z*0.009)*26;
+}
+function puedeBajar(){
+  if(ZONA!=="espacio"||!PLANETA||!G.run||G.over||G.paused||hiper>0||saliendo>0) return false;
+  const c=aCamara(G.base, PLANETA.d);
+  return c.z>0.86;                                           /* lo tienes de frente */
+}
+function cambiaZona(){
+  if(ZONA==="espacio"){
+    if(!puedeBajar()) return;
+    ZONA="bajando"; ZONA_T=3; aviso("🛬 ENTRANDO EN LA ATMÓSFERA");
+    if(!mute) sfx("wave");
+  } else if(ZONA==="planeta"){
+    ZONA="subiendo"; ZONA_T=3; aviso("🚀 SALIENDO AL ESPACIO");
+    if(!mute) sfx("wave");
+  }
+}
+function zonaCorre(dt){
+  if(ZONA==="bajando"||ZONA==="subiendo"){
+    ZONA_T-=dt;
+    const k=Math.max(0,Math.min(1,1-ZONA_T/3));
+    ZONA_K=(ZONA==="bajando")?k:1-k;
+    sacude(dt*1.1);                                          /* la atmósfera zarandea */
+    if(ZONA_T<=0){
+      if(ZONA==="bajando"){ ZONA="planeta"; ZONA_K=1; G.pos=v3(G.pos.x, SUELO+520, G.pos.z); aviso("🪐 EN EL PLANETA · pulsa B para volver al espacio"); }
+      else { ZONA="espacio"; ZONA_K=0; aviso("🌌 DE VUELTA EN EL ESPACIO"); }
+    }
+  }
+  if(ZONA!=="planeta") return;
+  /* en el planeta no puedes atravesar el suelo: te frena y te raspa */
+  const h=alturaSuelo(G.pos.x,G.pos.z)+22;
+  if(G.pos.y<h){
+    G.pos=v3(G.pos.x,h,G.pos.z);
+    golpe(dt*40, v3(G.pos.x,h-40,G.pos.z));
+    sacude(dt*3);
+  }
+  /* ni salir volando al espacio sin querer */
+  if(G.pos.y>SUELO+2600) G.pos=v3(G.pos.x,SUELO+2600,G.pos.z);
+  /* los enemigos y los amigos tampoco se meten bajo tierra */
+  for(const e of G.enem){ const hh=alturaSuelo(e.p.x,e.p.z)+40; if(e.p.y<hh) e.p=v3(e.p.x,hh,e.p.z); }
+  for(const a of G.amigos){ const hh=alturaSuelo(a.p.x,a.p.z)+40; if(a.p.y<hh) a.p=v3(a.p.x,hh,a.p.z); }
+}
+/* 🏔️ EL TERRENO: una malla de cuadros alrededor de ti, más finos cerca y más bastos lejos */
+const TERR_N=17, TERR_PASO=190;
+function pintaTerreno(){
+  if(ZONA_K<=0.02) return;
+  const col=PLANETA?PLANETA.P:{a:[200,200,220],b:[110,110,140],mar:[60,60,90]};
+  const cxw=Math.round(G.pos.x/TERR_PASO)*TERR_PASO, czw=Math.round(G.pos.z/TERR_PASO)*TERR_PASO;
+  const caras=[];
+  for(let i=-TERR_N;i<TERR_N;i++){
+    for(let j=-TERR_N;j<TERR_N;j++){
+      const x0=cxw+i*TERR_PASO, z0=czw+j*TERR_PASO;
+      const x1=x0+TERR_PASO, z1=z0+TERR_PASO;
+      const P=[[x0,z0],[x1,z0],[x1,z1],[x0,z1]].map(q=>{
+        const w=v3(q[0], alturaSuelo(q[0],q[1]), q[1]);
+        const c=aCamara(G.base, sub(w,G.pos));
+        return c;
+      });
+      if(P.every(c=>c.z<8)) continue;                        /* todo el cuadro a la espalda */
+      if(P.some(c=>c.z<8)) continue;                         /* medio cortado: se salta, no se ve raro */
+      const pts=P.map(c=>proyecta(c));
+      const zm=(P[0].z+P[1].z+P[2].z+P[3].z)/4;
+      if(zm>TERR_PASO*TERR_N*1.6) continue;                  /* lejísimos: ni se pinta */
+      const hm=(alturaSuelo(x0,z0)-SUELO)/220;               /* lo alto que es, de 0 a 1 */
+      const lejos=Math.min(1, zm/(TERR_PASO*TERR_N*1.2));
+      caras.push({zm,pts,hm,lejos,i,j});
+    }
+  }
+  caras.sort((a,b)=>b.zm-a.zm);                              /* de lejos a cerca, como el resto del juego */
+  ctx.save();
+  for(const c of caras){
+    /* el color del terreno: valles oscuros, cumbres claras, y la niebla se lo come a lo lejos */
+    const t=Math.max(0,Math.min(1,0.5+c.hm*0.5));
+    const r=Math.round(col.mar[0]+(col.a[0]-col.mar[0])*t);
+    const g=Math.round(col.mar[1]+(col.a[1]-col.mar[1])*t);
+    const b=Math.round(col.mar[2]+(col.a[2]-col.mar[2])*t);
+    const tablero=((c.i+c.j)&1)?0.93:1;                      /* damero suave, para que se vea el relieve */
+    const niebla=c.lejos*0.85;
+    const rr=Math.round(r*tablero*(1-niebla)+col.b[0]*niebla*0.6);
+    const gg=Math.round(g*tablero*(1-niebla)+col.b[1]*niebla*0.6);
+    const bb=Math.round(b*tablero*(1-niebla)+col.b[2]*niebla*0.6);
+    ctx.fillStyle="rgba("+rr+","+gg+","+bb+","+(ZONA_K*(1-c.lejos*0.55)).toFixed(3)+")";
+    ctx.beginPath(); ctx.moveTo(c.pts[0].x,c.pts[0].y);
+    for(let k=1;k<4;k++) ctx.lineTo(c.pts[k].x,c.pts[k].y);
+    ctx.closePath(); ctx.fill();
+  }
+  ctx.restore();
+}
+/* 🌤️ EL CIELO del planeta, que tapa el espacio poco a poco al bajar */
+function pintaCielo(){
+  if(ZONA_K<=0.01) return;
+  const col=PLANETA?PLANETA.P:{a:[190,220,255],b:[80,120,190]};
+  const g=ctx.createLinearGradient(0,0,0,H);
+  g.addColorStop(0,"rgba("+Math.round(col.b[0]*0.5)+","+Math.round(col.b[1]*0.5)+","+Math.round(col.b[2]*0.7)+","+(ZONA_K*0.96).toFixed(3)+")");
+  g.addColorStop(0.55,"rgba("+col.b[0]+","+col.b[1]+","+col.b[2]+","+(ZONA_K*0.85).toFixed(3)+")");
+  g.addColorStop(1,"rgba("+col.a[0]+","+col.a[1]+","+col.a[2]+","+(ZONA_K*0.75).toFixed(3)+")");
+  ctx.fillStyle=g; ctx.fillRect(0,0,W,H);
 }
 function estrellasNuevas(){ planetaNuevo(); G.estrellas=[];
   for(let i=0;i<1150;i++){ const d=norm(v3(Math.random()*2-1,Math.random()*2-1,Math.random()*2-1));
@@ -1837,11 +1949,14 @@ function renderDentro(yoPos,yoBase){
   if(PAUSA_K>0.004) k=Math.max(k,PAUSA_K);
   pintaTunel(k, Math.min(.05, (performance.now()-(TUNEL._t||performance.now()))/1000) || 1/60);
   TUNEL._t=performance.now();
-  pintaPlaneta(Math.min(.05,(performance.now()-(PLANETA&&PLANETA._t||performance.now()))/1000)||1/60);
-  if(PLANETA) PLANETA._t=performance.now();
+  if(ZONA!=="planeta"){
+    pintaPlaneta(Math.min(.05,(performance.now()-(PLANETA&&PLANETA._t||performance.now()))/1000)||1/60);
+    if(PLANETA) PLANETA._t=performance.now();
+  }
+  pintaCielo();                                              /* 🌤️ el cielo del planeta, encima del espacio */
   for(const s of G.estrellas){ const d=aCamara(G.base,s.d); if(d.z<=0.1) continue;
     const p=proyecta(mul(d,1)); if(p.x<-4||p.x>W+4||p.y<-4||p.y>H+4) continue;
-    const tit=0.82+0.18*Math.sin(G.t*s.f+s.fa);              /* titilan, cada una a su ritmo */
+    const tit=(0.82+0.18*Math.sin(G.t*s.f+s.fa))*(1-ZONA_K);  /* titilan... y se apagan al bajar al planeta */
     const a=s.b*tit*(1-k*0.85);                              /* durante el salto casi no se ven como puntos */
     const r=(s.b>.9?1.5:s.b>.6?1.0:0.65)*Math.min(1.9,ZOOM_ACT);
     ctx.fillStyle="rgba("+s.c+","+a.toFixed(3)+")";
@@ -1872,6 +1987,7 @@ function renderDentro(yoPos,yoBase){
       for(const m of G.mod.motores){ const w=add(rel,aLocal(a.b,m)); const c=aCamara(G.base,w); if(c.z>6){ const p=proyecta(c);
         glows.push({z:c.z,x:p.x,y:p.y,r:Math.max(2,Math.min(20,0.9*p.s)),c:G.mod.motorCol,a:.3}); } } }); }
   /* enemigos */
+  pintaTerreno();                                            /* 🏔️ el suelo del planeta, debajo de todo */
   for(const e of G.enem){ const mo=e.mod||G.modEnem; pintaModelo(mo, e.p, e.b, e.esc||1, caras, (V,rel,cam,esc)=>{
       if(!V) return;
       for(const m of mo.motores){ const w=add(rel,aLocal(e.b,mul(m,esc))); const c=aCamara(G.base,w); if(c.z>6){ const p=proyecta(c); glows.push({z:c.z,x:p.x,y:p.y,r:Math.max(2,Math.min(24*esc,1.1*p.s*esc)),c:mo.motorCol,a:.4}); } } }, e.k&&e.k.col); }
@@ -1994,8 +2110,10 @@ function renderDentro(yoPos,yoBase){
   pintaAlarma();
   pintaCabina();
   pintaRadar();
+  pintaMapa();
   pintaAdelanto();
   pintaAs();
+  pintaZona();
   pintaDanos();                                              /* 🩸 por dónde te están dando */
   pintaImpacto(1/60);                                        /* 🎯 el acierto en la mira */
   pintaCola();                                               /* 🚨 te tienen a la cola */
@@ -2005,6 +2123,58 @@ function renderDentro(yoPos,yoBase){
 
 const RADAR={ on:true, alcance:2600 };
 function costeFotograma(){ return { caras:CARAS_N, lejanos:LEJOS_N }; }
+const MAPA={ on:true, alcance:3200 };
+function pintaMapa(){
+  if(!MAPA.on||!G.run||G.over) return;
+  const w=Math.min(W*0.34,240), h=w*0.52;
+  const x0=CX-w/2, y0=H-h-Math.max(10,H*0.020);
+  const cx=x0+w/2, cy=y0+h/2;
+  const esc=Math.min(w,h)*0.46/MAPA.alcance;                 /* del mundo al mapa */
+  ctx.save();
+  /* la caja */
+  ctx.fillStyle="rgba(4,14,24,.58)";
+  ctx.beginPath(); ctx.rect(x0,y0,w,h); ctx.fill();
+  ctx.strokeStyle="rgba(120,220,255,.30)"; ctx.lineWidth=1.2; ctx.stroke();
+  ctx.save(); ctx.beginPath(); ctx.rect(x0,y0,w,h); ctx.clip();
+  /* la cuadrícula, que se mueve contigo: así se nota que avanzas */
+  ctx.strokeStyle="rgba(120,220,255,.10)"; ctx.lineWidth=1;
+  const paso=600*esc;
+  for(let gx=-(G.pos.x*esc)%paso; gx<w; gx+=paso){ ctx.beginPath(); ctx.moveTo(x0+gx,y0); ctx.lineTo(x0+gx,y0+h); ctx.stroke(); }
+  for(let gy=-( -G.pos.z*esc)%paso; gy<h; gy+=paso){ ctx.beginPath(); ctx.moveTo(x0,y0+gy); ctx.lineTo(x0+w,y0+gy); ctx.stroke(); }
+  /* pinta algo en el mapa, en coordenadas del MUNDO (norte arriba) */
+  const pon=(p,col,tam,forma)=>{
+    const mx=cx+(p.x-G.pos.x)*esc, my=cy-(p.z-G.pos.z)*esc;
+    if(mx<x0-4||mx>x0+w+4||my<y0-4||my>y0+h+4) return;
+    ctx.fillStyle=col;
+    if(forma==="cuadro"){ ctx.fillRect(mx-tam,my-tam,tam*2,tam*2); }
+    else if(forma==="rombo"){ ctx.beginPath(); ctx.moveTo(mx,my-tam*1.5); ctx.lineTo(mx+tam*1.5,my); ctx.lineTo(mx,my+tam*1.5); ctx.lineTo(mx-tam*1.5,my); ctx.closePath(); ctx.fill(); }
+    else { ctx.beginPath(); ctx.arc(mx,my,tam,0,7); ctx.fill(); }
+  };
+  /* los Destructores, que son lo más gordo del mapa */
+  for(const d of (G.destructores||[])) if(!d.muerto) pon(d.p,"rgba(255,120,90,.75)",4,"cuadro");
+  /* tus compañeros */
+  for(const a of (G.amigos||[])) if(a.revive<=0) pon(a.p,"rgba(90,255,160,.9)",2.2);
+  /* los enemigos: los que arden, apagados */
+  for(const e of (G.enem||[])) pon(e.p, e.ardiendo>0?"rgba(255,180,90,.45)":(e.k&&e.k.col?e.k.col:"rgba(255,90,90,.95)"), e.k&&(e.k===CLASES.jefe||e.k===CLASES.nodriza)?3.4:2.2);
+  /* el AS, con su rombo rosa */
+  if(G.as&&!G.as.muerto) pon(G.as.p,"rgba(255,43,208,.95)",3,"rombo");
+  /* y TÚ, en el centro, con la flecha de hacia dónde miras */
+  const fx=G.base.f.x, fz=G.base.f.z, l=Math.hypot(fx,fz)||1;
+  ctx.save(); ctx.translate(cx,cy); ctx.rotate(Math.atan2(fx/l,fz/l));
+  ctx.fillStyle="#eaf8ff";
+  ctx.beginPath(); ctx.moveTo(0,-7); ctx.lineTo(4.5,5); ctx.lineTo(0,2.5); ctx.lineTo(-4.5,5); ctx.closePath(); ctx.fill();
+  ctx.restore();
+  ctx.restore();
+  /* el rótulo: dónde estás y a qué altura */
+  ctx.fillStyle="rgba(150,220,255,.75)";
+  ctx.font="700 "+Math.max(9,Math.round(Math.min(W,H)*0.020))+"px Consolas,monospace";
+  ctx.textAlign="left";
+  ctx.fillText(ZONA==="planeta"?"🪐 SUPERFICIE":"🌌 ÓRBITA", x0+6, y0+h-5);
+  ctx.textAlign="right";
+  const alt=ZONA==="planeta" ? Math.round(G.pos.y-alturaSuelo(G.pos.x,G.pos.z)) : null;
+  ctx.fillText(alt!==null?("ALT "+alt):("N "+Math.round(G.pos.z)+" · E "+Math.round(G.pos.x)), x0+w-6, y0+h-5);
+  ctx.restore();
+}
 function pintaRadar(){
   if(!RADAR.on) return;
   const R=Math.max(46,Math.min(W,H)*0.115);                  /* de qué tamaño sale el plato */
@@ -2100,6 +2270,24 @@ function pintaCola(){
   ctx.restore();
 }
 /* 💀 el cartel del as: su nombre y su vida, para que se sepa a quién tienes delante */
+/* 🛬 el aviso de que puedes bajar (o subir), abajo del todo */
+function pintaZona(){
+  if(!G.run||G.over) return;
+  let txt="";
+  if(ZONA==="espacio"&&puedeBajar()) txt="🛬 pulsa B (o 🪐) para BAJAR AL PLANETA";
+  else if(ZONA==="planeta") txt="🚀 pulsa B (o 🪐) para volver al ESPACIO";
+  else if(ZONA==="bajando") txt="🛬 entrando en la atmósfera…";
+  else if(ZONA==="subiendo") txt="🚀 saliendo al espacio…";
+  if(!txt) return;
+  const late=0.6+0.4*Math.sin(G.t*4);
+  ctx.save(); ctx.textAlign="center";
+  ctx.font="900 "+Math.round(Math.min(W,H)*0.028)+"px Consolas,monospace";
+  ctx.lineWidth=3; ctx.strokeStyle="rgba(0,0,0,.65)";
+  const y=H-Math.max(96,H*0.20);
+  ctx.strokeText(txt,CX,y);
+  ctx.fillStyle="rgba(180,230,255,"+late.toFixed(2)+")"; ctx.fillText(txt,CX,y);
+  ctx.restore();
+}
 function pintaAs(){
   const e=G.as; if(!e||e.muerto) return;
   const c=aCamara(G.base, sub(e.p,G.pos)); if(c.z<8) return;
@@ -3755,6 +3943,7 @@ function update(dt){
   rachaCorre(dt);
   danosCorren(dt);
   asCorre(dt);
+  zonaCorre(dt);
   /* 💀 el as entra a partir de la oleada 3 (o del segundo minuto en supervivencia) y vuelve
         a aparecer un rato después de que lo derribes */
   G.asT=(G.asT||0)-dt;
@@ -3956,6 +4145,7 @@ function montaTactil(){
   pega("tbMisil",()=>lanzaMisil(),null);
   pega("tbOrden",()=>cambiaOrden(),null);
   pega("tbRef",()=>pideRefuerzos(),null);
+  pega("tbPlaneta",()=>cambiaZona(),null);
   /* la barra de la izquierda es el acelerador: se arrastra con el pulgar */
   const g=$("tGas");
   if(g){
@@ -4156,6 +4346,7 @@ addEventListener("keydown",e=>{
     else if(G.run&&!G.paused&&!G.over){ musArranca(); motorEnciende(); ambienteEnciende(); }
     else { musMenu=false; musMenuArranca(); }
     avisoM(); }
+  else if(k==="b"&&G.run&&!G.over&&!G.paused) cambiaZona();  /* 🪐 B: bajar al planeta o volver al espacio */
   else if(k==="escape"&&G.run&&!G.over) saltoDeSalida();     /* ⎋ Escape: salto al hiperespacio y al menú (para pausar, la P) */
 });
 addEventListener("keyup",e=>{ const k=e.key.toLowerCase();
@@ -4233,6 +4424,8 @@ const NOVEDADES=[
   ["😠","Cuatro dificultades","De FÁCIL a IMPOSIBLE. Las difíciles pagan más: en IMPOSIBLE cada derribo vale x2,5"],
   ["🔥","Ráfagas de tres","Los enemigos ya no sueltan un tiro suelto: sueltan una RÁFAGA de tres seguidos que te persigue en fila india (el bombardero, de dos, que pega más). Y tiran desde 1900 en vez de 1500, casi sin apuntar (0,62) y cada 0,16-0,42 s. Con las oleadas dobles, el cielo es una tormenta de rayos"],
   ["🔫","Nadie para de disparar","Ya no hace falta que te tengan clavado en la mira: a los enemigos les basta con tenerte MÁS O MENOS por delante (0,15 en vez de 0,62) y tiran desde 2600 en vez de 1900, incluso mientras huyen o dan la vuelta. Y tus aliados igual: disparan desde 2600 en vez de 1250 y sin esperar a tenerlo centrado; los jefes buenos, el doble de rápido. El cielo no se calla nunca"],
+  ["🛬","Se puede BAJAR AL PLANETA","Ponte de frente al planeta y pulsa B (o el botón 🪐 en el celular): tres segundos de entrada en la atmósfera, las estrellas se apagan, el cielo se tiñe del color del planeta y aparece el SUELO, con montañas y valles de verdad que no puedes atravesar (si lo rozas, te raspa). Los enemigos bajan contigo. Vuelve a pulsar B y subes otra vez al espacio"],
+  ["🗺️","Un mapa abajo","Debajo del todo hay un MAPA visto desde arriba, con el norte siempre arriba: tú en el centro con la flecha de hacia dónde miras, los enemigos en rojo (los jefes más gordos), tus compañeros en verde, los Destructores en cuadrados, el AS con su rombo rosa, y una cuadrícula que se mueve contigo para que se note que avanzas. Abajo pone si estás en ÓRBITA o en la SUPERFICIE, y tu altura sobre el suelo"],
   ["🪐","Un planeta ahí abajo","El cielo ya no es solo estrellas: hay un PLANETA de verdad, clavado en su sitio (al girar la nave se queda donde debe, no te sigue). Tiene su mitad de noche con el terminador, bandas de nubes que se mueven, el filo del borde encendido por el sol, atmósfera alrededor y una LUNA dando vueltas. Sale uno de cinco: helado, rojo, selva, gaseoso o morado — y los dos últimos con ANILLO. Cada partida, uno distinto"],
   ["💀","EL AS: tu rival con nombre","A partir de la oleada 3 (o del segundo minuto en supervivencia) entra en combate un PILOTO CON NOMBRE — VADER JR., ESCORPIÓN, LA SOMBRA, GARRA... Vuela más rápido que tú, gira casi igual, esquiva el doble que los demás y NO TE SUELTA: si te alejas, vuelve. Lleva su nombre y su barra de vida encima, un rombo rosa que lo señala, y te suelta bravatas. Y como el KÓNDOR de F1, el marcador de vuestros duelos SE GUARDA entre partidas: si te derriba estando él vivo, el punto es suyo"],
   ["🩸","Sabes por dónde te disparan","Cuando te dan, se enciende un ARCO ROJO en el borde de la pantalla por el lado del que vino el tiro: derecha, izquierda, arriba, abajo... y en otro tono si vino de tu espalda. Los tiros del mismo sitio se juntan en un solo aviso en vez de amontonarse, y se apagan solos"],
