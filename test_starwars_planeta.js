@@ -21,13 +21,14 @@ let golpes = [], avisos = [], sacudidas = 0;
 const G = { pos: v3(0, 0, 0), base: { r: v3(1, 0, 0), u: v3(0, 1, 0), f: v3(0, 0, 1) },
   enem: [], amigos: [], run: true, over: false, paused: false, t: 0 };
 const Z = new Function("G", "v3", "sub", "dot", "aCamara", "aviso", "sfx", "mute", "golpe", "sacude",
-  "PLANETA", "hiper", "saliendo",
+  "PLANETA", "hiper", "saliendo", "CIUDAD",
   codigo + "; return { cambiaZona, zonaCorre, puedeBajar, alturaSuelo, SUELO, zona:()=>ZONA, k:()=>ZONA_K };")(
   G, v3, sub, dot,
   (base, d) => ({ x: dot(d, base.r), y: dot(d, base.u), z: dot(d, base.f) }),
   t => avisos.push(t), () => {}, true,
   (d, desde) => golpes.push(d), v => sacudidas += v,
-  { d: v3(0, -0.4, 0.9), P: { a: [1, 2, 3], b: [1, 2, 3], mar: [1, 2, 3] } }, 0, 0);
+  { d: v3(0, -0.4, 0.9), P: { a: [1, 2, 3], b: [1, 2, 3], mar: [1, 2, 3] } }, 0, 0,
+  { cx: 800, cz: -600, edif: [], brasas: [] });      /* la ciudad, para aterrizar al lado */
 
 /* ---------- 1) solo se baja con el planeta de frente ---------- */
 G.base.f = v3(0, -0.4, 0.9);                              /* mirando al planeta */
@@ -51,7 +52,11 @@ const medio = [];
 for (let i = 0; i < 240 && Z.zona() === "bajando"; i++) { Z.zonaCorre(1 / 60); if (i % 45 === 0) medio.push(Z.k().toFixed(2)); }
 console.log("  el cielo se va tiñendo: " + medio.join(" → ") + " (0 = espacio, 1 = superficie)");
 if (medio[0] >= medio[medio.length - 1]) MAL("la bajada no progresa");
-console.log("  al terminar: zona «" + Z.zona() + "» · a " + Math.round(G.pos.y - Z.SUELO) + " sobre el suelo · aviso: «" + avisos[avisos.length - 1] + "»");
+console.log("  al terminar: zona «" + Z.zona() + "» · a " + Math.round(G.pos.y - Z.alturaSuelo(G.pos.x, G.pos.z)) + " sobre el suelo · aviso: «" + avisos[avisos.length - 1] + "»");
+/* y aterrizas CERCA de la ciudad, para verla arder */
+const lejosCiudad = Math.hypot(G.pos.x - 800, G.pos.z - (-600));
+console.log("  y apareces a " + Math.round(lejosCiudad) + " de la ciudad (el terreno llega a ~3200): se ve desde el aire");
+if (lejosCiudad > 3000) MAL("apareces tan lejos de la ciudad que no se ve");
 if (Z.zona() !== "planeta") MAL("no llega al planeta");
 if (Z.k() !== 1) MAL("el cielo no queda del todo puesto");
 if (!(G.pos.y > Z.SUELO)) MAL("apareces bajo tierra");

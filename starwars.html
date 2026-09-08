@@ -1315,7 +1315,11 @@ function zonaCorre(dt){
     ZONA_K=(ZONA==="bajando")?k:1-k;
     sacude(dt*1.1);                                          /* la atmósfera zarandea */
     if(ZONA_T<=0){
-      if(ZONA==="bajando"){ ZONA="planeta"; ZONA_K=1; G.pos=v3(G.pos.x, SUELO+520, G.pos.z); aviso("🪐 EN EL PLANETA · pulsa B para volver al espacio"); }
+      if(ZONA==="bajando"){ ZONA="planeta"; ZONA_K=1;
+        /* se aterriza CERCA DE LA CIUDAD y mirando hacia ella: si no, podrías caer en mitad de
+           la nada y no ver el incendio, que es lo bonito */
+        G.pos=v3(CIUDAD.cx-260, alturaSuelo(CIUDAD.cx-260,CIUDAD.cz-1500)+560, CIUDAD.cz-1500);
+        aviso("🌇 ¡LA CIUDAD ESTÁ ARDIENDO! · pulsa B para volver al espacio"); }
       else { ZONA="espacio"; ZONA_K=0; aviso("🌌 DE VUELTA EN EL ESPACIO"); }
     }
   }
@@ -1333,49 +1337,204 @@ function zonaCorre(dt){
   for(const e of G.enem){ const hh=alturaSuelo(e.p.x,e.p.z)+40; if(e.p.y<hh) e.p=v3(e.p.x,hh,e.p.z); }
   for(const a of G.amigos){ const hh=alturaSuelo(a.p.x,a.p.z)+40; if(a.p.y<hh) a.p=v3(a.p.x,hh,a.p.z); }
 }
-/* 🏔️ EL TERRENO: una malla de cuadros alrededor de ti, más finos cerca y más bastos lejos */
-const TERR_N=17, TERR_PASO=190;
+/* 🏔️ EL TERRENO: una malla alrededor de ti, con LUZ DE VERDAD (cada cuadro se ilumina según
+      hacia dónde mira su cara), nieve en las cumbres, agua en los valles y niebla a lo lejos */
+const TERR_N=19, TERR_PASO=170;
+const SOL_PL=norm(v3(0.45,0.72,-0.53));                      /* de dónde viene la luz EN EL PLANETA (el SOL de arriba es el del espacio) */
 function pintaTerreno(){
   if(ZONA_K<=0.02) return;
   const col=PLANETA?PLANETA.P:{a:[200,200,220],b:[110,110,140],mar:[60,60,90]};
   const cxw=Math.round(G.pos.x/TERR_PASO)*TERR_PASO, czw=Math.round(G.pos.z/TERR_PASO)*TERR_PASO;
   const caras=[];
+  const ALCANCE=TERR_PASO*TERR_N*1.45;
   for(let i=-TERR_N;i<TERR_N;i++){
     for(let j=-TERR_N;j<TERR_N;j++){
       const x0=cxw+i*TERR_PASO, z0=czw+j*TERR_PASO;
       const x1=x0+TERR_PASO, z1=z0+TERR_PASO;
-      const P=[[x0,z0],[x1,z0],[x1,z1],[x0,z1]].map(q=>{
-        const w=v3(q[0], alturaSuelo(q[0],q[1]), q[1]);
-        const c=aCamara(G.base, sub(w,G.pos));
-        return c;
-      });
-      if(P.every(c=>c.z<8)) continue;                        /* todo el cuadro a la espalda */
-      if(P.some(c=>c.z<8)) continue;                         /* medio cortado: se salta, no se ve raro */
-      const pts=P.map(c=>proyecta(c));
+      const h00=alturaSuelo(x0,z0), h10=alturaSuelo(x1,z0), h11=alturaSuelo(x1,z1), h01=alturaSuelo(x0,z1);
+      const P=[[x0,h00,z0],[x1,h10,z0],[x1,h11,z1],[x0,h01,z1]].map(q=>aCamara(G.base, sub(v3(q[0],q[1],q[2]),G.pos)));
+      if(P.some(c=>c.z<8)) continue;                         /* medio cortado o a la espalda */
       const zm=(P[0].z+P[1].z+P[2].z+P[3].z)/4;
-      if(zm>TERR_PASO*TERR_N*1.6) continue;                  /* lejísimos: ni se pinta */
-      const hm=(alturaSuelo(x0,z0)-SUELO)/220;               /* lo alto que es, de 0 a 1 */
-      const lejos=Math.min(1, zm/(TERR_PASO*TERR_N*1.2));
-      caras.push({zm,pts,hm,lejos,i,j});
+      if(zm>ALCANCE) continue;
+      /* la NORMAL del cuadro: con eso se ilumina de verdad, no con un damero */
+      const nx=(h00+h01)-(h10+h11), nz=(h00+h10)-(h01+h11);
+      const nl=Math.hypot(nx,2*TERR_PASO,nz)||1;
+      const luz=Math.max(0.18, (nx/nl)*SOL_PL.x + (2*TERR_PASO/nl)*SOL_PL.y + (nz/nl)*SOL_PL.z);
+      caras.push({ zm, pts:P.map(c=>proyecta(c)), h:(h00+h10+h11+h01)/4, luz,
+                   lejos:Math.min(1, zm/ALCANCE) });
     }
   }
-  caras.sort((a,b)=>b.zm-a.zm);                              /* de lejos a cerca, como el resto del juego */
+  caras.sort((a,b)=>b.zm-a.zm);
   ctx.save();
   for(const c of caras){
-    /* el color del terreno: valles oscuros, cumbres claras, y la niebla se lo come a lo lejos */
-    const t=Math.max(0,Math.min(1,0.5+c.hm*0.5));
-    const r=Math.round(col.mar[0]+(col.a[0]-col.mar[0])*t);
-    const g=Math.round(col.mar[1]+(col.a[1]-col.mar[1])*t);
-    const b=Math.round(col.mar[2]+(col.a[2]-col.mar[2])*t);
-    const tablero=((c.i+c.j)&1)?0.93:1;                      /* damero suave, para que se vea el relieve */
-    const niebla=c.lejos*0.85;
-    const rr=Math.round(r*tablero*(1-niebla)+col.b[0]*niebla*0.6);
-    const gg=Math.round(g*tablero*(1-niebla)+col.b[1]*niebla*0.6);
-    const bb=Math.round(b*tablero*(1-niebla)+col.b[2]*niebla*0.6);
-    ctx.fillStyle="rgba("+rr+","+gg+","+bb+","+(ZONA_K*(1-c.lejos*0.55)).toFixed(3)+")";
+    /* de agua (abajo) a roca y a NIEVE (arriba) */
+    const t=Math.max(0,Math.min(1,(c.h-SUELO+250)/500));
+    let r,g,b;
+    if(t<0.30){ const k=t/0.30;                              /* el fondo: agua/lava */
+      r=col.mar[0]*(1-k)+col.b[0]*k; g=col.mar[1]*(1-k)+col.b[1]*k; b=col.mar[2]*(1-k)+col.b[2]*k; }
+    else if(t<0.78){ const k=(t-0.30)/0.48;                  /* la roca */
+      r=col.b[0]*(1-k)+col.a[0]*k; g=col.b[1]*(1-k)+col.a[1]*k; b=col.b[2]*(1-k)+col.a[2]*k; }
+    else { const k=Math.min(1,(t-0.78)/0.22);                /* las cumbres nevadas */
+      r=col.a[0]*(1-k)+248*k; g=col.a[1]*(1-k)+250*k; b=col.a[2]*(1-k)+255*k; }
+    const L=0.42+c.luz*0.78;                                 /* la luz del sol sobre esa cara */
+    const niebla=Math.pow(c.lejos,1.5)*0.88;
+    const rr=Math.round(r*L*(1-niebla)+col.b[0]*0.75*niebla);
+    const gg=Math.round(g*L*(1-niebla)+col.b[1]*0.75*niebla);
+    const bb=Math.round(b*L*(1-niebla)+col.b[2]*0.75*niebla);
+    ctx.fillStyle="rgba("+rr+","+gg+","+bb+","+ZONA_K.toFixed(3)+")";
     ctx.beginPath(); ctx.moveTo(c.pts[0].x,c.pts[0].y);
     for(let k=1;k<4;k++) ctx.lineTo(c.pts[k].x,c.pts[k].y);
     ctx.closePath(); ctx.fill();
+  }
+  ctx.restore();
+  pintaCiudad();
+}
+
+/* ================= 🌇 LA CIUDAD ARDIENDO =================
+   Un montón de torres en manzanas con sus calles, muchas EN LLAMAS: fuego que sube, columnas de
+   humo, brasas volando y el resplandor naranja del incendio tiñendo el cielo por ese lado. */
+const CIUDAD={ cx:0, cz:0, edif:[], brasas:[], _t:0 };
+function ciudadNueva(){
+  CIUDAD.cx=(Math.random()*2-1)*1400; CIUDAD.cz=(Math.random()*2-1)*1400;
+  CIUDAD.edif=[]; CIUDAD.brasas=[];
+  const MANZ=90, CALLE=52;                                   /* lo que ocupa cada manzana y su calle */
+  for(let i=-6;i<=6;i++){
+    for(let j=-6;j<=6;j++){
+      if(Math.abs(i)+Math.abs(j)>9) continue;                /* la ciudad es redondeada, no un cuadro */
+      if(Math.random()<0.14) continue;                       /* solares vacíos */
+      const x=CIUDAD.cx+i*(MANZ+CALLE)+(Math.random()*2-1)*10;
+      const z=CIUDAD.cz+j*(MANZ+CALLE)+(Math.random()*2-1)*10;
+      const centro=Math.hypot(i,j)/8;                        /* en el centro, más altas */
+      const alt=(70+Math.random()*Math.random()*300)*(1.25-centro*0.6);
+      CIUDAD.edif.push({ x, z, w:MANZ*(0.34+Math.random()*0.3), alt,
+                         suelo:alturaSuelo(x,z),
+                         fuego: Math.random()<0.42 ? 0.35+Math.random()*0.65 : 0,   /* 4 de cada 10, ardiendo */
+                         luces: Math.random()<0.8, sem:Math.random()*7 });
+    }
+  }
+}
+function ciudadCorre(dt){
+  if(ZONA_K<=0.02) return;
+  CIUDAD._t+=dt;
+  /* brasas subiendo de los edificios que arden */
+  for(const e of CIUDAD.edif){
+    if(e.fuego>0 && Math.random()<dt*2.2*e.fuego){
+      CIUDAD.brasas.push({ x:e.x+(Math.random()*2-1)*e.w, z:e.z+(Math.random()*2-1)*e.w,
+                           y:e.suelo+e.alt, vy:26+Math.random()*46, vida:1+Math.random()*1.6, max:2.6 });
+    }
+  }
+  for(const b of CIUDAD.brasas){ b.y+=b.vy*dt; b.vida-=dt; b.x+=Math.sin(b.y*0.01)*8*dt; }
+  CIUDAD.brasas=CIUDAD.brasas.filter(b=>b.vida>0);
+  if(CIUDAD.brasas.length>150) CIUDAD.brasas.splice(0,CIUDAD.brasas.length-150);
+}
+function pintaCiudad(){
+  if(ZONA_K<=0.02||!CIUDAD.edif.length) return;
+  const t=CIUDAD._t;
+  const cosas=[];
+  for(const e of CIUDAD.edif){
+    const c=aCamara(G.base, sub(v3(e.x,e.suelo+e.alt*0.5,e.z),G.pos));
+    if(c.z<20||c.z>5200) continue;
+    cosas.push({e,z:c.z});
+  }
+  cosas.sort((a,b)=>b.z-a.z);                                /* de lejos a cerca */
+  ctx.save();
+  for(const o of cosas){
+    const e=o.e, lejos=Math.min(1,o.z/5200);
+    const w=e.w;
+    /* las cuatro esquinas de arriba y de abajo */
+    const esq=[[-w,-w],[w,-w],[w,w],[-w,w]];
+    const abajo=esq.map(q=>proyecta(aCamara(G.base, sub(v3(e.x+q[0],e.suelo,e.z+q[1]),G.pos))));
+    const arriba=esq.map(q=>proyecta(aCamara(G.base, sub(v3(e.x+q[0],e.suelo+e.alt,e.z+q[1]),G.pos))));
+    const detras=esq.map(q=>aCamara(G.base, sub(v3(e.x+q[0],e.suelo+e.alt,e.z+q[1]),G.pos)).z<12);
+    if(detras.some(Boolean)) continue;
+    /* las cuatro paredes, pintadas de lejos a cerca */
+    const paredes=[[0,1],[1,2],[2,3],[3,0]].map(p=>{
+      const zz=(aCamara(G.base, sub(v3(e.x+esq[p[0]][0],e.suelo,e.z+esq[p[0]][1]),G.pos)).z
+               +aCamara(G.base, sub(v3(e.x+esq[p[1]][0],e.suelo,e.z+esq[p[1]][1]),G.pos)).z)/2;
+      return {p,zz};
+    }).sort((a,b)=>b.zz-a.zz);
+    const humo=Math.max(0,1-lejos);
+    for(let k=0;k<paredes.length;k++){
+      const [i0,i1]=paredes[k].p;
+      const lado=(k>=2)?1:0.72;                              /* las de delante, más claras */
+      const brillo=(0.42+lado*0.5)*(1-lejos*0.55);
+      const R=Math.round(52*brillo+(e.fuego?36*e.fuego:0)), Gc=Math.round(58*brillo), B=Math.round(74*brillo);
+      ctx.fillStyle="rgba("+R+","+Gc+","+B+","+ZONA_K.toFixed(3)+")";
+      ctx.beginPath();
+      ctx.moveTo(abajo[i0].x,abajo[i0].y); ctx.lineTo(abajo[i1].x,abajo[i1].y);
+      ctx.lineTo(arriba[i1].x,arriba[i1].y); ctx.lineTo(arriba[i0].x,arriba[i0].y);
+      ctx.closePath(); ctx.fill();
+      /* las VENTANAS encendidas: solo en las de cerca, y solo en la cara de delante */
+      if(k===paredes.length-1 && e.luces && lejos<0.34){
+        const filas=Math.max(2,Math.min(9,Math.round(e.alt/34)));
+        for(let fy=0;fy<filas;fy++){
+          for(let fx=0;fx<3;fx++){
+            const enc=((fx*7+fy*13+((e.x*0.01)|0))%5)!==0;
+            if(!enc) continue;
+            const u=(fx+0.5)/3, vv=(fy+0.5)/filas;
+            const ax=abajo[i0].x+(abajo[i1].x-abajo[i0].x)*u, ay=abajo[i0].y+(abajo[i1].y-abajo[i0].y)*u;
+            const bx=arriba[i0].x+(arriba[i1].x-arriba[i0].x)*u, by=arriba[i0].y+(arriba[i1].y-arriba[i0].y)*u;
+            const px=ax+(bx-ax)*vv, py=ay+(by-ay)*vv;
+            const parp=e.fuego? (0.5+0.5*Math.sin(t*9+fy+fx)) : 1;
+            ctx.fillStyle=e.fuego?"rgba(255,"+Math.round(150+80*parp)+",90,"+(0.75*parp*ZONA_K).toFixed(2)+")"
+                                 :"rgba(255,225,150,"+(0.62*ZONA_K).toFixed(2)+")";
+            const tam=Math.max(1,Math.abs(arriba[i0].y-abajo[i0].y)/(filas*3.4));
+            ctx.fillRect(px-tam/2,py-tam/2,tam,tam*0.8);
+          }
+        }
+      }
+    }
+    /* el tejado */
+    ctx.fillStyle="rgba("+Math.round(74+(e.fuego?60*e.fuego:0))+",78,96,"+ZONA_K.toFixed(3)+")";
+    ctx.beginPath(); ctx.moveTo(arriba[0].x,arriba[0].y);
+    for(let k=1;k<4;k++) ctx.lineTo(arriba[k].x,arriba[k].y);
+    ctx.closePath(); ctx.fill();
+
+    /* 🔥 EL FUEGO: lenguas que suben del tejado, y humo por encima */
+    if(e.fuego>0 && lejos<0.85){
+      const base=arriba[0], cimaY=Math.min(arriba[0].y,arriba[1].y,arriba[2].y,arriba[3].y);
+      const cxp=(arriba[0].x+arriba[1].x+arriba[2].x+arriba[3].x)/4;
+      const anchoPix=Math.abs(arriba[1].x-arriba[0].x)||6;
+      const altoLlama=Math.abs(arriba[0].y-abajo[0].y)*0.55*e.fuego;
+      ctx.save(); ctx.globalCompositeOperation="lighter";
+      for(let L=0;L<3;L++){
+        const osc=Math.sin(t*(5+L*2.2)+e.sem+L)*anchoPix*0.22;
+        const h=altoLlama*(0.55+0.45*Math.abs(Math.sin(t*(3.4+L)+e.sem)));
+        const g=ctx.createLinearGradient(cxp,cimaY,cxp,cimaY-h);
+        g.addColorStop(0,"rgba(255,230,150,"+(0.75*ZONA_K).toFixed(2)+")");
+        g.addColorStop(0.45,"rgba(255,130,30,"+(0.55*ZONA_K).toFixed(2)+")");
+        g.addColorStop(1,"rgba(180,30,10,0)");
+        ctx.fillStyle=g;
+        ctx.beginPath();
+        ctx.moveTo(cxp-anchoPix*0.45,cimaY);
+        ctx.quadraticCurveTo(cxp+osc,cimaY-h*0.6,cxp+osc*0.4,cimaY-h);
+        ctx.quadraticCurveTo(cxp+osc,cimaY-h*0.5,cxp+anchoPix*0.45,cimaY);
+        ctx.closePath(); ctx.fill();
+      }
+      /* el resplandor del incendio */
+      const gl=ctx.createRadialGradient(cxp,cimaY,0,cxp,cimaY,anchoPix*3);
+      gl.addColorStop(0,"rgba(255,120,40,"+(0.30*e.fuego*ZONA_K).toFixed(3)+")");
+      gl.addColorStop(1,"rgba(255,80,20,0)");
+      ctx.fillStyle=gl; ctx.beginPath(); ctx.arc(cxp,cimaY,anchoPix*3,0,7); ctx.fill();
+      ctx.restore();
+      /* la columna de humo */
+      ctx.fillStyle="rgba(40,36,38,"+(0.20*ZONA_K).toFixed(3)+")";
+      for(let hnub=0;hnub<3;hnub++){
+        const yy=cimaY-altoLlama-hnub*anchoPix*1.4-((t*22+e.sem*30)%80);
+        const rr=anchoPix*(0.9+hnub*0.6);
+        ctx.beginPath(); ctx.arc(cxp+Math.sin(t*0.6+hnub+e.sem)*anchoPix*0.7, yy, rr, 0, 7); ctx.fill();
+      }
+    }
+  }
+  /* las brasas volando por encima de la ciudad */
+  ctx.save(); ctx.globalCompositeOperation="lighter";
+  for(const b of CIUDAD.brasas){
+    const c=aCamara(G.base, sub(v3(b.x,b.y,b.z),G.pos));
+    if(c.z<12) continue;
+    const p=proyecta(c);
+    const a=Math.max(0,b.vida/b.max);
+    ctx.fillStyle="rgba(255,"+Math.round(120+120*a)+",60,"+(a*0.8).toFixed(3)+")";
+    ctx.beginPath(); ctx.arc(p.x,p.y,Math.max(0.6,2.4*a*p.s*40),0,7); ctx.fill();
   }
   ctx.restore();
 }
@@ -1389,7 +1548,7 @@ function pintaCielo(){
   g.addColorStop(1,"rgba("+col.a[0]+","+col.a[1]+","+col.a[2]+","+(ZONA_K*0.75).toFixed(3)+")");
   ctx.fillStyle=g; ctx.fillRect(0,0,W,H);
 }
-function estrellasNuevas(){ planetaNuevo(); G.estrellas=[];
+function estrellasNuevas(){ planetaNuevo(); ciudadNueva(); G.estrellas=[];
   for(let i=0;i<1150;i++){ const d=norm(v3(Math.random()*2-1,Math.random()*2-1,Math.random()*2-1));
     G.estrellas.push({ d, b:.18+Math.random()*.82, c:COL_ESTRELLA[(Math.random()*COL_ESTRELLA.length)|0], f:.4+Math.random()*1.8, fa:Math.random()*7 }); } }
 const DEST_VIDA=9000, DEST_ALCANCE=2600, DEST_DANO=34;
@@ -2150,6 +2309,15 @@ function pintaMapa(){
     else if(forma==="rombo"){ ctx.beginPath(); ctx.moveTo(mx,my-tam*1.5); ctx.lineTo(mx+tam*1.5,my); ctx.lineTo(mx,my+tam*1.5); ctx.lineTo(mx-tam*1.5,my); ctx.closePath(); ctx.fill(); }
     else { ctx.beginPath(); ctx.arc(mx,my,tam,0,7); ctx.fill(); }
   };
+  /* 🌇 la ciudad, si estás en el planeta: sus manzanas y las que arden */
+  if(ZONA==="planeta"&&CIUDAD.edif.length){
+    for(const e of CIUDAD.edif){
+      const mx=cx+(e.x-G.pos.x)*esc, my=cy-(e.z-G.pos.z)*esc;
+      if(mx<x0-2||mx>x0+w+2||my<y0-2||my>y0+h+2) continue;
+      ctx.fillStyle=e.fuego?"rgba(255,140,60,.95)":"rgba(150,170,200,.6)";
+      ctx.fillRect(mx-1.4,my-1.4,2.8,2.8);
+    }
+  }
   /* los Destructores, que son lo más gordo del mapa */
   for(const d of (G.destructores||[])) if(!d.muerto) pon(d.p,"rgba(255,120,90,.75)",4,"cuadro");
   /* tus compañeros */
@@ -3944,6 +4112,7 @@ function update(dt){
   danosCorren(dt);
   asCorre(dt);
   zonaCorre(dt);
+  ciudadCorre(dt);
   /* 💀 el as entra a partir de la oleada 3 (o del segundo minuto en supervivencia) y vuelve
         a aparecer un rato después de que lo derribes */
   G.asT=(G.asT||0)-dt;
@@ -4424,6 +4593,8 @@ const NOVEDADES=[
   ["😠","Cuatro dificultades","De FÁCIL a IMPOSIBLE. Las difíciles pagan más: en IMPOSIBLE cada derribo vale x2,5"],
   ["🔥","Ráfagas de tres","Los enemigos ya no sueltan un tiro suelto: sueltan una RÁFAGA de tres seguidos que te persigue en fila india (el bombardero, de dos, que pega más). Y tiran desde 1900 en vez de 1500, casi sin apuntar (0,62) y cada 0,16-0,42 s. Con las oleadas dobles, el cielo es una tormenta de rayos"],
   ["🔫","Nadie para de disparar","Ya no hace falta que te tengan clavado en la mira: a los enemigos les basta con tenerte MÁS O MENOS por delante (0,15 en vez de 0,62) y tiran desde 2600 en vez de 1900, incluso mientras huyen o dan la vuelta. Y tus aliados igual: disparan desde 2600 en vez de 1250 y sin esperar a tenerlo centrado; los jefes buenos, el doble de rápido. El cielo no se calla nunca"],
+  ["🌇","LA CIUDAD EN LLAMAS","Abajo, en el planeta, hay una CIUDAD: manzanas con sus calles, torres más altas en el centro, ventanas encendidas de noche... y CUATRO DE CADA DIEZ EDIFICIOS ARDIENDO. Cada incendio tiene tres lenguas de fuego que se retuercen, resplandor naranja, columna de humo subiendo y BRASAS que salen volando. En los edificios en llamas las ventanas parpadean en naranja. Y la ciudad sale también en el mapa de abajo: gris lo que está en pie, naranja lo que arde"],
+  ["✨","El planeta, con luz de verdad","El suelo ya no es un damero: cada cuadro del terreno calcula su NORMAL y se ilumina según hacia dónde mira su cara respecto al sol. Los valles son agua, la mitad es roca y las cumbres salen NEVADAS. La niebla se come el color a lo lejos, y la malla pasa de 17 a 19 cuadros de radio con el paso más fino (170 en vez de 190)"],
   ["🛬","Se puede BAJAR AL PLANETA","Ponte de frente al planeta y pulsa B (o el botón 🪐 en el celular): tres segundos de entrada en la atmósfera, las estrellas se apagan, el cielo se tiñe del color del planeta y aparece el SUELO, con montañas y valles de verdad que no puedes atravesar (si lo rozas, te raspa). Los enemigos bajan contigo. Vuelve a pulsar B y subes otra vez al espacio"],
   ["🗺️","Un mapa abajo","Debajo del todo hay un MAPA visto desde arriba, con el norte siempre arriba: tú en el centro con la flecha de hacia dónde miras, los enemigos en rojo (los jefes más gordos), tus compañeros en verde, los Destructores en cuadrados, el AS con su rombo rosa, y una cuadrícula que se mueve contigo para que se note que avanzas. Abajo pone si estás en ÓRBITA o en la SUPERFICIE, y tu altura sobre el suelo"],
   ["🪐","Un planeta ahí abajo","El cielo ya no es solo estrellas: hay un PLANETA de verdad, clavado en su sitio (al girar la nave se queda donde debe, no te sigue). Tiene su mitad de noche con el terminador, bandas de nubes que se mueven, el filo del borde encendido por el sol, atmósfera alrededor y una LUNA dando vueltas. Sale uno de cinco: helado, rojo, selva, gaseoso o morado — y los dos últimos con ANILLO. Cada partida, uno distinto"],
