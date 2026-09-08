@@ -3977,7 +3977,10 @@ function update(dt){
 
   /* ---- vuelo: el ratón inclina y gira; se puede dar la vuelta entera ---- */
   const cerrado=1+(1-Math.min(1,G.gas))*0.75;               /* frenar es la forma de girar en seco */
-  girar(G.base, G.yaw*G.giro*cerrado*finura*dt, G.pitch*G.giro*cerrado*finura*dt, G.roll*1.9*(0.7+cerrado*0.45)*dt);
+  /* 🐛 EL TONEL IBA AL REVÉS: con dRoll positivo el ala derecha SUBE, o sea que la nave gira
+        hacia la IZQUIERDA. Así que apretando D (o RB) girabas al lado contrario. Va con el signo
+        cambiado: ahora D y RB giran a la derecha, y A y LB a la izquierda, como debe ser */
+  girar(G.base, G.yaw*G.giro*cerrado*finura*dt, G.pitch*G.giro*cerrado*finura*dt, -G.roll*1.9*(0.7+cerrado*0.45)*dt);
   /* la nave persigue a la mira con medio segundo de retraso (se ve derrapar al girar) */
   const kN=1-Math.exp(-dt/0.5);
   G.naveBase.f=norm(add(G.naveBase.f, mul(sub(G.base.f,G.naveBase.f), kN)));
