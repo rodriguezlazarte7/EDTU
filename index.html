@@ -7644,7 +7644,7 @@ const Ima=miniArma({ LS:"edtu_ima_best", NOM:"⚡ ENERGY",
 
 /* 🐉 CUEVA — mantienes para subir y sueltas para bajar; el túnel se estrecha sin parar */
 const Cue=miniArma({ LS:"edtu_cue_best", NOM:"🐉 CUEVA",
-  AYUDA:"🐉 <b>Mantén apretado</b> para subir, suelta para bajar<br><span style='font-size:12px;opacity:.8'>el túnel se cierra · pilla <b style='color:#7fdcff'>cristales</b> (+5) · las estalactitas te revientan, los <b style='color:#c8a2ff'>murciélagos</b> solo te asustan (-3)</span>",
+  AYUDA:"🐉 <b>Mantén apretado</b> para subir, suelta para bajar<br><span style='font-size:12px;opacity:.8'>sigue la <b style='color:#8fd8ff'>línea fantasma</b> 👻 y no fallas · pilla <b style='color:#7fdcff'>cristales</b> (+5) · las estalactitas te revientan, los <b style='color:#c8a2ff'>murciélagos</b> solo asustan (-3)</span>",
   cv:null,ctx:null,raf:null,run:false,W:0,H:0,y:0,vy:0,score:0,best:0,t:0,mus:null,sube:false,
   pared:[],hueco:0,centro:0,estala:[],chispas:[],
   fondo:[],polvo:[],gotas:[],cristales:[],murcis:[],boom:null,sacude:0,aviso:"",avisoT:0,
@@ -7664,6 +7664,20 @@ const Cue=miniArma({ LS:"edtu_cue_best", NOM:"🐉 CUEVA",
     this.pared=[]; for(let i=0;i<this.W+20;i+=6) this.pared.push({x:i,c:this.centro,h:this.hueco,ja:0,jb:0}); },
   sigue(){ return !!this.boom; },
   dice(t){ this.aviso=t; this.avisoT=46; },
+  /* 👻 ¿por dónde hay que pasar en esta columna? El centro del hueco... salvo que haya una
+        estalactita, y entonces el camino se aparta de ella (sin salirse del hueco, claro) */
+  caminoY(col){
+    const arribaTope=col.c-col.h/2+10;                     /* el techo (con margen) */
+    const abajoTope =col.c+col.h/2-10;                     /* el suelo (con margen) */
+    let alto=arribaTope, bajo=abajoTope;
+    for(const e of this.estala){
+      if(Math.abs(e.x-col.x)>14) continue;
+      if(e.arriba) alto=Math.max(alto, col.c-col.h/2+e.l+9);   /* cuelga del techo: hay que ir por debajo */
+      else         bajo=Math.min(bajo, col.c+col.h/2-e.l-9);   /* sube del suelo: hay que ir por encima */
+    }
+    if(alto>bajo){ const m=(alto+bajo)/2; alto=bajo=Math.max(arribaTope,Math.min(abajoTope,m)); }
+    return (alto+bajo)/2;
+  },
   /* 💥 al chocar: la nave se rompe en pedazos de roca y chispas */
   revienta(txt){
     const P=[];
@@ -7856,6 +7870,35 @@ const Cue=miniArma({ LS:"edtu_cue_best", NOM:"🐉 CUEVA",
       c.fillStyle="#8f6ecf"; c.beginPath(); c.arc(0,0,4,0,7); c.fill();
       c.fillStyle="#ffd166"; c.fillRect(-2,-1.5,1.4,1.4); c.fillRect(0.8,-1.5,1.4,1.4);
       c.globalAlpha=1; c.restore();
+    }
+
+    /* ---- 👻 LA LÍNEA FANTASMA: por dónde hay que ir ----
+          No va por el centro a secas: en cada columna mira si hay estalactita y se aparta, así que
+          la línea SIEMPRE pasa por donde de verdad se puede pasar */
+    {
+      const pts=[];
+      for(const p of this.pared){
+        if(p.x<40||p.x>W+10) continue;
+        pts.push({x:p.x, y:this.caminoY(p)});
+      }
+      if(pts.length>1){
+        c.save(); c.globalCompositeOperation="lighter";
+        c.strokeStyle="rgba(140,220,255,.42)"; c.lineWidth=2.2;
+        c.setLineDash([10,9]); c.lineDashOffset=(this.t*2.4)%19;    /* los trazos corren hacia ti */
+        c.beginPath(); c.moveTo(pts[0].x,pts[0].y);
+        for(let i=1;i<pts.length;i++) c.lineTo(pts[i].x,pts[i].y);
+        c.stroke(); c.setLineDash([]);
+        /* flechitas por el camino, para que se vea hacia dónde tira */
+        c.fillStyle="rgba(180,235,255,.5)";
+        for(let i=6;i<pts.length-2;i+=9){
+          const a=pts[i], b=pts[i+2];
+          const ang=Math.atan2(b.y-a.y,b.x-a.x);
+          c.save(); c.translate(a.x,a.y); c.rotate(ang);
+          c.beginPath(); c.moveTo(5,0); c.lineTo(-3,-3.2); c.lineTo(-3,3.2); c.closePath(); c.fill();
+          c.restore();
+        }
+        c.restore();
+      }
     }
 
     /* ---- la estela y las chispas ---- */

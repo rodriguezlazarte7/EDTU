@@ -131,6 +131,46 @@ let vueltas = 0; while (Cue.boom && vueltas < 400) { Cue.tick(); vueltas++; }
 console.log("  la explosión dura " + vueltas + " fotogramas y se apaga sola");
 if (vueltas < 30 || vueltas >= 400) MAL("la explosión no dura lo que debe");
 
+/* ---------- 5b) 👻 LA LÍNEA FANTASMA: el camino bueno ----------
+   Lo importante no es que se dibuje, sino que NO TE MIENTA: si siguieras la línea a rajatabla,
+   no puedes acabar dentro de la roca ni clavado en una estalactita */
+Cue.setup(); Cue.run = true;
+let fuera = 0, pinchado = 0, revisadas = 0;
+for (let vuelta = 0; vuelta < 900; vuelta++) {
+  const col = Cue.pared.find(p => Math.abs(p.x - 60) < 4);
+  if (col) { Cue.y = Cue.caminoY(col); Cue.vy = 0; }         /* voy PEGADO a la línea fantasma */
+  if (Cue.boom) break;
+  Cue.tick();
+  /* y de paso reviso toda la línea que se ve en pantalla, no solo donde estoy */
+  for (const p of Cue.pared) {
+    if (p.x < 40 || p.x > Cue.W) continue;
+    const y = Cue.caminoY(p); revisadas++;
+    if (y < p.c - p.h / 2 || y > p.c + p.h / 2) fuera++;      /* fuera del hueco */
+    for (const e of Cue.estala) {
+      if (Math.abs(e.x - p.x) > 8) continue;
+      const yy = e.arriba ? p.c - p.h / 2 + e.l : p.c + p.h / 2 - e.l;
+      if (e.arriba ? y < yy : y > yy) pinchado++;             /* dentro de una estalactita */
+    }
+  }
+}
+console.log("  la línea fantasma, revisada en " + revisadas + " sitios: " + fuera + " veces fuera del hueco · " + pinchado + " veces dentro de una estalactita");
+if (fuera) MAL("la línea fantasma se sale del hueco: te mandaría contra la roca");
+if (pinchado) MAL("la línea fantasma pasa por una estalactita: te mandaría a chocar");
+console.log("  y volando pegado a ella 900 fotogramas: " + (Cue.boom ? "💥 me estrellé" : "sigo vivo ✅") + " con " + Cue.score + " puntos");
+if (Cue.boom) MAL("siguiendo la línea al pie de la letra, te matas igual");
+/* que se aparta de las estalactitas de verdad */
+Cue.estala = [];
+const col3 = Cue.pared[20];
+const sinNada = Cue.caminoY(col3);
+Cue.estala = [{ x: col3.x, arriba: true, l: 70, gota: 0 }];
+const conArriba = Cue.caminoY(col3);
+Cue.estala = [{ x: col3.x, arriba: false, l: 70, gota: 0 }];
+const conAbajo = Cue.caminoY(col3);
+console.log("  sin nada la línea va por " + Math.round(sinNada) + " · con estalactita ARRIBA baja a " + Math.round(conArriba) + " · con una ABAJO sube a " + Math.round(conAbajo));
+if (!(conArriba > sinNada)) MAL("no se aparta de las estalactitas del techo");
+if (!(conAbajo < sinNada)) MAL("no se aparta de las del suelo");
+Cue.estala = [];
+
 /* ---------- 6) el fondo con profundidad y la linterna ---------- */
 console.log("  capas de fondo: " + Cue.fondo.length + " (a " + Cue.fondo.map(f => f.vel).join(" y ") + " de velocidad, más lentas que la pared) · motas de polvo: " + Cue.polvo.length);
 if (Cue.fondo.length < 2) MAL("no hay fondo con profundidad");
