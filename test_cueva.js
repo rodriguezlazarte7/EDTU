@@ -1,6 +1,7 @@
 /* 🧪 prueba de CUEVA: que el túnel se cierre, que los cristales den 5, que los murciélagos
-   aparezcan solo cuando toca y maten, que la roca mordida NO se meta en el hueco (lo que ves
-   tiene que ser más generoso que lo que te mata), y que al chocar la nave reviente sin colgarse.
+   aparezcan solo cuando toca y solo te ASUSTEN (no te matan: lo pidió David), que la roca mordida
+   NO se meta en el hueco (lo que ves tiene que ser más generoso que lo que te mata), y que al
+   chocar contra la roca la nave reviente sin colgarse.
    Se ejecuta con:  node test_cueva.js                                                          */
 const fs = require("fs");
 const html = fs.readFileSync("index.html", "utf8");
@@ -45,9 +46,16 @@ Cue.open(); Cue.start();
 /* ---------- 1) el túnel se va cerrando ---------- */
 const hueco0 = Cue.hueco;
 for (let i = 0; i < 400; i++) { Cue.cristales = []; Cue.murcis = []; Cue.estala = []; Cue.y = Cue.pared[10].c; Cue.vy = 0; Cue.tick(); }
-console.log("  el túnel se cierra: de " + Math.round(hueco0) + " a " + Math.round(Cue.hueco) + " (el mínimo es el 20% de " + Cue.H + " = " + Math.round(Cue.H * 0.2) + ")");
+console.log("  el túnel se cierra: de " + Math.round(hueco0) + " a " + Math.round(Cue.hueco) + " en 400 fotogramas (y NUNCA baja del 30% de " + Cue.H + " = " + Math.round(Cue.H * 0.3) + ")");
 if (!(Cue.hueco < hueco0)) MAL("el túnel no se estrecha");
-if (Cue.hueco < Cue.H * 0.199) MAL("el túnel se cierra más de lo permitido: sería injugable");
+/* se aprieta hasta el fondo para ver dónde para de verdad */
+for (let i = 0; i < 6000; i++) { Cue.cristales = []; Cue.murcis = []; Cue.estala = []; const c = Cue.pared.find(p => Math.abs(p.x - 60) < 4); if (c) { Cue.y = c.c; Cue.vy = 0; } if (Cue.boom) break; Cue.tick(); }
+console.log("  jugando 100 segundos seguidos, el hueco se queda en " + Math.round(Cue.hueco) + " (el 30% es " + Math.round(Cue.H * 0.3) + "): ahí deja de cerrarse");
+if (Cue.hueco < Cue.H * 0.299) MAL("el túnel se cierra más de lo permitido: sería injugable");
+/* y la velocidad tampoco se dispara */
+const velMax = 2.4 + Math.min(1.5, Cue.score * 0.012);
+console.log("  con " + Cue.score + " puntos la cueva corre a " + velMax.toFixed(2) + " (el tope es 3,9; antes era 4,8)");
+if (velMax > 3.91) MAL("se acelera más de lo previsto");
 
 /* ---------- 2) la roca mordida nunca se mete en el hueco ---------- */
 const mordidas = Cue.pared.filter(p => p.ja !== undefined);
@@ -68,7 +76,7 @@ if (Cue.score - antes < 5) MAL("el cristal no da 5 puntos");
 if (Cue.cristales.length) MAL("el cristal no desaparece al cogerlo");
 if (!Cue.chispas.some(c => c.cr)) MAL("coger el cristal no suelta chispas");
 
-/* ---------- 4) los murciélagos: solo a partir de 40 puntos, y matan ---------- */
+/* ---------- 4) los murciélagos: solo a partir de 40 puntos, y solo asustan ---------- */
 /* volando se van sumando puntos solos, así que hay que fijar el marcador en cada vuelta:
    si no, en 240 fotogramas pasa de 10 a 50 y la prueba se engaña sola */
 Cue.setup(); Cue.run = true; Cue.estala = []; Cue.cristales = [];
@@ -84,12 +92,33 @@ const m = Cue.murcis[0]; const ys = [];
 for (let i = 0; i < 40; i++) { Cue.tick(); if (Cue.murcis.includes(m)) ys.push(m.y); }
 console.log("  vuelan haciendo eses: entre " + Math.round(Math.min(...ys)) + " y " + Math.round(Math.max(...ys)) + " de alto");
 if (Math.max(...ys) - Math.min(...ys) < 10) MAL("los murciélagos van en línea recta");
-/* chocar con uno mata */
-Cue.setup(); Cue.run = true; Cue.estala = []; Cue.cristales = [];
+/* 🦇 chocar con uno ASUSTA, pero no mata (David lo pidió así) */
+Cue.setup(); Cue.run = true; Cue.estala = []; Cue.cristales = []; Cue.score = 20;
 Cue.murcis = [{ x: 60, y: Cue.y, base: Cue.y, fase: 0, al: 1 }];
+const vyAntes = Cue.vy;
 Cue.tick();
-console.log("  choco con un murciélago: " + (Cue.boom ? "revienta ✅" : "no pasa nada ❌"));
-if (!Cue.boom) MAL("los murciélagos no matan");
+console.log("  choco con un murciélago: ¿revienta? " + !!Cue.boom + " · ¿sigo volando? " + Cue.run +
+            " · puntos " + Cue.score + " (tenía 20) · murciélagos que quedan: " + Cue.murcis.length +
+            " · rótulo: «" + Cue.aviso + "»");
+if (Cue.boom) MAL("¡el murciélago te sigue reventando!");
+if (!Cue.run) MAL("el murciélago acaba la partida");
+if (Cue.score !== 17) MAL("el susto no cuesta los 3 puntos");
+if (Cue.murcis.length) MAL("el murciélago no sale espantado");
+if (Cue.vy === vyAntes) MAL("el susto no te empuja");
+if (!/susto/.test(Cue.aviso)) MAL("no avisa del susto");
+if (!(Cue.sacude > 0)) MAL("el susto no sacude la cámara");
+/* y el temblor se pasa solo */
+for (let i = 0; i < 90; i++) { Cue.murcis = []; Cue.estala = []; const c = Cue.pared.find(p => Math.abs(p.x - 60) < 4); if (c) { Cue.y = c.c; Cue.vy = 0; } Cue.tick(); }
+console.log("  segundo y medio después, el temblor está en " + Cue.sacude.toFixed(2) + " (se pasa solo)");
+if (Cue.sacude !== 0) MAL("la pantalla se queda temblando para siempre");
+/* pero las estalactitas SÍ siguen matando */
+Cue.setup(); Cue.run = true; Cue.murcis = []; Cue.cristales = [];
+const col2 = Cue.pared.find(p => Math.abs(p.x - 60) < 4);
+Cue.y = col2.c - col2.h / 2 + 40;
+Cue.estala = [{ x: 60, arriba: true, l: 60, gota: 0 }];
+Cue.tick();
+console.log("  y una estalactita: " + (Cue.boom ? "sigue reventando ✅" : "ya no mata ❌"));
+if (!Cue.boom) MAL("las estalactitas dejaron de matar");
 
 /* ---------- 5) al chocar, la nave revienta y se recupera ---------- */
 const tipos = t => Cue.boom.P.filter(p => p.t === t).length;
@@ -143,4 +172,4 @@ if (relojes !== 0) MAL("quedan " + relojes + " reloj(es) corriendo");
 
 console.log("");
 if (malos) { console.log("❌ " + malos + " fallo(s)"); process.exit(1); }
-console.log("✅ CUEVA: se cierra, la roca muerde sin trampas, los cristales dan 5, los murciélagos llegan a los 40 y la nave revienta como debe");
+console.log("✅ CUEVA: se cierra, la roca muerde sin trampas, los cristales dan 5, los murciélagos asustan pero no matan, y contra la roca la nave revienta como debe");
