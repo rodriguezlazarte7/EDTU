@@ -904,6 +904,7 @@ function polvoMueve(){                                  /* lo que queda lejos re
     if(len(d)>POLVO_R*1.15){ const lado=norm(add(mul(G.base.f,1.15),v3((Math.random()*2-1)*.9,(Math.random()*2-1)*.9,(Math.random()*2-1)*.9)));
       q.p=add(G.pos, mul(lado, POLVO_R*(.55+Math.random()*.45))); q.t=Math.random()<.22?1:0; q.g=.35+Math.random()*.65; } }
 }
+const TONEL_SIGNO=+1;                                        /* 🎮 el sentido del tonel (ver más abajo) */
 const HIPER_DURA=1.7;                                        /* lo que dura el frenazo */
 const TUNEL=[], TUNEL_N=460, TUNEL_FONDO=2600;
 const TUNEL_COL=[[190,225,255],[255,255,255],[150,190,255],[210,235,255],[120,160,255],[235,245,255]];
@@ -3977,10 +3978,11 @@ function update(dt){
 
   /* ---- vuelo: el ratón inclina y gira; se puede dar la vuelta entera ---- */
   const cerrado=1+(1-Math.min(1,G.gas))*0.75;               /* frenar es la forma de girar en seco */
-  /* 🐛 EL TONEL IBA AL REVÉS: con dRoll positivo el ala derecha SUBE, o sea que la nave gira
-        hacia la IZQUIERDA. Así que apretando D (o RB) girabas al lado contrario. Va con el signo
-        cambiado: ahora D y RB giran a la derecha, y A y LB a la izquierda, como debe ser */
-  girar(G.base, G.yaw*G.giro*cerrado*finura*dt, G.pitch*G.giro*cerrado*finura*dt, -G.roll*1.9*(0.7+cerrado*0.45)*dt);
+  /* 🎮 EL SENTIDO DEL TONEL, en un solo sitio para poder darle la vuelta en un segundo:
+        +1 = como ha sido siempre (con D el ala derecha SUBE, la nave rueda hacia la izquierda)
+        -1 = "hacia donde aprietas" (con D el ala derecha baja)
+        David probó las dos y se queda con la de SIEMPRE, que es a lo que tiene la mano hecha */
+  girar(G.base, G.yaw*G.giro*cerrado*finura*dt, G.pitch*G.giro*cerrado*finura*dt, TONEL_SIGNO*G.roll*1.9*(0.7+cerrado*0.45)*dt);
   /* la nave persigue a la mira con medio segundo de retraso (se ve derrapar al girar) */
   const kN=1-Math.exp(-dt/0.5);
   G.naveBase.f=norm(add(G.naveBase.f, mul(sub(G.base.f,G.naveBase.f), kN)));

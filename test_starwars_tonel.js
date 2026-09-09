@@ -1,7 +1,9 @@
-/* 🧪 prueba del TONEL (lo que encontró David: giraba al revés).
-   Se coge la función de giro DE VERDAD del juego y la línea que la llama con tu nave, y se mira
-   hacia dónde acaba inclinada la cabina al apretar cada tecla.
-   Se ejecuta con:  node test_starwars_tonel.js                                                  */
+/* 🧪 prueba del TONEL.
+   Historia: David dijo que iba invertido, se lo di la vuelta, lo probó... y prefiere el de SIEMPRE.
+   Así que esta prueba NO decide cuál es "el bueno": comprueba que el sentido sea el que dice
+   TONEL_SIGNO, que los dos lados sean contrarios entre sí, que el mando vaya igual que el teclado
+   y que la nave no ruede sola. Si algún día se le da la vuelta, se cambia esa constante y ya.
+   Se ejecuta con:  node test_starwars_tonel.js                                                   */
 const fs = require("fs");
 const html = fs.readFileSync("starwars.html", "utf8");
 let malos = 0; const MAL = m => { malos++; console.log("  FALLO: " + m); };
@@ -19,56 +21,56 @@ const cross = (a, b) => v3(a.y * b.z - a.z * b.y, a.z * b.x - a.x * b.z, a.x * b
 const girar = new Function("add", "sub", "mul", "norm", "dot", "cross",
   trozo("function girar(b,dYaw,dPitch,dRoll){", "\n}") + "\n}; return girar;")(add, sub, mul, norm, dot, cross);
 
+const TONEL_SIGNO = parseInt(html.match(/const TONEL_SIGNO=([+-]?\d);/)[1], 10);
+const comoSiempre = TONEL_SIGNO > 0;
+console.log("  TONEL_SIGNO = " + (TONEL_SIGNO > 0 ? "+1" : "-1") + " → " +
+            (comoSiempre ? "el de SIEMPRE (con D el ala derecha SUBE)" : "hacia donde aprietas (con D el ala derecha baja)"));
+
 /* la línea exacta con la que el juego mueve TU nave */
 const linea = html.match(/  girar\(G\.base, G\.yaw\*G\.giro[^\n]*\n/)[0];
-console.log("  la línea del juego: " + linea.trim().slice(0, 96) + "…");
-const vuela = new Function("girar", "G", "cerrado", "finura", "dt", linea);
+console.log("  la línea del juego: " + linea.trim().slice(0, 92) + "…");
+if (!linea.includes("TONEL_SIGNO")) MAL("la línea de vuelo ya no usa TONEL_SIGNO: cambiar el sentido dejaría de funcionar");
+const vuela = new Function("girar", "G", "cerrado", "finura", "dt", "TONEL_SIGNO", linea);
 
-function pruebaTonel(roll) {
+function tonel(roll) {
   const G = { base: { r: v3(1, 0, 0), u: v3(0, 1, 0), f: v3(0, 0, 1) }, yaw: 0, pitch: 0, roll, giro: 1 };
-  for (let i = 0; i < 12; i++) vuela(girar, G, 1, 1, 1 / 60);
+  for (let i = 0; i < 12; i++) vuela(girar, G, 1, 1, 1 / 60, TONEL_SIGNO);
   return G.base;
 }
+const lado = b => b.u.x > 0.05 ? "derecha" : b.u.x < -0.05 ? "izquierda" : "ninguna";
 
-/* ---------- el tonel a la derecha ---------- */
-const der = pruebaTonel(1);
-console.log("  aprieto D (o RB, el de la DERECHA): el techo de la cabina se va a x=" + der.u.x.toFixed(2) +
-            " (" + (der.u.x > 0 ? "→ a la derecha ✅" : "← a la izquierda ❌") + ") · el ala derecha a y=" + der.r.y.toFixed(2) +
-            " (" + (der.r.y < 0 ? "baja ✅" : "sube ❌") + ")");
-if (!(der.u.x > 0.05)) MAL("apretando a la DERECHA la nave sigue girando a la izquierda");
-if (!(der.r.y < -0.05)) MAL("el ala derecha sube en vez de bajar al girar a la derecha");
+/* ---------- 1) cada tecla rueda hacia el lado elegido ---------- */
+const conD = tonel(1), conA = tonel(-1);
+console.log("  aprieto D (o RB): la nave rueda hacia la " + lado(conD) + " (el ala derecha " + (conD.r.y > 0 ? "SUBE" : "baja") + ")");
+console.log("  aprieto A (o LB): la nave rueda hacia la " + lado(conA) + " (el ala derecha " + (conA.r.y > 0 ? "sube" : "BAJA") + ")");
+const esperadoD = comoSiempre ? "izquierda" : "derecha";
+if (lado(conD) !== esperadoD) MAL("con D la nave rueda hacia la " + lado(conD) + ", y con este TONEL_SIGNO debería ir hacia la " + esperadoD);
+if (lado(conA) === lado(conD)) MAL("las dos teclas ruedan hacia el mismo lado");
+if (!(conD.r.y * conA.r.y < 0)) MAL("las dos teclas hacen lo mismo con el ala");
 
-/* ---------- y a la izquierda ---------- */
-const izq = pruebaTonel(-1);
-console.log("  aprieto A (o LB, el de la IZQUIERDA): el techo se va a x=" + izq.u.x.toFixed(2) +
-            " (" + (izq.u.x < 0 ? "← a la izquierda ✅" : "→ a la derecha ❌") + ")");
-if (!(izq.u.x < -0.05)) MAL("apretando a la IZQUIERDA la nave gira a la derecha");
-
-/* ---------- y sin tocar nada, no gira sola ---------- */
-const quieto = pruebaTonel(0);
-console.log("  sin tocar nada: el techo sigue en x=" + quieto.u.x.toFixed(3) + " (la nave no rueda sola)");
+/* ---------- 2) sin tocar nada no rueda sola ---------- */
+const quieto = tonel(0);
+console.log("  sin tocar nada: el techo sigue en x=" + quieto.u.x.toFixed(3) + " (no rueda sola)");
 if (Math.abs(quieto.u.x) > 0.001) MAL("la nave hace el tonel ella sola");
 
-/* ---------- los dos botones del mando, cada uno al suyo ---------- */
+/* ---------- 3) el mando va igual que el teclado ---------- */
 const mando = html.match(/const rl=\(b\(4\)\?(-?\d)\:0\)\+\(b\(5\)\?(-?\d)\:0\);/);
-console.log("  el mando: LB (el de la izquierda) manda " + mando[1] + " y RB (el de la derecha) manda " + mando[2]);
-const conLB = pruebaTonel(parseInt(mando[1], 10));
-const conRB = pruebaTonel(parseInt(mando[2], 10));
-console.log("  con LB la nave gira a la " + (conLB.u.x < 0 ? "izquierda ✅" : "derecha ❌") +
-            " y con RB a la " + (conRB.u.x > 0 ? "derecha ✅" : "izquierda ❌"));
-if (!(conLB.u.x < 0)) MAL("LB (izquierda) gira a la derecha");
-if (!(conRB.u.x > 0)) MAL("RB (derecha) gira a la izquierda");
+const conLB = tonel(parseInt(mando[1], 10)), conRB = tonel(parseInt(mando[2], 10));
+console.log("  el mando: LB manda " + mando[1] + " y RB manda " + mando[2] + " → LB rueda como " + (lado(conLB) === lado(conA) ? "la A ✅" : "la D ❌") +
+            " y RB como " + (lado(conRB) === lado(conD) ? "la D ✅" : "la A ❌"));
+if (lado(conLB) !== lado(conA)) MAL("LB no hace lo mismo que la tecla A");
+if (lado(conRB) !== lado(conD)) MAL("RB no hace lo mismo que la tecla D");
 
-/* ---------- y de paso: que girar y subir el morro NO estén invertidos ---------- */
+/* ---------- 4) y lo demás sigue sin estar invertido ---------- */
 const b1 = { r: v3(1, 0, 0), u: v3(0, 1, 0), f: v3(0, 0, 1) };
 girar(b1, 0.3, 0, 0);
-console.log("  moviendo el ratón a la DERECHA (yaw positivo), el morro se va a x=" + b1.f.x.toFixed(2) + " (" + (b1.f.x > 0 ? "derecha ✅" : "izquierda ❌") + ")");
+console.log("  ratón a la derecha → el morro se va a x=" + b1.f.x.toFixed(2) + " (" + (b1.f.x > 0 ? "derecha ✅" : "izquierda ❌") + ")");
 if (!(b1.f.x > 0)) MAL("girar con el ratón está invertido");
 const b2 = { r: v3(1, 0, 0), u: v3(0, 1, 0), f: v3(0, 0, 1) };
 girar(b2, 0, 0.3, 0);
-console.log("  bajando el ratón (pitch positivo), el morro se va a y=" + b2.f.y.toFixed(2) + " (" + (b2.f.y < 0 ? "abajo ✅" : "arriba ❌") + ")");
+console.log("  bajando el ratón → el morro se va a y=" + b2.f.y.toFixed(2) + " (" + (b2.f.y < 0 ? "abajo ✅" : "arriba ❌") + ")");
 if (!(b2.f.y < 0)) MAL("el morro sube cuando bajas el ratón");
 
 console.log("");
 if (malos) { console.log("❌ " + malos + " fallo(s)"); process.exit(1); }
-console.log("✅ el tonel gira hacia donde aprietas: D y RB a la derecha, A y LB a la izquierda");
+console.log("✅ el tonel va en el sentido elegido (TONEL_SIGNO " + (TONEL_SIGNO > 0 ? "+1" : "-1") + "), los dos lados son contrarios y el mando va igual que el teclado");
