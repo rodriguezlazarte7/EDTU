@@ -1,0 +1,1728 @@
+<!doctype html>
+<html lang="es"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
+<title>EDTU TURBO</title>
+<style>
+html,body{margin:0;height:100%;background:#05060a;overflow:hidden;font-family:"Segoe UI",system-ui,sans-serif;color:#fff;touch-action:none;user-select:none;-webkit-user-select:none}
+#gl,#hud{position:fixed;inset:0;width:100%;height:100%;display:block}
+#hud{pointer-events:none;z-index:2}
+#menu{position:fixed;inset:0;z-index:5;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:14px;
+  background:linear-gradient(100deg,rgba(4,3,10,.94) 0%,rgba(8,6,20,.80) 45%,rgba(8,6,20,.15) 100%);text-align:center;padding:16px;box-sizing:border-box;overflow:auto}
+#menu.oculto{display:none}
+.logo{font-weight:900;font-style:italic;font-size:clamp(46px,8vw,120px);letter-spacing:.01em;line-height:.86;color:#c8ff2e;
+  text-shadow:0 0 34px rgba(200,255,46,.40),7px 7px 0 #6a1fd8;transform:skewX(-9deg)}
+.sub{letter-spacing:.38em;font-size:13px;color:#c9b8ff;font-weight:700}
+.titulo{font-size:12px;letter-spacing:.3em;color:#8f86b0;margin-top:4px}
+.fila{display:flex;flex-wrap:wrap;gap:8px;justify-content:center;max-width:920px}
+.op{border:2px solid #3a3350;background:#14111f;color:#eee;padding:9px 14px;border-radius:3px;font-weight:800;cursor:pointer;font-size:14px;transform:skewX(-9deg);font-family:inherit}
+.op:hover{border-color:#8a7cff}
+.op.sel{border-color:#c8ff2e;background:#c8ff2e;color:#111}
+.muestra{display:inline-block;width:.95em;height:.95em;border-radius:2px;vertical-align:-2px;margin-right:6px;box-shadow:0 0 8px currentColor}
+#jugar{font-size:26px;padding:14px 46px;background:#c8ff2e;color:#111;border:0;font-weight:900;font-style:italic;transform:skewX(-9deg);cursor:pointer;box-shadow:7px 7px 0 #6a1fd8;font-family:inherit;margin-top:6px}
+.ayuda{font-size:13px;color:#b4acc8;line-height:1.8;max-width:860px}
+kbd{border:1px solid #5a5370;border-radius:3px;padding:1px 6px;background:#1c1a26;color:#c8ff2e;font-family:Consolas,monospace;font-size:12px}
+#salir{position:fixed;top:12px;right:12px;z-index:9;background:rgba(0,0,0,.55);color:#c8ff2e;border:1px solid rgba(200,255,46,.35);border-radius:6px;padding:8px 14px;font-weight:800;cursor:pointer;font-family:inherit}
+#carga{position:fixed;inset:0;z-index:8;display:flex;align-items:center;justify-content:center;flex-direction:column;gap:14px;background:#05060a;font-weight:900;letter-spacing:.2em;color:#c8ff2e}
+#carga.oculto{display:none}
+#carga b{font-size:34px;font-style:italic;transform:skewX(-9deg)}
+#cargaTxt{font-size:13px;color:#c9b8ff;letter-spacing:.12em}
+#barra{width:min(440px,70vw);height:6px;background:#221f30;border-radius:3px;overflow:hidden}
+#barra i{display:block;height:100%;width:0;background:linear-gradient(90deg,#6a1fd8,#c8ff2e)}
+#tactil{position:fixed;inset:0;z-index:4;display:none;pointer-events:none}
+#tactil.si{display:block}
+.tb{position:absolute;pointer-events:auto;border-radius:50%;background:rgba(20,16,32,.35);border:2px solid rgba(255,255,255,.35);color:#fff;
+  font-weight:900;display:flex;align-items:center;justify-content:center;font-size:15px;touch-action:none}
+.tb.on{background:rgba(200,255,46,.45);border-color:#c8ff2e}
+#nogl{position:fixed;inset:0;z-index:20;display:none;align-items:center;justify-content:center;text-align:center;padding:24px;background:#05060a;color:#fff;font-size:18px;line-height:1.6}
+</style></head><body>
+<canvas id="gl"></canvas><canvas id="hud"></canvas>
+<div id="carga"><b>EDTU TURBO</b><div id="cargaTxt">levantando las montañas…</div><div id="barra"><i></i></div></div>
+<div id="menu" class="oculto">
+  <div class="logo">EDTU<br>TURBO</div>
+  <div class="sub">MAPA LIBRE · CARRERAS CALLEJERAS</div>
+  <div class="titulo">PINTURA</div><div class="fila" id="optPintura"></div>
+  <div class="titulo">NEÓN</div><div class="fila" id="optNeon"></div>
+  <div class="titulo">CALIDAD</div><div class="fila" id="optCal"></div>
+  <button id="jugar">▶ A LA CALLE</button>
+  <div class="ayuda" id="ayuda"></div>
+</div>
+<div id="tactil">
+  <div class="tb" id="tIzq" style="left:3vw;bottom:6vh;width:17vmin;height:17vmin">◀</div>
+  <div class="tb" id="tDer" style="left:23vw;bottom:6vh;width:17vmin;height:17vmin">▶</div>
+  <div class="tb" id="tGas" style="right:3vw;bottom:6vh;width:20vmin;height:20vmin">GAS</div>
+  <div class="tb" id="tFreno" style="right:26vw;bottom:5vh;width:14vmin;height:14vmin">FRENO</div>
+  <div class="tb" id="tNitro" style="right:5vw;bottom:32vh;width:14vmin;height:14vmin">🔥</div>
+  <div class="tb" id="tMano" style="right:24vw;bottom:26vh;width:13vmin;height:13vmin">DERRAPE</div>
+</div>
+<div id="nogl">Este navegador no puede dibujar en 3D (WebGL2).<br>Prueba con Chrome o Edge actualizados.</div>
+<button id="salir">✕ Salir</button>
+<script>
+"use strict";
+/* =====================================================================================
+   🏎️ EDTU TURBO · mapa libre de carreras callejeras
+   Todo está hecho con código: montañas, carreteras, árboles, ciudad, coche, luz y sonido.
+   ===================================================================================== */
+
+/* ================= 🧮 LAS MATEMÁTICAS DE SIEMPRE ================= */
+const TAU=Math.PI*2;
+const clamp=(v,a,b)=>v<a?a:(v>b?b:v);
+const lerp=(a,b,t)=>a+(b-a)*t;
+const suave=(a,b,x)=>{ const t=clamp((x-a)/(b-a),0,1); return t*t*(3-2*t); };
+const angDif=(a,b)=>{ let d=(b-a)%TAU; if(d>Math.PI) d-=TAU; if(d<-Math.PI) d+=TAU; return d; };
+
+/* 🎲 azar con semilla: el mundo sale IGUAL cada vez (y las pruebas pueden contar con ello) */
+function azarCon(semilla){
+  let s=semilla>>>0;
+  return ()=>{ s=(s+0x6D2B79F5)>>>0; let t=s; t=Math.imul(t^(t>>>15),t|1); t^=t+Math.imul(t^(t>>>7),t|61); return ((t^(t>>>14))>>>0)/4294967296; };
+}
+
+/* 🌫️ ruido de gradiente: de él salen las montañas, las rocas y las nubes */
+const RUIDO_P=new Uint8Array(512), RUIDO_G=new Float32Array(512);
+(()=>{ const r=azarCon(777), q=[]; for(let i=0;i<256;i++) q.push(i);
+  for(let i=255;i>0;i--){ const j=(r()*(i+1))|0, t=q[i]; q[i]=q[j]; q[j]=t; }
+  for(let i=0;i<512;i++) RUIDO_P[i]=q[i&255];
+  for(let i=0;i<256;i++){ const a=r()*TAU; RUIDO_G[i*2]=Math.cos(a); RUIDO_G[i*2+1]=Math.sin(a); } })();
+function ruido(x,y){
+  const xi=Math.floor(x), yi=Math.floor(y), xf=x-xi, yf=y-yi, P=RUIDO_P, G=RUIDO_G;
+  const X=xi&255, Y=yi&255;
+  const h00=P[P[X]+Y]*2, h10=P[P[X+1]+Y]*2, h01=P[P[X]+Y+1]*2, h11=P[P[X+1]+Y+1]*2;
+  const a=G[h00]*xf+G[h00+1]*yf, b=G[h10]*(xf-1)+G[h10+1]*yf, c=G[h01]*xf+G[h01+1]*(yf-1), d=G[h11]*(xf-1)+G[h11+1]*(yf-1);
+  const u=xf*xf*xf*(xf*(xf*6-15)+10), v=yf*yf*yf*(yf*(yf*6-15)+10);
+  return (a+(b-a)*u+(c-a)*v+(a-b-c+d)*u*v)*1.41;
+}
+function fbm(x,y,oct){ let s=0,a=0.5,f=1,n=0; for(let i=0;i<oct;i++){ s+=a*ruido(x*f,y*f); n+=a; a*=0.5; f*=2.03; } return s/n; }
+function crestas(x,y,oct){ let s=0,a=0.5,f=1,n=0; for(let i=0;i<oct;i++){ const r=1-Math.abs(ruido(x*f+13.1,y*f-7.7)); s+=a*r*r; n+=a; a*=0.5; f*=2.1; } return s/n; }
+
+/* 📐 vectores y matrices (matrices en columnas, como las quiere WebGL) */
+const v3=(x,y,z)=>({x,y,z});
+const vSum=(a,b)=>v3(a.x+b.x,a.y+b.y,a.z+b.z), vRes=(a,b)=>v3(a.x-b.x,a.y-b.y,a.z-b.z), vEsc=(a,s)=>v3(a.x*s,a.y*s,a.z*s);
+const vDot=(a,b)=>a.x*b.x+a.y*b.y+a.z*b.z;
+const vCruz=(a,b)=>v3(a.y*b.z-a.z*b.y, a.z*b.x-a.x*b.z, a.x*b.y-a.y*b.x);
+const vLen=a=>Math.hypot(a.x,a.y,a.z);
+const vNorm=a=>{ const l=vLen(a)||1; return v3(a.x/l,a.y/l,a.z/l); };
+
+function m4(){ const m=new Float32Array(16); m[0]=m[5]=m[10]=m[15]=1; return m; }
+function m4Mul(a,b,o){ o=o||new Float32Array(16);
+  for(let c=0;c<4;c++) for(let r=0;r<4;r++){ let s=0; for(let k=0;k<4;k++) s+=a[k*4+r]*b[c*4+k]; o[c*4+r]=s; }
+  return o; }
+function m4Persp(fov,asp,cerca,lejos){ const f=1/Math.tan(fov/2), m=new Float32Array(16);
+  m[0]=f/asp; m[5]=f; m[10]=(lejos+cerca)/(cerca-lejos); m[11]=-1; m[14]=2*lejos*cerca/(cerca-lejos); return m; }
+function m4Orto(l,r,b,t,n,f){ const m=new Float32Array(16);
+  m[0]=2/(r-l); m[5]=2/(t-b); m[10]=-2/(f-n); m[12]=-(r+l)/(r-l); m[13]=-(t+b)/(t-b); m[14]=-(f+n)/(f-n); m[15]=1; return m; }
+function m4Mirar(ojo,obj,arriba){
+  const z=vNorm(vRes(ojo,obj)), x=vNorm(vCruz(arriba,z)), y=vCruz(z,x), m=new Float32Array(16);
+  m[0]=x.x; m[4]=x.y; m[8]=x.z;  m[1]=y.x; m[5]=y.y; m[9]=y.z;  m[2]=z.x; m[6]=z.y; m[10]=z.z;
+  m[12]=-vDot(x,ojo); m[13]=-vDot(y,ojo); m[14]=-vDot(z,ojo); m[15]=1; return m;
+}
+/* un punto del mundo en la pantalla (para las etiquetas del HUD): devuelve x,y en 0..1 y si está delante */
+function m4Proyecta(vp,p){
+  const x=vp[0]*p.x+vp[4]*p.y+vp[8]*p.z+vp[12], y=vp[1]*p.x+vp[5]*p.y+vp[9]*p.z+vp[13], w=vp[3]*p.x+vp[7]*p.y+vp[11]*p.z+vp[15];
+  if(w<0.1) return null; return { x:(x/w)*0.5+0.5, y:0.5-(y/w)*0.5, w };
+}
+
+/* ================= 🏔️ EL MUNDO: montañas, lago, ciudad, cantera y carreteras =================
+   2,4 km × 2,4 km. El suelo es una rejilla de 601×601 alturas (una cada 4 m). Las carreteras son
+   curvas suaves con la pendiente limitada, y el terreno se aplana debajo de ellas */
+const MUNDO=2400, MITAD=MUNDO/2, PASO=4, NV=MUNDO/PASO+1;
+const AGUA_Y=0;
+const LAGO={x:-520,z:-430,r:300}, CUMBRE={x:-300,z:820}, CANTERA={x:430,z:-830};
+const CIUDAD={x0:490,x1:1030,z0:-610,z1:170,y:12};
+
+function alturaBase(x,z){
+  let h=18+fbm(x/650+3.1,z/650-1.7,4)*30+fbm(x/140,z/140,3)*4;
+  const norte=suave(150,900,z);
+  h+=norte*(40+crestas(x/380,z/380,5)*230);                                  /* ⛰️ la sierra del norte */
+  const dc=Math.hypot(x-CUMBRE.x,z-CUMBRE.z); h+=150*Math.exp(-dc*dc/(2*240*240));   /* 🎿 la cumbre de la estación */
+  const borde=Math.max(Math.abs(x),Math.abs(z));
+  h+=suave(880,1180,borde)*(140+crestas(x/300,z/300,4)*200);                 /* las montañas que cierran el mapa */
+  const dq=Math.hypot(x-CANTERA.x,z-CANTERA.z);                              /* ⛏️ la cantera, a escalones */
+  h=lerp(h, Math.min(h, 4+Math.floor(dq/30)*5), suave(200,130,dq));
+  const dl=Math.hypot(x-LAGO.x,(z-LAGO.z)*1.15);                             /* 🌊 el lago */
+  h=lerp(h,-14,suave(LAGO.r+70,LAGO.r-80,dl));
+  const mc=suave(0,80,Math.min(x-CIUDAD.x0,CIUDAD.x1-x,z-CIUDAD.z0,CIUDAD.z1-z));   /* 🏙️ la ciudad, plana */
+  return lerp(h,CIUDAD.y,mc);
+}
+
+/* ================= 🛣️ LAS CARRETERAS ================= */
+const CARRETERAS=[];
+const MUESTRA=4;                                   /* una muestra de carretera cada 4 m */
+function muestreaCurva(ctrl,cerrada){
+  const n=ctrl.length, seg=cerrada?n:n-1, denso=[];
+  const P=i=>cerrada?ctrl[((i%n)+n)%n]:ctrl[clamp(i,0,n-1)];
+  for(let i=0;i<seg;i++){
+    const p0=P(i-1),p1=P(i),p2=P(i+1),p3=P(i+2);
+    for(let k=0;k<32;k++){ const t=k/32,t2=t*t,t3=t2*t;
+      const cr=j=>0.5*(2*p1[j]+(-p0[j]+p2[j])*t+(2*p0[j]-5*p1[j]+4*p2[j]-p3[j])*t2+(-p0[j]+3*p1[j]-3*p2[j]+p3[j])*t3);
+      denso.push([cr(0),cr(1)]); }
+  }
+  denso.push(cerrada?denso[0]:ctrl[n-1]);
+  const out=[denso[0]]; let acc=0, sig=0;
+  for(let i=1;i<denso.length;i++){
+    const a=denso[i-1], b=denso[i], l=Math.hypot(b[0]-a[0],b[1]-a[1]);
+    while(l>0 && acc+l>=sig+MUESTRA){ const t=(sig+MUESTRA-acc)/l; out.push([a[0]+(b[0]-a[0])*t, a[1]+(b[1]-a[1])*t]); sig+=MUESTRA; }
+    acc+=l;
+  }
+  if(cerrada && out.length>2 && Math.hypot(out[out.length-1][0]-out[0][0],out[out.length-1][1]-out[0][1])<MUESTRA*0.6) out.pop();
+  return out;
+}
+function nuevaCarretera(nombre,tipo,ancho,ctrl,cerrada,minY){
+  const pts=muestreaCurva(ctrl,cerrada), n=pts.length;
+  const c={ nombre, tipo, ancho, cerrada, n, x:new Float32Array(n), z:new Float32Array(n), y:new Float32Array(n), tx:new Float32Array(n), tz:new Float32Array(n) };
+  for(let i=0;i<n;i++){ c.x[i]=pts[i][0]; c.z[i]=pts[i][1]; }
+  const idx=i=>cerrada?((i%n)+n)%n:clamp(i,0,n-1);
+  for(let i=0;i<n;i++){ const a=idx(i-1), b=idx(i+1); const dx=c.x[b]-c.x[a], dz=c.z[b]-c.z[a], l=Math.hypot(dx,dz)||1; c.tx[i]=dx/l; c.tz[i]=dz/l; }
+  /* la altura: el terreno suavizado (±60 m) y con la pendiente limitada al 12% */
+  const base=new Float32Array(n); for(let i=0;i<n;i++) base[i]=alturaBase(c.x[i],c.z[i]);
+  const ventana=tipo==="monte"?8:15;                  /* la de montaña sigue más al terreno */
+  for(let i=0;i<n;i++){ let s=0,k=0; for(let j=-ventana;j<=ventana;j++){ const q=cerrada?idx(i+j):i+j; if(q<0||q>=n) continue; s+=base[q]; k++; } c.y[i]=Math.max(minY||2.5, s/k); }
+  const maxDy=(tipo==="monte"?0.20:0.12)*MUESTRA;     /* ⛰️ la de montaña puede ser empinada: sube de verdad, sin zanjas */
+  for(let pasada=0;pasada<3;pasada++){
+    for(let i=1;i<n;i++) c.y[i]=clamp(c.y[i],c.y[i-1]-maxDy,c.y[i-1]+maxDy);
+    for(let i=n-2;i>=0;i--) c.y[i]=clamp(c.y[i],c.y[i+1]-maxDy,c.y[i+1]+maxDy);
+  }
+  c.largo=n*MUESTRA;
+  CARRETERAS.push(c); return c;
+}
+function trazaCarreteras(){
+  CARRETERAS.length=0;
+  /* 🌊 la vuelta al lago */
+  const lago=[]; for(let i=0;i<16;i++){ const a=i/16*TAU, r=415+Math.sin(a*3)*38; lago.push([LAGO.x+Math.cos(a)*r, LAGO.z+Math.sin(a)*r*0.92]); }
+  nuevaCarretera("Vuelta al Lago Plateado","lago",11,lago,true,3.5);
+  /* 🛣️ la autopista, de oeste a la ciudad */
+  nuevaCarretera("Autopista 7","autopista",18,[[-860,80],[-700,50],[-540,60],[-260,25],[0,-15],[250,-60],[470,-100],[740,-100],[1015,-100]],false);
+  /* ⛰️ el paso de montaña, con curvas de herradura, hasta la estación de esquí */
+  nuevaCarretera("Paso de la Cumbre","monte",10,[[-260,25],[-230,160],[-120,270],[-300,350],[-120,440],[-360,520],[-180,610],[-380,680],[-250,780],[-330,860]],false);
+  /* ⛏️ bajada a la cantera y su vuelta de tierra */
+  nuevaCarretera("Camino de la Cantera","monte",10,[[250,-60],[300,-260],[250,-460],[330,-640]],false);
+  const cant=[]; for(let i=0;i<12;i++){ const a=i/12*TAU, r=155+Math.sin(a*2+1)*25; cant.push([CANTERA.x+Math.cos(a)*r, CANTERA.z+Math.sin(a)*r]); }
+  nuevaCarretera("Circuito de la Cantera","tierra",12,cant,true,3);
+  nuevaCarretera("Atajo del Lago","lago",10,[[LAGO.x+410,LAGO.z],[-40,-640],[140,-760],[280,-820]],false,3.5);
+  /* 🏙️ las calles de la ciudad (la autopista hace de calle en z=-100) */
+  for(const x of [520,640,760,880,1000]) nuevaCarretera("Avenida "+((x-400)/120),"ciudad",14,[[x,-600],[x,-340],[x,-100],[x,160]],false);
+  for(const z of [-580,-460,-340,-220,20,140]) nuevaCarretera("Calle "+((z+700)/120),"ciudad",14,[[505,z],[760,z],[1015,z]],false);
+  for(const c of CARRETERAS) if(c.tipo==="ciudad") c.y.fill(CIUDAD.y);
+}
+
+/* 🔎 la carretera más cercana: rejilla de 20 m con las muestras de todas */
+const REJ_C=20, REJ_N=Math.ceil(MUNDO/REJ_C)+1, REJ=new Array(REJ_N*REJ_N);
+function indexaCarreteras(){
+  REJ.fill(undefined);
+  CARRETERAS.forEach((c,ci)=>{ const tope=c.cerrada?c.n:c.n-1;
+    for(let i=0;i<tope;i++){ const j=(i+1)%c.n, mx=(c.x[i]+c.x[j])/2, mz=(c.z[i]+c.z[j])/2;
+      const gx=Math.floor((mx+MITAD)/REJ_C), gz=Math.floor((mz+MITAD)/REJ_C);
+      if(gx<0||gz<0||gx>=REJ_N||gz>=REJ_N) continue;
+      const k=gz*REJ_N+gx; (REJ[k]||(REJ[k]=[])).push(ci,i); } });
+}
+function carreteraCerca(x,z,radio){
+  const r=Math.ceil((radio||30)/REJ_C), gx=Math.floor((x+MITAD)/REJ_C), gz=Math.floor((z+MITAD)/REJ_C);
+  let mejor=null, md=1e9;
+  for(let a=gz-r;a<=gz+r;a++){ if(a<0||a>=REJ_N) continue;
+    for(let b=gx-r;b<=gx+r;b++){ if(b<0||b>=REJ_N) continue; const L=REJ[a*REJ_N+b]; if(!L) continue;
+      for(let k=0;k<L.length;k+=2){
+        const c=CARRETERAS[L[k]], i=L[k+1], j=(i+1)%c.n;
+        const ax=c.x[i], az=c.z[i], sx=c.x[j]-ax, sz=c.z[j]-az, l2=sx*sx+sz*sz||1;
+        const t=clamp(((x-ax)*sx+(z-az)*sz)/l2,0,1), px=ax+sx*t, pz=az+sz*t, d=Math.hypot(x-px,z-pz);
+        const borde=d-c.ancho/2;
+        if(borde<md){ md=borde; mejor={ c, ci:L[k], i, t, d, y:lerp(c.y[i],c.y[j],t), tx:c.tx[i], tz:c.tz[i], lado:Math.sign(sx*(z-az)-sz*(x-ax))||1 }; }
+      } } }
+  return mejor;
+}
+
+/* ================= 🗻 LA REJILLA DE ALTURAS ================= */
+const ALT=new Float32Array(NV*NV);
+async function construyeTerreno(progreso){
+  for(let j=0;j<NV;j++){
+    const z=-MITAD+j*PASO;
+    for(let i=0;i<NV;i++){
+      const x=-MITAD+i*PASO;
+      let h=alturaBase(x,z);
+      const q=carreteraCerca(x,z,34);
+      if(q){ const r=q.c.ancho/2, w=suave(r+18, r+1.5, q.d); h=lerp(h, q.y-0.30, w); }
+      ALT[j*NV+i]=h;
+    }
+    if(j%40===0 && progreso){ progreso(j/NV); await new Promise(r=>setTimeout(r,0)); }
+  }
+}
+function altura(x,z){
+  const fx=clamp((x+MITAD)/PASO,0,NV-1.001), fz=clamp((z+MITAD)/PASO,0,NV-1.001);
+  const i=Math.floor(fx), j=Math.floor(fz), u=fx-i, v=fz-j;
+  const a=ALT[j*NV+i], b=ALT[j*NV+i+1], c=ALT[(j+1)*NV+i], d=ALT[(j+1)*NV+i+1];
+  return (a+(b-a)*u)*(1-v)+(c+(d-c)*u)*v;
+}
+function normalEn(x,z){ const e=2; return vNorm(v3(altura(x-e,z)-altura(x+e,z), 2*e, altura(x,z-e)-altura(x,z+e))); }
+/* 🚗 el suelo que pisa un coche: la carretera (lisa) si está encima, si no el terreno; y las rampas */
+function sueloEn(x,z){
+  const q=carreteraCerca(x,z,20);
+  let y, sobre=null;
+  if(q && q.d<q.c.ancho/2+0.8){ y=q.y; sobre=q; } else y=altura(x,z);
+  if(typeof rampaAltura==="function"){ const r=rampaAltura(x,z); if(r!==null && r>y){ y=r; sobre=sobre||{rampa:true}; } }
+  return { y, carretera:sobre };
+}
+/* 📍 cómo se llama el sitio donde estás */
+function zonaDe(x,z){
+  if(x>CIUDAD.x0-40 && x<CIUDAD.x1+40 && z>CIUDAD.z0-40 && z<CIUDAD.z1+40) return "Ciudad EDTU";
+  if(Math.hypot(x-LAGO.x,z-LAGO.z)<520) return "Lago Plateado";
+  if(Math.hypot(x-CANTERA.x,z-CANTERA.z)<320) return "Cantera Roja";
+  if(Math.hypot(x-CUMBRE.x,z-CUMBRE.z)<420) return "Estación Cumbre Nevada";
+  if(z>200) return "Sierra del Norte";
+  const q=carreteraCerca(x,z,40); if(q && q.c.tipo==="autopista") return "Autopista 7";
+  return "Valle de los Pinos";
+}
+
+/* ================= 🌲 LO QUE HAY EN EL MUNDO ================= */
+const ARBOLES=[], EDIFICIOS=[], FAROLAS=[], FLECHAS=[], PORTICOS=[], RAMPAS=[], EVENTOS=[];
+
+/* 💥 los choques: rejilla de 16 m con troncos (círculos) y edificios (cajas) */
+const CH_C=16, CH_N=Math.ceil(MUNDO/CH_C)+1, CHOQUES=new Array(CH_N*CH_N);
+function chApunta(o,x0,z0,x1,z1){
+  for(let a=Math.floor((z0+MITAD)/CH_C);a<=Math.floor((z1+MITAD)/CH_C);a++)
+    for(let b=Math.floor((x0+MITAD)/CH_C);b<=Math.floor((x1+MITAD)/CH_C);b++){
+      if(a<0||b<0||a>=CH_N||b>=CH_N) continue; const k=a*CH_N+b; (CHOQUES[k]||(CHOQUES[k]=[])).push(o); }
+}
+/* devuelve hacia dónde empujar un círculo (x,z,radio) para sacarlo de lo que toca, o null */
+function choqueEn(x,z,radio){
+  const L=CHOQUES[Math.floor((z+MITAD)/CH_C)*CH_N+Math.floor((x+MITAD)/CH_C)]; if(!L) return null;
+  for(const o of L){
+    if(o.r){ const dx=x-o.x, dz=z-o.z, d=Math.hypot(dx,dz), m=o.r+radio;
+      if(d<m){ const n=d||1; return { nx:dx/n, nz:dz/n, pen:m-d, que:"árbol" }; } }
+    else {
+      const cx=clamp(x,o.x-o.w/2,o.x+o.w/2), cz=clamp(z,o.z-o.d/2,o.z+o.d/2), dx=x-cx, dz=z-cz, d=Math.hypot(dx,dz);
+      if(d<radio){ if(d>1e-4) return { nx:dx/d, nz:dz/d, pen:radio-d, que:"edificio" };
+        const px=o.w/2-Math.abs(x-o.x), pz=o.d/2-Math.abs(z-o.z);
+        return px<pz ? { nx:Math.sign(x-o.x)||1, nz:0, pen:px+radio, que:"edificio" } : { nx:0, nz:Math.sign(z-o.z)||1, pen:pz+radio, que:"edificio" }; }
+    }
+  }
+  return null;
+}
+
+/* 🌲 los pinos: en bosques (según el ruido), nunca en la carretera, el agua, la ciudad o la roca */
+function poneArboles(azar){
+  ARBOLES.length=0;
+  for(let k=0;k<26000 && ARBOLES.length<9000;k++){
+    const x=(azar()*2-1)*(MITAD-30), z=(azar()*2-1)*(MITAD-30);
+    if(fbm(x/260+9,z/260-4,3)<-0.08) continue;
+    const y=altura(x,z); if(y<2.2 || y>430) continue;
+    if(x>CIUDAD.x0-50 && x<CIUDAD.x1+50 && z>CIUDAD.z0-50 && z<CIUDAD.z1+50) continue;
+    if(Math.hypot(x-CANTERA.x,z-CANTERA.z)<215) continue;
+    if(normalEn(x,z).y<0.80) continue;
+    const q=carreteraCerca(x,z,30); if(q && q.d<q.c.ancho/2+5.5) continue;
+    const alto=9+azar()*14, a={ x, y, z, alto, ancho:alto*(0.26+azar()*0.08), tono:azar(), r:0.55 };
+    ARBOLES.push(a); chApunta(a,x-1,z-1,x+1,z+1);
+  }
+}
+
+/* 🏙️ la ciudad: manzanas entre las calles, con 2×2 edificios de alturas distintas */
+function poneCiudad(azar){
+  EDIFICIOS.length=0;
+  const gx=[520,640,760,880,1000], gz=[-580,-460,-340,-220,-100,20,140];
+  const COLS=[[0.52,0.55,0.60],[0.36,0.40,0.46],[0.62,0.58,0.52],[0.30,0.34,0.40],[0.70,0.70,0.72],[0.45,0.36,0.32]];
+  for(let i=0;i<gx.length-1;i++) for(let j=0;j<gz.length-1;j++){
+    const x0=gx[i]+11, x1=gx[i+1]-11, z0=gz[j]+11, z1=gz[j+1]-11;
+    for(let a=0;a<2;a++) for(let b=0;b<2;b++){
+      const w=(x1-x0)/2-4, d=(z1-z0)/2-4, cx=x0+(a+0.5)*(x1-x0)/2, cz=z0+(b+0.5)*(z1-z0)/2;
+      const centro=1-Math.hypot(cx-760,cz+220)/700;
+      const h= azar()<0.2 ? 8+azar()*8 : 20+azar()*azar()*140*centro+20*centro;
+      const e={ x:cx, z:cz, y:CIUDAD.y, w:w*(0.8+azar()*0.2), d:d*(0.8+azar()*0.2), h, col:COLS[(azar()*COLS.length)|0], ventanas:azar() };
+      EDIFICIOS.push(e); chApunta(e,e.x-e.w/2,e.z-e.d/2,e.x+e.w/2,e.z+e.d/2);
+    }
+  }
+}
+
+/* 🚦 farolas, señales de curva y pórticos de la autopista */
+function poneSenales(){
+  FAROLAS.length=0; FLECHAS.length=0; PORTICOS.length=0;
+  for(const c of CARRETERAS){
+    const cada = c.tipo==="autopista"?10 : c.tipo==="ciudad"?9 : 0;
+    if(cada) for(let i=0;i<c.n;i+=cada){ const lado=(i/cada)%2?1:-1, off=c.ancho/2+1.2;
+      FAROLAS.push({ x:c.x[i]-c.tz[i]*off*lado, z:c.z[i]+c.tx[i]*off*lado, y:c.y[i], nx:c.tz[i]*lado, nz:-c.tx[i]*lado }); }
+    if(c.tipo==="monte"||c.tipo==="lago") for(let i=6;i<c.n-6;i+=5){
+      const a=Math.atan2(c.tz[i-5],c.tx[i-5]), b=Math.atan2(c.tz[i+5],c.tx[i+5]), giro=angDif(a,b);
+      if(Math.abs(giro)<0.42) continue;
+      const lado=giro>0?-1:1, off=c.ancho/2+2.2;                        /* por fuera de la curva */
+      FLECHAS.push({ x:c.x[i]-c.tz[i]*off*lado, z:c.z[i]+c.tx[i]*off*lado, y:c.y[i], tx:c.tx[i], tz:c.tz[i], dir:giro>0?1:-1 });
+    }
+  }
+  const au=CARRETERAS.find(c=>c.tipo==="autopista");
+  [[40,"CIUDAD EDTU  ➜"],[150,"LAGO PLATEADO  ⬇"],[260,"CUMBRE NEVADA  ⬆"],[380,"CANTERA ROJA  ➜"]].forEach(([i,t])=>{
+    if(i<au.n) PORTICOS.push({ x:au.x[i], z:au.z[i], y:au.y[i], tx:au.tx[i], tz:au.tz[i], ancho:au.ancho+4, texto:t }); });
+}
+
+/* 🛫 las rampas: una cuña sobre la carretera donde luego la carretera baja */
+function rampaAltura(x,z){
+  let mejor=null;
+  for(const r of RAMPAS){
+    const dx=x-r.x, dz=z-r.z, u=dx*r.tx+dz*r.tz, v=-dx*r.tz+dz*r.tx;
+    if(Math.abs(v)<=r.ancho/2 && u>=0 && u<=r.largo){ const t=u/r.largo, y=r.y+r.alto*(t*t*0.35+t*0.65); if(mejor===null||y>mejor) mejor=y; }
+  }
+  return mejor;
+}
+function poneRampa(c,i,sentido){
+  sentido=sentido||1;
+  const i0=clamp(i-6*sentido,0,c.n-1);                                  /* la cuña empieza 24 m antes, en el sentido de la bajada */
+  RAMPAS.push({ x:c.x[i0], z:c.z[i0], y:c.y[i0]-0.05, tx:c.tx[i0]*sentido, tz:c.tz[i0]*sentido, largo:24, ancho:c.ancho-1, alto:3.6 });
+  return RAMPAS[RAMPAS.length-1];
+}
+/* dónde baja más la carretera en los 60 m siguientes (ahí un salto luce) */
+function mejorBajada(c,desde,hasta){
+  let mejor={ i:desde, sentido:1, baja:-1e9 };
+  for(let i=Math.max(desde,16);i<Math.min(hasta,c.n-16);i++){
+    const alante=c.y[i]-c.y[i+15], atras=c.y[i]-c.y[i-15];          /* se puede saltar en los dos sentidos */
+    if(alante>mejor.baja) mejor={ i, sentido:1, baja:alante };
+    if(atras>mejor.baja) mejor={ i, sentido:-1, baja:atras };
+  }
+  return mejor;
+}
+
+/* 🏁 los eventos del mapa libre: zonas de derrape, radares de velocidad y saltos */
+function poneEventos(){
+  EVENTOS.length=0; RAMPAS.length=0;
+  const porNombre=n=>CARRETERAS.find(c=>c.nombre===n);
+  const paso=porNombre("Paso de la Cumbre"), cant=porNombre("Circuito de la Cantera"), au=porNombre("Autopista 7"), lago=porNombre("Vuelta al Lago Plateado"), camino=porNombre("Camino de la Cantera");
+  EVENTOS.push({ tipo:"derrape", nombre:"ZONA DE DERRAPE", c:paso, i0:30, i1:Math.min(paso.n-2,125), metas:[150,240,330], tiempo:60 });
+  EVENTOS.push({ tipo:"derrape", nombre:"ZONA DE DERRAPE", c:cant, i0:4, i1:Math.floor(cant.n*0.8), metas:[180,280,380], tiempo:60 });
+  EVENTOS.push({ tipo:"radar", nombre:"RADAR DE VELOCIDAD", c:au, i:Math.floor(au.n*0.42), metas:[160,200,240] });
+  EVENTOS.push({ tipo:"radar", nombre:"RADAR DE VELOCIDAD", c:lago, i:Math.floor(lago.n*0.62), metas:[130,160,190] });
+  const s1=mejorBajada(paso,Math.floor(paso.n*0.35),paso.n-20);
+  EVENTOS.push({ tipo:"salto", nombre:"SALTO", c:paso, i:s1.i, sentido:s1.sentido, baja:s1.baja, rampa:poneRampa(paso,s1.i,s1.sentido), metas:[25,45,70] });
+  const s2=mejorBajada(camino,10,camino.n-20);
+  EVENTOS.push({ tipo:"salto", nombre:"SALTO", c:camino, i:s2.i, sentido:s2.sentido, baja:s2.baja, rampa:poneRampa(camino,s2.i,s2.sentido), metas:[25,45,70] });
+  for(const e of EVENTOS){ const i=e.i!==undefined?e.i:e.i0; e.x=e.c.x[i]; e.z=e.c.z[i]; e.y=e.c.y[i]; e.mejor=0; }
+}
+
+/* ================= 🏗️ CONSTRUIR TODO (con barra de progreso) ================= */
+async function construyeMundo(progreso){
+  const p=progreso||(()=>{});
+  p(0.02,"trazando las carreteras…"); trazaCarreteras(); indexaCarreteras();
+  await construyeTerreno(f=>p(0.05+f*0.55,"levantando las montañas…"));
+  CHOQUES.fill(undefined);
+  const azar=azarCon(2026);
+  p(0.62,"plantando los pinos…"); await new Promise(r=>setTimeout(r,0)); poneArboles(azar);
+  p(0.72,"construyendo la ciudad…"); poneCiudad(azar);
+  p(0.76,"poniendo señales…"); poneSenales(); poneEventos();
+}
+
+/* ================= 🖥️ WEBGL2: la tarjeta gráfica dibuja el mundo =================
+   Se dibuja en un lienzo interno con antialiasing (MSAA) y en color HDR; luego un paso final
+   añade el brillo (bloom), el tono de cine, la viñeta y el desenfoque de velocidad */
+let gl=null;
+const A_POS=0, A_NOR=1, A_COL=2, A_EXT=3, A_UV=4, A_INST=5, A_INST2=6;
+const PROGS={};
+
+const GLSL_LUZ=`
+uniform vec3 uCam, uSol, uSolCol, uCenit, uHorizonte, uSuelo, uNiebla;
+uniform float uNieblaD, uTiempo;
+uniform highp sampler2DShadow uSombra;
+uniform mat4 uLuzVP;
+uniform float uHaySombra;
+float sombra(vec3 p, vec3 n){
+  if(uHaySombra<0.5) return 1.0;
+  vec4 q=uLuzVP*vec4(p+n*0.12,1.0); vec3 s=q.xyz/q.w*0.5+0.5;
+  if(s.x<0.0||s.x>1.0||s.y<0.0||s.y>1.0||s.z>1.0) return 1.0;
+  float t=1.0/4096.0, r=0.0;
+  for(int i=-1;i<=1;i++) for(int j=-1;j<=1;j++) r+=texture(uSombra, vec3(s.xy+vec2(i,j)*t*1.5, s.z-0.0006));
+  return r/9.0;
+}
+vec3 cieloDir(vec3 d){
+  float h=clamp(d.y,0.0,1.0);
+  vec3 c=mix(uHorizonte,uCenit,pow(h,0.55));
+  float s=max(dot(d,uSol),0.0);
+  return c + uSolCol*(pow(s,600.0)*6.0 + pow(s,12.0)*0.25);
+}
+vec3 ilumina(vec3 base, vec3 P, vec3 N, float brillo, float emisivo){
+  vec3 V=normalize(uCam-P), L=uSol;
+  float sh=sombra(P,N);
+  float dif=max(dot(N,L),0.0)*sh;
+  vec3 amb=mix(uSuelo,uCenit*0.9+uHorizonte*0.3,N.y*0.5+0.5);
+  vec3 H=normalize(L+V);
+  float spec=pow(max(dot(N,H),0.0),mix(10.0,420.0,brillo))*brillo*sh*mix(0.2,3.0,brillo);
+  float fres=pow(1.0-max(dot(N,V),0.0),5.0);
+  vec3 refl=cieloDir(reflect(-V,N));
+  vec3 col=base*(amb*0.60+uSolCol*dif*1.05)+uSolCol*spec+refl*fres*brillo*0.34+refl*brillo*0.035+base*emisivo*4.0;
+  float d=length(uCam-P);
+  float f=1.0-exp(-d*uNieblaD);
+  vec3 dirV=normalize(P-uCam);
+  vec3 nc=mix(uNiebla, uSolCol*0.95, pow(max(dot(dirV,L),0.0),6.0)*0.55);
+  return mix(col,nc,clamp(f,0.0,1.0));
+}`;
+
+const VS_MUNDO=`#version 300 es
+layout(location=0) in vec3 aPos; layout(location=1) in vec3 aNor; layout(location=2) in vec3 aCol; layout(location=3) in vec2 aExt; layout(location=4) in vec2 aUV;
+uniform mat4 uVP, uM;
+out vec3 vPos, vNor, vCol; out vec2 vExt, vUV;
+void main(){ vec4 w=uM*vec4(aPos,1.0); vPos=w.xyz; vNor=mat3(uM)*aNor; vCol=aCol; vExt=aExt; vUV=aUV; gl_Position=uVP*w; }`;
+const FS_MUNDO=`#version 300 es
+precision highp float;
+in vec3 vPos, vNor, vCol; in vec2 vExt, vUV;
+uniform sampler2D uTex, uDet;
+uniform float uModo;       // 0 color · 1 terreno (detalle) · 2 textura (carretera) · 3 agua
+out vec4 oCol;
+${GLSL_LUZ}
+void main(){
+  vec3 N=dot(vNor,vNor)>1e-10?normalize(vNor):vec3(0.0,1.0,0.0), base=vCol; float brillo=vExt.x;   // una cara sin grosor no rompe nada
+  if(uModo>0.5 && uModo<1.5){
+    float a=texture(uDet,vPos.xz*0.19).r, b=texture(uDet,vPos.xz*0.021).r, c=texture(uDet,vPos.xz*0.0031).r;
+    base*=0.72+a*0.30+b*0.26+c*0.18;
+  } else if(uModo>1.5 && uModo<2.5){
+    vec4 t=texture(uTex,vUV); base=t.rgb*vCol; brillo=t.a*0.42;
+    base*=0.9+texture(uDet,vPos.xz*0.35).r*0.2;
+  } else if(uModo>2.5){
+    vec2 q=vPos.xz*0.06; float o1=texture(uDet,q+vec2(uTiempo*0.020,uTiempo*0.013)).r, o2=texture(uDet,q*1.7-vec2(uTiempo*0.017,-uTiempo*0.011)).r;
+    N=normalize(vec3((o1-0.5)*0.35,1.0,(o2-0.5)*0.35)); brillo=0.92;
+  }
+  vec3 col=ilumina(base,vPos,N,brillo,vExt.y);
+  if(any(isnan(col))||any(isinf(col))) col=vec3(0.0);   // 🐛 un NaN aquí salía como un CUADRADO negro después del bloom
+  oCol=vec4(clamp(col,0.0,200.0),1.0);
+}`;
+/* 🌲 los pinos: una malla y 9.000 copias (instancias) con posición, tamaño y tono; se mecen con el viento */
+const VS_ARBOL=`#version 300 es
+layout(location=0) in vec3 aPos; layout(location=1) in vec3 aNor; layout(location=2) in vec3 aCol; layout(location=3) in vec2 aExt;
+layout(location=5) in vec4 aInst; layout(location=6) in vec2 aInst2;
+uniform mat4 uVP; uniform float uTiempo;
+out vec3 vPos, vNor, vCol; out vec2 vExt, vUV;
+void main(){
+  vec3 p=aPos*vec3(aInst2.x,1.0,aInst2.x)*aInst.w;
+  p.xz+=vec2(sin(uTiempo*1.3+aInst.x*0.11),cos(uTiempo*1.1+aInst.z*0.13))*0.018*p.y;
+  vec3 w=p+aInst.xyz; vPos=w; vNor=aNor; vCol=aCol*mix(vec3(0.82,0.95,0.86),vec3(1.12,1.05,0.92),aInst2.y); vExt=aExt; vUV=vec2(0.0);
+  gl_Position=uVP*vec4(w,1.0);
+}`;
+const VS_SOMBRA=`#version 300 es
+layout(location=0) in vec3 aPos; uniform mat4 uLuzVP, uM; void main(){ gl_Position=uLuzVP*uM*vec4(aPos,1.0); }`;
+const VS_SOMBRA_ARBOL=`#version 300 es
+layout(location=0) in vec3 aPos; layout(location=5) in vec4 aInst; layout(location=6) in vec2 aInst2; uniform mat4 uLuzVP;
+void main(){ vec3 p=aPos*vec3(aInst2.x,1.0,aInst2.x)*aInst.w+aInst.xyz; gl_Position=uLuzVP*vec4(p,1.0); }`;
+const FS_VACIO=`#version 300 es
+precision mediump float; out vec4 o; void main(){ o=vec4(1.0); }`;
+/* ☁️ el cielo: degradado, sol con halo y nubes de ruido que se mueven */
+const VS_PANTALLA=`#version 300 es
+out vec2 vP; void main(){ vec2 p=vec2((gl_VertexID==1)?3.0:-1.0,(gl_VertexID==2)?3.0:-1.0); vP=p; gl_Position=vec4(p,0.999,1.0); }`;
+const FS_CIELO=`#version 300 es
+precision highp float;
+in vec2 vP; uniform vec3 uFw, uDer, uArr; uniform vec2 uTan; uniform sampler2D uDet;
+out vec4 oCol;
+${GLSL_LUZ}
+void main(){
+  vec3 d=normalize(uFw+uDer*vP.x*uTan.x+uArr*vP.y*uTan.y);
+  vec3 c=cieloDir(d);
+  if(d.y>0.0){
+    vec2 q=d.xz/(d.y+0.08)*0.22+vec2(uTiempo*0.004,0.0);
+    float n=texture(uDet,q*0.5).r*0.55+texture(uDet,q*1.3).r*0.30+texture(uDet,q*3.1).r*0.15;
+    float nube=smoothstep(0.50,0.78,n)*smoothstep(0.0,0.12,d.y);
+    float s=max(dot(d,uSol),0.0);
+    vec3 nc=mix(vec3(0.62,0.64,0.70)*uSolCol*0.9, uSolCol*1.15, 0.45+0.55*pow(s,3.0));
+    c=mix(c,nc,nube*0.85);
+  } else c=mix(uNiebla,uSuelo,clamp(-d.y*3.0,0.0,1.0));
+  oCol=vec4(c,1.0);
+}`;
+/* ✨ partículas: humo (se mezcla) y fuego/neón/chispas (se suma a la luz) */
+const VS_PART=`#version 300 es
+layout(location=0) in vec2 aPos; layout(location=5) in vec4 aInst; layout(location=6) in vec4 aColor;
+uniform mat4 uVP; uniform vec3 uDer, uArr; uniform float uPlano;
+out vec2 vQ; out vec4 vC;
+void main(){ vQ=aPos; vC=aColor;
+  vec3 w = uPlano>0.5 ? aInst.xyz+vec3(aPos.x,0.0,aPos.y)*aInst.w : aInst.xyz+(uDer*aPos.x+uArr*aPos.y)*aInst.w;   // plano: tumbada en el suelo (el neón)
+  gl_Position=uVP*vec4(w,1.0); }`;
+const FS_PART=`#version 300 es
+precision mediump float; in vec2 vQ; in vec4 vC; out vec4 o;
+void main(){ float r=length(vQ); if(r>1.0) discard; float a=(1.0-r*r); a*=a; o=vec4(vC.rgb*vC.a*a, min(vC.a,1.0)*a); }`;
+/* 🎬 el paso final: bloom + tono de cine (ACES) + viñeta + desenfoque radial de velocidad + destellos del sol */
+const FS_BRILLO=`#version 300 es
+precision highp float; in vec2 vP; uniform sampler2D uImg; out vec4 o;
+void main(){ vec3 c=texture(uImg,vP*0.5+0.5).rgb; if(any(isnan(c))||any(isinf(c))) c=vec3(0.0); c=min(c,vec3(40.0)); float l=max(c.r,max(c.g,c.b)); o=vec4(c*smoothstep(1.0,2.6,l),1.0); }`;
+const FS_BLUR=`#version 300 es
+precision highp float; in vec2 vP; uniform sampler2D uImg; uniform vec2 uDir; out vec4 o;
+void main(){ vec2 uv=vP*0.5+0.5; vec3 s=texture(uImg,uv).rgb*0.227;
+  s+=(texture(uImg,uv+uDir*1.38).rgb+texture(uImg,uv-uDir*1.38).rgb)*0.316;
+  s+=(texture(uImg,uv+uDir*3.23).rgb+texture(uImg,uv-uDir*3.23).rgb)*0.070; o=vec4(s,1.0); }`;
+const FS_FINAL=`#version 300 es
+precision highp float; in vec2 vP;
+uniform sampler2D uImg, uBloom; uniform float uVel, uExpo, uFlash; uniform vec3 uSolPant; uniform vec3 uSolCol;
+out vec4 o;
+vec3 aces(vec3 x){ return clamp((x*(2.51*x+0.03))/(x*(2.43*x+0.59)+0.14),0.0,1.0); }
+void main(){
+  vec2 uv=vP*0.5+0.5, dc=uv-0.5;
+  vec3 c=texture(uImg,uv).rgb; if(any(isnan(c))||any(isinf(c))) c=vec3(0.0);
+  if(uVel>0.01){ vec3 s=c; for(int i=1;i<7;i++) s+=texture(uImg,uv-dc*float(i)*0.008*uVel).rgb; c=mix(c,s/7.0,smoothstep(0.08,0.45,length(dc))); }
+  c+=texture(uBloom,uv).rgb*0.55;
+  if(uSolPant.z>0.0){ vec2 sp=uSolPant.xy; float d=length((uv-sp)*vec2(1.78,1.0));
+    c+=uSolCol*(0.35*exp(-d*5.0)+0.05*exp(-length((uv-(1.0-sp))*vec2(1.78,1.0))*18.0))*uSolPant.z; }
+  c=aces(c*uExpo);
+  c=pow(c,vec3(1.0/2.2));
+  float l=dot(c,vec3(0.299,0.587,0.114)); c=mix(vec3(l),c,1.12);
+  c*=1.0-dot(dc,dc)*0.55;
+  c=mix(c,vec3(1.0),uFlash);
+  o=vec4(c,1.0);
+}`;
+
+function compila(nombre,vs,fs){
+  const mk=(tipo,txt)=>{ const s=gl.createShader(tipo); gl.shaderSource(s,txt); gl.compileShader(s);
+    if(!gl.getShaderParameter(s,gl.COMPILE_STATUS)) throw new Error(nombre+": "+gl.getShaderInfoLog(s)); return s; };
+  const p=gl.createProgram(); gl.attachShader(p,mk(gl.VERTEX_SHADER,vs)); gl.attachShader(p,mk(gl.FRAGMENT_SHADER,fs)); gl.linkProgram(p);
+  if(!gl.getProgramParameter(p,gl.LINK_STATUS)) throw new Error(nombre+": "+gl.getProgramInfoLog(p));
+  p.u={}; p.nombre=nombre; PROGS[nombre]=p; return p;
+}
+const U=(p,n)=>(n in p.u)?p.u[n]:(p.u[n]=gl.getUniformLocation(p,n));
+
+/* una malla: posiciones, normales, colores, (brillo, emisivo) y uv → a la tarjeta */
+function subeMalla(m){
+  const vao=gl.createVertexArray(); gl.bindVertexArray(vao);
+  const buf=(datos,loc,tam)=>{ if(!datos) return; const b=gl.createBuffer(); gl.bindBuffer(gl.ARRAY_BUFFER,b); gl.bufferData(gl.ARRAY_BUFFER,datos,gl.STATIC_DRAW);
+    gl.enableVertexAttribArray(loc); gl.vertexAttribPointer(loc,tam,gl.FLOAT,false,0,0); };
+  buf(m.pos,A_POS,3); buf(m.nor,A_NOR,3); buf(m.col,A_COL,3); buf(m.ext,A_EXT,2); buf(m.uv,A_UV,2);
+  if(!m.ext){ gl.disableVertexAttribArray(A_EXT); gl.vertexAttrib2f(A_EXT,0,0); }
+  if(!m.uv){ gl.disableVertexAttribArray(A_UV); gl.vertexAttrib2f(A_UV,0,0); }
+  const ib=gl.createBuffer(); gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER,ib); gl.bufferData(gl.ELEMENT_ARRAY_BUFFER,m.idx,gl.STATIC_DRAW);
+  gl.bindVertexArray(null);
+  return { vao, n:m.idx.length, tipo:(m.idx instanceof Uint32Array)?gl.UNSIGNED_INT:gl.UNSIGNED_SHORT };
+}
+function texturaDeLienzo(lienzo,repite){
+  const t=gl.createTexture(); gl.bindTexture(gl.TEXTURE_2D,t);
+  gl.texImage2D(gl.TEXTURE_2D,0,gl.RGBA,gl.RGBA,gl.UNSIGNED_BYTE,lienzo);
+  gl.generateMipmap(gl.TEXTURE_2D);
+  gl.texParameteri(gl.TEXTURE_2D,gl.TEXTURE_MIN_FILTER,gl.LINEAR_MIPMAP_LINEAR);
+  gl.texParameteri(gl.TEXTURE_2D,gl.TEXTURE_MAG_FILTER,gl.LINEAR);
+  const w=repite?gl.REPEAT:gl.CLAMP_TO_EDGE; gl.texParameteri(gl.TEXTURE_2D,gl.TEXTURE_WRAP_S,w); gl.texParameteri(gl.TEXTURE_2D,gl.TEXTURE_WRAP_T,w);
+  const an=gl.getExtension("EXT_texture_filter_anisotropic"); if(an) gl.texParameterf(gl.TEXTURE_2D,an.TEXTURE_MAX_ANISOTROPY_EXT,Math.min(16,gl.getParameter(an.MAX_TEXTURE_MAX_ANISOTROPY_EXT)));
+  return t;
+}
+
+/* 🧱 los lienzos internos: escena con MSAA, su copia resuelta, dos para el bloom y el mapa de sombras */
+const FBO={};
+function texVacia(w,h,interno,formato,tipo){
+  const t=gl.createTexture(); gl.bindTexture(gl.TEXTURE_2D,t); gl.texImage2D(gl.TEXTURE_2D,0,interno,w,h,0,formato,tipo,null);
+  gl.texParameteri(gl.TEXTURE_2D,gl.TEXTURE_MIN_FILTER,gl.LINEAR); gl.texParameteri(gl.TEXTURE_2D,gl.TEXTURE_MAG_FILTER,gl.LINEAR);
+  gl.texParameteri(gl.TEXTURE_2D,gl.TEXTURE_WRAP_S,gl.CLAMP_TO_EDGE); gl.texParameteri(gl.TEXTURE_2D,gl.TEXTURE_WRAP_T,gl.CLAMP_TO_EDGE); return t;
+}
+function creaLienzos(w,h){
+  for(const k in FBO){ const f=FBO[k]; if(f.fb) gl.deleteFramebuffer(f.fb); if(f.tex) gl.deleteTexture(f.tex); if(f.rb) gl.deleteRenderbuffer(f.rb); if(f.rbz) gl.deleteRenderbuffer(f.rbz); delete FBO[k]; }
+  const hdr=!!gl.getExtension("EXT_color_buffer_float");
+  const fmt=hdr?gl.RGBA16F:gl.RGBA8, muestras=Math.min(4,gl.getParameter(gl.MAX_SAMPLES));
+  const escena={ fb:gl.createFramebuffer(), rb:gl.createRenderbuffer(), rbz:gl.createRenderbuffer(), w, h };
+  gl.bindRenderbuffer(gl.RENDERBUFFER,escena.rb); gl.renderbufferStorageMultisample(gl.RENDERBUFFER,muestras,fmt,w,h);
+  gl.bindRenderbuffer(gl.RENDERBUFFER,escena.rbz); gl.renderbufferStorageMultisample(gl.RENDERBUFFER,muestras,gl.DEPTH_COMPONENT24,w,h);
+  gl.bindFramebuffer(gl.FRAMEBUFFER,escena.fb);
+  gl.framebufferRenderbuffer(gl.FRAMEBUFFER,gl.COLOR_ATTACHMENT0,gl.RENDERBUFFER,escena.rb);
+  gl.framebufferRenderbuffer(gl.FRAMEBUFFER,gl.DEPTH_ATTACHMENT,gl.RENDERBUFFER,escena.rbz);
+  FBO.escena=escena;
+  const conTex=(nombre,tw,th)=>{ const f={ fb:gl.createFramebuffer(), tex:texVacia(tw,th,fmt,gl.RGBA,hdr?gl.HALF_FLOAT:gl.UNSIGNED_BYTE), w:tw, h:th };
+    gl.bindFramebuffer(gl.FRAMEBUFFER,f.fb); gl.framebufferTexture2D(gl.FRAMEBUFFER,gl.COLOR_ATTACHMENT0,gl.TEXTURE_2D,f.tex,0); FBO[nombre]=f; };
+  conTex("resuelta",w,h);
+  const bw=Math.max(1,Math.round(w/4)), bh=Math.max(1,Math.round(h/4));
+  conTex("bloomA",bw,bh); conTex("bloomB",bw,bh);
+  if(!FBO.sombra || true){
+    const s={ fb:gl.createFramebuffer(), tex:gl.createTexture(), w:4096, h:4096 };
+    gl.bindTexture(gl.TEXTURE_2D,s.tex); gl.texStorage2D(gl.TEXTURE_2D,1,gl.DEPTH_COMPONENT24,4096,4096);
+    gl.texParameteri(gl.TEXTURE_2D,gl.TEXTURE_MIN_FILTER,gl.LINEAR); gl.texParameteri(gl.TEXTURE_2D,gl.TEXTURE_MAG_FILTER,gl.LINEAR);
+    gl.texParameteri(gl.TEXTURE_2D,gl.TEXTURE_COMPARE_MODE,gl.COMPARE_REF_TO_TEXTURE); gl.texParameteri(gl.TEXTURE_2D,gl.TEXTURE_COMPARE_FUNC,gl.LEQUAL);
+    gl.texParameteri(gl.TEXTURE_2D,gl.TEXTURE_WRAP_S,gl.CLAMP_TO_EDGE); gl.texParameteri(gl.TEXTURE_2D,gl.TEXTURE_WRAP_T,gl.CLAMP_TO_EDGE);
+    gl.bindFramebuffer(gl.FRAMEBUFFER,s.fb); gl.framebufferTexture2D(gl.FRAMEBUFFER,gl.DEPTH_ATTACHMENT,gl.TEXTURE_2D,s.tex,0);
+    FBO.sombra=s;
+  }
+  gl.bindFramebuffer(gl.FRAMEBUFFER,null);
+  return { hdr, muestras };
+}
+
+function iniciaGL(lienzo){
+  gl=lienzo.getContext("webgl2",{ antialias:false, alpha:false, depth:true, powerPreference:"high-performance", preserveDrawingBuffer:false });
+  if(!gl) return false;
+  compila("mundo",VS_MUNDO,FS_MUNDO);
+  compila("arbol",VS_ARBOL,FS_MUNDO);
+  compila("sombra",VS_SOMBRA,FS_VACIO);
+  compila("sombraArbol",VS_SOMBRA_ARBOL,FS_VACIO);
+  compila("cielo",VS_PANTALLA,FS_CIELO);
+  compila("part",VS_PART,FS_PART);
+  compila("brillo",VS_PANTALLA,FS_BRILLO);
+  compila("blur",VS_PANTALLA,FS_BLUR);
+  compila("final",VS_PANTALLA,FS_FINAL);
+  return true;
+}
+
+/* ================= 🎨 LAS TEXTURAS, PINTADAS CON CÓDIGO =================
+   En el canal alfa va el BRILLO: los charcos del asfalto y los cristales brillan, el hormigón no */
+function lienzo(w,h){ const c=document.createElement("canvas"); c.width=w; c.height=h; return c; }
+
+/* ruido que se repite sin costuras (para que el suelo no tenga cortes) */
+function ruidoCiclico(tam,celdas,semilla){
+  const r=azarCon(semilla), g=new Float32Array(celdas*celdas); for(let i=0;i<g.length;i++) g[i]=r();
+  const out=new Float32Array(tam*tam);
+  for(let y=0;y<tam;y++){ const fy=y/tam*celdas, j=Math.floor(fy), v0=fy-j, v=v0*v0*(3-2*v0), j1=(j+1)%celdas;
+    for(let x=0;x<tam;x++){ const fx=x/tam*celdas, i=Math.floor(fx), u0=fx-i, u=u0*u0*(3-2*u0), i1=(i+1)%celdas;
+      const a=g[j*celdas+i], b=g[j*celdas+i1], c=g[j1*celdas+i], d=g[j1*celdas+i1];
+      out[y*tam+x]=(a+(b-a)*u)*(1-v)+(c+(d-c)*u)*v; } }
+  return out;
+}
+function texDetalle(){
+  const T=512, c=lienzo(T,T), x=c.getContext("2d"), im=x.createImageData(T,T);
+  const a=ruidoCiclico(T,8,11), b=ruidoCiclico(T,32,12), d=ruidoCiclico(T,128,13);
+  for(let i=0;i<T*T;i++){ const v=clamp(a[i]*0.45+b[i]*0.33+d[i]*0.22,0,1)*255; im.data[i*4]=im.data[i*4+1]=im.data[i*4+2]=v; im.data[i*4+3]=255; }
+  x.putImageData(im,0,0); return c;
+}
+
+/* 🛣️ el asfalto de cada tipo de carretera. La textura cubre el ancho entero y 24 m de largo */
+function texCarretera(tipo,ancho){
+  const W=512, H=1024, c=lienzo(W,H), x=c.getContext("2d"), r=azarCon(tipo.length*977+ancho);
+  const pxm=W/ancho;                                            /* píxeles por metro, a lo ancho */
+  x.fillStyle = tipo==="tierra" ? "#8c6c4c" : (tipo==="ciudad" ? "#454548" : "#38383b"); x.fillRect(0,0,W,H);
+  for(let i=0;i<26000;i++){ const v=r();
+    x.fillStyle = tipo==="tierra" ? "rgba("+((70+v*90)|0)+","+((48+v*60)|0)+","+((30+v*40)|0)+",0.45)" : "rgba("+((30+v*70)|0)+","+((30+v*70)|0)+","+((32+v*72)|0)+",0.40)";
+    x.fillRect(r()*W,r()*H,1+r()*2.5,1+r()*2.5); }
+  /* las rodadas: más oscuras (asfalto) o más hundidas (tierra) */
+  const rodadas = tipo==="autopista" ? [0.12,0.30,0.70,0.88] : [0.22,0.36,0.64,0.78];
+  for(const u of rodadas){ const g=x.createLinearGradient((u-0.05)*W,0,(u+0.05)*W,0);
+    g.addColorStop(0,"rgba(0,0,0,0)"); g.addColorStop(0.5,tipo==="tierra"?"rgba(60,40,24,.35)":"rgba(10,10,12,.28)"); g.addColorStop(1,"rgba(0,0,0,0)");
+    x.fillStyle=g; x.fillRect((u-0.05)*W,0,0.1*W,H); }
+  const linea=(u,anchoM,color,trazo)=>{ x.fillStyle=color; const w=Math.max(2,anchoM*pxm);
+    if(!trazo) x.fillRect(u*W-w/2,0,w,H); else for(let v=0;v<H;v+=H/2) x.fillRect(u*W-w/2,v,w,H/2*trazo); };
+  if(tipo!=="tierra"){
+    const blanco="rgba(236,236,230,.92)", amarillo="rgba(236,184,40,.95)", borde=0.45/ancho;
+    linea(borde,0.15,blanco); linea(1-borde,0.15,blanco);
+    if(tipo==="ciudad") linea(0.5,0.14,blanco,0.4);
+    else { linea(0.5-0.14/ancho,0.12,amarillo); linea(0.5+0.14/ancho,0.12,amarillo); }
+    if(tipo==="autopista"){ linea(0.25,0.14,blanco,0.3); linea(0.75,0.14,blanco,0.3); }
+  }
+  /* el brillo en el alfa: charcos y zonas pulidas, como el asfalto mojado del video */
+  const im=x.getImageData(0,0,W,H), n1=ruidoCiclico(256,6,ancho*7+tipo.length), n2=ruidoCiclico(256,24,ancho*3+1);
+  for(let y=0;y<H;y++) for(let i=0;i<W;i++){
+    const k=((y>>2)*256+(i>>1)), m=n1[k]*0.7+n2[k]*0.3;
+    const charco = tipo==="tierra" ? 0.10 : suave(0.62,0.74,m)*0.55;   /* charcos más pequeños: antes parecían nieve */
+    im.data[(y*W+i)*4+3]=Math.round(255*clamp(0.32+charco,0,1));
+  }
+  x.putImageData(im,0,0);
+  return c;
+}
+
+/* 🏢 la fachada: 2 pisos × 2 ventanales (8 m × 8 m), cristal que brilla y alguna luz encendida */
+function texFachada(){
+  const T=512, c=lienzo(T,T), x=c.getContext("2d");
+  x.fillStyle="#cfcfcf"; x.fillRect(0,0,T,T);
+  const r=azarCon(5);
+  for(let f=0;f<2;f++) for(let b=0;b<2;b++){
+    const x0=b*T/2+22, y0=f*T/2+30, w=T/2-44, h=T/2-70;
+    const g=x.createLinearGradient(x0,y0,x0+w,y0+h); g.addColorStop(0,"#2a3d52"); g.addColorStop(0.55,"#6f8aa3"); g.addColorStop(1,"#1f2c3a");
+    x.fillStyle=g; x.fillRect(x0,y0,w,h);
+    if(r()<0.25){ x.fillStyle="rgba(255,214,140,.55)"; x.fillRect(x0,y0,w,h); }
+    x.fillStyle="#9a9a9a"; x.fillRect(x0+w/2-3,y0,6,h);
+  }
+  const im=x.getImageData(0,0,T,T);
+  for(let i=0;i<T*T;i++){ const p=i*4, cristal=im.data[p+2]>im.data[p]+20; im.data[p+3]=cristal?235:80; }
+  x.putImageData(im,0,0); return c;
+}
+/* ⚠️ la señal de curva: amarilla con la flecha negra */
+function texFlecha(){
+  const T=256, c=lienzo(T,T), x=c.getContext("2d");
+  x.fillStyle="#f2c230"; x.fillRect(0,0,T,T); x.fillStyle="#111";
+  x.beginPath(); x.moveTo(70,30); x.lineTo(190,128); x.lineTo(70,226); x.lineTo(110,128); x.closePath(); x.fill();
+  x.strokeStyle="#111"; x.lineWidth=14; x.strokeRect(7,7,T-14,T-14);
+  const im=x.getImageData(0,0,T,T); for(let i=3;i<im.data.length;i+=4) im.data[i]=150; x.putImageData(im,0,0);
+  return c;
+}
+/* 🟩 los carteles verdes de la autopista, todos en una textura (una fila por cartel) */
+function texCarteles(textos){
+  const W=1024, F=256, c=lienzo(W,F*textos.length), x=c.getContext("2d");
+  textos.forEach((t,k)=>{ const y=k*F;
+    x.fillStyle="#0f6b3a"; x.fillRect(0,y,W,F); x.strokeStyle="#f4f4f0"; x.lineWidth=10; x.strokeRect(18,y+18,W-36,F-36);
+    x.fillStyle="#f4f4f0"; x.font="bold 92px 'Segoe UI',Arial,sans-serif"; x.textAlign="center"; x.textBaseline="middle"; x.fillText(t,W/2,y+F/2+4); });
+  const im=x.getImageData(0,0,W,c.height); for(let i=3;i<im.data.length;i+=4) im.data[i]=110; x.putImageData(im,0,0);
+  return c;
+}
+
+/* ================= 🧱 LAS MALLAS DEL MUNDO =================
+   Un "constructor" va juntando triángulos (posición, normal, color, brillo/emisivo y uv) y al final
+   se sube todo de una vez a la tarjeta */
+class Obra{
+  constructor(){ this.p=[]; this.n=[]; this.c=[]; this.e=[]; this.t=[]; this.i=[]; }
+  get nv(){ return this.p.length/3; }
+  v(x,y,z,nx,ny,nz,col,ext,u,w){ this.p.push(x,y,z); this.n.push(nx,ny,nz); this.c.push(col[0],col[1],col[2]); this.e.push(ext?ext[0]:0,ext?ext[1]:0); this.t.push(u||0,w||0); return this.nv-1; }
+  tri(a,b,c){ this.i.push(a,b,c); }
+  /* un cuadrilátero con su normal (a,b,c,d en orden antihorario visto desde fuera) */
+  quad(a,b,c,d,col,ext,uv){
+    const cr=vCruz(vRes(b,a),vRes(d,a)), n=vLen(cr)>1e-9?vNorm(cr):v3(0,1,0), k=this.nv; uv=uv||[0,0,1,0,1,1,0,1];   /* 🐛 cara sin grosor: normal cero → NaN en el shader */
+    this.v(a.x,a.y,a.z,n.x,n.y,n.z,col,ext,uv[0],uv[1]); this.v(b.x,b.y,b.z,n.x,n.y,n.z,col,ext,uv[2],uv[3]);
+    this.v(c.x,c.y,c.z,n.x,n.y,n.z,col,ext,uv[4],uv[5]); this.v(d.x,d.y,d.z,n.x,n.y,n.z,col,ext,uv[6],uv[7]);
+    this.tri(k,k+1,k+2); this.tri(k,k+2,k+3);
+  }
+  /* una caja girada en Y: centro de la base (x,y,z), medidas w (lado), h (alto), d (fondo), rumbo (tx,tz) */
+  caja(x,y,z,w,h,d,col,ext,tx,tz,uvEsc){
+    tx=tx===undefined?0:tx; tz=tz===undefined?1:tz;
+    const rx=tz, rz=-tx, P=(a,b,c)=>v3(x+rx*a+tx*c, y+b, z+rz*a+tz*c), hw=w/2, hd=d/2;
+    const q=[P(-hw,0,-hd),P(hw,0,-hd),P(hw,0,hd),P(-hw,0,hd),P(-hw,h,-hd),P(hw,h,-hd),P(hw,h,hd),P(-hw,h,hd)];
+    const uv=(a,b)=>uvEsc?[0,0,a/uvEsc,0,a/uvEsc,b/uvEsc,0,b/uvEsc]:undefined;
+    this.quad(q[1],q[0],q[4],q[5],col,ext,uv(w,h)); this.quad(q[3],q[2],q[6],q[7],col,ext,uv(w,h));
+    this.quad(q[0],q[3],q[7],q[4],col,ext,uv(d,h)); this.quad(q[2],q[1],q[5],q[6],col,ext,uv(d,h));
+    this.quad(q[4],q[7],q[6],q[5],col,ext); this.quad(q[0],q[1],q[2],q[3],col,ext);
+  }
+  /* un cono o cilindro con lados lisos: base (x,y0,z) de radio r0 hasta y1 con radio r1 */
+  cono(x,y0,z,r0,y1,r1,lados,col,ext,colArriba){
+    const k0=this.nv, pend=(r0-r1)/Math.max(0.001,y1-y0);
+    for(let s=0;s<=lados;s++){ const a=s/lados*TAU, cx=Math.cos(a), cz=Math.sin(a), n=vNorm(v3(cx,pend,cz));
+      this.v(x+cx*r0,y0,z+cz*r0,n.x,n.y,n.z,col,ext); this.v(x+cx*r1,y1,z+cz*r1,n.x,n.y,n.z,colArriba||col,ext); }
+    for(let s=0;s<lados;s++){ const a=k0+s*2; this.tri(a,a+2,a+1); this.tri(a+1,a+2,a+3); }
+  }
+  malla(){
+    const nv=this.nv;
+    return { pos:new Float32Array(this.p), nor:new Float32Array(this.n), col:new Float32Array(this.c), ext:new Float32Array(this.e),
+             uv:new Float32Array(this.t), idx: nv>65535?new Uint32Array(this.i):new Uint16Array(this.i) };
+  }
+}
+
+/* 🗻 el terreno: la rejilla de alturas con colores de hierba, roca, nieve, arena, tierra y hormigón */
+function obraTerreno(){
+  const n=NV, pos=new Float32Array(n*n*3), nor=new Float32Array(n*n*3), col=new Float32Array(n*n*3), ext=new Float32Array(n*n*2);
+  for(let j=0;j<n;j++) for(let i=0;i<n;i++){
+    const k=j*n+i, x=-MITAD+i*PASO, z=-MITAD+j*PASO, y=ALT[k];
+    const hl=ALT[j*n+Math.max(0,i-1)], hr=ALT[j*n+Math.min(n-1,i+1)], hd=ALT[Math.max(0,j-1)*n+i], hu=ALT[Math.min(n-1,j+1)*n+i];
+    const N=vNorm(v3(hl-hr,2*PASO,hd-hu));
+    pos[k*3]=x; pos[k*3+1]=y; pos[k*3+2]=z; nor[k*3]=N.x; nor[k*3+1]=N.y; nor[k*3+2]=N.z;
+    const v=fbm(x/90,z/90,3), v2=fbm(x/23+5,z/23,2);
+    let c=[0.26+v*0.06+v2*0.03, 0.36+v*0.07, 0.14+v2*0.03];                          /* hierba */
+    const seca=suave(0.1,0.5,fbm(x/400-7,z/400+2,3)); c=[lerp(c[0],0.44,seca*0.6),lerp(c[1],0.40,seca*0.5),lerp(c[2],0.20,seca*0.5)];
+    const roca=suave(0.84,0.70,N.y);                                                  /* ⛰️ la roca, donde está empinado */
+    c=[lerp(c[0],0.47+v*0.05,roca),lerp(c[1],0.43+v*0.05,roca),lerp(c[2],0.37+v*0.04,roca)];
+    const nieve=suave(360,440,y+v*40)*suave(0.62,0.80,N.y);                           /* ❄️ la nieve de arriba */
+    c=[lerp(c[0],0.92,nieve),lerp(c[1],0.94,nieve),lerp(c[2],0.98,nieve)];
+    const arena=suave(4.5,1.5,y);                                                     /* 🏖️ la orilla del lago */
+    c=[lerp(c[0],0.58,arena),lerp(c[1],0.52,arena),lerp(c[2],0.40,arena)];
+    if(y<-1){ const f=suave(-1,-10,y); c=[lerp(c[0],0.16,f),lerp(c[1],0.20,f),lerp(c[2],0.18,f)]; }
+    const dq=Math.hypot(x-CANTERA.x,z-CANTERA.z), cant=suave(230,170,dq);            /* ⛏️ la tierra roja de la cantera */
+    c=[lerp(c[0],0.56+v*0.05,cant),lerp(c[1],0.36+v*0.04,cant),lerp(c[2],0.24,cant)];
+    const ciu=suave(0,40,Math.min(x-CIUDAD.x0,CIUDAD.x1-x,z-CIUDAD.z0,CIUDAD.z1-z));  /* 🏙️ la acera de la ciudad */
+    c=[lerp(c[0],0.46,ciu),lerp(c[1],0.46,ciu),lerp(c[2],0.47,ciu)];
+    col[k*3]=c[0]; col[k*3+1]=c[1]; col[k*3+2]=c[2]; ext[k*2]=0.04+nieve*0.25;
+  }
+  const idx=new Uint32Array((n-1)*(n-1)*6); let q=0;
+  for(let j=0;j<n-1;j++) for(let i=0;i<n-1;i++){ const a=j*n+i, b=a+1, c=a+n, d=c+1; idx[q++]=a; idx[q++]=c; idx[q++]=b; idx[q++]=b; idx[q++]=c; idx[q++]=d; }
+  return { pos, nor, col, ext, idx };
+}
+
+/* 🛣️ una malla por tipo de carretera: el asfalto (con uv), y aparte los arcenes, guardarraíles y vallas */
+function obraCarreteras(){
+  const porTipo={}, extra=new Obra();
+  CARRETERAS.forEach((c,ci)=>{
+    const O=porTipo[c.tipo]||(porTipo[c.tipo]=new Obra()), sube=0.07+ci*0.004;
+    const tope=c.cerrada?c.n:c.n-1, h=c.ancho/2;
+    let s=0;
+    for(let i=0;i<=tope;i++){
+      const k=i%c.n, x=c.x[k], z=c.z[k], y=c.y[k]+sube, nx=-c.tz[k], nz=c.tx[k];
+      O.v(x-nx*h,y,z-nz*h,0,1,0,[1,1,1],[0,0],0,s/24); O.v(x+nx*h,y,z+nz*h,0,1,0,[1,1,1],[0,0],1,s/24);
+      if(i>0){ const a=O.nv-4; O.tri(a,a+1,a+2); O.tri(a+1,a+3,a+2); }
+      s+=MUESTRA;
+    }
+    /* arcén de grava y el guardarraíl o la valla, a los dos lados */
+    for(const lado of [-1,1]){
+      const base=extra.nv; let puestos=0;
+      for(let i=0;i<=tope;i++){
+        const k=i%c.n, nx=-c.tz[k]*lado, nz=c.tx[k]*lado, x=c.x[k], z=c.z[k], y=c.y[k]+sube-0.02;
+        const g=[0.30,0.29,0.27];
+        extra.v(x+nx*h,y,z+nz*h,0,1,0,g,[0,0]); extra.v(x+nx*(h+1.6),Math.min(y-0.05,altura(x+nx*(h+1.6),z+nz*(h+1.6))+0.05),z+nz*(h+1.6),0,1,0,g,[0,0]);
+        if(i>0){ const a=base+(i-1)*2; extra.tri(a,a+2,a+1); extra.tri(a+1,a+2,a+3); }
+      }
+      if(c.tipo==="monte"||c.tipo==="lago"||c.tipo==="autopista"){
+        const madera=c.tipo==="lago", colR=madera?[0.42,0.32,0.22]:[0.62,0.64,0.66], extR=madera?[0.05,0]:[0.55,0];
+        for(let i=0;i<tope;i+=1){
+          const k=i%c.n, k2=(i+1)%c.n, off=h+0.9;
+          const cae=Math.abs(altura(c.x[k]+(-c.tz[k]*lado)*(h+7),c.z[k]+(c.tx[k]*lado)*(h+7))-c.y[k]);
+          if(c.tipo!=="autopista" && cae<2.2){ continue; }
+          const A=v3(c.x[k]-c.tz[k]*lado*off, c.y[k]+sube, c.z[k]+c.tx[k]*lado*off), B=v3(c.x[k2]-c.tz[k2]*lado*off, c.y[k2]+sube, c.z[k2]+c.tx[k2]*lado*off);
+          const alto=madera?0.95:0.82, banda=madera?0.14:0.32;
+          const q1=lado>0?[A,B]:[B,A];
+          extra.quad(v3(q1[0].x,q1[0].y+alto-banda,q1[0].z),v3(q1[1].x,q1[1].y+alto-banda,q1[1].z),v3(q1[1].x,q1[1].y+alto,q1[1].z),v3(q1[0].x,q1[0].y+alto,q1[0].z),colR,extR);
+          extra.quad(v3(q1[1].x,q1[1].y+alto-banda,q1[1].z),v3(q1[0].x,q1[0].y+alto-banda,q1[0].z),v3(q1[0].x,q1[0].y+alto,q1[0].z),v3(q1[1].x,q1[1].y+alto,q1[1].z),colR,extR);
+          if(madera){ extra.quad(v3(q1[0].x,q1[0].y+0.40,q1[0].z),v3(q1[1].x,q1[1].y+0.40,q1[1].z),v3(q1[1].x,q1[1].y+0.54,q1[1].z),v3(q1[0].x,q1[0].y+0.54,q1[0].z),colR,extR); }
+          if(i%(madera?1:2)===0) extra.caja(A.x,A.y-0.3,A.z,0.14,alto+0.3,0.14,madera?[0.36,0.27,0.18]:[0.5,0.5,0.52],extR,c.tx[k],c.tz[k]);
+          puestos++;
+        }
+      }
+    }
+  });
+  return { porTipo, extra };
+}
+
+/* 🌊 el agua del lago */
+function obraAgua(){
+  const O=new Obra(), x0=LAGO.x-LAGO.r-140, x1=LAGO.x+LAGO.r+140, z0=LAGO.z-LAGO.r-140, z1=LAGO.z+LAGO.r+140, N=10, col=[0.05,0.13,0.16];
+  for(let j=0;j<=N;j++) for(let i=0;i<=N;i++) O.v(lerp(x0,x1,i/N),AGUA_Y,lerp(z0,z1,j/N),0,1,0,col,[0.9,0]);
+  for(let j=0;j<N;j++) for(let i=0;i<N;i++){ const a=j*(N+1)+i; O.tri(a,a+N+1,a+1); O.tri(a+1,a+N+1,a+N+2); }
+  return O;
+}
+/* 🏙️ los edificios: fachada con ventanas (textura) y azotea aparte */
+function obraEdificios(){
+  const F=new Obra(), T=new Obra();
+  for(const e of EDIFICIOS){
+    const hw=e.w/2, hd=e.d/2, y0=e.y-1, y1=e.y+e.h, col=e.col, ext=[0,0.02*e.ventanas];
+    const P=(a,b,c)=>v3(e.x+a,b,e.z+c);
+    const caras=[[P(-hw,0,hd),P(hw,0,hd),e.w],[P(hw,0,hd),P(hw,0,-hd),e.d],[P(hw,0,-hd),P(-hw,0,-hd),e.w],[P(-hw,0,-hd),P(-hw,0,hd),e.d]];
+    for(const [a,b,largo] of caras){
+      const u=Math.max(1,Math.round(largo/8)), v=e.h/8;
+      F.quad(v3(a.x,y0,a.z),v3(b.x,y0,b.z),v3(b.x,y1,b.z),v3(a.x,y1,a.z),col,ext,[0,0,u,0,u,v,0,v]);
+    }
+    T.quad(P(-hw,y1,hd),P(hw,y1,hd),P(hw,y1,-hd),P(-hw,y1,-hd),[col[0]*0.7,col[1]*0.7,col[2]*0.72],[0.05,0]);
+    if(e.h>40) T.caja(e.x+hw*0.3,y1,e.z-hd*0.2,e.w*0.25,3+e.h*0.03,e.d*0.25,[0.35,0.36,0.38],[0.1,0]);
+  }
+  return { fachadas:F, azoteas:T };
+}
+/* 🚦 farolas, señales, pórticos, rampas y las marcas moradas de los eventos */
+function obraDetalles(){
+  const O=new Obra(), S=new Obra(), P=new Obra(), gris=[0.42,0.43,0.45], metal=[0.55,0.3];
+  for(const f of FAROLAS){
+    O.caja(f.x,f.y,f.z,0.22,9,0.22,gris,metal);
+    O.caja(f.x+f.nx*1.3,f.y+8.8,f.z+f.nz*1.3,0.18,0.18,2.8,gris,metal,f.nx,f.nz);
+    O.caja(f.x+f.nx*2.6,f.y+8.55,f.z+f.nz*2.6,0.5,0.25,0.9,[1,0.95,0.8],[0.2,0.25],f.nx,f.nz);
+  }
+  for(const s of FLECHAS){
+    O.caja(s.x,s.y,s.z,0.1,1.3,0.1,[0.3,0.3,0.3],[0.2,0]);
+    const rx=s.tz, rz=-s.tx, w=0.55, y0=s.y+1.25, y1=s.y+2.25, u0=s.dir>0?0:1, u1=1-u0;
+    const a=v3(s.x-rx*w,y0,s.z-rz*w), b=v3(s.x+rx*w,y0,s.z+rz*w), c=v3(s.x+rx*w,y1,s.z+rz*w), d=v3(s.x-rx*w,y1,s.z-rz*w);
+    S.quad(b,a,d,c,[1,1,1],[0,0],[u1,1,u0,1,u0,0,u1,0]); S.quad(a,b,c,d,[1,1,1],[0,0],[u0,1,u1,1,u1,0,u0,0]);
+  }
+  PORTICOS.forEach((p,k)=>{
+    const rx=p.tz, rz=-p.tx, h=p.ancho/2, col=[0.5,0.5,0.52];
+    O.caja(p.x-rx*h,p.y,p.z-rz*h,0.5,8,0.5,col,metal); O.caja(p.x+rx*h,p.y,p.z+rz*h,0.5,8,0.5,col,metal);
+    O.caja(p.x,p.y+7.2,p.z,p.ancho,0.5,0.5,col,metal,p.tz,-p.tx);
+    const w=6.5, y0=p.y+5.2, y1=p.y+7.0, v0=k/PORTICOS.length, v1=(k+1)/PORTICOS.length;
+    const a=v3(p.x-rx*w-p.tx*0.3,y0,p.z-rz*w-p.tz*0.3), b=v3(p.x+rx*w-p.tx*0.3,y0,p.z+rz*w-p.tz*0.3), c=v3(b.x,y1,b.z), d=v3(a.x,y1,a.z);
+    P.quad(b,a,d,c,[1,1,1],[0,0.05],[0,v1,1,v1,1,v0,0,v0]);
+  });
+  for(const r of RAMPAS){
+    const rx=r.tz, rz=-r.tx, h=r.ancho/2, col=[0.72,0.56,0.18], N=8;
+    for(let s=0;s<N;s++){
+      const t0=s/N, t1=(s+1)/N, y=t=>r.y+r.alto*(t*t*0.35+t*0.65);
+      const at=(t,lado)=>v3(r.x+r.tx*r.largo*t+rx*h*lado, y(t)+0.02, r.z+r.tz*r.largo*t+rz*h*lado);
+      const franja=(s%2)?[0.14,0.14,0.14]:col;
+      O.quad(at(t0,1),at(t0,-1),at(t1,-1),at(t1,1),franja,[0.2,0]);
+    }
+    const fin=v3(r.x+r.tx*r.largo, r.y, r.z+r.tz*r.largo);
+    O.quad(v3(fin.x+rx*h,r.y,fin.z+rz*h),v3(fin.x-rx*h,r.y,fin.z-rz*h),v3(fin.x-rx*h,r.y+r.alto,fin.z-rz*h),v3(fin.x+rx*h,r.y+r.alto,fin.z+rz*h),[0.3,0.3,0.32],[0.1,0]);
+  }
+  /* 💜 las puertas moradas de neón (como en el video) en la salida de cada evento, y el radar */
+  const neon=[0.75,0.25,1.0], brilla=[0.3,1.2];
+  for(const e of EVENTOS){
+    const i=e.i!==undefined?e.i:e.i0, c=e.c, rx=-c.tz[i], rz=c.tx[i], h=c.ancho/2+1.2;
+    for(const lado of [-1,1]){
+      const bx=c.x[i]+rx*h*lado, bz=c.z[i]+rz*h*lado;
+      O.caja(bx,c.y[i],bz,0.35,6.5,0.35,neon,brilla,c.tx[i],c.tz[i]);
+      O.caja(bx-rx*lado*0.35,c.y[i]+5.8,bz-rz*lado*0.35,0.3,3.2,0.3,neon,brilla,c.tx[i],c.tz[i]);
+    }
+    if(e.tipo==="radar"){ O.caja(c.x[i]+rx*(h+1.5),c.y[i],c.z[i]+rz*(h+1.5),0.25,4.2,0.25,gris,metal); O.caja(c.x[i]+rx*(h+1.5),c.y[i]+4.2,c.z[i]+rz*(h+1.5),0.8,0.55,0.55,[0.15,0.15,0.17],[0.5,0.1],c.tx[i],c.tz[i]); }
+  }
+  return { detalles:O, flechas:S, carteles:P };
+}
+/* 🌲 un pino de 1 m de alto y radio 1 (luego cada copia se estira a su tamaño) */
+function obraPino(){
+  const O=new Obra(), tronco=[0.30,0.22,0.15], hoja=[0.12,0.24,0.12], punta=[0.20,0.34,0.16];
+  O.cono(0,-0.05,0,0.07,0.25,0.05,7,tronco,[0,0]);
+  const pisos=[[0.16,1.0,0.50],[0.34,0.80,0.66],[0.52,0.60,0.82],[0.68,0.40,1.0]];
+  for(const [y0,r,y1] of pisos){ O.cono(0,y0,0,r,y1,0.02,9,hoja,[0.04,0],punta); O.cono(0,y0,0,0.02,y0+0.001,r,9,[0.08,0.15,0.08],[0,0]); }
+  return O;
+}
+
+/* ================= 🏎️ EL COCHE =================
+   Coordenadas del coche: x a la derecha, y arriba, z hacia delante. Mide 4,5 m × 1,9 m */
+const PINTURAS=[
+  { nom:"NEGRO NOCHE", rgb:[0.018,0.018,0.022], brillo:0.96 },
+  { nom:"BLANCO HIELO", rgb:[0.80,0.82,0.84], brillo:0.9 },
+  { nom:"ROJO FUEGO", rgb:[0.55,0.03,0.02], brillo:0.92 },
+  { nom:"AZUL ELÉCTRICO", rgb:[0.02,0.12,0.60], brillo:0.92 },
+  { nom:"LIMA TÓXICA", rgb:[0.45,0.75,0.04], brillo:0.9 },
+  { nom:"MORADO NEÓN", rgb:[0.25,0.04,0.45], brillo:0.92 }
+];
+const NEONES=[
+  { nom:"MORADO", rgb:[0.62,0.20,1.0] }, { nom:"AZUL", rgb:[0.15,0.35,1.0] }, { nom:"VERDE", rgb:[0.20,1.0,0.30] },
+  { nom:"ROJO", rgb:[1.0,0.12,0.10] }, { nom:"ORO", rgb:[1.0,0.62,0.12] }, { nom:"TURQUESA", rgb:[0.10,0.95,0.85] }
+];
+const RUEDA_R=0.34, BATALLA=2.72, VIA=0.83, RUEDAS_Z=[1.36,-1.36];
+
+/* el perfil de la carrocería a lo largo del coche: ancho, bajos, línea de hombros y techo */
+function perfilCoche(z){
+  const w=0.95-0.10*suave(1.5,2.25,z)-0.06*suave(-1.7,-2.25,-(-z))*0-0.06*suave(-1.7,-2.28,z);
+  const b=0.20+0.10*suave(1.9,2.25,z)+0.08*suave(-1.9,-2.25,z);
+  const s=z>0 ? lerp(0.93,0.74,suave(0.7,2.25,z)) : lerp(0.93,0.98,suave(-0.4,-1.3,z))-0.06*suave(-1.9,-2.25,z);
+  let t=s;
+  if(z>-1.35 && z<0.80){
+    const techo=1.34;
+    if(z>0.05) t=lerp(techo,s+0.02,suave(0.05,0.80,z));           /* el parabrisas */
+    else if(z<-0.50) t=lerp(techo,s+0.02,suave(-0.50,-1.35,z));   /* la luna de atrás */
+    else t=techo;
+  }
+  return { w, b, s, t: Math.max(t,s+0.02) };
+}
+function obraCoche(pintura){
+  const O=new Obra(), P=pintura.rgb, EXT=[pintura.brillo,0], vidrio=[0.02,0.025,0.03], EXTV=[1.0,0], bajos=[0.03,0.03,0.035];
+  const ZS=[]; for(let i=0;i<=34;i++) ZS.push(lerp(-2.28,2.28,i/34));
+  const anillo=z=>{ const f=perfilCoche(z), w=f.w, cab=f.t>f.s+0.12;
+    return { cab, pts:[[0,f.b],[0.90*w,f.b],[w,f.b+0.18],[w,f.s-0.14],[0.97*w,f.s],[0.80*w,f.s+0.03],[0.66*w,lerp(f.s,f.t,0.78)],[0.50*w,f.t],[0,f.t+0.02]] }; };
+  const colTramo=(k,cab)=> k===0?bajos : (cab&&(k===5||k===6))?vidrio : P;
+  const extTramo=(k,cab)=> k===0?[0,0] : (cab&&(k===5||k===6))?EXTV : EXT;
+  for(let s=0;s<ZS.length-1;s++){
+    const z0=ZS[s], z1=ZS[s+1], A=anillo(z0), B=anillo(z1), cab=A.cab&&B.cab;
+    for(const lado of [1,-1]) for(let k=0;k<8;k++){
+      const a0=A.pts[k], a1=A.pts[k+1], b0=B.pts[k], b1=B.pts[k+1];
+      const p=(q,z)=>v3(q[0]*lado,q[1],z);
+      if(lado>0) O.quad(p(a0,z0),p(b0,z1),p(b1,z1),p(a1,z0),colTramo(k,cab),extTramo(k,cab));
+      else O.quad(p(a1,z0),p(b1,z1),p(b0,z1),p(a0,z0),colTramo(k,cab),extTramo(k,cab));
+    }
+  }
+  /* las tapas de delante y detrás */
+  for(const [z,dir] of [[ZS[0],-1],[ZS[ZS.length-1],1]]){
+    const A=anillo(z); for(const lado of [1,-1]) for(let k=0;k<8;k++){
+      const a=v3(A.pts[k][0]*lado,A.pts[k][1],z), b=v3(A.pts[k+1][0]*lado,A.pts[k+1][1],z), c=v3(0,(A.pts[0][1]+A.pts[8][1])/2,z);
+      const k0=O.nv, n=[0,0,dir], col=dir>0?[0.03,0.03,0.035]:P;
+      O.v(a.x,a.y,a.z,n[0],n[1],n[2],col,EXT); O.v(b.x,b.y,b.z,n[0],n[1],n[2],col,EXT); O.v(c.x,c.y,c.z,n[0],n[1],n[2],col,EXT);
+      if((lado>0)===(dir>0)) O.tri(k0,k0+1,k0+2); else O.tri(k0,k0+2,k0+1);
+    }
+  }
+  /* 🔴 las luces de atrás (una tira que brilla), faros, parrilla, escapes y retrovisores */
+  const rojo=[1.0,0.05,0.04];
+  O.caja(0,0.74,-2.27,1.62,0.07,0.04,rojo,[0.3,1.3]);
+  for(const sx of [-0.66,0.66]) O.caja(sx,0.70,-2.265,0.36,0.14,0.05,rojo,[0.3,1.6]);
+  for(const sx of [-0.68,0.68]) O.caja(sx,0.62,2.22,0.42,0.09,0.12,[0.95,0.97,1.0],[0.8,1.4]);
+  O.caja(0,0.36,2.24,1.1,0.28,0.06,[0.02,0.02,0.02],[0.3,0]);
+  for(const sx of [-0.52,-0.30,0.30,0.52]) O.cono(sx,0.30,-2.40,0.055,0.30,0.055,8,[0.25,0.24,0.22],[0.8,0]);
+  for(const sx of [-1,1]) O.caja(sx*0.98,0.98,0.72,0.16,0.10,0.18,P,EXT);
+  O.caja(0,0.24,-2.20,1.5,0.10,0.24,[0.04,0.04,0.045],[0.4,0]);                  /* difusor */
+  /* 🪽 el alerón gigante */
+  for(const sx of [-0.55,0.55]) O.caja(sx,0.96,-1.98,0.06,0.42,0.22,[0.03,0.03,0.035],[0.6,0]);
+  O.caja(0,1.38,-2.02,2.02,0.05,0.42,P,EXT);
+  for(const sx of [-1.01,1.01]) O.caja(sx,1.22,-2.02,0.03,0.30,0.50,P,EXT);
+  return O;
+}
+function obraRueda(){
+  const O=new Obra(), goma=[0.035,0.035,0.04], llanta=[0.08,0.08,0.09], freno=[0.8,0.05,0.04], L=20, hw=0.13;
+  const anillo=(r,x,col,ext,dir)=>{ const k0=O.nv; for(let s=0;s<=L;s++){ const a=s/L*TAU; O.v(x,Math.sin(a)*r,Math.cos(a)*r,dir,0,0,col,ext); } return k0; };
+  /* la cubierta */
+  for(let s=0;s<L;s++){ const a0=s/L*TAU, a1=(s+1)/L*TAU;
+    const p=(a,x)=>v3(x,Math.sin(a)*RUEDA_R,Math.cos(a)*RUEDA_R);
+    O.quad(p(a0,-hw),p(a0,hw),p(a1,hw),p(a1,-hw),goma,[0.15,0]); }
+  /* las dos caras con llanta de 5 radios (y la pinza roja por dentro) */
+  for(const dir of [1,-1]){ const x=hw*dir, c=O.v(x,0,0,dir,0,0,llanta,[0.7,0]), k0=anillo(RUEDA_R*0.72,x,llanta,[0.7,0],dir);
+    for(let s=0;s<L;s++) dir>0?O.tri(c,k0+s,k0+s+1):O.tri(c,k0+s+1,k0+s);
+    const g0=anillo(RUEDA_R*0.72,x,goma,[0.1,0],dir), g1=anillo(RUEDA_R,x,goma,[0.1,0],dir);
+    for(let s=0;s<L;s++){ if(dir>0){ O.tri(g0+s,g1+s,g1+s+1); O.tri(g0+s,g1+s+1,g0+s+1); } else { O.tri(g0+s,g1+s+1,g1+s); O.tri(g0+s,g0+s+1,g1+s+1); } } }
+  O.caja(-0.02,0.05,0.10,0.08,0.16,0.10,freno,[0.5,0]);
+  return O;
+}
+
+/* ================= ⚙️ LA FÍSICA (de arcade: se agarra, derrapa, salta y se choca) ================= */
+function nuevoCoche(x,z,rumbo){
+  const s=sueloEn(x,z);
+  return { x, y:s.y, z, rumbo, vx:0, vz:0, vy:0, giroV:0, direccion:0, enSuelo:true, vySuelo:0, aire:0,
+           cabeceo:0, alabeo:0, vuelta:0, marcha:1, rpm:0.2, nitro:0.6, usandoNitro:false, derrapando:false, anguloDerrape:0,
+           fueraCarretera:false, sobre:null, golpe:0, ultimoSuelo:{x,z,rumbo} };
+}
+const VMAX=73, VMAX_NITRO=86;          /* 263 km/h y 310 km/h con nitro */
+function cocheCorre(C,E,dt){
+  const ev={};
+  const fx=Math.sin(C.rumbo), fz=Math.cos(C.rumbo), rx=fz, rz=-fx;
+  let vF=C.vx*fx+C.vz*fz, vR=C.vx*rx+C.vz*rz;
+  const vel=Math.abs(vF);
+  const tierra=C.fueraCarretera || (C.sobre&&C.sobre.c&&C.sobre.c.tipo==="tierra");
+  /* el volante: cuanto más rápido, menos gira (si no, sería imposible) */
+  C.direccion=lerp(C.direccion,E.giro,1-Math.exp(-dt*(Math.abs(E.giro)>Math.abs(C.direccion)?7:11)));
+  const angulo=C.direccion*lerp(0.62,0.14,clamp(vel/62,0,1));
+  if(C.enSuelo){
+    /* 🔥 motor, nitro y freno */
+    C.usandoNitro=E.nitro && C.nitro>0.01 && E.gas>0.1;
+    const vmax=(C.usandoNitro?VMAX_NITRO:VMAX)*(C.fueraCarretera?0.62:1);
+    if(E.gas>0 && vF>-1){ const f=clamp(1-(vF/vmax)*(vF/vmax),0,1); vF+=E.gas*(10.5*f+(C.usandoNitro?8.5:0))*dt; }
+    if(C.usandoNitro) C.nitro=Math.max(0,C.nitro-dt*0.16);
+    if(E.freno>0){ if(vF>1) vF-=E.freno*24*dt; else vF=Math.max(-15,vF-E.freno*7*dt); }
+    const roce=0.22+0.00042*vF*vF+(C.fueraCarretera?1.6:0)+(E.gas<0.05&&E.freno<0.05?0.9:0);
+    vF-=Math.sign(vF)*Math.min(Math.abs(vF),roce*dt);
+    if(vF>vmax+1) vF-=(vF-vmax)*1.5*dt;
+    /* 🌀 el derrape: freno de mano (o frenar y girar rápido) suelta la parte de atrás */
+    const quiereDerrapar=(E.mano && vel>9) || (E.freno>0.3 && Math.abs(E.giro)>0.5 && vel>20);
+    if(quiereDerrapar && !C.derrapando) C.derrapando=true;
+    C.anguloDerrape=Math.atan2(vR,Math.max(1,Math.abs(vF)));
+    if(C.derrapando && !E.mano && Math.abs(C.anguloDerrape)<0.10 && Math.abs(E.giro)<0.3) C.derrapando=false;
+    if(vel<6) C.derrapando=false;
+    const yawObj=vF*Math.tan(angulo)/BATALLA*(C.derrapando?1.30:1);
+    C.giroV+=(yawObj-C.giroV)*(1-Math.exp(-dt*(C.derrapando?3.2:11)));
+    const agarre=C.derrapando?(tierra?1.1:1.5):(tierra?5.5:10);
+    const antes=vR; vR*=Math.exp(-agarre*dt);
+    if(C.derrapando){ vF+=Math.abs(antes-vR)*0.62*Math.sign(vF||1); if(E.mano) vF-=vF*0.10*dt; }   /* el derrape guarda la velocidad: divierte más */
+    /* se inclina con la curva y cabecea al acelerar o frenar */
+    C.alabeo=lerp(C.alabeo,clamp(-C.giroV*vF*0.010,-0.10,0.10),1-Math.exp(-dt*6));
+    C.cabeceo=lerp(C.cabeceo,clamp((E.freno>0&&vF>1?0.035:0)-(E.gas*0.02),-0.05,0.05),1-Math.exp(-dt*5));
+  } else {
+    C.giroV*=Math.exp(-dt*0.8); C.usandoNitro=false;
+    C.cabeceo=lerp(C.cabeceo,clamp(-C.vy*0.012,-0.25,0.25),1-Math.exp(-dt*2));
+  }
+  /* 🐛 la velocidad se vuelve a montar con el rumbo de ANTES de girar: si se montara con el nuevo,
+        giraría pegada al coche y la parte de atrás no podría deslizar nunca (derrape de 0°) */
+  C.vx=fx*vF+rx*vR; C.vz=fz*vF+rz*vR;
+  C.rumbo+=C.giroV*dt;
+  const nfx=Math.sin(C.rumbo), nfz=Math.cos(C.rumbo);
+  /* moverse, y chocar con árboles, edificios y el borde del mapa */
+  let nx=C.x+C.vx*dt, nz=C.z+C.vz*dt;
+  for(const adelante of [1.55,0,-1.55]){
+    const px=nx+nfx*adelante, pz=nz+nfz*adelante, h=choqueEn(px,pz,1.0);
+    if(h){ nx+=h.nx*h.pen; nz+=h.nz*h.pen; const vn=C.vx*h.nx+C.vz*h.nz;
+      if(vn<0){ C.vx-=h.nx*vn*1.35; C.vz-=h.nz*vn*1.35; C.vx*=0.72; C.vz*=0.72; ev.choque=Math.max(ev.choque||0,-vn); C.golpe=Math.min(1,-vn/25); C.derrapando=false; } }
+  }
+  const tope=MITAD-25; if(Math.abs(nx)>tope||Math.abs(nz)>tope){ nx=clamp(nx,-tope,tope); nz=clamp(nz,-tope,tope); C.vx*=0.5; C.vz*=0.5; ev.choque=Math.max(ev.choque||0,8); }
+  C.x=nx; C.z=nz;
+  /* 🛫 el suelo: si la carretera baja más rápido de lo que el coche puede seguir, ¡al aire! */
+  const S=sueloEn(C.x,C.z);
+  if(C.enSuelo){
+    const esperado=C.y+C.vySuelo*dt;
+    if(S.y<esperado-0.18 && Math.hypot(C.vx,C.vz)>14){ C.enSuelo=false; C.vy=C.vySuelo; C.aire=0; ev.despega=true; }
+    else { C.vySuelo=clamp((S.y-C.y)/dt,-40,40); C.y=S.y; C.vy=0; }
+  }
+  if(!C.enSuelo){
+    C.vy-=15.5*dt; C.y+=C.vy*dt; C.aire+=dt;
+    if(C.y<=S.y){ ev.aterriza={ tiempo:C.aire, golpe:-C.vy }; C.y=S.y; C.enSuelo=true; C.vySuelo=0; C.vy=0; C.cabeceo=0.06; }
+  }
+  C.sobre=S.carretera; C.fueraCarretera=!S.carretera;
+  if(C.enSuelo && S.carretera && S.carretera.c){ C.ultimoSuelo={ x:C.x, z:C.z, rumbo:C.rumbo }; }
+  if(C.y<AGUA_Y-0.9){ ev.agua=true; }
+  /* marcha y revoluciones, para el velocímetro y el sonido */
+  const kmh=Math.abs(vF)*3.6, cambios=[0,45,82,120,160,205,999];
+  let m=1; while(m<6 && kmh>cambios[m]) m++;
+  if(m!==C.marcha) ev.cambio=m; C.marcha=m;
+  C.rpm=clamp((kmh-cambios[m-1])/(cambios[m]===999?80:(cambios[m]-cambios[m-1])),0,1)*0.75+0.22;
+  C.vuelta+=vF*dt/RUEDA_R; C.golpe*=Math.exp(-dt*4);
+  C.vF=vF; C.vR=vR; C.kmh=kmh;
+  return ev;
+}
+/* devuelve el coche a la última carretera pisada (si caes al lago o te quedas atascado) */
+function recolocaCoche(C){
+  const u=C.ultimoSuelo, q=carreteraCerca(u.x,u.z,60);
+  if(q){ C.x=lerp(q.c.x[q.i],q.c.x[(q.i+1)%q.c.n],q.t); C.z=lerp(q.c.z[q.i],q.c.z[(q.i+1)%q.c.n],q.t);
+    const r=Math.atan2(q.tx,q.tz); C.rumbo=Math.abs(angDif(u.rumbo,r))<Math.PI/2?r:r+Math.PI; }
+  C.y=sueloEn(C.x,C.z).y; C.vx=C.vz=C.vy=0; C.giroV=0; C.enSuelo=true; C.derrapando=false;
+}
+
+/* ================= 🎥 LA CÁMARA DE PERSECUCIÓN ================= */
+function nuevaCamara(C){ return { x:C.x-Math.sin(C.rumbo)*7, y:C.y+2.4, z:C.z-Math.cos(C.rumbo)*7, rumbo:C.rumbo, fov:1.05, temblor:0, modo:0 }; }
+function camaraSigue(K,C,dt){
+  const vel=Math.hypot(C.vx,C.vz);
+  /* en un derrape la cámara mira un poco hacia donde va el coche de verdad */
+  const rumboVel=vel>4?Math.atan2(C.vx,C.vz):C.rumbo;
+  const objetivo=C.rumbo+angDif(C.rumbo,rumboVel)*(C.derrapando?0.45:0.15);
+  K.rumbo+=angDif(K.rumbo,objetivo)*(1-Math.exp(-dt*(C.enSuelo?4.5:1.5)));
+  const lejos=[6.6,9.5,0][K.modo]+vel*0.018, alto=[2.05,3.1,1.25][K.modo];
+  const cx=C.x-Math.sin(K.rumbo)*lejos, cz=C.z-Math.cos(K.rumbo)*lejos;
+  let cy=C.y+alto;
+  if(K.modo===2){ K.x=C.x+Math.sin(C.rumbo)*0.2; K.z=C.z+Math.cos(C.rumbo)*0.2; K.y=C.y+1.25; }
+  else {
+    cy=Math.max(cy,sueloEn(cx,cz).y+0.8);
+    const k=1-Math.exp(-dt*9); K.x=lerp(K.x,cx,k); K.z=lerp(K.z,cz,k); K.y=lerp(K.y,cy,1-Math.exp(-dt*6));
+  }
+  K.fov=lerp(K.fov,1.02+clamp(vel/80,0,1)*0.30+(C.usandoNitro?0.10:0),1-Math.exp(-dt*3));
+  K.temblor=Math.max(K.temblor*Math.exp(-dt*5),C.golpe*0.5,C.usandoNitro?0.05:0,vel>60?0.02:0);
+  const t=performance.now()/1000, tb=K.temblor;
+  K.mira=v3(C.x+Math.sin(C.rumbo)*3.2+Math.sin(t*37)*tb*0.10, C.y+(K.modo===2?1.15:1.05)+Math.sin(t*41)*tb*0.08, C.z+Math.cos(C.rumbo)*3.2+Math.cos(t*33)*tb*0.10);
+}
+
+/* ================= 🎬 LA ESCENA: subir el mundo a la tarjeta y dibujarlo cada fotograma ================= */
+const ESC={}, TEX={};
+const SOL=vNorm(v3(-0.50,0.30,0.81));            /* ☀️ un sol bajo de tarde, como el del video */
+const LUZ={ sol:[1.70,1.36,1.00], cenit:[0.16,0.36,0.74], horizonte:[0.92,0.82,0.70], suelo:[0.30,0.27,0.22], niebla:[0.74,0.72,0.72], nieblaD:0.00048 };
+
+function m4Trasl(x,y,z){ const m=m4(); m[12]=x; m[13]=y; m[14]=z; return m; }
+function m4RotX(a){ const m=m4(), c=Math.cos(a), s=Math.sin(a); m[5]=c; m[6]=s; m[9]=-s; m[10]=c; return m; }
+function m4RotY(a){ const m=m4(), c=Math.cos(a), s=Math.sin(a); m[0]=c; m[2]=-s; m[8]=s; m[10]=c; return m; }
+/* la matriz del coche: posición, rumbo, cabeceo (morro arriba +) y alabeo */
+function m4Coche(x,y,z,rumbo,cab,alab){
+  const sr=Math.sin(rumbo), cr=Math.cos(rumbo), cp=Math.cos(cab), sp=Math.sin(cab);
+  const f=v3(sr*cp,sp,cr*cp), r0=v3(cr,0,-sr), u0=vCruz(f,r0);
+  const co=Math.cos(alab), so=Math.sin(alab), r=vSum(vEsc(r0,co),vEsc(u0,so)), u=vRes(vEsc(u0,co),vEsc(r0,so));
+  const m=new Float32Array(16);
+  m[0]=r.x; m[1]=r.y; m[2]=r.z; m[4]=u.x; m[5]=u.y; m[6]=u.z; m[8]=f.x; m[9]=f.y; m[10]=f.z; m[12]=x; m[13]=y; m[14]=z; m[15]=1;
+  return m;
+}
+
+/* los pinos van con instancias: una VAO con TODOS y otra con los cercanos (para las sombras) */
+function subePinos(n){
+  const M=subeMalla(obraPino().malla());
+  gl.bindVertexArray(M.vao);
+  M.buf=gl.createBuffer(); gl.bindBuffer(gl.ARRAY_BUFFER,M.buf); gl.bufferData(gl.ARRAY_BUFFER,n*24,gl.DYNAMIC_DRAW);
+  gl.enableVertexAttribArray(A_INST); gl.vertexAttribPointer(A_INST,4,gl.FLOAT,false,24,0); gl.vertexAttribDivisor(A_INST,1);
+  gl.enableVertexAttribArray(A_INST2); gl.vertexAttribPointer(A_INST2,2,gl.FLOAT,false,24,16); gl.vertexAttribDivisor(A_INST2,1);
+  gl.bindVertexArray(null); M.cuantos=0; return M;
+}
+function datosPinos(lista){
+  const d=new Float32Array(lista.length*6);
+  lista.forEach((a,k)=>{ d[k*6]=a.x; d[k*6+1]=a.y-0.35; d[k*6+2]=a.z; d[k*6+3]=a.alto; d[k*6+4]=a.ancho/a.alto; d[k*6+5]=a.tono; });
+  return d;
+}
+function subeCoche(){
+  if(ESC.coche) gl.deleteVertexArray(ESC.coche.vao);
+  ESC.coche=subeMalla(obraCoche(PINTURAS[AJUSTES.pintura]||PINTURAS[0]).malla());
+}
+async function subeMundo(progreso){
+  const p=progreso||(()=>{}), respira=()=>new Promise(r=>setTimeout(r,0));
+  p(0.78,"pintando el asfalto…"); await respira();
+  TEX.det=texturaDeLienzo(texDetalle(),true);
+  TEX.carr={}; for(const c of CARRETERAS) if(!TEX.carr[c.tipo]) TEX.carr[c.tipo]=texturaDeLienzo(texCarretera(c.tipo,c.ancho),true);
+  TEX.fachada=texturaDeLienzo(texFachada(),true); TEX.flecha=texturaDeLienzo(texFlecha(),false); TEX.carteles=texturaDeLienzo(texCarteles(PORTICOS.map(q=>q.texto)),false);
+  p(0.84,"modelando las montañas…"); await respira();
+  ESC.terreno=subeMalla(obraTerreno());
+  p(0.90,"asfaltando…"); await respira();
+  const oc=obraCarreteras(); ESC.carr={}; for(const t in oc.porTipo) ESC.carr[t]=subeMalla(oc.porTipo[t].malla()); ESC.arcenes=subeMalla(oc.extra.malla());
+  ESC.agua=subeMalla(obraAgua().malla());
+  const oe=obraEdificios(); ESC.fachadas=subeMalla(oe.fachadas.malla()); ESC.azoteas=subeMalla(oe.azoteas.malla());
+  const od=obraDetalles(); ESC.detalles=subeMalla(od.detalles.malla()); ESC.flechas=subeMalla(od.flechas.malla()); ESC.carteles=subeMalla(od.carteles.malla());
+  p(0.95,"plantando los pinos…"); await respira();
+  ESC.pinos=subePinos(ARBOLES.length); gl.bindBuffer(gl.ARRAY_BUFFER,ESC.pinos.buf); gl.bufferSubData(gl.ARRAY_BUFFER,0,datosPinos(ARBOLES)); ESC.pinos.cuantos=ARBOLES.length;
+  ESC.pinosCerca=subePinos(ARBOLES.length);
+  ESC.rueda=subeMalla(obraRueda().malla());
+  subeCoche();
+  /* ✨ las partículas: un cuadrado y hasta 2.000 copias */
+  ESC.part={ vao:gl.createVertexArray(), buf:gl.createBuffer(), max:2000 };
+  gl.bindVertexArray(ESC.part.vao);
+  const q=gl.createBuffer(); gl.bindBuffer(gl.ARRAY_BUFFER,q); gl.bufferData(gl.ARRAY_BUFFER,new Float32Array([-1,-1,1,-1,1,1,-1,1]),gl.STATIC_DRAW);
+  gl.enableVertexAttribArray(0); gl.vertexAttribPointer(0,2,gl.FLOAT,false,0,0);
+  const ib=gl.createBuffer(); gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER,ib); gl.bufferData(gl.ELEMENT_ARRAY_BUFFER,new Uint16Array([0,1,2,0,2,3]),gl.STATIC_DRAW);
+  gl.bindBuffer(gl.ARRAY_BUFFER,ESC.part.buf); gl.bufferData(gl.ARRAY_BUFFER,ESC.part.max*32,gl.DYNAMIC_DRAW);
+  gl.enableVertexAttribArray(A_INST); gl.vertexAttribPointer(A_INST,4,gl.FLOAT,false,32,0); gl.vertexAttribDivisor(A_INST,1);
+  gl.enableVertexAttribArray(A_INST2); gl.vertexAttribPointer(A_INST2,4,gl.FLOAT,false,32,16); gl.vertexAttribDivisor(A_INST2,1);
+  gl.bindVertexArray(null);
+  ESC.partDatos=new Float32Array(ESC.part.max*8);
+}
+
+/* ================= ✨ LAS PARTÍCULAS ================= */
+const PARTS=[];
+function suelta(o){ if(PARTS.length<1900) PARTS.push(Object.assign({ vx:0,vy:0,vz:0, vida:1, max:1, tam:0.5, crece:0, r:1,g:1,b:1,a:1, luz:false, sube:0 },o)); }
+function particulasCorren(dt){
+  for(let i=PARTS.length-1;i>=0;i--){ const q=PARTS[i]; q.vida-=dt; if(q.vida<=0){ PARTS[i]=PARTS[PARTS.length-1]; PARTS.pop(); continue; }
+    q.x+=q.vx*dt; q.y+=q.vy*dt; q.z+=q.vz*dt; q.vy+=q.sube*dt; q.vx*=Math.exp(-dt*1.5); q.vz*=Math.exp(-dt*1.5); q.tam+=q.crece*dt; }
+}
+
+/* ================= 🖌️ DIBUJAR UN FOTOGRAMA ================= */
+const RENDER={ w:1920, h:1080, vp:null, cam:null };
+function uniformesLuz(p,t){
+  gl.uniform3f(U(p,"uCam"),RENDER.cam.x,RENDER.cam.y,RENDER.cam.z);
+  gl.uniform3f(U(p,"uSol"),SOL.x,SOL.y,SOL.z); gl.uniform3fv(U(p,"uSolCol"),LUZ.sol);
+  gl.uniform3fv(U(p,"uCenit"),LUZ.cenit); gl.uniform3fv(U(p,"uHorizonte"),LUZ.horizonte); gl.uniform3fv(U(p,"uSuelo"),LUZ.suelo); gl.uniform3fv(U(p,"uNiebla"),LUZ.niebla);
+  gl.uniform1f(U(p,"uNieblaD"),LUZ.nieblaD); gl.uniform1f(U(p,"uTiempo"),t);
+  gl.uniformMatrix4fv(U(p,"uLuzVP"),false,RENDER.luzVP); gl.uniform1f(U(p,"uHaySombra"),RENDER.sombras?1:0);
+  gl.activeTexture(gl.TEXTURE2); gl.bindTexture(gl.TEXTURE_2D,FBO.sombra.tex); gl.uniform1i(U(p,"uSombra"),2);
+  gl.activeTexture(gl.TEXTURE1); gl.bindTexture(gl.TEXTURE_2D,TEX.det); gl.uniform1i(U(p,"uDet"),1);
+}
+function dibuja(M,modelo,modo,tex){
+  const p=PROGS.mundo;
+  gl.uniformMatrix4fv(U(p,"uM"),false,modelo||ID4); gl.uniform1f(U(p,"uModo"),modo||0);
+  if(tex){ gl.activeTexture(gl.TEXTURE0); gl.bindTexture(gl.TEXTURE_2D,tex); gl.uniform1i(U(p,"uTex"),0); }
+  gl.bindVertexArray(M.vao); gl.drawElements(gl.TRIANGLES,M.n,M.tipo,0);
+}
+const ID4=m4();
+function matricesRuedas(C,Mc){
+  const out=[];
+  for(const z of RUEDAS_Z) for(const sx of [-1,1]){
+    let m=m4Mul(Mc,m4Trasl(sx*VIA,RUEDA_R+0.01,z));
+    if(z>0) m=m4Mul(m,m4RotY(C.direccion*0.5));
+    m=m4Mul(m,m4RotX(C.vuelta)); out.push(m);
+  }
+  return out;
+}
+let pinosCercaT=-1;
+function dibujaFotograma(C,K,t,efectos){
+  const W=RENDER.w, H=RENDER.h;
+  RENDER.cam=v3(K.x,K.y,K.z);
+  const P=m4Persp(K.fov,W/H,0.35,4600), V=m4Mirar(RENDER.cam,K.mira,v3(0,1,0));
+  RENDER.vp=m4Mul(P,V);
+  /* la inclinación del coche según el suelo que pisa (solo para dibujarlo) */
+  if(C.enSuelo){ const fx=Math.sin(C.rumbo), fz=Math.cos(C.rumbo);
+    const yf=sueloEn(C.x+fx*1.35,C.z+fz*1.35).y, yb=sueloEn(C.x-fx*1.35,C.z-fz*1.35).y, yr=sueloEn(C.x+fz*0.85,C.z-fx*0.85).y, yl=sueloEn(C.x-fz*0.85,C.z+fx*0.85).y;
+    C.inclCab=lerp(C.inclCab||0,Math.atan2(yf-yb,2.7),0.35); C.inclAl=lerp(C.inclAl||0,Math.atan2(yl-yr,1.7),0.35); }
+  const Mc=m4Coche(C.x,C.y+0.02,C.z,C.rumbo,(C.inclCab||0)+C.cabeceo,(C.inclAl||0)+C.alabeo), MR=matricesRuedas(C,Mc);
+
+  /* 1) 🌑 las sombras: un mapa de 4.096 px que cubre 220 m alrededor del coche, con el paso cuadrado a su píxel */
+  RENDER.sombras=AJUSTES.sombras!==false;
+  const tam=110, texel=2*tam/4096;
+  const cx=Math.round(C.x/texel)*texel, cz=Math.round(C.z/texel)*texel;
+  const LV=m4Mirar(v3(cx+SOL.x*500,C.y+SOL.y*500,cz+SOL.z*500),v3(cx,C.y,cz),v3(0,1,0));
+  RENDER.luzVP=m4Mul(m4Orto(-tam,tam,-tam,tam,50,1100),LV);
+  if(RENDER.sombras){
+    if(t-pinosCercaT>0.4 || pinosCercaT<0){ pinosCercaT=t;
+      const cerca=ARBOLES.filter(a=>Math.abs(a.x-C.x)<150&&Math.abs(a.z-C.z)<150);
+      gl.bindBuffer(gl.ARRAY_BUFFER,ESC.pinosCerca.buf); gl.bufferSubData(gl.ARRAY_BUFFER,0,datosPinos(cerca)); ESC.pinosCerca.cuantos=cerca.length; }
+    gl.bindFramebuffer(gl.FRAMEBUFFER,FBO.sombra.fb); gl.viewport(0,0,4096,4096);
+    gl.enable(gl.DEPTH_TEST); gl.depthMask(true); gl.clear(gl.DEPTH_BUFFER_BIT); gl.enable(gl.POLYGON_OFFSET_FILL); gl.polygonOffset(2,6);
+    let p=PROGS.sombra; gl.useProgram(p); gl.uniformMatrix4fv(U(p,"uLuzVP"),false,RENDER.luzVP);
+    const sm=(M,m)=>{ gl.uniformMatrix4fv(U(p,"uM"),false,m||ID4); gl.bindVertexArray(M.vao); gl.drawElements(gl.TRIANGLES,M.n,M.tipo,0); };
+    sm(ESC.coche,Mc); for(const m of MR) sm(ESC.rueda,m);
+    sm(ESC.fachadas); sm(ESC.azoteas); sm(ESC.detalles); sm(ESC.arcenes);
+    p=PROGS.sombraArbol; gl.useProgram(p); gl.uniformMatrix4fv(U(p,"uLuzVP"),false,RENDER.luzVP);
+    gl.bindVertexArray(ESC.pinosCerca.vao); gl.drawElementsInstanced(gl.TRIANGLES,ESC.pinosCerca.n,ESC.pinosCerca.tipo,0,ESC.pinosCerca.cuantos);
+    gl.disable(gl.POLYGON_OFFSET_FILL);
+  }
+
+  /* 2) 🌄 la escena, en el lienzo con antialiasing */
+  gl.bindFramebuffer(gl.FRAMEBUFFER,FBO.escena.fb); gl.viewport(0,0,W,H);
+  gl.clearColor(0,0,0,1); gl.clear(gl.COLOR_BUFFER_BIT|gl.DEPTH_BUFFER_BIT);
+  gl.disable(gl.DEPTH_TEST); gl.depthMask(false);
+  let p=PROGS.cielo; gl.useProgram(p); uniformesLuz(p,t);
+  const fw=vNorm(vRes(K.mira,RENDER.cam)), de=vNorm(vCruz(fw,v3(0,1,0))), ar=vCruz(de,fw), tanY=Math.tan(K.fov/2);
+  gl.uniform3f(U(p,"uFw"),fw.x,fw.y,fw.z); gl.uniform3f(U(p,"uDer"),de.x,de.y,de.z); gl.uniform3f(U(p,"uArr"),ar.x,ar.y,ar.z); gl.uniform2f(U(p,"uTan"),tanY*W/H,tanY);
+  gl.bindVertexArray(null); gl.drawArrays(gl.TRIANGLES,0,3);
+  gl.enable(gl.DEPTH_TEST); gl.depthMask(true); gl.enable(gl.CULL_FACE); gl.cullFace(gl.BACK);
+  p=PROGS.mundo; gl.useProgram(p); uniformesLuz(p,t); gl.uniformMatrix4fv(U(p,"uVP"),false,RENDER.vp);
+  dibuja(ESC.terreno,null,1);
+  gl.disable(gl.CULL_FACE);
+  gl.enable(gl.POLYGON_OFFSET_FILL); gl.polygonOffset(-1,-2);
+  for(const tpo in ESC.carr) dibuja(ESC.carr[tpo],null,2,TEX.carr[tpo]);
+  gl.disable(gl.POLYGON_OFFSET_FILL);
+  dibuja(ESC.arcenes,null,0); dibuja(ESC.agua,null,3);
+  gl.enable(gl.CULL_FACE);
+  dibuja(ESC.fachadas,null,2,TEX.fachada); dibuja(ESC.azoteas,null,0); dibuja(ESC.detalles,null,0);
+  gl.disable(gl.CULL_FACE);
+  dibuja(ESC.flechas,null,2,TEX.flecha); dibuja(ESC.carteles,null,2,TEX.carteles);
+  gl.enable(gl.CULL_FACE);
+  dibuja(ESC.coche,Mc,0); for(const m of MR) dibuja(ESC.rueda,m,0);
+  gl.disable(gl.CULL_FACE);
+  p=PROGS.arbol; gl.useProgram(p); uniformesLuz(p,t); gl.uniformMatrix4fv(U(p,"uVP"),false,RENDER.vp); gl.uniform1f(U(p,"uModo"),0);
+  gl.bindVertexArray(ESC.pinos.vao); gl.drawElementsInstanced(gl.TRIANGLES,ESC.pinos.n,ESC.pinos.tipo,0,ESC.pinos.cuantos);
+
+  /* ✨ partículas: primero el humo (mezcla), luego lo que brilla (suma) */
+  if(PARTS.length){
+    p=PROGS.part; gl.useProgram(p); gl.uniformMatrix4fv(U(p,"uVP"),false,RENDER.vp); gl.uniform3f(U(p,"uDer"),de.x,de.y,de.z); gl.uniform3f(U(p,"uArr"),ar.x,ar.y,ar.z);
+    gl.depthMask(false); gl.enable(gl.BLEND); gl.bindVertexArray(ESC.part.vao);
+    /* tres grupos: humo (se mezcla), lo que brilla (se suma) y lo que va tumbado en el suelo (el neón) */
+    for(const grupo of ["humo","luz","plano"]){
+      const D=ESC.partDatos; let n=0;
+      for(const q of PARTS){ const g=q.plano?"plano":q.luz?"luz":"humo"; if(g!==grupo) continue; const k=n*8, f=q.vida/q.max;
+        D[k]=q.x; D[k+1]=q.y; D[k+2]=q.z; D[k+3]=q.tam; D[k+4]=q.r; D[k+5]=q.g; D[k+6]=q.b;
+        D[k+7]=q.a*(grupo==="humo"?Math.min(1,f*1.6):grupo==="luz"?f:1); n++; }
+      if(!n) continue;
+      gl.bindBuffer(gl.ARRAY_BUFFER,ESC.part.buf); gl.bufferSubData(gl.ARRAY_BUFFER,0,D,0,n*8);
+      gl.uniform1f(U(p,"uPlano"),grupo==="plano"?1:0);
+      if(grupo==="humo") gl.blendFunc(gl.ONE,gl.ONE_MINUS_SRC_ALPHA); else gl.blendFunc(gl.ONE,gl.ONE);
+      if(grupo==="plano"){ gl.enable(gl.POLYGON_OFFSET_FILL); gl.polygonOffset(-2,-8); }
+      gl.drawElementsInstanced(gl.TRIANGLES,6,gl.UNSIGNED_SHORT,0,n);
+      if(grupo==="plano") gl.disable(gl.POLYGON_OFFSET_FILL);
+    }
+    gl.disable(gl.BLEND); gl.depthMask(true);
+  }
+
+  /* 3) 🎬 resolver el antialiasing, el bloom y el paso final a la pantalla */
+  gl.bindFramebuffer(gl.READ_FRAMEBUFFER,FBO.escena.fb); gl.bindFramebuffer(gl.DRAW_FRAMEBUFFER,FBO.resuelta.fb);
+  gl.blitFramebuffer(0,0,W,H,0,0,W,H,gl.COLOR_BUFFER_BIT,gl.NEAREST);
+  gl.disable(gl.DEPTH_TEST); gl.bindVertexArray(null);
+  const pasada=(prog,destino,fuente,extra)=>{ gl.bindFramebuffer(gl.FRAMEBUFFER,destino?destino.fb:null); gl.viewport(0,0,destino?destino.w:W,destino?destino.h:H);
+    gl.useProgram(prog); gl.activeTexture(gl.TEXTURE0); gl.bindTexture(gl.TEXTURE_2D,fuente.tex); gl.uniform1i(U(prog,"uImg"),0); if(extra) extra(prog); gl.drawArrays(gl.TRIANGLES,0,3); };
+  pasada(PROGS.brillo,FBO.bloomA,FBO.resuelta);
+  for(let i=0;i<2;i++){
+    pasada(PROGS.blur,FBO.bloomB,FBO.bloomA,q=>gl.uniform2f(U(q,"uDir"),(1+i)/FBO.bloomA.w,0));
+    pasada(PROGS.blur,FBO.bloomA,FBO.bloomB,q=>gl.uniform2f(U(q,"uDir"),0,(1+i)/FBO.bloomA.h));
+  }
+  const sp=m4Proyecta(RENDER.vp,vSum(RENDER.cam,vEsc(SOL,2000)));
+  pasada(PROGS.final,null,FBO.resuelta,q=>{
+    gl.activeTexture(gl.TEXTURE1); gl.bindTexture(gl.TEXTURE_2D,FBO.bloomA.tex); gl.uniform1i(U(q,"uBloom"),1);
+    gl.uniform1f(U(q,"uVel"),efectos.vel); gl.uniform1f(U(q,"uExpo"),efectos.expo||1.0); gl.uniform1f(U(q,"uFlash"),efectos.flash||0);
+    const vis=sp?clamp(1-Math.max(Math.abs(sp.x-0.5),Math.abs(sp.y-0.5))*1.4,0,1):0;
+    gl.uniform3f(U(q,"uSolPant"),sp?sp.x:0,sp?1-sp.y:0,vis); gl.uniform3fv(U(q,"uSolCol"),LUZ.sol);
+  });
+  gl.enable(gl.DEPTH_TEST);
+}
+
+/* ================= 🎮 AJUSTES, CONTROLES Y SONIDO ================= */
+const AJUSTES=(()=>{ let a={}; try{ a=JSON.parse(localStorage.getItem("edtu_turbo")||"{}"); }catch(e){}
+  return Object.assign({ pintura:0, neon:0, calidad:null, sombras:true, dinero:0, mejores:{} }, a); })();
+function guardaAjustes(){ try{ localStorage.setItem("edtu_turbo",JSON.stringify(AJUSTES)); }catch(e){} }
+const G={ estado:"carga", t:0, coche:null, cam:null, trucos:[], mensajes:[], evento:null, pausa:false, flash:0, avisoCal:null };
+
+const TECLAS={}, TACTIL={};
+addEventListener("keydown",e=>{
+  TECLAS[e.code]=true;
+  if(/^(Arrow|Space)/.test(e.code)) e.preventDefault();
+  if(G.estado!=="juego") return;
+  if(e.code==="KeyC"&&!e.repeat) G.cam.modo=(G.cam.modo+1)%3;
+  if((e.code==="KeyP"||e.code==="Escape")&&!e.repeat) G.pausa=!G.pausa;
+  if(e.code==="KeyR"&&!e.repeat){ recolocaCoche(G.coche); avisa("DE VUELTA A LA CARRETERA","#c8ff2e"); }
+});
+addEventListener("keyup",e=>{ TECLAS[e.code]=false; });
+addEventListener("blur",()=>{ for(const k in TECLAS) TECLAS[k]=false; });
+/* 🎮 el mando: el propio, o el que nos pasa el cuartel (si el foco se quedó fuera del juego) */
+const PAD={ prestado:null, antes:[] };
+addEventListener("message",e=>{ const d=e.data; if(d&&d.edtuPad) PAD.prestado={ axes:d.axes||[], buttons:(d.buttons||[]).map(b=>!!b), t:performance.now() }; });
+function padCrudo(){
+  try{ for(const p of (navigator.getGamepads?navigator.getGamepads():[])){ if(!p) continue; const id=(p.id||"").toLowerCase();
+      if(/jabra|speak|headset|audio|micr|webcam|camera|receiver/.test(id)) continue;
+      if((p.axes||[]).length>=2&&(p.buttons||[]).length>=8) return { axes:Array.from(p.axes), boton:i=>p.buttons[i]?p.buttons[i].value:0 }; } }catch(e){}
+  if(PAD.prestado && performance.now()-PAD.prestado.t<500){ const P=PAD.prestado; return { axes:P.axes, boton:i=>P.buttons[i]?1:0 }; }
+  return null;
+}
+/* lo que quiere hacer el jugador ahora mismo: gas, freno, giro, freno de mano y nitro */
+function leeEntrada(){
+  const E={ gas:0, freno:0, giro:0, mano:false, nitro:false };
+  if(TECLAS.KeyW||TECLAS.ArrowUp||TACTIL.gas) E.gas=1;
+  if(TECLAS.KeyS||TECLAS.ArrowDown||TACTIL.freno) E.freno=1;
+  if(TECLAS.KeyA||TECLAS.ArrowLeft||TACTIL.izq) E.giro-=1;
+  if(TECLAS.KeyD||TECLAS.ArrowRight||TACTIL.der) E.giro+=1;
+  if(TECLAS.Space||TACTIL.mano) E.mano=true;
+  if(TECLAS.ShiftLeft||TECLAS.ShiftRight||TECLAS.KeyN||TACTIL.nitro) E.nitro=true;
+  const P=padCrudo();
+  if(P){
+    const x=P.axes[0]||0; if(Math.abs(x)>0.12) E.giro=clamp(E.giro+Math.sign(x)*((Math.abs(x)-0.12)/0.88),-1,1);
+    E.gas=Math.max(E.gas,P.boton(7)); E.freno=Math.max(E.freno,P.boton(6));                  /* RT gas · LT freno */
+    if(P.boton(0)>0.5||P.boton(5)>0.5) E.nitro=true;                                           /* A o RB: nitro */
+    if(P.boton(2)>0.5||P.boton(1)>0.5) E.mano=true;                                            /* X o B: freno de mano */
+    const pulsa=i=>P.boton(i)>0.5&&!PAD.antes[i];
+    if(G.estado==="juego"){ if(pulsa(3)) G.cam.modo=(G.cam.modo+1)%3; if(pulsa(9)) G.pausa=!G.pausa; if(pulsa(8)){ recolocaCoche(G.coche); avisa("DE VUELTA A LA CARRETERA","#c8ff2e"); } }
+    else if(G.estado==="menu" && pulsa(0)) empieza();
+    for(let i=0;i<16;i++) PAD.antes[i]=P.boton(i)>0.5;
+  }
+  return E;
+}
+function preparaTactil(){
+  const tactil=!!(window.matchMedia&&window.matchMedia("(pointer: coarse)").matches);
+  document.getElementById("tactil").classList.toggle("si",tactil);
+  const une=(id,k)=>{ const el=document.getElementById(id); if(!el) return;
+    const on=e=>{ e.preventDefault(); TACTIL[k]=true; el.classList.add("on"); }, off=e=>{ e.preventDefault(); TACTIL[k]=false; el.classList.remove("on"); };
+    el.addEventListener("pointerdown",on); el.addEventListener("pointerup",off); el.addEventListener("pointercancel",off); el.addEventListener("pointerleave",off); };
+  une("tIzq","izq"); une("tDer","der"); une("tGas","gas"); une("tFreno","freno"); une("tNitro","nitro"); une("tMano","mano");
+  return tactil;
+}
+
+/* 🔊 el motor, las ruedas y el viento, sintetizados (sin archivos de sonido) */
+const SON={ ctx:null };
+function iniciaSonido(){
+  if(SON.ctx) return; try{
+    const A=new (window.AudioContext||window.webkitAudioContext)(), M=A.createGain(); M.gain.value=0.5; M.connect(A.destination);
+    const filtro=A.createBiquadFilter(); filtro.type="lowpass"; filtro.frequency.value=900; filtro.Q.value=4; filtro.connect(M);
+    const motor=A.createGain(); motor.gain.value=0.0; motor.connect(filtro);
+    const o1=A.createOscillator(), o2=A.createOscillator(); o1.type="sawtooth"; o2.type="square"; o1.connect(motor); const g2=A.createGain(); g2.gain.value=0.35; o2.connect(g2); g2.connect(motor); o1.start(); o2.start();
+    const ruido=A.createBuffer(1,A.sampleRate*2,A.sampleRate), d=ruido.getChannelData(0); for(let i=0;i<d.length;i++) d[i]=Math.random()*2-1;
+    const fuente=A.createBufferSource(); fuente.buffer=ruido; fuente.loop=true;
+    const chirrido=A.createBiquadFilter(); chirrido.type="bandpass"; chirrido.frequency.value=2200; chirrido.Q.value=3;
+    const gCh=A.createGain(); gCh.gain.value=0; fuente.connect(chirrido); chirrido.connect(gCh); gCh.connect(M);
+    const vientoF=A.createBiquadFilter(); vientoF.type="lowpass"; vientoF.frequency.value=500; const gV=A.createGain(); gV.gain.value=0; fuente.connect(vientoF); vientoF.connect(gV); gV.connect(M);
+    fuente.start();
+    Object.assign(SON,{ ctx:A, o1, o2, motor, filtro, gCh, gV, chirrido });
+  }catch(e){}
+}
+function sonidoCorre(C,E){
+  if(!SON.ctx||SON.ctx.state!=="running") return; const t=SON.ctx.currentTime, k=0.08;
+  const f=48+C.rpm*190+(C.marcha-1)*6;
+  SON.o1.frequency.setTargetAtTime(f,t,k); SON.o2.frequency.setTargetAtTime(f*0.5,t,k);
+  SON.motor.gain.setTargetAtTime(G.pausa?0:0.10+E.gas*0.14+(C.usandoNitro?0.05:0),t,k);
+  SON.filtro.frequency.setTargetAtTime(500+E.gas*1500+C.rpm*800,t,k);
+  SON.gCh.gain.setTargetAtTime(!G.pausa&&C.enSuelo&&(C.derrapando||Math.abs(C.vR)>4)?clamp(Math.abs(C.vR)/14,0.05,0.22):0,t,0.05);
+  SON.gV.gain.setTargetAtTime(G.pausa?0:clamp(Math.hypot(C.vx,C.vz)/80,0,1)*0.30,t,k);
+}
+function pitido(nota,dur,tipo){
+  if(!SON.ctx) return; try{ const A=SON.ctx, o=A.createOscillator(), g=A.createGain(); o.type=tipo||"triangle"; o.frequency.value=nota;
+    g.gain.setValueAtTime(0.18,A.currentTime); g.gain.exponentialRampToValueAtTime(0.001,A.currentTime+dur); o.connect(g); g.connect(A.destination); o.start(); o.stop(A.currentTime+dur); }catch(e){}
+}
+
+/* ================= 🖥️ EL HUD (marcador en pantalla) ================= */
+const hud=document.getElementById("hud"), hx=hud.getContext("2d");
+let HW=1280, HH=720, HU=1;
+function tamHud(){ const d=Math.min(2,window.devicePixelRatio||1); HW=Math.round(innerWidth*d); HH=Math.round(innerHeight*d); hud.width=HW; hud.height=HH; HU=Math.min(HW/1920,HH/1080)*1.0; }
+function avisa(texto,color,dur){ G.mensajes.push({ texto, color:color||"#fff", t:dur||2.2, max:dur||2.2 }); if(G.mensajes.length>3) G.mensajes.shift(); }
+function truco(nombre,valor){ const q=G.trucos.find(x=>x.nombre===nombre); if(q){ q.valor=valor; q.t=1.6; } else G.trucos.push({ nombre, valor, t:1.6 }); }
+
+/* 🗺️ el mapa entero, pintado una vez (terreno sombreado, agua, ciudad y carreteras) */
+let MAPA=null; const MAPA_T=1024;
+function pintaMapa(){
+  MAPA=lienzo(MAPA_T,MAPA_T); const x=MAPA.getContext("2d"), im=x.createImageData(256,256);
+  for(let j=0;j<256;j++) for(let i=0;i<256;i++){
+    const wx=-MITAD+(i+0.5)*MUNDO/256, wz=-MITAD+(j+0.5)*MUNDO/256, h=altura(wx,wz), n=normalEn(wx,wz), k=(j*256+i)*4, luz=0.55+n.x*0.6+n.z*0.3;
+    let c = h<0 ? [30,70,96] : h>380 ? [190,196,205] : [58+h*0.12,78+h*0.06,52];
+    im.data[k]=clamp(c[0]*luz,0,255); im.data[k+1]=clamp(c[1]*luz,0,255); im.data[k+2]=clamp(c[2]*luz,0,255); im.data[k+3]=255; }
+  const tmp=lienzo(256,256); tmp.getContext("2d").putImageData(im,0,0);
+  x.imageSmoothingEnabled=true; x.drawImage(tmp,0,0,MAPA_T,MAPA_T);
+  const e=MAPA_T/MUNDO, P=(wx,wz)=>[(wx+MITAD)*e,(wz+MITAD)*e];
+  x.fillStyle="rgba(70,72,82,.9)"; for(const b of EDIFICIOS){ const [a,c]=P(b.x-b.w/2,b.z-b.d/2); x.fillRect(a,c,b.w*e,b.d*e); }
+  x.lineCap="round"; x.lineJoin="round";
+  for(const pasada of [0,1]) for(const c of CARRETERAS){
+    x.strokeStyle= pasada? (c.tipo==="autopista"?"#f2d27a":c.tipo==="tierra"?"#b08a62":"#e8e8ee") : "rgba(0,0,0,.55)";
+    x.lineWidth=Math.max(2,c.ancho*e*(pasada?1.6:2.6)); x.beginPath();
+    for(let i=0;i<c.n;i++){ const [a,b]=P(c.x[i],c.z[i]); i?x.lineTo(a,b):x.moveTo(a,b); } if(c.cerrada) x.closePath(); x.stroke();
+  }
+}
+function iconoEvento(x,e,px,py,tam){
+  x.save(); x.translate(px,py);
+  x.fillStyle="#9b3dff"; x.strokeStyle="#fff"; x.lineWidth=tam*0.12;
+  x.beginPath(); x.moveTo(0,-tam); x.lineTo(tam,0); x.lineTo(0,tam); x.lineTo(-tam,0); x.closePath(); x.fill(); x.stroke();
+  x.fillStyle="#fff"; x.font="900 "+(tam*0.9)+"px 'Segoe UI',sans-serif"; x.textAlign="center"; x.textBaseline="middle";
+  x.fillText(e.tipo==="derrape"?"S":e.tipo==="radar"?"⚡":"▲",0,tam*0.05); x.restore();
+}
+function pintaHud(C,dt){
+  const x=hx, u=HU, W=HW, H=HH;
+  x.clearRect(0,0,W,H);
+  if(G.estado!=="juego") return;
+  const fuente=(peso,t)=>peso+" "+Math.round(t*u)+"px 'Segoe UI',system-ui,sans-serif";
+  /* ⏱️ velocímetro, abajo a la derecha */
+  { const cx=W-205*u, cy=H-175*u, R=118*u, a0=Math.PI*0.75, barrido=Math.PI*1.5, f=clamp(C.kmh/320,0,1);
+    x.fillStyle="rgba(8,10,20,.62)"; x.beginPath(); x.arc(cx,cy,R+18*u,0,TAU); x.fill();
+    x.lineCap="butt";
+    x.strokeStyle="rgba(255,255,255,.18)"; x.lineWidth=12*u; x.beginPath(); x.arc(cx,cy,R,a0,a0+barrido); x.stroke();
+    x.strokeStyle="rgba(230,40,50,.85)"; x.beginPath(); x.arc(cx,cy,R,a0+barrido*0.84,a0+barrido); x.stroke();
+    const g=x.createLinearGradient(cx-R,cy,cx+R,cy); g.addColorStop(0,"#ffffff"); g.addColorStop(0.7,"#dfe8ff"); g.addColorStop(1,"#ff4a5a");
+    x.strokeStyle=g; x.lineWidth=12*u; x.beginPath(); x.arc(cx,cy,R,a0,a0+barrido*f); x.stroke();
+    for(let i=0;i<=10;i++){ const a=a0+barrido*i/10; x.strokeStyle="rgba(255,255,255,.7)"; x.lineWidth=2*u;
+      x.beginPath(); x.moveTo(cx+Math.cos(a)*(R-16*u),cy+Math.sin(a)*(R-16*u)); x.lineTo(cx+Math.cos(a)*(R-26*u),cy+Math.sin(a)*(R-26*u)); x.stroke(); }
+    x.fillStyle="#fff"; x.textAlign="center"; x.textBaseline="middle"; x.font=fuente("900 italic",68);
+    x.fillText(String(Math.round(C.kmh)).padStart(3,"0"),cx,cy-6*u);
+    x.font=fuente("700",15); x.fillStyle="rgba(255,255,255,.7)"; x.fillText("km/h",cx,cy+34*u);
+    x.strokeStyle="#fff"; x.lineWidth=2*u; x.strokeRect(cx-17*u,cy+52*u,34*u,32*u); x.font=fuente("900",24); x.fillStyle="#fff"; x.fillText(C.vF<-0.5?"R":String(C.marcha),cx,cy+69*u);
+    /* 🔥 el nitro, en tres trozos por fuera a la izquierda */
+    for(let s=0;s<3;s++){ const b0=Math.PI*(0.80+s*0.16), b1=b0+Math.PI*0.14, lleno=clamp(C.nitro*3-s,0,1);
+      x.strokeStyle="rgba(255,255,255,.15)"; x.lineWidth=10*u; x.beginPath(); x.arc(cx-6*u,cy,R+34*u,b0,b1); x.stroke();
+      if(lleno>0){ x.strokeStyle=C.usandoNitro?"#8fd0ff":"#2f8bff"; x.beginPath(); x.arc(cx-6*u,cy,R+34*u,b0,b0+(b1-b0)*lleno); x.stroke(); } }
+  }
+  /* 🗺️ minimapa redondo que gira con el coche, abajo a la izquierda */
+  if(MAPA){ const cx=150*u, cy=H-165*u, R=108*u, metros=420, e=MAPA_T/MUNDO, esc=R/(metros*e);
+    x.save(); x.beginPath(); x.arc(cx,cy,R,0,TAU); x.fillStyle="#1b2a22"; x.fill(); x.clip();
+    const th=-Math.PI/2-Math.atan2(Math.cos(C.rumbo),Math.sin(C.rumbo));
+    x.translate(cx,cy); x.rotate(th); x.scale(esc,esc); x.drawImage(MAPA,-(C.x+MITAD)*e,-(C.z+MITAD)*e);
+    x.setTransform(1,0,0,1,0,0);
+    for(const ev of EVENTOS){ const dx=(ev.x-C.x)*e*esc, dz=(ev.z-C.z)*e*esc, rx=dx*Math.cos(th)-dz*Math.sin(th), ry=dx*Math.sin(th)+dz*Math.cos(th), d=Math.hypot(rx,ry), k=d>R-12*u?(R-12*u)/d:1;
+      iconoEvento(x,ev,cx+rx*k,cy+ry*k,9*u); }
+    x.restore();
+    x.strokeStyle="rgba(255,255,255,.75)"; x.lineWidth=3*u; x.beginPath(); x.arc(cx,cy,R,0,TAU); x.stroke();
+    x.fillStyle="#fff"; x.beginPath(); x.moveTo(cx,cy-11*u); x.lineTo(cx+8*u,cy+8*u); x.lineTo(cx,cy+4*u); x.lineTo(cx-8*u,cy+8*u); x.closePath(); x.fill();
+    x.font=fuente("800",20); x.textAlign="center"; x.fillStyle="#fff"; x.shadowColor="rgba(0,0,0,.8)"; x.shadowBlur=6*u;
+    x.fillText(G.zona||"",cx,cy+R+26*u); x.shadowBlur=0;
+  }
+  /* 💰 dinero, arriba a la derecha */
+  x.textAlign="right"; x.textBaseline="middle"; x.font=fuente("800",24);
+  x.fillStyle="rgba(8,10,20,.6)"; x.fillRect(W-330*u,64*u,300*u,44*u); x.fillStyle="#c8ff2e"; x.fillText("$ "+Math.round(AJUSTES.dinero).toLocaleString("es-CL"),W-46*u,86*u);   /* debajo del botón Salir */
+  /* 💜 iconos de los eventos flotando en el mundo, con la distancia */
+  for(const ev of EVENTOS){ const d=Math.hypot(ev.x-C.x,ev.z-C.z); if(d>700||d<14) continue;
+    const q=m4Proyecta(RENDER.vp,v3(ev.x,ev.y+9,ev.z)); if(!q||q.x<0||q.x>1||q.y<0||q.y>1) continue;
+    const px=q.x*W, py=q.y*H, tam=clamp(20*u*(160/d),10*u,26*u);
+    iconoEvento(x,ev,px,py,tam);
+    x.font=fuente("800",15); x.textAlign="center"; x.fillStyle="#fff"; x.shadowColor="rgba(0,0,0,.9)"; x.shadowBlur=5*u;
+    x.fillText(ev.nombre+" · "+Math.round(d)+" m",px,py+tam+16*u);
+    if(ev.mejor) x.fillText("★".repeat(ev.mejor)+"☆".repeat(3-ev.mejor),px,py+tam+36*u);
+    x.shadowBlur=0; }
+  /* 🏁 el panel del evento en marcha, arriba a la izquierda */
+  const EV=G.evento;
+  if(EV){ const x0=60*u, y0=150*u, w=300*u;
+    x.fillStyle="rgba(8,10,20,.62)"; x.fillRect(x0,y0,w,150*u);
+    x.fillStyle="#9b3dff"; x.fillRect(x0,y0,w,32*u); x.fillStyle="#fff"; x.font=fuente("900",17); x.textAlign="center"; x.fillText(EV.def.nombre,x0+w/2,y0+17*u);
+    x.font=fuente("900 italic",40); x.fillText(EV.texto(),x0+w/2,y0+62*u);
+    const metas=EV.def.metas, v=EV.valor(), tope=metas[2]*1.2;
+    for(let s=0;s<3;s++){ const px=x0+w*(0.25+s*0.25); x.font=fuente("900",26); x.fillStyle=v>=metas[s]?"#ffd23a":"rgba(255,255,255,.55)"; x.fillText(v>=metas[s]?"★":"☆",px,y0+98*u);
+      x.font=fuente("700",12); x.fillStyle="rgba(255,255,255,.75)"; x.fillText(EV.metaTxt(metas[s]),px,y0+120*u); }
+    x.fillStyle="rgba(255,255,255,.2)"; x.fillRect(x0+14*u,y0+130*u,w-28*u,6*u); x.fillStyle="#9b3dff"; x.fillRect(x0+14*u,y0+130*u,(w-28*u)*clamp(v/tope,0,1),6*u);
+    if(EV.tiempo!==undefined){ x.fillStyle="#d8203a"; x.fillRect(x0+w*0.25,y0+156*u,w*0.5,30*u); x.fillStyle="#fff"; x.font=fuente("900",18);
+      const s=Math.max(0,Math.ceil(EV.tiempo)); x.fillText("00:"+String(s).padStart(2,"0"),x0+w/2,y0+172*u); }
+  }
+  /* ✨ los trucos, sobre el velocímetro (en amarillo, como en el video) */
+  G.trucos=G.trucos.filter(q=>(q.t-=dt)>0);
+  x.textAlign="right"; x.font=fuente("900 italic",19);
+  G.trucos.forEach((q,k)=>{ x.globalAlpha=clamp(q.t*2,0,1); x.fillStyle="#ffd23a"; x.shadowColor="rgba(0,0,0,.9)"; x.shadowBlur=6*u;
+    x.fillText(q.nombre+(q.valor!==undefined?": "+q.valor:""),W-70*u,H-350*u-k*28*u); });
+  x.globalAlpha=1; x.shadowBlur=0;
+  /* 📣 los mensajes grandes del centro */
+  G.mensajes=G.mensajes.filter(m=>(m.t-=dt)>0);
+  G.mensajes.forEach((m,k)=>{ const a=clamp(m.t*2.5,0,1), s=1+Math.max(0,(m.t-m.max+0.25))*1.6;
+    x.save(); x.globalAlpha=a; x.translate(W/2,H*0.30+k*58*u); x.scale(s,s); x.transform(1,0,-0.18,1,0,0);
+    x.textAlign="center"; x.font=fuente("900 italic",46); x.lineWidth=8*u; x.strokeStyle="rgba(10,6,24,.85)"; x.strokeText(m.texto,0,0); x.fillStyle=m.color; x.fillText(m.texto,0,0); x.restore(); });
+  if(G.avisoCal){ G.avisoCal.t-=dt; if(G.avisoCal.t>0){ x.textAlign="center"; x.font=fuente("700",16); x.fillStyle="rgba(255,255,255,.8)"; x.fillText(G.avisoCal.texto,W/2,H-30*u); } }
+  if(G.pausa){ x.fillStyle="rgba(4,3,10,.6)"; x.fillRect(0,0,W,H); x.textAlign="center"; x.fillStyle="#c8ff2e"; x.font=fuente("900 italic",90); x.fillText("PAUSA",W/2,H/2);
+    x.font=fuente("700",22); x.fillStyle="#fff"; x.fillText("P / ESC / START para seguir · R vuelve a la carretera · C cambia la cámara",W/2,H/2+70*u); }
+}
+
+/* ================= 🏁 EL JUEGO: calidad, eventos, trucos, partículas, menú y bucle ================= */
+const CALIDADES={ hd:{ nom:"HD", alto:1080 }, k2:{ nom:"2K", alto:1440 }, k4:{ nom:"4K", alto:2160 } };
+const ORDEN_CAL=["hd","k2","k4"];
+const ES_TACTIL=()=>!!(window.matchMedia&&window.matchMedia("(pointer: coarse)").matches);
+let CALIDAD="k4";
+const lienzoGL=document.getElementById("gl");
+/* 🖥️ el alto interno manda (1080, 1440 o 2160) y el ancho sale de la forma de tu pantalla */
+function tamRender(cal,anchoCss,altoCss){
+  const asp=anchoCss/Math.max(1,altoCss); let h=CALIDADES[cal].alto, w=Math.round(h*asp);
+  if(w>4096){ w=4096; h=Math.round(w/asp); }
+  return { w, h };
+}
+function aplicaCalidad(){
+  const t=tamRender(CALIDAD,innerWidth,innerHeight);
+  if(lienzoGL.width!==t.w||lienzoGL.height!==t.h||!FBO.escena){ lienzoGL.width=t.w; lienzoGL.height=t.h; RENDER.w=t.w; RENDER.h=t.h; if(gl) creaLienzos(t.w,t.h); }
+  tamHud();
+}
+/* 🐢 si va a tirones de verdad (no por una pestaña escondida), baja un escalón y avisa */
+const VIGIA={ lento:0 };
+function vigilaRendimiento(ms){
+  if(ms>250||G.estado!=="juego"||G.foto) return;
+  VIGIA.lento = ms>30 ? VIGIA.lento+ms/1000 : Math.max(0,VIGIA.lento-ms/2000);
+  if(VIGIA.lento>3){ VIGIA.lento=0; const i=ORDEN_CAL.indexOf(CALIDAD);
+    if(i>0){ CALIDAD=ORDEN_CAL[i-1]; aplicaCalidad(); G.avisoCal={ texto:"🐢 iba a tirones: calidad bajada a "+CALIDADES[CALIDAD].nom+" ("+RENDER.w+"×"+RENDER.h+")", t:5 }; } }
+}
+
+/* ================= 🏆 LOS EVENTOS DEL MAPA ================= */
+const RECUERDA={};                                          /* para no repetir un evento nada más acabarlo */
+function idEvento(e){ return e.tipo+"@"+Math.round(e.x)+","+Math.round(e.z); }
+function premio(def,valor,texto){
+  const estrellas=def.metas.filter(m=>valor>=m).length, id=idEvento(def);
+  const dinero=estrellas?1500*estrellas+(estrellas===3?3000:0):250;
+  AJUSTES.dinero+=dinero;
+  const antes=AJUSTES.mejores[id]||0; if(valor>antes) AJUSTES.mejores[id]=valor;
+  def.mejor=Math.max(def.mejor||0,estrellas); guardaAjustes();
+  avisa((estrellas?"★".repeat(estrellas)+"☆".repeat(3-estrellas)+"  ":"")+texto, estrellas===3?"#ffd23a":estrellas?"#c8ff2e":"#ffffff", 3);
+  avisa("+ $ "+dinero.toLocaleString("es-CL")+(valor>antes&&antes>0?"  · ¡NUEVO RÉCORD!":""),"#c8ff2e",3);
+  pitido(estrellas===3?1318:880,0.25); if(estrellas) setTimeout(()=>pitido(1760,0.3),120);
+  G.flash=estrellas===3?0.25:0.1;
+}
+function eventosCorren(dt,ev){
+  const C=G.coche;
+  for(const k in RECUERDA) if((RECUERDA[k]-=dt)<=0) delete RECUERDA[k];
+  /* la zona de derrape en marcha */
+  if(G.evento){ const Z=G.evento, q=carreteraCerca(C.x,C.z,40);
+    Z.tiempo-=dt;
+    if(C.derrapando && C.enSuelo && Math.abs(C.anguloDerrape)>0.18) Z.metros+=Math.hypot(C.vx,C.vz)*dt;
+    if(q && q.c===Z.def.c) { Z.fuera=0; Z.i=q.i; } else Z.fuera+=dt;
+    const acabo = Z.tiempo<=0 || Z.fuera>4 || (Z.def.c.cerrada ? Z.recorrido()>=Z.largo : Z.i>=Z.def.i1);
+    if(acabo){ RECUERDA[idEvento(Z.def)]=8; G.evento=null; premio(Z.def,Math.round(Z.metros),"ZONA DE DERRAPE · "+Math.round(Z.metros)+" m"); }
+  }
+  for(const e of EVENTOS){
+    const d=Math.hypot(e.x-C.x,e.z-C.z), id=idEvento(e); if(RECUERDA[id]) continue;
+    if(e.tipo==="derrape" && !G.evento && d<10){
+      const inicio=e.i0, c=e.c, Z={ def:e, tiempo:e.tiempo, metros:0, fuera:0, i:inicio, largo:(e.i1-e.i0),
+        recorrido(){ return ((this.i-inicio)%c.n+c.n)%c.n; },
+        valor(){ return this.metros; }, texto(){ return Math.round(this.metros)+" m"; }, metaTxt:m=>m+" m" };
+      G.evento=Z; avisa("ZONA DE DERRAPE","#b46bff"); pitido(660,0.2);
+    }
+    if(e.tipo==="radar" && d<11){ RECUERDA[id]=6; premio(e,Math.round(C.kmh),"RADAR · "+Math.round(C.kmh)+" km/h"); }
+  }
+  /* 🛫 los saltos: se mide desde que despega cerca de una rampa hasta que aterriza */
+  if(ev.despega){ const r=EVENTOS.find(e=>e.tipo==="salto"&&Math.hypot(e.rampa.x+e.rampa.tx*e.rampa.largo-C.x,e.rampa.z+e.rampa.tz*e.rampa.largo-C.z)<40);
+    G.salto={ x:C.x, z:C.z, def:r||null }; }
+  if(ev.aterriza && G.salto){ const dist=Math.hypot(C.x-G.salto.x,C.z-G.salto.z), def=G.salto.def; G.salto=null;
+    if(def) premio(def,Math.round(dist),"SALTO · "+Math.round(dist)+" m");
+    else if(dist>20) avisa("SALTO · "+Math.round(dist)+" m","#fff",2); }
+}
+/* ✨ los trucos llenan el nitro (y dan un poco de dinero) */
+const TRUCO={ derrape:0, casi:0 };
+function trucosCorren(dt,ev){
+  const C=G.coche, vel=Math.hypot(C.vx,C.vz);
+  if(C.derrapando&&C.enSuelo&&Math.abs(C.anguloDerrape)>0.18){ TRUCO.derrape+=dt; truco("DERRAPE",TRUCO.derrape.toFixed(2)); C.nitro=Math.min(1,C.nitro+dt*0.09); AJUSTES.dinero+=dt*40; }
+  else if(TRUCO.derrape>0 && !C.derrapando) TRUCO.derrape=0;
+  if(!C.enSuelo && C.aire>0.25){ truco("POR EL AIRE",C.aire.toFixed(2)); C.nitro=Math.min(1,C.nitro+dt*0.12); }
+  if(C.kmh>200&&C.enSuelo){ truco("A TOPE"); C.nitro=Math.min(1,C.nitro+dt*0.02); }
+  TRUCO.casi-=dt;
+  if(vel>28 && TRUCO.casi<=0 && !ev.choque){ const fx=Math.sin(C.rumbo), fz=Math.cos(C.rumbo);
+    if(choqueEn(C.x+fx*4,C.z+fz*4,2.6)||choqueEn(C.x,C.z,2.4)){ TRUCO.casi=1.5; truco("CASI TE CHOCAS"); C.nitro=Math.min(1,C.nitro+0.06); AJUSTES.dinero+=150; } }
+  if(ev.choque>6){ G.flash=Math.max(G.flash,clamp(ev.choque/60,0,0.25)); pitido(90,0.25,"sawtooth"); if(ev.choque>16) truco("¡PUM!"); }
+  if(ev.aterriza&&ev.aterriza.tiempo>0.6) truco("ATERRIZAJE",ev.aterriza.tiempo.toFixed(2));
+  if(ev.agua){ avisa("¡AL AGUA! DE VUELTA A LA CARRETERA","#7fd0ff"); recolocaCoche(C); }
+}
+/* 🌫️ humo, polvo, fuego del nitro, chispas y el brillo del neón */
+function puntoCoche(C,lx,ly,lz){ const fx=Math.sin(C.rumbo), fz=Math.cos(C.rumbo); return v3(C.x+fz*lx+fx*lz, C.y+ly, C.z-fx*lx+fz*lz); }
+function emite(dt,ev){
+  const C=G.coche, vel=Math.hypot(C.vx,C.vz), neon=(NEONES[AJUSTES.neon]||NEONES[0]).rgb;
+  const polvo=C.fueraCarretera||(C.sobre&&C.sobre.c&&C.sobre.c.tipo==="tierra");
+  if(C.enSuelo && (C.derrapando||Math.abs(C.vR)>5||(polvo&&vel>12))){
+    const n=Math.min(2,Math.ceil(dt*40));
+    for(let k=0;k<n;k++) for(const sx of [-VIA,VIA]){ const p=puntoCoche(C,sx,0.25,-1.36);
+      const c=polvo?[0.55,0.44,0.32]:[lerp(0.86,neon[0],0.25),lerp(0.86,neon[1],0.25),lerp(0.88,neon[2],0.25)];
+      suelta({ x:p.x,y:p.y,z:p.z, vx:C.vx*0.25+(Math.random()-0.5)*3, vy:0.5+Math.random(), vz:C.vz*0.25+(Math.random()-0.5)*3, vida:1.4, max:1.4, tam:0.6, crece:1.7, r:c[0],g:c[1],b:c[2], a:polvo?0.11:0.055, sube:0.35 }); }   /* 🐛 antes era una pared blanca */
+  }
+  if(C.usandoNitro) for(const sx of [-0.52,-0.30,0.30,0.52]){ const p=puntoCoche(C,sx,0.30,-2.48), fx=Math.sin(C.rumbo), fz=Math.cos(C.rumbo);
+    suelta({ x:p.x,y:p.y,z:p.z, vx:C.vx-fx*9, vy:0, vz:C.vz-fz*9, vida:0.10, max:0.10, tam:0.20+Math.random()*0.10, crece:-0.8, r:0.35,g:0.55,b:1.0, a:2.2, luz:true });
+    suelta({ x:p.x,y:p.y,z:p.z, vx:C.vx-fx*6, vy:0, vz:C.vz-fz*6, vida:0.05, max:0.05, tam:0.10, r:1,g:1,b:1, a:2.5, luz:true }); }
+  /* el neón de debajo: un charco de luz que va con el coche */
+  for(const lz of [-0.8,0,0.8]){ const p=puntoCoche(C,0,0,lz); suelta({ x:p.x,y:sueloEn(p.x,p.z).y+0.06,z:p.z, vida:0.04, max:0.04, tam:2.3, r:neon[0],g:neon[1],b:neon[2], a:0.55, luz:true, plano:true }); }   /* 🐛 antes se pintaba encima del coche: ahora es un charco de luz en el suelo */
+  if(ev.choque>6){ const p=puntoCoche(C,0,0.6,1.8);
+    for(let k=0;k<Math.min(40,ev.choque*2);k++) suelta({ x:p.x,y:p.y,z:p.z, vx:(Math.random()-0.5)*14, vy:Math.random()*7, vz:(Math.random()-0.5)*14, vida:0.5, max:0.5, tam:0.07, r:1,g:0.6,b:0.2, a:3, luz:true, sube:-12 }); }
+  if(ev.aterriza&&ev.aterriza.golpe>6) for(let k=0;k<26;k++){ const a=k/26*TAU; suelta({ x:C.x,y:C.y+0.2,z:C.z, vx:Math.cos(a)*9, vy:0.6, vz:Math.sin(a)*9, vida:1.3, max:1.3, tam:0.9, crece:2.4, r:0.7,g:0.64,b:0.56, a:0.25 }); }
+}
+
+/* ================= 🎛️ EL MENÚ (el garaje) ================= */
+const $=id=>document.getElementById(id);
+function pintaMenu(){
+  $("optPintura").innerHTML=PINTURAS.map((p,i)=>'<button class="op'+(AJUSTES.pintura===i?' sel':'')+'" data-p="'+i+'"><span class="muestra" style="background:rgb('+p.rgb.map(v=>Math.round(Math.min(1,v*1.4+0.06)*255)).join(",")+')"></span>'+p.nom+'</button>').join("");
+  $("optNeon").innerHTML=NEONES.map((n,i)=>'<button class="op'+(AJUSTES.neon===i?' sel':'')+'" data-n="'+i+'"><span class="muestra" style="color:rgb('+n.rgb.map(v=>Math.round(v*255)).join(",")+');background:currentColor"></span>'+n.nom+'</button>').join("");
+  $("optCal").innerHTML=ORDEN_CAL.map(k=>{ const t=tamRender(k,innerWidth,innerHeight); return '<button class="op'+(CALIDAD===k?' sel':'')+'" data-c="'+k+'">🖥️ '+CALIDADES[k].nom+' <small>'+t.w+'×'+t.h+'</small></button>'; }).join("");
+  $("optPintura").querySelectorAll("[data-p]").forEach(b=>b.onclick=()=>{ AJUSTES.pintura=+b.dataset.p; guardaAjustes(); subeCoche(); pintaMenu(); });
+  $("optNeon").querySelectorAll("[data-n]").forEach(b=>b.onclick=()=>{ AJUSTES.neon=+b.dataset.n; guardaAjustes(); pintaMenu(); });
+  $("optCal").querySelectorAll("[data-c]").forEach(b=>b.onclick=()=>{ CALIDAD=b.dataset.c; AJUSTES.calidad=CALIDAD; guardaAjustes(); aplicaCalidad(); pintaMenu(); });
+  $("ayuda").innerHTML = ES_TACTIL()
+    ? "◀ ▶ girar · <b>GAS</b> y <b>FRENO</b> · <b>DERRAPE</b> suelta la parte de atrás · 🔥 nitro"
+    : "<kbd>W</kbd> gas · <kbd>S</kbd> freno · <kbd>A</kbd> <kbd>D</kbd> girar · <kbd>ESPACIO</kbd> derrape · <kbd>SHIFT</kbd> nitro · <kbd>C</kbd> cámara · <kbd>R</kbd> volver a la carretera · <kbd>P</kbd> pausa<br>"+
+      "🎮 mando: <kbd>RT</kbd> gas · <kbd>LT</kbd> freno · stick izquierdo gira · <kbd>X</kbd>/<kbd>B</kbd> derrape · <kbd>A</kbd>/<kbd>RB</kbd> nitro · <kbd>Y</kbd> cámara · <kbd>START</kbd> pausa<br>"+
+      "💜 busca en el mapa las <b>zonas de derrape</b>, los <b>radares</b> y los <b>saltos</b>: cada uno da hasta 3 estrellas. Derrapar, volar y rozar árboles llena el nitro";
+}
+function empieza(){
+  iniciaSonido(); try{ if(SON.ctx&&SON.ctx.state!=="running") SON.ctx.resume(); }catch(e){}
+  $("menu").classList.add("oculto"); G.estado="juego"; G.pausa=false;
+  avisa("MAPA LIBRE","#c8ff2e",2.6); avisa("💜 busca los eventos morados","#d6b8ff",2.6);
+}
+function salir(){
+  try{ if(window.parent&&window.parent!==window){ if(window.parent.wallyCerrarPaneles) window.parent.wallyCerrarPaneles();
+      const d=window.parent.document.getElementById("turboFs"); if(d){ d.classList.remove("open"); const f=window.parent.document.getElementById("turboFrame"); if(f) f.src="about:blank"; } return; } }catch(e){}
+  G.estado="menu"; G.pausa=false; $("menu").classList.remove("oculto");
+}
+
+/* ================= 🔁 EL BUCLE ================= */
+let ultimoT=0, acumulado=0, zonaT=0;
+function vistaMenu(dt){
+  const C=G.coche, K=G.cam, a=performance.now()/1000*0.18;
+  K.x=C.x+Math.sin(a)*7.5; K.z=C.z+Math.cos(a)*7.5; K.y=C.y+1.9; K.mira=v3(C.x,C.y+0.7,C.z); K.fov=0.95;
+  const neon=(NEONES[AJUSTES.neon]||NEONES[0]).rgb;
+  for(const lz of [-0.8,0,0.8]){ const p=puntoCoche(C,0,0,lz); suelta({ x:p.x,y:sueloEn(p.x,p.z).y+0.06,z:p.z, vida:0.04, max:0.04, tam:2.3, r:neon[0],g:neon[1],b:neon[2], a:0.55, luz:true, plano:true }); }
+  particulasCorren(dt);
+}
+function bucle(ahora){
+  requestAnimationFrame(bucle);
+  if(!(ahora>0)) ahora=performance.now();                   /* por si alguien llama sin la hora */
+  const ms=ultimoT?Math.max(0,ahora-ultimoT):16; ultimoT=ahora; const dt=Math.min(0.1,ms/1000);
+  vigilaRendimiento(ms);
+  const E=leeEntrada();
+  if(G.estado==="juego" && !G.pausa && !G.foto){
+    acumulado+=dt; const paso=1/120; let n=0, junto={};
+    while(acumulado>=paso && n<24){ const ev=cocheCorre(G.coche,E,paso);
+      if(ev.choque) junto.choque=Math.max(junto.choque||0,ev.choque); if(ev.despega) junto.despega=true; if(ev.aterriza) junto.aterriza=ev.aterriza; if(ev.agua) junto.agua=true;
+      acumulado-=paso; n++; }
+    eventosCorren(dt,junto); trucosCorren(dt,junto); emite(dt,junto); particulasCorren(dt);
+    camaraSigue(G.cam,G.coche,dt); G.t+=dt;
+    if((zonaT-=dt)<=0){ zonaT=0.5; G.zona=zonaDe(G.coche.x,G.coche.z); }
+    G.flash=Math.max(0,G.flash-dt*1.5);
+  } else if(G.estado==="menu") { vistaMenu(dt); G.t+=dt; }
+  if(G.coche) sonidoCorre(G.coche,G.estado==="juego"&&!G.pausa?E:{gas:0});
+  if(gl && ESC.terreno && G.coche){
+    const vel=Math.hypot(G.coche.vx,G.coche.vz);
+    dibujaFotograma(G.coche,G.cam,G.t,{ vel:G.estado==="juego"?clamp((vel-45)/45,0,1)*0.6+(G.coche.usandoNitro?0.5:0):0, flash:G.flash, expo:1.0 });
+  }
+  pintaHud(G.coche,dt);
+  /* 📸 para las fotos: la página dice que ya está lista (20 fotogramas dibujados) y qué está usando */
+  G.cuadros=(G.cuadros||0)+1;
+  if(G.cuadros===20){ window.__listo=true; window.__info={ render:RENDER.w+"x"+RENDER.h, calidad:CALIDAD, ms:Math.round(ms), pinos:ARBOLES.length, parts:PARTS.length, estado:G.estado }; }
+}
+
+/* ================= 🚀 ARRANCAR ================= */
+async function arranca(){
+  const prog=(f,t)=>{ $("barra").firstElementChild.style.width=Math.round(f*100)+"%"; if(t) $("cargaTxt").textContent=t; };
+  try{ if(!iniciaGL(lienzoGL)){ $("nogl").style.display="flex"; $("carga").classList.add("oculto"); return; } }
+  catch(e){ $("nogl").style.display="flex"; $("nogl").textContent="No se pudo preparar el 3D: "+e.message; $("carga").classList.add("oculto"); return; }
+  CALIDAD=AJUSTES.calidad&&CALIDADES[AJUSTES.calidad]?AJUSTES.calidad:(ES_TACTIL()?"hd":"k4");
+  aplicaCalidad();
+  await construyeMundo(prog);
+  await subeMundo(prog);
+  prog(0.99,"dibujando el mapa…"); pintaMapa();
+  const au=CARRETERAS.find(c=>c.tipo==="autopista"), i0=14;
+  G.coche=nuevoCoche(au.x[i0],au.z[i0],Math.atan2(au.tx[i0],au.tz[i0])); G.cam=nuevaCamara(G.coche); G.zona=zonaDe(G.coche.x,G.coche.z);
+  preparaTactil(); pintaMenu();
+  $("jugar").onclick=empieza; $("salir").onclick=salir;
+  addEventListener("resize",()=>{ aplicaCalidad(); if(G.estado==="menu") pintaMenu(); });
+  prog(1,"¡listo!"); $("carga").classList.add("oculto");
+  if(String(location.hash).startsWith("#foto")) modoFoto(); else { G.estado="menu"; $("menu").classList.remove("oculto"); }
+  requestAnimationFrame(bucle);
+}
+/* 📸 modo foto: tennis de siempre, pero con coches. #foto&sitio=monte|salto|ciudad|lago|menu&cal=hd|k2|k4 */
+function modoFoto(){
+  const q=new URLSearchParams(String(location.hash).replace("#","").split("&").slice(1).join("&")), sitio=q.get("sitio")||"monte";
+  if(CALIDADES[q.get("cal")]){ CALIDAD=q.get("cal"); aplicaCalidad(); }
+  if(sitio==="menu"){ G.estado="menu"; $("menu").classList.remove("oculto"); return; }
+  G.estado="juego"; G.foto=true;
+  const porNombre=n=>CARRETERAS.find(c=>c.nombre===n), C=G.coche;
+  const pon=(c,i,sentido,kmh)=>{ C.x=c.x[i]; C.z=c.z[i]; C.rumbo=Math.atan2(c.tx[i]*sentido,c.tz[i]*sentido); C.y=sueloEn(C.x,C.z).y; const v=kmh/3.6; C.vx=Math.sin(C.rumbo)*v; C.vz=Math.cos(C.rumbo)*v; C.kmh=kmh; C.vF=v; C.vR=0; };
+  if(sitio==="salto"){ const e=EVENTOS.find(x=>x.tipo==="salto"); pon(e.c,clamp(e.i+e.sentido*4,0,e.c.n-1),e.sentido,168); C.y+=6; C.enSuelo=false; C.aire=0.9; C.cabeceo=0.05; }
+  else if(sitio==="ciudad"){ const c=CARRETERAS.find(x=>x.nombre==="Avenida 3"); pon(c,40,1,187); C.usandoNitro=true; C.nitro=0.7; }
+  else if(sitio==="lago"){ const c=porNombre("Vuelta al Lago Plateado"); pon(c,Math.floor(c.n*0.30),1,142); }
+  else { const e=EVENTOS.find(x=>x.tipo==="derrape"); pon(e.c,e.i0+12,1,96); C.derrapando=true; C.anguloDerrape=0.42; C.vR=9; C.rumbo+=0.40; C.direccion=-0.6;
+    G.evento={ def:e, tiempo:41, metros:187, fuera:0, i:e.i0+12, largo:1, recorrido(){ return 0; }, valor(){ return this.metros; }, texto(){ return Math.round(this.metros)+" m"; }, metaTxt:m=>m+" m" };
+    truco("DERRAPE","1.76"); }
+  C.marcha=C.kmh>160?5:C.kmh>120?4:3; C.rpm=0.7; C.nitro=Math.max(C.nitro,0.55); G.zona=zonaDe(C.x,C.z);
+  G.cam=nuevaCamara(C); G.cam.rumbo=C.rumbo-(C.derrapando?0.25:0);
+  for(let k=0;k<90;k++){ emite(1/60,{}); particulasCorren(1/60); camaraSigue(G.cam,C,1/60); }
+  for(const t of G.trucos) t.t=99;
+}
+arranca();
+
+</script>
+</body>
+</html>

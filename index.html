@@ -302,6 +302,11 @@
   #tenFs{position:fixed;inset:0;z-index:135;background:#06120a;display:none}
   #tenFs.open{display:block}
   #tenFrame{width:100%;height:100%;border:none;display:block}
+  #turboFs{position:fixed;inset:0;z-index:135;background:#05060a;display:none}
+  #turboFs.open{display:block}
+  #turboFrame{width:100%;height:100%;border:none;display:block}
+  #turboCloseBtn{position:absolute;top:12px;left:14px;z-index:6;background:rgba(8,6,20,.82);border:1px solid rgba(200,255,46,.4);
+    color:#c8ff2e;border-radius:10px;padding:6px 12px;font:700 15px Consolas,monospace;cursor:pointer}
   #tenCloseBtn{position:absolute;top:12px;left:14px;z-index:6;background:rgba(6,18,10,.82);border:1px solid rgba(216,255,122,.4);
     color:#d8ff7a;border-radius:10px;padding:6px 12px;font:700 15px Consolas,monospace;cursor:pointer}
   #rkCloseBtn{position:fixed;top:8px;right:12px;z-index:201;background:rgba(0,0,0,.6);color:#fff;border:1px solid #00e0ff;
@@ -1454,6 +1459,7 @@
     <button class="btn pickgame" id="pickRush">🚀 EDTU RUSH</button>
     <button class="btn pickgame" id="pickFoot">⚽ THE FOOTBALL RUSH</button>
     <button class="btn pickgame" id="pickTen" style="background:linear-gradient(90deg,#08240f,#1a4a2c);border-color:#d8ff7a;color:#d8ff7a">🎾 EDTU TENNIS</button>
+    <button class="btn pickgame" id="pickTurbo" style="background:linear-gradient(90deg,#140a2a,#3a1a6a);border-color:#c8ff2e;color:#c8ff2e">🏎️ EDTU TURBO</button>
     <button class="btn pickgame" id="pickMon">➤ SWARM</button>
     <button class="btn pickgame" id="pickF1">🏎️ F1 RB RUSH</button>
     <button class="btn pickgame" id="pickGato">⭕❌ GATO</button>
@@ -1668,6 +1674,7 @@
 <!-- ============ CUBO 3x3 (carrera vs IA en iframe) ============ -->
 <div id="rkFs"><iframe id="rkFrame" allow="fullscreen; autoplay" title="CUBO 3x3"></iframe><button id="rkCloseBtn">✕ Salir</button></div>
 <div id="tenFs"><iframe id="tenFrame" allow="fullscreen; autoplay; gamepad" title="EDTU TENNIS"></iframe><button id="tenCloseBtn">✕ Salir</button></div>
+<div id="turboFs"><iframe id="turboFrame" allow="fullscreen; autoplay; gamepad" title="EDTU TURBO"></iframe><button id="turboCloseBtn">✕ Salir</button></div>
 <div id="swFs"><iframe id="swFrame" allow="fullscreen; autoplay; pointer-lock" title="STAR WARS"></iframe><button id="swCloseBtn">✕ Salir</button></div>
 
 <!-- ============ JURASSIC (supervivencia 3D en iframe) ============ -->
@@ -9166,6 +9173,8 @@ $("pickRk").onclick=()=>abreMundo("rkFrame","rkFs","rubik.html","CUBO 3×3",["ar
 $("rkCloseBtn").onclick=()=>cierraMundo("rkFrame","rkFs");
 $("pickTen").onclick=()=>abreMundo("tenFrame","tenFs","tennis.html","EDTU TENNIS",["regando el césped…","pintando las líneas…","tensando la red…","llenando las gradas…"]);
 $("tenCloseBtn").onclick=()=>cierraMundo("tenFrame","tenFs");
+$("pickTurbo").onclick=()=>abreMundo("turboFrame","turboFs","turbo.html","EDTU TURBO",["levantando las montañas…","asfaltando las carreteras…","plantando 7.000 pinos…","calentando el motor…"]);
+$("turboCloseBtn").onclick=()=>cierraMundo("turboFrame","turboFs");
 $("pickSw").onclick=()=>abreMundo("swFrame","swFs","starwars.html","STAR WARS",["calentando motores…","cargando los cañones…","abriendo el hangar…","calculando el salto…"]);
 $("swCloseBtn").onclick=()=>cierraMundo("swFrame","swFs");
 $("pickJp").onclick=()=>abreMundo("jpFrame","jpFs","jurassic.html","JURASSIC",["despertando a los dinosaurios…","levantando las vallas…","cargando la isla…"]);
@@ -10112,7 +10121,7 @@ try{ const big=$("wallyMicBig"), small=$("wallyMic"); if(big&&small){ big.onclic
     try{ WLIFE.S.escuchando=(t==="🔴"); WLIFE.humor(t==="🔴"?"escuchando":(WLIFE.S.hablando?"hablando":"feliz")); }catch(e){} };
   try{ new MutationObserver(sync).observe(small,{childList:true,characterData:true,subtree:true}); }catch(e){} sync(); } }catch(e){}
 // 🎲 SORPRÉNDEME: un juego al azar de todo el menú (sin repetir el último)
-{ const rb=$("pickRandom"); if(rb) rb.onclick=()=>{ const ids=["pickSw","pickTen","pickFly","pickSal","pickRsc","pickTrr","pickTor","pickAbd","pickIma","pickCue","pickFra","pickAtz","pickRush","pickFoot","pickMon","pickF1","pickGato","pickChess","pickSnake","pickC4","pickMem","pick2048","pickMines","pickBreak","pickInv","pickFlap","pickPong","pickRps","pickSimon","pickHang","pickNag","pickRk","pickJp","pickScr"].filter(id=>$(id)); let last=""; try{ last=localStorage.getItem("edtu_random_last")||""; }catch(e){} const pool=ids.filter(id=>id!==last); const id=pool[Math.floor(Math.random()*pool.length)]; try{ localStorage.setItem("edtu_random_last",id); }catch(e){} const b=$(id); if(b) b.click(); }; }
+{ const rb=$("pickRandom"); if(rb) rb.onclick=()=>{ const ids=["pickSw","pickTen","pickTurbo","pickFly","pickSal","pickRsc","pickTrr","pickTor","pickAbd","pickIma","pickCue","pickFra","pickAtz","pickRush","pickFoot","pickMon","pickF1","pickGato","pickChess","pickSnake","pickC4","pickMem","pick2048","pickMines","pickBreak","pickInv","pickFlap","pickPong","pickRps","pickSimon","pickHang","pickNag","pickRk","pickJp","pickScr"].filter(id=>$(id)); let last=""; try{ last=localStorage.getItem("edtu_random_last")||""; }catch(e){} const pool=ids.filter(id=>id!==last); const id=pool[Math.floor(Math.random()*pool.length)]; try{ localStorage.setItem("edtu_random_last",id); }catch(e){} const b=$(id); if(b) b.click(); }; }
 $("trophyClose").onclick=()=>{ window.wallyCerrarPaneles(); };
 $("trophyFs").addEventListener("click",e=>{ if(e.target===$("trophyFs")) window.wallyCerrarPaneles(); });
 // 📸 PÓSTER DE RÉCORDS: imagen 600x800 lista para captura de pantalla
@@ -11560,7 +11569,7 @@ const Pad={
     if(document.querySelector(".gfull.open")) return false;   // dentro de un minijuego el mando no navega menús
     /* 🐛 faltaban TENIS y STAR WARS: con el mando, el cuartel seguía navegando sus menús por
           detrás mientras jugabas, y te sacaba del juego. Ahora también se calla con ellos */
-    return !(o("gameFs")||o("footFs")||o("robotFs")||o("monFs")||o("f1Fs")||o("gatoFs")||o("chessFs")||o("nagFs")||o("rkFs")||o("jpFs")||o("scrFs")||o("tenFs")||o("swFs")); },
+    return !(o("gameFs")||o("footFs")||o("robotFs")||o("monFs")||o("f1Fs")||o("gatoFs")||o("chessFs")||o("nagFs")||o("rkFs")||o("jpFs")||o("scrFs")||o("tenFs")||o("swFs")||o("turboFs")); },
   isVis(el){ if(!el||el.disabled) return false; if(el.getAttribute&&el.getAttribute("aria-hidden")==="true") return false;
     const s=getComputedStyle(el); if(s.display==="none"||s.visibility==="hidden"||+s.opacity===0||s.pointerEvents==="none") return false;
     const r=el.getBoundingClientRect(); if(r.width<3||r.height<3) return false;
