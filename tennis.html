@@ -453,12 +453,79 @@ function pintaEstadio(){
   }
 }
 
+/* el techo del estadio y los focos, que es lo que le da el aire de pista central */
+function pintaTecho(){
+  const alto=15.5;
+  const p=[proyecta(-30,alto,-8),proyecta(30,alto,-8),proyecta(30,alto,LARGO+16),proyecta(-30,alto,LARGO+16)];
+  if(p.every(q=>q)){
+    const g=ctx.createLinearGradient(0,p[0].y,0,p[2].y);
+    g.addColorStop(0,"#0a1610"); g.addColorStop(1,"#16291d");
+    ctx.fillStyle=g; ctx.beginPath(); ctx.moveTo(p[0].x,p[0].y);
+    for(let i=1;i<4;i++) ctx.lineTo(p[i].x,p[i].y); ctx.closePath(); ctx.fill();
+  }
+  /* los focos: cuatro torres de luz con su halo */
+  for(const fx of [-17,17]){
+    for(const fz of [2,LARGO-2]){
+      const q=proyecta(fx,13.5,fz); if(!q) continue;
+      const r=Math.max(3,0.55*q.s);
+      const g=ctx.createRadialGradient(q.x,q.y,0,q.x,q.y,r*3.4);
+      g.addColorStop(0,"rgba(255,255,235,.55)"); g.addColorStop(1,"rgba(255,255,200,0)");
+      ctx.fillStyle=g; ctx.beginPath(); ctx.arc(q.x,q.y,r*3.4,0,7); ctx.fill();
+      ctx.fillStyle="#fffbe8"; ctx.beginPath(); ctx.ellipse(q.x,q.y,r,r*0.5,0,0,7); ctx.fill();
+    }
+  }
+}
+/* las vallas verdes de alrededor, con su publicidad de EDTU */
+function pintaVallas(){
+  const filas=[{z:LARGO+3.4, x0:-13, x1:13, texto:"E D T U   ·   C E N T R A L   C O U R T"},
+               {z:-3.4, x0:-13, x1:13, texto:""}];
+  for(const v of filas){
+    const p=[proyecta(v.x0,0,v.z),proyecta(v.x1,0,v.z),proyecta(v.x1,1.05,v.z),proyecta(v.x0,1.05,v.z)];
+    if(p.some(q=>!q)) continue;
+    const g=ctx.createLinearGradient(0,p[3].y,0,p[0].y);
+    g.addColorStop(0,"#0f3a22"); g.addColorStop(1,"#092616");
+    ctx.fillStyle=g;
+    ctx.beginPath(); ctx.moveTo(p[0].x,p[0].y); for(let i=1;i<4;i++) ctx.lineTo(p[i].x,p[i].y); ctx.closePath(); ctx.fill();
+    ctx.strokeStyle="rgba(216,255,122,.25)"; ctx.lineWidth=1.2; ctx.stroke();
+    if(v.texto){
+      const mx=(p[0].x+p[1].x)/2, my=(p[0].y+p[3].y)/2;
+      ctx.save(); ctx.textAlign="center"; ctx.textBaseline="middle";
+      ctx.font="800 "+Math.max(7,Math.abs(p[1].x-p[0].x)*0.026)+"px Consolas,monospace";
+      ctx.fillStyle="rgba(216,255,122,.55)"; ctx.fillText(v.texto,mx,my); ctx.restore();
+    }
+  }
+}
+/* los jueces de línea y los recogepelotas, quietecitos en su sitio */
+const GENTE=[{x:-7.4,z:1.2},{x:7.4,z:1.2},{x:-7.4,z:LARGO-1.2},{x:7.4,z:LARGO-1.2},
+             {x:-6.6,z:RED_Z},{x:6.6,z:RED_Z},{x:0,z:-3.0},{x:0,z:LARGO+3.0}];
+function pintaGente(){
+  for(const g of GENTE){
+    sombra(g.x,g.z,0.30,0.8,0.1);
+    const base=proyecta(g.x,0,g.z), cab=proyecta(g.x,1.65,g.z); if(!base||!cab) continue;
+    const e=base.s, an=0.36*e;
+    ctx.fillStyle="#1d4f8a";
+    ctx.beginPath(); ctx.moveTo(cab.x-an*0.5,cab.y); ctx.lineTo(cab.x+an*0.5,cab.y);
+    ctx.lineTo(base.x+an*0.6,base.y); ctx.lineTo(base.x-an*0.6,base.y); ctx.closePath(); ctx.fill();
+    ctx.fillStyle="#e8c9a0"; ctx.beginPath(); ctx.arc(cab.x,cab.y-0.10*e,0.13*e,0,7); ctx.fill();
+  }
+}
 function pintaPista(){
-  /* el césped, con sus franjas de cortacésped */
-  const N=14;
+  /* el césped, con sus franjas de cortacésped y el degradado de la luz */
+  const N=20;
   for(let i=0;i<N;i++){
     const z0=-5+(LARGO+10)*i/N, z1=-5+(LARGO+10)*(i+1)/N;
-    cuadro([-14,z0],[14,z0],[14,z1],[-14,z1], i%2? "#3f8a3a":"#478f41");
+    const luz=1-Math.abs((z0-RED_Z)/(LARGO*0.9))*0.18;      /* más claro cerca de la red */
+    const base=i%2? [63,138,58] : [71,143,65];
+    cuadro([-14,z0],[14,z0],[14,z1],[-14,z1],
+      "rgb("+Math.round(base[0]*luz)+","+Math.round(base[1]*luz)+","+Math.round(base[2]*luz)+")");
+  }
+  /* las CALVAS del saque y del fondo: donde se pisa, el césped está gastado */
+  for(const z of [1.0, LARGO-1.0]){
+    const p=proyecta(0,0.005,z); if(!p) continue;
+    const g=ctx.createRadialGradient(p.x,p.y,0,p.x,p.y,4.2*p.s);
+    g.addColorStop(0,"rgba(196,180,120,.30)"); g.addColorStop(1,"rgba(196,180,120,0)");
+    ctx.save(); ctx.translate(p.x,p.y); ctx.scale(1,0.3);
+    ctx.fillStyle=g; ctx.beginPath(); ctx.arc(0,0,4.2*p.s,0,7); ctx.fill(); ctx.restore();
   }
   /* la pista propiamente dicha, un poco más clara */
   cuadro([-DOBLES/2-2.8,-3.2],[DOBLES/2+2.8,-3.2],[DOBLES/2+2.8,LARGO+3.2],[-DOBLES/2-2.8,LARGO+3.2],"rgba(120,200,110,.14)");
@@ -501,16 +568,27 @@ function pintaRed(){
   }
 }
 
-function sombra(x,z,r,fuerza){
-  const p=proyecta(x,0.01,z); if(!p) return;
-  ctx.fillStyle="rgba(0,0,0,"+(0.26*(fuerza||1)).toFixed(3)+")";
-  ctx.beginPath(); ctx.ellipse(p.x,p.y,r*p.s,r*p.s*0.34,0,0,7); ctx.fill();
+/* el sol está arriba a la izquierda, así que TODAS las sombras se van al mismo lado: eso es lo
+   que hace que las cosas parezcan apoyadas en el suelo y no pegatinas */
+const SOL={x:-0.42, z:0.28};
+function sombra(x,z,r,fuerza,alto){
+  const h=alto||0;
+  const p=proyecta(x+SOL.x*h, 0.012, z+SOL.z*h); if(!p) return;
+  const difusa=1+h*0.30;                                   /* cuanto más alto, más borrosa y grande */
+  const a=(0.30*(fuerza||1))/difusa;
+  const g=ctx.createRadialGradient(p.x,p.y,0,p.x,p.y,r*p.s*difusa*1.3);
+  g.addColorStop(0,"rgba(0,0,0,"+a.toFixed(3)+")");
+  g.addColorStop(0.65,"rgba(0,0,0,"+(a*0.55).toFixed(3)+")");
+  g.addColorStop(1,"rgba(0,0,0,0)");
+  ctx.save(); ctx.translate(p.x,p.y); ctx.scale(1,0.34);
+  ctx.fillStyle=g; ctx.beginPath(); ctx.arc(0,0,r*p.s*difusa*1.3,0,7); ctx.fill();
+  ctx.restore();
 }
 
 function pintaJugador(p, col, col2, esTu){
   const base=proyecta(p.x,0,p.z); if(!base) return;
   const e=base.s;                                        /* escala: los metros a pixeles a esa distancia */
-  sombra(p.x,p.z,0.45,1);
+  sombra(p.x,p.z,0.42,1,0.2);
   const alto=1.82;
   const bal=Math.sin(p.paso)*0.10;
   const cab=proyecta(p.x,alto,p.z), cad=proyecta(p.x,alto*0.52,p.z);
@@ -567,7 +645,7 @@ function pintaJugador(p, col, col2, esTu){
 function pintaBola(){
   const b=G.bola;
   /* la sombra en el suelo, que es lo que te dice dónde está de verdad */
-  sombra(b.x,b.z,0.14+b.y*0.03, Math.max(0.25,1-b.y*0.18));
+  sombra(b.x,b.z,0.13, Math.max(0.3,1-b.y*0.10), b.y);
   /* la estela */
   for(const e of b.estela){
     const p=proyecta(e.x,e.y,e.z); if(!p||e.v<=0) continue;
@@ -658,7 +736,10 @@ function pintaHUD(){
 
 function dibuja(){
   pintaEstadio();
+  pintaTecho();
   pintaPista();
+  pintaVallas();
+  pintaGente();
   /* lo que está más lejos, primero */
   const cosas=[{z:G.ia.z, f:()=>pintaJugador(G.ia,"#d94f4f","#7a2020",false)},
                {z:RED_Z, f:pintaRed},
@@ -671,11 +752,19 @@ function dibuja(){
 }
 
 /* ============================ BUCLE ============================ */
+/* la cámara se mueve un pelín con la bola y con tu jugador: sin esto todo parece una foto */
+function camaraCorre(dt){
+  const b=G.bola, obj = b.viva? (b.x*0.55+G.jug.x*0.45) : G.jug.x*0.7;
+  CAM.x += (Math.max(-3.4,Math.min(3.4,obj*0.62)) - CAM.x) * Math.min(1,dt*2.4);
+  const alto = b.viva&&b.y>2.6 ? 8.1 : 7.4;                /* si la bola sube mucho, la cámara también */
+  CAM.y += (alto-CAM.y)*Math.min(1,dt*1.6);
+}
 let ultimo=0;
 function vuelta(ts){
   if(!G.run) return;
   const dt=Math.min(0.05,(ts-ultimo)/1000)||1/60; ultimo=ts;
   G.t+=dt;
+  camaraCorre(dt);
   if(G.msgT>0) G.msgT-=dt;
   if(G.estado==="fin_punto"){
     G.esperaT-=dt;
@@ -736,6 +825,29 @@ function salir(){
   try{ if(window.parent&&window.parent!==window){ if(window.parent.wallyCerrarPaneles) window.parent.wallyCerrarPaneles();
         const d=window.parent.document.getElementById("tenFs"); if(d) d.classList.remove("open"); return; } }catch(e){}
   location.href="index.html";
+}
+/* 🎮 el mando sirve TAMBIÉN en los menús de aquí: A empieza, B sale.
+      Y ojo: mientras juegas, el cuartel de detrás ya no le hace caso al mando (se arregló allí) */
+(function mandoMenus(){
+  let antes={};
+  function mira(){
+    requestAnimationFrame(mira);
+    if(G.run) return;                                      /* jugando manda el juego, no el menú */
+    const g=navigator.getGamepads&&navigator.getGamepads()[0]; if(!g) return;
+    const b=i=>!!(g.buttons[i]&&(g.buttons[i].pressed||g.buttons[i].value>0.4));
+    const nuevo=i=>{ const p=b(i), f=antes[i]; antes[i]=p; return p&&!f; };
+    if(nuevo(0)) empieza();                                /* A */
+    if(nuevo(1)) salir();                                  /* B */
+    /* la cruceta y la palanca cambian dificultad y sets */
+    const ax=g.axes[0]||0;
+    if(nuevo(14)||(ax<-0.6&&!antes._izq)){ antes._izq=true; cambiaDif(-1); } else if(ax>-0.6) antes._izq=false;
+    if(nuevo(15)||(ax>0.6&&!antes._der)){ antes._der=true; cambiaDif(1); } else if(ax<0.6) antes._der=false;
+  }
+  requestAnimationFrame(mira);
+})();
+function cambiaDif(d){
+  const ks=Object.keys(DIFS), i=ks.indexOf(G.dif);
+  G.dif=ks[(i+d+ks.length)%ks.length]; pintaOpciones(); sonido("bote",0.3);
 }
 $("jugarBtn").onclick=empieza;
 $("otraBtn").onclick=empieza;

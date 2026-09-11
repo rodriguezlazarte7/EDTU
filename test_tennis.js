@@ -97,6 +97,16 @@ if (!/p\.cargando=true/.test(html) || !/p\.carga=Math\.min\(1,p\.carga\+/.test(h
 if (!/G\.saqueFase===0/.test(html)) MAL("el saque no va en dos tiempos");
 console.log("  cargar manteniendo ✅ · apuntar mientras cargas ✅ · saque en dos tiempos ✅ · mando B/A/X/Y ✅");
 
+/* ---------- 5b) 🎮 el mando no se pelea con el cuartel ---------- */
+const padre = fs.readFileSync("index.html", "utf8");
+const navOn = padre.match(/return !\(o\("gameFs"\)[^;]+;/)[0];
+console.log("  el cuartel se calla con el mando dentro de: " + (navOn.match(/o\("(\w+)"\)/g) || []).join(" "));
+["tenFs", "swFs"].forEach(id => { if (!navOn.includes('o("' + id + '")')) MAL("con " + id + " abierto, el cuartel sigue navegando menús con el mando"); });
+/* y en el tenis, el mando sirve también en el menú */
+if (!/if\(nuevo\(0\)\) empieza\(\)/.test(html)) MAL("el botón A del mando no empieza la partida");
+if (!/if\(G\.run\) return;\s+\/\* jugando manda el juego/.test(html)) MAL("el menú del tenis le roba el mando al juego");
+console.log("  y en el tenis: A empieza, B sale, y mientras juegas el menú no toca el mando ✅");
+
 /* ---------- 6) y no se usa ni un fotograma del vídeo ---------- */
 const pesado = /\.(mp4|jpg|jpeg|png|webp|gif)\b/i.test(html.replace(/tennis\.html/g, ""));
 console.log("  imágenes o vídeos de fuera metidos en el juego: " + (pesado ? "SÍ ❌" : "ninguno ✅ (todo está dibujado con código)"));
