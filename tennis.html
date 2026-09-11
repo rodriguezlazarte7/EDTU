@@ -52,6 +52,7 @@
   <h2>CENTRAL COURT</h2>
   <div class="row" id="optDif"></div>
   <div class="row" id="optSets"></div>
+  <div class="row" id="optCal"></div>
   <div class="row"><button class="btn go" id="jugarBtn">▶ JUGAR</button></div>
   <div class="ayuda" id="ayudaTxt"></div>
   <div class="ayuda" id="mejorTxt" style="color:#d8ff7a"></div>
@@ -73,8 +74,46 @@
    ============================================================================ */
 const cv=document.getElementById("cv"), ctx=cv.getContext("2d");
 const $=id=>document.getElementById(id);
+/* 📱 ¿se juega con el DEDO? Se pregunta por el puntero principal ("coarse" = un dedo), no por si
+      la pantalla acepta toques: un portátil con pantalla táctil sigue siendo un ordenador con teclado */
+const ES_TACTIL=()=>!!(window.matchMedia&&window.matchMedia("(pointer: coarse)").matches);
 let W=0,H=0,CX=0,CY=0,FOV=900;
-function resize(){ const d=Math.min(2,window.devicePixelRatio||1);
+/* 🖥️ LA CALIDAD: cuántos píxeles tiene el lienzo POR DENTRO.
+      · NORMAL: los de tu pantalla
+      · ALTA:   1,5 veces más (o los de tu pantalla si ya es de alta densidad)
+      · 2K:     por lo menos 2560×1440, sea cual sea tu pantalla. En una de 1080p se dibuja a
+                2560×1440 y el navegador lo encoge: todo sale más fino, sin dientes de sierra.
+                Tope: 4K de ancho y 3 veces la pantalla, para no fundir el ordenador */
+const CALIDADES={ normal:{nom:"NORMAL"}, alta:{nom:"ALTA"}, k2:{nom:"2K"} };
+let CALIDAD=(()=>{
+  try{ const c=localStorage.getItem("edtu_ten_cal"); if(c&&CALIDADES[c]) return c; }catch(e){}
+  return ES_TACTIL() ? "alta" : "k2";                            /* en el celular, ALTA para no gastar batería */
+})();
+function escalaRender(calidad, anchoCss, altoCss, dpr){
+  const d=dpr||1, a=Math.max(1,anchoCss), h=Math.max(1,altoCss);
+  const normal=Math.min(1.25,d);
+  /* ALTA: un cuarto más que la pantalla (o el doble en los celulares), sin pasar de 4K de ancho */
+  const alta=Math.max(normal, Math.min(2, Math.max(1.25,d), 3840/a));
+  if(calidad==="normal") return normal;
+  if(calidad==="alta") return alta;
+  /* 2K: nunca menos que ALTA, y por lo menos 2560×1440 */
+  return Math.max(alta, Math.min(Math.max(2560/a, 1440/h), 3840/a, 3));
+}
+/* si con la calidad elegida el juego va a tirones, se baja un escalón sola */
+const RENDIMIENTO={ lento:0 };
+function vigilaRendimiento(ms){
+  if(!G.run || !(ms>0) || ms>250) return;                   /* pestaña escondida: no cuenta */
+  if(ms>26) RENDIMIENTO.lento+=ms/1000; else RENDIMIENTO.lento=Math.max(0,RENDIMIENTO.lento-ms/2000);
+  if(RENDIMIENTO.lento>2.5){
+    RENDIMIENTO.lento=0;
+    const orden=["k2","alta","normal"], i=orden.indexOf(CALIDAD);
+    if(i>=0 && i<orden.length-1){
+      CALIDAD=orden[i+1]; resize();
+      G.msg="🖥️ bajé la calidad a "+CALIDADES[CALIDAD].nom+" para que vaya fluido"; G.msgT=2.6;
+    }
+  }
+}
+function resize(){ const d=escalaRender(CALIDAD, innerWidth, innerHeight, window.devicePixelRatio||1);
   W=cv.width=Math.round(innerWidth*d); H=cv.height=Math.round(innerHeight*d);
   cv.style.width=innerWidth+"px"; cv.style.height=innerHeight+"px";
   CX=W/2; CY=H*0.50; FOV=Math.min(W,H)*1.25; }
@@ -85,7 +124,11 @@ const LARGO=23.77, ANCHO=8.23, DOBLES=10.97, RED_Z=LARGO/2, SAQUE=6.40, RED_ALTO
 const G_GRAV=9.81;
 
 /* ---------- la cámara: detrás del jugador de abajo, alta y mirando hacia el fondo ---------- */
-const CAM={ x:0, y:7.4, z:-9.2, pitch:0.30 };
+/* 🎥 la cámara de la tele: 12,5 m de alto, 14 m detrás de tu línea de fondo y mirando hacia
+      abajo. Con la de antes (7,4 m y 9,2 m) tus pies caían FUERA de la pantalla y solo se te
+      veía la gorra. Ahora: la línea de fondo del rival queda al 21% de la altura, la tuya al 73%,
+      y tu jugador se ve entero desde la línea hasta 4 m por detrás */
+const CAM={ x:0, y:12.5, z:-14, pitch:0.55 };
 function proyecta(x,y,z){
   const dx=x-CAM.x, dy=y-CAM.y, dz=z-CAM.z;
   const c=Math.cos(CAM.pitch), s=Math.sin(CAM.pitch);
@@ -271,6 +314,12 @@ function golpea(quien, tipo, potencia, apunteX, saque, prof){
   b.viva=true; b.botes=0; b.lado=quien.lado; b.estela=[];
   G.ultimo=quien.lado;
   quien.swing=0.30; quien.dirRaqueta=dx>0?1:-1;
+  /* 🧍 para la animación: ¿de derecha o de revés?, ¿fue un saque?, y el rival hace el
+        "split step" (el saltito de espera de los tenistas) en cuanto le pegas */
+  const porDerecha = quien.lado===0 ? (b.x>=quien.x) : (b.x<=quien.x);
+  quien.ladoGolpe = saque ? 1 : (porDerecha?1:-1);
+  quien.fueSaque = !!saque;
+  { const rival = quien.lado===0 ? G.ia : G.jug; if(rival) rival.salto=0.28; }
   G.rally++; if(G.rally>G.rallyMax) G.rallyMax=G.rally;
   sonido(saque?"saque":"golpe", potencia);
 }
@@ -412,7 +461,7 @@ function humanoCorre(dt){
     p.prof=Math.max(-1,Math.min(1,(p.prof===undefined?0.55:p.prof)+q.dz*dt*2.6));
   } else if(l>0.08){ p.x+=q.dx/Math.max(1,l)*vel*dt; p.z+=q.dz/Math.max(1,l)*vel*dt; p.paso+=dt*7; }
   p.x=Math.max(-DOBLES/2-1.4,Math.min(DOBLES/2+1.4,p.x));
-  p.z=Math.max(-4.5,Math.min(RED_Z-0.6,p.z));
+  p.z=Math.max(-4.0,Math.min(RED_Z-0.6,p.z));
 
   if(G.estado==="saque" && G.saca===0){
     if(G.saqueFase===0){
@@ -455,7 +504,6 @@ function humanoCorre(dt){
     } else if(p.guardado.t<=0){ p.swing=0.22; p.guardado=null; p.mira*=0.3; }   /* golpe al aire */
   }
   if(p.prep>0) p.prep-=dt*2.4;
-  if(p.swing>0) p.swing-=dt;
 }
 
 /* ---------- sonido, todo generado ---------- */
@@ -487,8 +535,43 @@ function publico(intensidad){
 }
 
 /* ============================ DIBUJO ============================ */
-const GRADAS=[];
-for(let i=0;i<620;i++) GRADAS.push({ a:Math.random(), f:Math.random(), c:["#e8d6b8","#c9a88a","#8fb6d8","#d88f8f","#f0f0f0","#8fd8a8","#e0c060"][(Math.random()*7)|0], p:Math.random()*7 });
+/* 🏟️ EL ESTADIO: tres tribunas (fondo, izquierda y derecha) de 14 filas de escalones cada una,
+      que cierran la pista como un estadio de verdad. En cada fila, gente sentada con su ropa y su
+      color de piel. El reparto se hace con un azar FIJO (siempre la misma semilla), así el
+      público no cambia de sitio cada vez que abres el juego */
+const GRADA_FILAS=14, FILA_FONDO=0.85, FILA_ALTO=0.50, ASIENTO=0.56;
+const ROPAS=[[236,236,240],[40,52,96],[200,58,58],[236,196,64],[120,176,226],[70,150,90],[226,120,170],[232,140,60],[140,140,150],[34,34,40]];
+const PIELES=[[238,204,170],[214,170,130],[170,120,86],[120,80,56]];
+const GRADERIO=[], PUBLICO=[];
+(function llenaGradas(){
+  let semilla=12345;
+  const azar=()=>{ semilla=(semilla*1103515245+12345)%2147483648; return semilla/2147483648; };
+  const zFondo=LARGO+4.2, xLado=DOBLES/2+5.0;
+  for(const d of [{nom:"fondo",mira:{x:0,z:-1}},{nom:"izq",mira:{x:1,z:0}},{nom:"der",mira:{x:-1,z:0}}]){
+    const grada={ nom:d.nom, mira:d.mira, filas:[] };
+    for(let r=0;r<GRADA_FILAS;r++){
+      const fila={ r, y:1.1+r*FILA_ALTO, personas:[] };
+      if(d.nom==="fondo"){
+        fila.a={x:-24,z:zFondo+r*FILA_FONDO}; fila.b={x:24,z:zFondo+r*FILA_FONDO}; fila.hondo={x:0,z:FILA_FONDO};
+      } else {
+        const lado=d.nom==="izq"?-1:1, x=lado*(xLado+r*FILA_FONDO);
+        fila.a={x,z:-4}; fila.b={x,z:LARGO+4}; fila.hondo={x:lado*FILA_FONDO,z:0};
+      }
+      const asientos=Math.floor(Math.hypot(fila.b.x-fila.a.x, fila.b.z-fila.a.z)/ASIENTO);
+      for(let i=0;i<asientos;i++){
+        if(azar()<0.14) continue;                            /* algún asiento vacío */
+        const t=(i+0.5)/asientos;
+        const p={ grada:d.nom, fila:r, y:fila.y,
+          x:fila.a.x+(fila.b.x-fila.a.x)*t+fila.hondo.x*0.45,
+          z:fila.a.z+(fila.b.z-fila.a.z)*t+fila.hondo.z*0.45,
+          ropa:(azar()*ROPAS.length)|0, piel:(azar()*PIELES.length)|0, ph:azar()*7, talla:0.9+azar()*0.2 };
+        fila.personas.push(p); PUBLICO.push(p);
+      }
+      grada.filas.push(fila);
+    }
+    GRADERIO.push(grada);
+  }
+})();
 
 function linea(x1,z1,x2,z2,gordo,col){
   const a=proyecta(x1,0.001,z1), b=proyecta(x2,0.001,z2); if(!a||!b) return;
@@ -503,49 +586,73 @@ function cuadro(p1,p2,p3,p4,col){
   ctx.beginPath(); ctx.moveTo(a.x,a.y); ctx.lineTo(b.x,b.y); ctx.lineTo(c.x,c.y); ctx.lineTo(d.x,d.y); ctx.closePath(); ctx.fill();
 }
 
-function pintaEstadio(){
-  /* el techo y el fondo del estadio */
-  const g=ctx.createLinearGradient(0,0,0,H);
-  g.addColorStop(0,"#2c5a3a"); g.addColorStop(0.42,"#3d7a4a"); g.addColorStop(1,"#2c5a3a");
-  ctx.fillStyle=g; ctx.fillRect(0,0,W,H);
-  /* las gradas: cuatro bloques alrededor de la pista */
-  const bloques=[
-    { x0:-26,z0:LARGO+4, x1:26,z1:LARGO+16, alto:9 },    /* fondo */
-    { x0:-30,z0:-6,      x1:-14,z1:LARGO+6, alto:8 },    /* izquierda */
-    { x0:14, z0:-6,      x1:30, z1:LARGO+6, alto:8 }     /* derecha */
-  ];
-  for(const b of bloques){
-    const p=[proyecta(b.x0,0,b.z0),proyecta(b.x1,0,b.z0),proyecta(b.x1,b.alto,b.z1),proyecta(b.x0,b.alto,b.z1)];
-    if(p.some(q=>!q)) continue;
-    /* la grada de la izquierda recibe el sol de frente; las otras, de lado */
-    const soleada=b.x0<0?1.25:0.9;
-    const gr=ctx.createLinearGradient(0,p[3].y,0,p[0].y);
-    gr.addColorStop(0,"rgb("+Math.round(70*soleada)+","+Math.round(82*soleada)+","+Math.round(74*soleada)+")");
-    gr.addColorStop(1,"rgb("+Math.round(38*soleada)+","+Math.round(48*soleada)+","+Math.round(42*soleada)+")");
-    ctx.fillStyle=gr;
-    ctx.beginPath(); ctx.moveTo(p[0].x,p[0].y); for(let i=1;i<4;i++) ctx.lineTo(p[i].x,p[i].y); ctx.closePath(); ctx.fill();
+/* un polígono en el espacio: sus esquinas se proyectan y se rellena */
+function poligono3(pts, color){
+  const q=[]; for(const p of pts){ const r=proyecta(p[0],p[1],p[2]); if(!r) return; q.push(r); }
+  ctx.fillStyle=color; ctx.beginPath(); ctx.moveTo(q[0].x,q[0].y);
+  for(let i=1;i<q.length;i++) ctx.lineTo(q[i].x,q[i].y);
+  ctx.closePath(); ctx.fill();
+}
+const rgbTxt=(c,k)=>"rgb("+Math.round(c[0]*k)+","+Math.round(c[1]*k)+","+Math.round(c[2]*k)+")";
+/* 🧑‍🤝‍🧑 la gente de una fila: se agrupa por color para pintar muchas de golpe (un relleno por
+      color, no uno por persona), que con 2.400 personas es lo que hace que no pese */
+function pintaFilaGente(lista, fiesta, luz){
+  if(!lista.length) return;
+  const vistas=[];
+  for(const p of lista){
+    /* 🎉 cuando hay punto la gente salta; si no, se balancea un poquito */
+    const bote = fiesta>0 ? Math.abs(Math.sin(G.t*10+p.ph))*0.20*fiesta : Math.sin(G.t*1.3+p.ph)*0.015;
+    const c=proyecta(p.x, p.y+0.36*p.talla+bote, p.z);
+    if(!c || c.x<-40 || c.x>W+40 || c.y<-40 || c.y>H+40) continue;
+    vistas.push([p,c]);
   }
-  /* el público: puntitos de colores que se mueven un poco */
-  for(const s of GRADAS){
-    const zonaN=s.f<0.55?0:(s.f<0.78?1:2);
-    let x,z,y;
-    if(zonaN===0){ x=-24+s.a*48; z=LARGO+5+s.f*18; y=1.2+s.f*11; }
-    else if(zonaN===1){ x=-28+s.a*10; z=-5+s.f*(LARGO+10); y=1.4+s.a*8; }
-    else { x=18+s.a*10; z=-5+s.f*(LARGO+10); y=1.4+s.a*8; }
-    const p=proyecta(x,y,z); if(!p) continue;
-    const r=Math.max(0.8, 0.10*p.s);
-    ctx.fillStyle=s.c;
-    ctx.globalAlpha=0.72;
-    ctx.beginPath(); ctx.arc(p.x, p.y+Math.sin(G.t*1.6+s.p)*r*0.5, r, 0, 7); ctx.fill();
-    ctx.globalAlpha=1;
+  for(let k=0;k<ROPAS.length;k++){
+    let hay=false; ctx.beginPath();
+    for(const [p,c] of vistas){ if(p.ropa!==k) continue;
+      const rx=Math.max(0.8,0.21*p.talla*c.s), ry=Math.max(1,0.30*p.talla*c.s);
+      ctx.moveTo(c.x+rx,c.y); ctx.ellipse(c.x,c.y,rx,ry,0,0,7); hay=true; }
+    if(hay){ ctx.fillStyle=rgbTxt(ROPAS[k],luz); ctx.fill(); }
+  }
+  for(let k=0;k<PIELES.length;k++){
+    let hay=false; ctx.beginPath();
+    for(const [p,c] of vistas){ if(p.piel!==k) continue;
+      const r=Math.max(0.7,0.115*p.talla*c.s), cy=c.y-0.42*p.talla*c.s;
+      ctx.moveTo(c.x+r,cy); ctx.arc(c.x,cy,r,0,7); hay=true; }
+    if(hay){ ctx.fillStyle=rgbTxt(PIELES[k],luz); ctx.fill(); }
+  }
+}
+function pintaEstadio(){
+  const fiesta = G.msgT>0 ? Math.min(1,G.msgT) : 0;        /* 🎉 hay punto: el público celebra */
+  for(const gr of GRADERIO){
+    /* cada tribuna recibe el sol según hacia dónde mira */
+    const luz=0.70+0.35*Math.max(0, gr.mira.x*SOL3.x + gr.mira.z*SOL3.z);
+    /* la pared de arriba del todo, detrás de la última fila */
+    const u=gr.filas[gr.filas.length-1];
+    const ya=u.y, yb=u.y+3.2;
+    poligono3([[u.a.x+u.hondo.x,ya,u.a.z+u.hondo.z],[u.b.x+u.hondo.x,ya,u.b.z+u.hondo.z],
+               [u.b.x+u.hondo.x,yb,u.b.z+u.hondo.z],[u.a.x+u.hondo.x,yb,u.a.z+u.hondo.z]], rgbTxt([30,40,36],luz));
+    /* las filas, de la de arriba (la más lejana) a la de abajo: asiento, escalón y su gente */
+    for(let ri=gr.filas.length-1; ri>=0; ri--){
+      const fl=gr.filas[ri], abajo = ri===0 ? 0 : fl.y-FILA_ALTO;
+      poligono3([[fl.a.x,fl.y,fl.a.z],[fl.b.x,fl.y,fl.b.z],
+                 [fl.b.x+fl.hondo.x,fl.y,fl.b.z+fl.hondo.z],[fl.a.x+fl.hondo.x,fl.y,fl.a.z+fl.hondo.z]],
+                rgbTxt(ri%2?[31,82,56]:[27,74,50],luz));      /* los asientos verdes */
+      poligono3([[fl.a.x,abajo,fl.a.z],[fl.b.x,abajo,fl.b.z],[fl.b.x,fl.y,fl.b.z],[fl.a.x,fl.y,fl.a.z]],
+                rgbTxt([52,64,58],luz*0.85));                 /* el escalón */
+      /* el canto del escalón, un poco más claro: es lo que hace que se vean las filas */
+      const c1=proyecta(fl.a.x,fl.y,fl.a.z), c2=proyecta(fl.b.x,fl.y,fl.b.z);
+      if(c1&&c2){ ctx.strokeStyle=rgbTxt([120,140,128],luz); ctx.lineWidth=Math.max(1,0.03*(c1.s+c2.s)/2);
+        ctx.beginPath(); ctx.moveTo(c1.x,c1.y); ctx.lineTo(c2.x,c2.y); ctx.stroke(); }
+      pintaFilaGente(fl.personas, fiesta, luz);
+    }
   }
 }
 
 /* ☀️ el cielo de día y el sol, en el sitio donde está de verdad */
 function pintaCielo(){
-  const g=ctx.createLinearGradient(0,0,0,H*0.45);
+  const g=ctx.createLinearGradient(0,0,0,H);
   g.addColorStop(0,"#5aa7e8"); g.addColorStop(0.7,"#a8d6f5"); g.addColorStop(1,"#e8f4ea");
-  ctx.fillStyle=g; ctx.fillRect(0,0,W,H*0.45);
+  ctx.fillStyle=g; ctx.fillRect(0,0,W,H);
   /* unas nubes que pasan despacio */
   for(let i=0;i<5;i++){
     const x=((i*0.23+G.t*0.004)%1.2-0.1)*W, y=H*(0.04+i*0.035);
@@ -562,6 +669,17 @@ function pintaCielo(){
   halo.addColorStop(1,"rgba(255,230,160,0)");
   ctx.fillStyle=halo; ctx.beginPath(); ctx.arc(sx,sy,r*6,0,7); ctx.fill();
   ctx.fillStyle="#fffdf0"; ctx.beginPath(); ctx.arc(sx,sy,r,0,7); ctx.fill();
+}
+/* 🟩 el suelo de alrededor del estadio, bajo todo lo demás */
+function pintaSuelo(){ cuadro([-90,-13],[90,-13],[90,160],[-90,160],"#2f6b3a"); }
+/* ☀️ la luz del sol entrando por su lado: con la cámara alta el sol queda fuera de plano, pero su
+      luz se sigue notando en un resplandor cálido que viene de donde está */
+function pintaLuzSol(){
+  const L=luzPantalla(0,1,RED_Z);                         /* hacia dónde queda el sol en la pantalla */
+  const sx=CX+L.x*W*0.62, sy=CY+L.y*H*0.75;
+  const g=ctx.createRadialGradient(sx,sy,0,sx,sy,Math.max(W,H)*0.85);
+  g.addColorStop(0,"rgba(255,236,190,.20)"); g.addColorStop(0.45,"rgba(255,226,170,.07)"); g.addColorStop(1,"rgba(255,220,160,0)");
+  ctx.save(); ctx.globalCompositeOperation="lighter"; ctx.fillStyle=g; ctx.fillRect(0,0,W,H); ctx.restore();
 }
 /* ✨ el destello de la lente cuando el sol sale en pantalla, por encima de todo */
 function pintaDestello(){
@@ -606,8 +724,7 @@ function pintaTecho(){
 }
 /* las vallas verdes de alrededor, con su publicidad de EDTU */
 function pintaVallas(){
-  const filas=[{z:LARGO+3.4, x0:-13, x1:13, texto:"E D T U   ·   C E N T R A L   C O U R T"},
-               {z:-3.4, x0:-13, x1:13, texto:""}];
+  const filas=[{z:LARGO+3.4, x0:-10.4, x1:10.4, texto:"E D T U   ·   C E N T R A L   C O U R T"}];
   for(const v of filas){
     const p=[proyecta(v.x0,0,v.z),proyecta(v.x1,0,v.z),proyecta(v.x1,1.05,v.z),proyecta(v.x0,1.05,v.z)];
     if(p.some(q=>!q)) continue;
@@ -624,22 +741,83 @@ function pintaVallas(){
     }
   }
 }
-/* los jueces de línea y los recogepelotas, quietecitos en su sitio */
-const GENTE=[{x:-7.4,z:1.2},{x:7.4,z:1.2},{x:-7.4,z:LARGO-1.2},{x:7.4,z:LARGO-1.2},
-             {x:-6.6,z:RED_Z},{x:6.6,z:RED_Z},{x:0,z:-3.0},{x:0,z:LARGO+3.0}];
+/* 👔 la gente de la pista, cada uno en su sitio de verdad y mirando hacia donde toca.
+      Ya no hay nadie entre la cámara y tu jugador (el juez de detrás de tu línea te tapaba) */
+const OFICIAL={ ropa:[34,50,96], pantalon:[214,206,188] }, CHICO={ ropa:[92,52,140], pantalon:[40,40,52] };
+const GENTE=[
+  Object.assign({ x:-8.2, z:LARGO+0.6, pose:"pie", mira:{x:1,z:0} }, OFICIAL),        /* jueces de fondo */
+  Object.assign({ x: 8.2, z:LARGO+0.6, pose:"pie", mira:{x:-1,z:0} }, OFICIAL),
+  Object.assign({ x:-8.4, z:6.0, pose:"pie", mira:{x:1,z:0} }, OFICIAL),              /* jueces de la línea de saque */
+  Object.assign({ x: 8.4, z:6.0, pose:"pie", mira:{x:-1,z:0} }, OFICIAL),
+  Object.assign({ x:-4.6, z:LARGO+2.5, pose:"agachado", mira:{x:0,z:-1}, talla:0.82 }, CHICO),   /* recogepelotas */
+  Object.assign({ x: 4.6, z:LARGO+2.5, pose:"agachado", mira:{x:0,z:-1}, talla:0.82 }, CHICO),
+  Object.assign({ x: 6.95, z:RED_Z, pose:"agachado", mira:{x:-1,z:0}, talla:0.82 }, CHICO),
+  Object.assign({ x:-7.7, z:RED_Z, pose:"sentado", mira:{x:1,z:0}, silla:1.85, gorra:[236,236,240] }, OFICIAL)   /* el juez de silla */
+];
+/* 🧍 una persona hecha con las mismas cápsulas iluminadas que los jugadores, en tres posturas:
+      de pie con las manos atrás, agachada con las manos en las rodillas, o sentada */
+function pintaPersona(g){
+  const t=g.talla||1, fX=g.mira.x, fZ=g.mira.z, rX=g.mira.z, rZ=-g.mira.x;
+  const alt = g.pose==="sentado" ? (g.silla||1.85) : 0;
+  const W3=(lx,ly,lz)=>({x:g.x+(rX*lx+fX*lz)*t, y:alt+ly*t, z:g.z+(rZ*lx+fZ*lz)*t});
+  let J;
+  if(g.pose==="agachado") J={ pieD:W3(0.13,0.07,0), pieI:W3(-0.13,0.07,0), rodD:W3(0.15,0.45,0.30), rodI:W3(-0.15,0.45,0.30),
+    cadD:W3(0.10,0.56,-0.05), cadI:W3(-0.10,0.56,-0.05), pelvis:W3(0,0.58,-0.04), pecho:W3(0,0.98,0.16), cuello:W3(0,1.06,0.22),
+    cabeza:W3(0,1.18,0.30), homD:W3(0.18,0.94,0.13), homI:W3(-0.18,0.94,0.13), codD:W3(0.21,0.72,0.24), codI:W3(-0.21,0.72,0.24),
+    manD:W3(0.15,0.52,0.31), manI:W3(-0.15,0.52,0.31) };
+  else if(g.pose==="sentado") J={ pieD:W3(0.12,-0.40,0.46), pieI:W3(-0.12,-0.40,0.46), rodD:W3(0.12,0.06,0.44), rodI:W3(-0.12,0.06,0.44),
+    cadD:W3(0.10,0.06,0), cadI:W3(-0.10,0.06,0), pelvis:W3(0,0.10,-0.02), pecho:W3(0,0.55,-0.02), cuello:W3(0,0.64,-0.01),
+    cabeza:W3(0,0.78,0), homD:W3(0.19,0.52,-0.02), homI:W3(-0.19,0.52,-0.02), codD:W3(0.22,0.30,0.12), codI:W3(-0.22,0.30,0.12),
+    manD:W3(0.12,0.20,0.30), manI:W3(-0.12,0.20,0.30) };
+  else J={ pieD:W3(0.11,0.07,0), pieI:W3(-0.11,0.07,0), rodD:W3(0.11,0.50,0.02), rodI:W3(-0.11,0.50,0.02),
+    cadD:W3(0.10,0.92,0), cadI:W3(-0.10,0.92,0), pelvis:W3(0,0.95,0), pecho:W3(0,1.40,0), cuello:W3(0,1.50,0),
+    cabeza:W3(0,1.64,0.01), homD:W3(0.19,1.38,0), homI:W3(-0.19,1.38,0), codD:W3(0.23,1.12,-0.06), codI:W3(-0.23,1.12,-0.06),
+    manD:W3(0.08,0.96,-0.15), manI:W3(-0.08,0.96,-0.15) };
+  const partes=[];
+  const cap=(a,b,r,c,sesgo)=>partes.push({ z:(profCam(a)+profCam(b))/2-(sesgo||0), f:()=>capsula(a,b,r*t,c) });
+  const esf=(c,r,col,sesgo)=>partes.push({ z:profCam(c)-(sesgo||0), f:()=>esfera(c,r*t,col) });
+  for(const [cad,rod,pie] of [[J.cadD,J.rodD,J.pieD],[J.cadI,J.rodI,J.pieI]]){
+    cap(cad,rod,0.085,g.pantalon); cap(rod,pie,0.068,g.pantalon);
+    cap(pie,{x:pie.x+fX*0.13*t,y:pie.y,z:pie.z+fZ*0.13*t},0.06,[30,30,36],0.003);   /* zapatos */
+  }
+  cap(J.pelvis,J.pecho,0.19,g.ropa); cap(J.homI,J.homD,0.085,g.ropa,0.001);
+  cap(J.pecho,J.cuello,0.05,PIEL,0.002);
+  esf(J.cabeza,0.115,PIEL,0.002);
+  esf({x:J.cabeza.x,y:J.cabeza.y+0.05*t,z:J.cabeza.z},0.108,g.gorra||[58,40,28],0.004);   /* pelo o gorra */
+  for(const [hom,cod,man] of [[J.homD,J.codD,J.manD],[J.homI,J.codI,J.manI]]){
+    cap(hom,cod,0.06,g.ropa); cap(cod,man,0.05,PIEL); esf(man,0.045,PIEL,0.003);
+  }
+  partes.sort((a,b)=>b.z-a.z);
+  for(const q of partes) q.f();
+}
+/* 🪑 la silla alta del juez: cuatro patas, asiento, respaldo, reposapiés y escalera por detrás */
+function pintaSilla(g){
+  const h=g.silla||1.85, fX=g.mira.x, fZ=g.mira.z, rX=g.mira.z, rZ=-g.mira.x;
+  const P=(lx,ly,lz)=>({x:g.x+rX*lx+fX*lz, y:ly, z:g.z+rZ*lx+fZ*lz});
+  const blanco=[222,222,226], oscuro=[60,64,70];
+  for(const [lx,lz] of [[-0.32,-0.30],[0.32,-0.30],[-0.32,0.34],[0.32,0.34]]) capsula(P(lx,0,lz),P(lx*0.85,h,lz*0.85),0.035,blanco);
+  for(let k=1;k<=4;k++) capsula(P(-0.30,k*h/5,-0.34),P(0.30,k*h/5,-0.34),0.022,blanco);       /* la escalera */
+  capsula(P(-0.28,h,0),P(0.28,h,0),0.16,oscuro);                                              /* el asiento */
+  capsula(P(-0.26,h+0.05,-0.30),P(-0.26,h+0.75,-0.34),0.03,blanco);
+  capsula(P(0.26,h+0.05,-0.30),P(0.26,h+0.75,-0.34),0.03,blanco);
+  capsula(P(-0.26,h+0.70,-0.34),P(0.26,h+0.70,-0.34),0.05,oscuro);                            /* el respaldo */
+  capsula(P(-0.26,h-0.40,0.55),P(0.26,h-0.40,0.55),0.03,blanco);                              /* el reposapiés */
+}
 function pintaGente(){
-  for(const g of GENTE){
-    sombra(g.x,g.z,0.30,0.8,0.1);
-    capsula({x:g.x,y:0.05,z:g.z},{x:g.x,y:0.85,z:g.z}, 0.14, [40,50,70]);
-    capsula({x:g.x,y:0.85,z:g.z},{x:g.x,y:1.40,z:g.z}, 0.19, [29,79,138]);
-    esfera({x:g.x,y:1.62,z:g.z}, 0.12, PIEL);
+  /* de lejos a cerca, para que el que está delante tape al de detrás */
+  const orden=GENTE.slice().sort((a,b)=>profCam({x:b.x,y:1,z:b.z})-profCam({x:a.x,y:1,z:a.z}));
+  for(const g of orden){
+    const alto = g.pose==="sentado" ? (g.silla||1.85) : 0;
+    sombra(g.x,g.z,0.30,0.8,0.1+alto);
+    if(g.pose==="sentado"){ sombra(g.x,g.z,0.42,0.5,0.9); pintaSilla(g); }
+    pintaPersona(g);
   }
 }
 function pintaPista(){
   /* el césped, con sus franjas de cortacésped y el degradado de la luz */
-  const N=20;
+  const N=24;
   for(let i=0;i<N;i++){
-    const z0=-5+(LARGO+10)*i/N, z1=-5+(LARGO+10)*(i+1)/N;
+    const z0=-13+(LARGO+18)*i/N, z1=-13+(LARGO+18)*(i+1)/N;   /* hasta debajo de la cámara: sin corte abajo */
     const luz=1-Math.abs((z0-RED_Z)/(LARGO*0.9))*0.18;      /* más claro cerca de la red */
     const base=i%2? [63,138,58] : [71,143,65];
     cuadro([-14,z0],[14,z0],[14,z1],[-14,z1],
@@ -744,57 +922,179 @@ function sombra(x,z,r,fuerza,alto){
   ctx.restore();
 }
 
-const PIEL=[232,196,158], PANTALON=[240,240,244], ZAPA=[245,245,250];
+const PIEL=[232,196,158], PANTALON=[244,244,248], ZAPA=[246,246,250], CALCETIN=[250,250,252], PELO=[58,40,28];
 function hexRgb(h){ const c=h.replace("#",""); return [parseInt(c.substr(0,2),16),parseInt(c.substr(2,2),16),parseInt(c.substr(4,2),16)]; }
+
+/* =====================================================================================
+   🧍 LOS JUGADORES, CON ESQUELETO
+   Cada jugador es un esqueleto en 3D: caderas, rodillas, pies, hombros, codos y manos. Las
+   rodillas y los codos se calculan con CINEMÁTICA INVERSA de dos huesos (el mismo truco que
+   los juegos grandes): le dices dónde quieres el pie o la mano, y la articulación se dobla
+   sola sin que el hueso se estire NUNCA. Encima se viste con cápsulas y esferas iluminadas
+   por el sol, y se pintan de lejos a cerca para que un brazo tape bien al cuerpo.
+   ===================================================================================== */
+const HUESO={ muslo:0.46, pierna:0.45, brazo:0.30, antebrazo:0.27 };
+function easeOut(t){ t=Math.max(0,Math.min(1,t)); return 1-(1-t)*(1-t); }
+function rotY(x,z,a){ const c=Math.cos(a), si=Math.sin(a); return {x:x*c+z*si, z:-x*si+z*c}; }
+function mezcla(a,b,t){ return {x:a.x+(b.x-a.x)*t, y:a.y+(b.y-a.y)*t, z:a.z+(b.z-a.z)*t}; }
+/* 🦴 dos huesos (muslo+pierna, o brazo+antebrazo): de la raíz "a" hacia el objetivo "c".
+      Devuelve la articulación "b" (rodilla/codo) doblada hacia "polo", y el objetivo corregido
+      si estaba tan lejos que no se llegaba (el pie o la mano se quedan donde llega el hueso) */
+function ik2(a, c, l1, l2, polo){
+  let dx=c.x-a.x, dy=c.y-a.y, dz=c.z-a.z;
+  let d=Math.hypot(dx,dy,dz);
+  if(!(d>1e-6)){ dx=0; dy=-1; dz=0; d=1; }
+  const ux=dx/d, uy=dy/d, uz=dz/d;
+  const dd=Math.max(Math.abs(l1-l2)+1e-3, Math.min((l1+l2)*0.999, d));
+  const c2={x:a.x+ux*dd, y:a.y+uy*dd, z:a.z+uz*dd};
+  const A=Math.acos(Math.max(-1,Math.min(1,(l1*l1+dd*dd-l2*l2)/(2*l1*dd))));
+  let px=polo.x, py=polo.y, pz=polo.z;
+  const pd=px*ux+py*uy+pz*uz; px-=ux*pd; py-=uy*pd; pz-=uz*pd;
+  let pl=Math.hypot(px,py,pz);
+  if(!(pl>1e-6)){ px=-uz; py=0; pz=ux; pl=Math.hypot(px,py,pz); if(!(pl>1e-6)){ px=1; py=0; pz=0; pl=1; } }
+  px/=pl; py/=pl; pz/=pl;
+  const al=Math.cos(A)*l1, of=Math.sin(A)*l1;
+  return { b:{x:a.x+ux*al+px*of, y:a.y+uy*al+py*of, z:a.z+uz*al+pz*of}, c:c2 };
+}
+/* ⏱️ lo que se mueve con el tiempo: la velocidad de verdad (para correr), la zancada, el
+      golpe que se apaga y el saltito de espera */
+function animaJugador(p,dt){
+  if(!p||!(dt>0)) return;
+  if(p._px===undefined){ p._px=p.x; p._pz=p.z; }
+  const mov=Math.hypot(p.x-p._px, p.z-p._pz);
+  const v = mov>1.5 ? 0 : mov/dt;                          /* colocarse para sacar no es correr */
+  p._px=p.x; p._pz=p.z;
+  p.velA=(p.velA||0)+(Math.min(9,v)-(p.velA||0))*Math.min(1,dt*10);
+  p.zancada=(p.zancada||0)+dt*(3.2+p.velA*1.25)*Math.min(1,p.velA/1.2);
+  if((p.swing||0)>(p._swPrev||0)+0.01) p._swingIni=p.swing; /* acaba de empezar un golpe */
+  if(p.swing>0) p.swing=Math.max(0,p.swing-dt);
+  p._swPrev=p.swing||0;
+  if(p.salto>0) p.salto=Math.max(0,p.salto-dt);
+}
+/* 🦴 dónde está cada articulación AHORA, según lo que esté haciendo el jugador */
+function esqueleto(p){
+  const b=G.bola||{viva:false};
+  /* mira hacia la red, y gira un poco el cuerpo hacia la bola */
+  const bx=b.viva?b.x:0, bz=b.viva?b.z:RED_Z;
+  let giro=Math.atan2(bx-p.x, Math.max(3,Math.abs(bz-p.z)))*0.35;
+  if(p.lado===1) giro=-giro;
+  const yaw=(p.lado===0?0:Math.PI)+giro;
+  const fX=Math.sin(yaw), fZ=Math.cos(yaw), rX=Math.cos(yaw), rZ=-Math.sin(yaw);
+  const W3=(lx,ly,lz)=>({x:p.x+rX*lx+fX*lz, y:ly, z:p.z+rZ*lx+fZ*lz});
+  /* qué está haciendo */
+  const vel=Math.max(0,Math.min(1,(p.velA||0)/6.5));
+  const fase=p.zancada||0;
+  const sacando = G.estado==="saque" && G.saca===p.lado;
+  const lanzando = sacando && (p.lado===0 ? G.saqueFase===1 : (G.iaSaqueT!==undefined && G.iaSaqueT<0.55));
+  const golpeando = (p.swing||0)>0;
+  const e = golpeando ? easeOut(1-p.swing/Math.max(p.swing,p._swingIni||0.30)) : 0;
+  const cargaK = p.cargando ? Math.max(0,Math.min(1,p.carga||0)) : 0;
+  const s = p.ladoGolpe||1;                                /* +1 de derecha · -1 de revés */
+  const listo = 1-vel;
+  const salto = (p.salto||0)>0 ? Math.sin((1-p.salto/0.28)*Math.PI)*0.09 : 0;
+  const agacha = 0.09*listo + 0.03 + cargaK*0.05;          /* piernas flexionadas esperando */
+  const bob = Math.abs(Math.sin(fase))*0.045*vel + salto;  /* sube y baja al correr */
+  const py = 0.97 - agacha + bob;                          /* altura de la pelvis */
+  /* el tronco se enrolla al cargar y se desenrolla al golpear, como un látigo */
+  let torso=0;
+  if(golpeando && !p.fueSaque) torso = s*(0.9-1.9*e);
+  else if(cargaK>0) torso = s*0.9*cargaK;
+  const T3=(lx,ly,lz)=>{ const q=rotY(lx,lz,torso); return W3(q.x,ly,q.z); };
+  const pelvis=W3(0,py,0), pechoTop=T3(0,py+0.44,0.02), cuello=T3(0,py+0.55,0.01), cabeza=T3(0,py+0.70,0.02);
+  const hombroD=T3(0.20,py+0.46,0), hombroI=T3(-0.20,py+0.46,0);
+  const caderaD=W3(0.10,py-0.04,0), caderaI=W3(-0.10,py-0.04,0);
+  /* 🦵 las piernas: el pie va donde toca en la zancada, y la rodilla se dobla sola hacia delante */
+  const abre=0.12+0.05*listo;
+  const pierna=sd=>{
+    const ph=fase+(sd>0?0:Math.PI);
+    const pie=W3(sd*abre, 0.075+Math.max(0,Math.cos(ph))*0.15*vel+salto*0.5, Math.sin(ph)*0.33*vel+(sd>0?0.04:-0.04)*listo);
+    const r=ik2(sd>0?caderaD:caderaI, pie, HUESO.muslo, HUESO.pierna, {x:fX, y:0.2, z:fZ});
+    return { rod:r.b, pie:r.c, punta:{x:r.c.x+fX*0.15, y:r.c.y, z:r.c.z+fZ*0.15} };
+  };
+  const pD=pierna(1), pI=pierna(-1);
+  /* 💪 las manos: dónde van según lo que haga; los codos se doblan solos */
+  let manoD, manoI;
+  let poloD={x:rX*0.5-fX*0.3, y:-1, z:rZ*0.5-fZ*0.3}, poloI={x:-rX*0.5, y:-1, z:-rZ*0.5};
+  if(golpeando && p.fueSaque){
+    /* el saque: la raqueta viene de detrás de la cabeza, pasa por arriba y acaba cruzada */
+    const A=W3(0.22,py+0.95,-0.22), B=W3(0.22,py+1.15,0.18), C=W3(-0.12,py+0.25,0.42);
+    manoD = e<0.4 ? mezcla(A,B,e/0.4) : mezcla(B,C,(e-0.4)/0.6);
+    manoI = W3(-0.18,py+0.30,0.10);
+    poloD={x:rX*0.6, y:0.6, z:rZ*0.6};
+  } else if(lanzando){
+    /* lanzando la bola: la raqueta atrás y el brazo izquierdo arriba */
+    manoD=W3(0.24,py+0.80,-0.20); manoI=W3(-0.08,py+1.08,0.26);
+    poloD={x:rX*0.6, y:0.4, z:rZ*0.6-fZ*0.2}; poloI={x:-rX*0.3, y:-0.2, z:-rZ*0.3};
+  } else if(golpeando){
+    /* derecha o revés: la mano dibuja un arco de atrás a delante y acaba arriba, cruzada */
+    const th=-1.6+3.5*e;
+    manoD=W3(s*(0.10+0.48*Math.cos(th)), py+0.20+0.30*Math.max(0,th)/1.9, 0.12+0.44*Math.sin(th));
+    manoI=mezcla(W3(s*0.10,py+0.40,0.35), W3(-s*0.30,py+0.18,0.02), e);
+  } else if(cargaK>0){
+    /* cargando: la raqueta se va atrás, por el lado del golpe, y la otra mano señala la bola */
+    manoD=mezcla(W3(0.20,py+0.22,0.32), W3(s*0.12,py+0.26,-0.32), easeOut(cargaK));
+    manoI=mezcla(W3(-0.14,py+0.24,0.30), W3(s*0.10,py+0.40,0.35), cargaK);
+  } else {
+    /* esperando con la raqueta delante... o corriendo con los brazos al compás */
+    manoD=mezcla(W3(0.20,py+0.22,0.32), W3(0.24,py+0.10,Math.sin(fase)*0.26*vel+0.05), vel);
+    manoI=mezcla(W3(-0.14,py+0.24,0.30), W3(-0.24,py+0.10,Math.sin(fase+Math.PI)*0.26*vel+0.05), vel);
+  }
+  const aD=ik2(hombroD, manoD, HUESO.brazo, HUESO.antebrazo, poloD);
+  const aI=ik2(hombroI, manoI, HUESO.brazo, HUESO.antebrazo, poloI);
+  /* 🎾 la raqueta sigue al antebrazo, apuntando un poco hacia arriba */
+  const mano=aD.c, codo=aD.b;
+  let dir={x:mano.x-codo.x, y:mano.y-codo.y+0.30, z:mano.z-codo.z};
+  const dl=Math.hypot(dir.x,dir.y,dir.z)||1; dir={x:dir.x/dl, y:dir.y/dl, z:dir.z/dl};
+  let lat={x:dir.y*fZ, y:dir.z*fX-dir.x*fZ, z:-dir.y*fX};  /* de lado a lado del aro */
+  let ll=Math.hypot(lat.x,lat.y,lat.z);
+  if(!(ll>1e-3)){ lat={x:rX, y:0, z:rZ}; ll=1; }
+  lat={x:lat.x/ll, y:lat.y/ll, z:lat.z/ll};
+  const adelante=k=>({x:mano.x+dir.x*k, y:mano.y+dir.y*k, z:mano.z+dir.z*k});
+  return { yaw, fX, fZ, rX, rZ, pelvis, pechoTop, cuello, cabeza, hombroD, hombroI,
+    caderaD, caderaI, rodD:pD.rod, pieD:pD.pie, puntaD:pD.punta, rodI:pI.rod, pieI:pI.pie, puntaI:pI.punta,
+    codoD:aD.b, manoD:aD.c, codoI:aI.b, manoI:aI.c,
+    raqueta:{ mango:mano, cuello:adelante(0.22), centro:adelante(0.40), dir, lat } };
+}
+/* lo lejos que está un punto de la cámara: para pintar primero lo del fondo */
+function profCam(q){
+  const dy=q.y-CAM.y, dz=q.z-CAM.z;
+  return dz*Math.cos(CAM.pitch) - dy*Math.sin(CAM.pitch);
+}
+/* 🎾 la raqueta en 3D: aro, cuerdas y puente, todo proyectado de verdad */
+function pintaRaqueta(R, rgbMarco){
+  capsula(R.mango, R.cuello, 0.017, [36,36,44]);
+  const punto=(u,v)=>({x:R.centro.x+R.dir.x*v+R.lat.x*u, y:R.centro.y+R.dir.y*v+R.lat.y*u, z:R.centro.z+R.dir.z*v+R.lat.z*u});
+  const P=q=>proyecta(q.x,q.y,q.z);
+  const aro=[];
+  for(let i=0;i<=20;i++){ const t=i/20*Math.PI*2; const q=P(punto(Math.sin(t)*0.125, Math.cos(t)*0.16)); if(!q) return; aro.push(q); }
+  const esc=aro[0].s;
+  /* las cuerdas, antes que el marco */
+  ctx.save(); ctx.lineCap="round";
+  ctx.strokeStyle="rgba(240,248,255,.55)"; ctx.lineWidth=Math.max(0.6,0.0045*esc);
+  for(let k=-3;k<=3;k++){
+    const u=k/4*0.125, h=0.16*Math.sqrt(Math.max(0,1-(u/0.125)*(u/0.125)));
+    const a=P(punto(u,-h)), c=P(punto(u,h)); if(!a||!c) continue;
+    ctx.beginPath(); ctx.moveTo(a.x,a.y); ctx.lineTo(c.x,c.y); ctx.stroke();
+  }
+  for(let k=-3;k<=3;k++){
+    const v=k/4*0.16, h=0.125*Math.sqrt(Math.max(0,1-(v/0.16)*(v/0.16)));
+    const a=P(punto(-h,v)), c=P(punto(h,v)); if(!a||!c) continue;
+    ctx.beginPath(); ctx.moveTo(a.x,a.y); ctx.lineTo(c.x,c.y); ctx.stroke();
+  }
+  /* el puente: del cuello a los dos lados del aro */
+  const cu=P(R.cuello), izq=P(punto(-0.09,-0.11)), der=P(punto(0.09,-0.11));
+  ctx.strokeStyle="rgb("+rgbMarco.join(",")+")"; ctx.lineWidth=Math.max(1,0.012*esc);
+  if(cu&&izq&&der){ ctx.beginPath(); ctx.moveTo(izq.x,izq.y); ctx.lineTo(cu.x,cu.y); ctx.lineTo(der.x,der.y); ctx.stroke(); }
+  /* el marco: oscuro con un brillo encima */
+  ctx.lineJoin="round";
+  ctx.beginPath(); ctx.moveTo(aro[0].x,aro[0].y); for(const q of aro) ctx.lineTo(q.x,q.y);
+  ctx.lineWidth=Math.max(1.2,0.020*esc); ctx.stroke();
+  ctx.strokeStyle="rgba(255,255,255,.35)"; ctx.lineWidth=Math.max(0.6,0.007*esc); ctx.stroke();
+  ctx.restore();
+}
 function pintaJugador(p, col, col2, esTu){
   const base=proyecta(p.x,0,p.z); if(!base) return;
-  const e=base.s;
-  sombra(p.x,p.z,0.42,1,0.5);
-  /* el cuerpo en 3D, pieza a pieza, con cada pieza iluminada por el sol */
-  const bal=Math.sin(p.paso)*0.16;
-  const X=p.x, Z=p.z, rgb=hexRgb(col);
-  const cadera={x:X,y:0.95,z:Z}, pecho={x:X,y:1.42,z:Z}, cuello={x:X,y:1.56,z:Z};
-  /* piernas, que se mueven al correr */
-  for(const sd of [-1,1]){
-    const rod={x:X+sd*0.13, y:0.50, z:Z+bal*sd*0.5};
-    const pie={x:X+sd*0.15, y:0.08, z:Z+bal*sd};
-    capsula({x:X+sd*0.11,y:0.92,z:Z}, rod, 0.075, PIEL);
-    capsula(rod, pie, 0.062, PIEL);
-    capsula({x:pie.x,y:0.05,z:pie.z-0.03},{x:pie.x,y:0.05,z:pie.z+0.10}, 0.055, ZAPA);
-  }
-  /* el pantalón y el torso con la camiseta del equipo */
-  capsula({x:X,y:0.98,z:Z},{x:X,y:0.80,z:Z}, 0.19, PANTALON);
-  capsula(cadera, pecho, 0.215, rgb, 1.05);
-  /* la cabeza, una esfera con su gorra */
-  esfera({x:X,y:1.74,z:Z}, 0.125, PIEL);
-  esfera({x:X,y:1.80,z:Z-0.01}, 0.118, rgb);
-  capsula({x:X,y:1.76,z:Z+0.02},{x:X,y:1.75,z:Z+0.16}, 0.04, rgb);
-  const cab=proyecta(X,1.74,Z), cad=proyecta(X,0.95,Z);
-  if(!cab||!cad) return;
-  const ancho=0.46*e;
-  /* el brazo y la RAQUETA */
-  const swing=Math.max(0,p.swing);
-  const carga=p.cargando?p.carga:0;
-  const ang = -0.9 + swing*3.2 - carga*1.1;
-  const lado=p.dirRaqueta||1;
-  const hombro={x:X+lado*0.24, y:1.46, z:Z};
-  const mano={x:X+lado*(0.24+Math.cos(ang)*0.55), y:1.10-Math.sin(ang)*0.48, z:Z+0.12};
-  capsula(hombro, mano, 0.058, PIEL);
-  capsula({x:X-lado*0.24,y:1.46,z:Z},{x:X-lado*0.36,y:1.05,z:Z+0.05}, 0.055, PIEL);   /* el otro brazo */
-  const hm=proyecta(mano.x,mano.y,mano.z);
-  const hx=hm?hm.x:cad.x, hy=hm?hm.y:cad.y;
-  /* la raqueta: mango + óvalo con cuerdas */
-  const rx=hx+Math.cos(ang)*0.34*e*lado, ry=hy+Math.sin(ang)*0.30*e;
-  ctx.strokeStyle="#2b2b33"; ctx.lineWidth=Math.max(1.5,0.055*e);
-  ctx.beginPath(); ctx.moveTo(hx,hy); ctx.lineTo(rx,ry); ctx.stroke();
-  ctx.save(); ctx.translate(rx,ry); ctx.rotate(ang*0.6);
-  ctx.strokeStyle="#e6f5ff"; ctx.lineWidth=Math.max(1.4,0.045*e);
-  ctx.beginPath(); ctx.ellipse(0,0,0.20*e,0.27*e,0,0,7); ctx.stroke();
-  ctx.strokeStyle="rgba(230,245,255,.45)"; ctx.lineWidth=Math.max(0.7,0.016*e);
-  for(let i=-2;i<=2;i++){ ctx.beginPath(); ctx.moveTo(i*0.07*e,-0.25*e); ctx.lineTo(i*0.07*e,0.25*e); ctx.stroke(); }
-  for(let i=-2;i<=2;i++){ ctx.beginPath(); ctx.moveTo(-0.18*e,i*0.09*e); ctx.lineTo(0.18*e,i*0.09*e); ctx.stroke(); }
-  ctx.restore();
-  /* 🎾 el círculo de tu alcance: si la bola está dentro, le das seguro */
+  /* 🎾 en el suelo: el círculo de tu alcance y el aro de carga */
   if(esTu){
     const c=proyecta(p.x,0.015,p.z);
     if(c){
@@ -803,15 +1103,67 @@ function pintaJugador(p, col, col2, esTu){
       ctx.lineWidth=Math.max(1.2,(aTiro?0.05:0.028)*c.s);
       ctx.beginPath(); ctx.ellipse(c.x,c.y,ALCANCE*c.s,ALCANCE*c.s*0.34,0,0,7); ctx.stroke();
       if(aTiro){ ctx.fillStyle="rgba(216,255,122,.10)"; ctx.fill(); }
+      if(p.cargando){
+        ctx.strokeStyle="rgba(216,255,122,.85)"; ctx.lineWidth=Math.max(2,0.05*c.s);
+        ctx.beginPath(); ctx.ellipse(c.x,c.y,0.75*c.s,0.26*c.s,0,-Math.PI/2,-Math.PI/2+p.carga*Math.PI*2); ctx.stroke();
+      }
     }
   }
-  /* el aro de carga, como en los juegos buenos */
-  if(esTu && p.cargando){
-    const c=proyecta(p.x,0.02,p.z); if(c){
-      ctx.strokeStyle="rgba(216,255,122,.85)"; ctx.lineWidth=Math.max(2,0.05*c.s);
-      ctx.beginPath(); ctx.ellipse(c.x,c.y,0.75*c.s,0.26*c.s,0,-Math.PI/2,-Math.PI/2+p.carga*Math.PI*2); ctx.stroke();
-    }
+  /* la sombra: tres manchas a distintas alturas, desplazadas por el sol, que juntas forman la
+     sombra alargada del cuerpo */
+  sombra(p.x,p.z,0.34,1,0.05); sombra(p.x,p.z,0.28,0.55,1.0); sombra(p.x,p.z,0.17,0.35,1.6);
+  const S=esqueleto(p);
+  const camiseta=hexRgb(col), oscuro=hexRgb(col2);
+  const pantalon = p.lado===0 ? PANTALON : [40,44,58];
+  const partes=[];
+  const cap=(a,b,r,c,sesgo,extra)=>partes.push({ z:(profCam(a)+profCam(b))/2-(sesgo||0), f:()=>{ capsula(a,b,r,c); if(extra) extra(); } });
+  const esf=(c,r,colr,sesgo,extra)=>partes.push({ z:profCam(c)-(sesgo||0), f:()=>{ esfera(c,r,colr); if(extra) extra(); } });
+  /* 🦵 piernas, calcetines y zapatillas */
+  for(const [cad,rod,pie,punta] of [[S.caderaD,S.rodD,S.pieD,S.puntaD],[S.caderaI,S.rodI,S.pieI,S.puntaI]]){
+    cap(cad,rod,0.086,PIEL);
+    cap(rod,pie,0.066,PIEL);
+    cap(mezcla(rod,pie,0.70),pie,0.071,CALCETIN,0.002);
+    cap(pie,punta,0.064,ZAPA,0.004);
+    cap(cad,mezcla(cad,rod,0.42),0.108,pantalon,0.003);   /* la pernera del pantalón */
   }
+  esf(S.pelvis,0.175,pantalon,0.001);
+  /* 👕 el torso y los hombros, con la camiseta del equipo y su número en la espalda */
+  cap(S.pelvis,S.pechoTop,0.195,camiseta,0,()=>{
+    if(p.lado!==0) return;                                 /* el número se ve en el de espaldas */
+    const q=proyecta((S.pelvis.x+S.pechoTop.x)/2-S.fX*0.2,(S.pelvis.y+S.pechoTop.y)/2+0.06,(S.pelvis.z+S.pechoTop.z)/2-S.fZ*0.2);
+    if(!q) return;
+    ctx.save(); ctx.textAlign="center"; ctx.textBaseline="middle";
+    ctx.font="900 "+Math.max(6,0.22*q.s)+"px Consolas,monospace";
+    ctx.fillStyle="rgba(255,255,255,.88)"; ctx.fillText("7",q.x,q.y); ctx.restore();
+  });
+  cap(S.hombroI,S.hombroD,0.09,camiseta,0.001);
+  cap(S.pechoTop,S.cuello,0.055,PIEL,0.002);
+  /* 🙂 la cabeza: pelo, cara (con ojos en el que te mira) y gorra con visera */
+  esf({x:S.cabeza.x-S.fX*0.03,y:S.cabeza.y-0.03,z:S.cabeza.z-S.fZ*0.03},0.121,PELO);
+  esf(S.cabeza,0.118,PIEL,0.002,()=>{
+    if(p.lado!==1) return;
+    for(const sd of [-1,1]){
+      const q=proyecta(S.cabeza.x+S.fX*0.11+S.rX*sd*0.045, S.cabeza.y+0.01, S.cabeza.z+S.fZ*0.11+S.rZ*sd*0.045);
+      if(!q) continue;
+      ctx.fillStyle="#2a1d14"; ctx.beginPath(); ctx.arc(q.x,q.y,Math.max(0.7,0.013*q.s),0,7); ctx.fill();
+    }
+  });
+  esf({x:S.cabeza.x,y:S.cabeza.y+0.055,z:S.cabeza.z},0.112,camiseta,0.004);
+  cap({x:S.cabeza.x+S.fX*0.05,y:S.cabeza.y+0.035,z:S.cabeza.z+S.fZ*0.05},
+      {x:S.cabeza.x+S.fX*0.19,y:S.cabeza.y+0.03,z:S.cabeza.z+S.fZ*0.19},0.035,oscuro,0.006);
+  /* 💪 los brazos, con manga, muñequera y mano */
+  for(const [hom,codo,mano] of [[S.hombroD,S.codoD,S.manoD],[S.hombroI,S.codoI,S.manoI]]){
+    cap(hom,codo,0.058,PIEL);
+    cap(codo,mano,0.050,PIEL);
+    cap(hom,mezcla(hom,codo,0.45),0.070,camiseta,0.002);  /* la manga */
+    cap(mezcla(codo,mano,0.78),mezcla(codo,mano,0.94),0.056,camiseta,0.003);   /* la muñequera */
+    esf(mano,0.046,PIEL,0.004);
+  }
+  /* 🎾 la raqueta */
+  partes.push({ z:profCam(S.raqueta.centro), f:()=>pintaRaqueta(S.raqueta, oscuro) });
+  /* y a pintar: de lo más lejano a lo más cercano */
+  partes.sort((a,b)=>b.z-a.z);
+  for(const q of partes) q.f();
 }
 
 function pintaBola(){
@@ -942,14 +1294,18 @@ function pintaHUD(){
   }
   /* el rally */
   if(G.rally>2){
-    ctx.textAlign="right"; ctx.font="800 "+R+"px Consolas,monospace"; ctx.fillStyle="rgba(216,255,122,.75)";
-    ctx.fillText("🎾 "+G.rally+" golpes", W-R, y+R*1.4);
+    ctx.font="800 "+R+"px Consolas,monospace";
+    const txtR="🎾 "+G.rally+" golpes", anchoR=ctx.measureText(txtR).width;
+    ctx.fillStyle="rgba(6,20,12,.84)"; ctx.fillRect(x, y+h+R*0.45, anchoR+R*1.0, R*1.5);   /* fondo, que encima del público no se leía */
+    ctx.textAlign="left"; ctx.fillStyle="rgba(216,255,122,.95)";
+    ctx.fillText(txtR, x+R*0.5, y+h+R*1.5);
   }
 }
 
 function dibuja(){
-  pintaEstadio();
   pintaCielo();
+  pintaSuelo();
+  pintaEstadio();
   pintaPista();
   pintaVallas();
   pintaGente();
@@ -964,6 +1320,7 @@ function dibuja(){
   for(const c of cosas) c.f();
   pintaApunte();
   pintaDestello();
+  pintaLuzSol();
   pintaHUD();
 }
 
@@ -972,15 +1329,18 @@ function dibuja(){
 function camaraCorre(dt){
   const b=G.bola, obj = b.viva? (b.x*0.55+G.jug.x*0.45) : G.jug.x*0.7;
   CAM.x += (Math.max(-3.4,Math.min(3.4,obj*0.62)) - CAM.x) * Math.min(1,dt*2.4);
-  const alto = b.viva&&b.y>2.6 ? 8.1 : 7.4;                /* si la bola sube mucho, la cámara también */
+  const alto = b.viva&&b.y>2.6 ? 13.2 : 12.5;              /* si la bola sube mucho, la cámara también */
   CAM.y += (alto-CAM.y)*Math.min(1,dt*1.6);
 }
 let ultimo=0;
 function vuelta(ts){
   if(!G.run) return;
-  const dt=Math.min(0.05,(ts-ultimo)/1000)||1/60; ultimo=ts;
+  const crudo=ts-ultimo;
+  const dt=Math.min(0.05,crudo/1000)||1/60; ultimo=ts;
+  vigilaRendimiento(crudo);
   G.t+=dt;
   camaraCorre(dt);
+  animaJugador(G.jug,dt); animaJugador(G.ia,dt);
   if(G.msgT>0) G.msgT-=dt;
   if(G.estado==="fin_punto"){
     G.esperaT-=dt;
@@ -1017,7 +1377,15 @@ function pintaOpciones(){
     '<button class="opt'+(G.sets===s?' sel':'')+'" data-sets="'+s+'">'+(s===1?"1 SET":"3 SETS")+'</button>').join("");
   $("optDif").querySelectorAll("[data-dif]").forEach(b=>b.onclick=()=>{ G.dif=b.dataset.dif; pintaOpciones(); });
   $("optSets").querySelectorAll("[data-sets]").forEach(b=>b.onclick=()=>{ G.sets=+b.dataset.sets; pintaOpciones(); });
-  const tact=("ontouchstart" in window)||navigator.maxTouchPoints>0;
+  /* 🖥️ los botones de calidad dicen a cuántos píxeles se dibuja DE VERDAD en tu pantalla */
+  $("optCal").innerHTML=Object.keys(CALIDADES).map(c=>{
+    const k=escalaRender(c,innerWidth,innerHeight,window.devicePixelRatio||1);
+    return '<button class="opt'+(CALIDAD===c?' sel':'')+'" data-cal="'+c+'">🖥️ '+CALIDADES[c].nom+
+      ' <span style="opacity:.75">'+Math.round(innerWidth*k)+'×'+Math.round(innerHeight*k)+'</span></button>';
+  }).join("");
+  $("optCal").querySelectorAll("[data-cal]").forEach(b=>b.onclick=()=>{ CALIDAD=b.dataset.cal;
+    try{ localStorage.setItem("edtu_ten_cal",CALIDAD); }catch(e){} resize(); pintaOpciones(); });
+  const tact=ES_TACTIL();
   $("ayudaTxt").innerHTML = tact
     ? "📱 <b>arrastra</b> por la izquierda para moverte<br>y los cuatro botones de la derecha son los golpes:<br><b>PLANO · LIFT · CORTE · GLOBO</b><br>mantén para cargar y <b>suelta</b> para pegar<br>el saque va en dos tiempos: uno para lanzar y otro para golpear"
     : "🎮 <span class='k'>WASD</span> moverte · <span class='k'>SHIFT</span> esprintar<br>"+
@@ -1032,7 +1400,7 @@ function pintaOpciones(){
 function empieza(){
   ac();
   $("intro").classList.add("hide"); $("fin").classList.add("hide");
-  const tact=("ontouchstart" in window)||navigator.maxTouchPoints>0;
+  const tact=ES_TACTIL();
   $("tactil").classList.toggle("off",!tact);
   nuevoPartido(); G.run=true; ultimo=performance.now();
   requestAnimationFrame(vuelta);
@@ -1074,6 +1442,20 @@ pintaOpciones();
 /* una pintura de fondo mientras miras el menú */
 G.jug=nuevoJugador(0); G.ia=nuevoJugador(1); G.bola=nuevaBola();
 (function fondo(){ if(G.run) return; G.t+=1/60; dibuja(); requestAnimationFrame(fondo); })();
+
+/* 📸 MODO FOTO: tennis.html#foto congela un momento del peloteo (sin menú y sin moverse), para
+      poder sacar capturas y comprobar cómo se ve de verdad. Jugando normal no hace nada */
+if(/foto/.test((location&&location.hash)||"")){
+  $("intro").classList.add("hide"); $("tactil").classList.add("off");
+  nuevoPartido();
+  G.estado="juego"; G.pts=[2,1]; G.juegos=[3,2]; G.rally=7; G.t=12;
+  const J=G.jug, I=G.ia, B=G.bola;
+  Object.assign(J,{ x:0.6, z:-0.8, cargando:true, carga:0.75, tipo:"lift", mira:-0.45, prof:0.8, ladoGolpe:1, velA:0, zancada:0 });
+  Object.assign(I,{ x:-1.6, z:LARGO+0.9, swing:0.07, _swingIni:0.30, ladoGolpe:-1, fueSaque:false, velA:2.2, zancada:1.3 });
+  Object.assign(B,{ viva:true, lado:1, botes:1, x:1.5, y:1.25, z:4.8, vx:0.25, vy:-0.8, vz:-14, giro:0.4 });
+  B.estela=[]; for(let i=12;i>=1;i--) B.estela.push({ x:B.x-B.vx*i*0.016, y:B.y-B.vy*i*0.016, z:B.z-B.vz*i*0.016, v:1-i/13 });
+  for(let i=0;i<40;i++) camaraCorre(0.05);
+}
 </script>
 </body>
 </html>

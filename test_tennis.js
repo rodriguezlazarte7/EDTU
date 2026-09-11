@@ -225,7 +225,8 @@ if (Math.abs(SOLES.SOL.x * h - rayoX) > 1e-9 || Math.abs(SOLES.SOL.z * h - rayoZ
 ["function capsula(", "function esfera(", "function pintaCielo(", "function pintaSombraRed(", "function pintaApunte("].forEach(fn => {
   if (!html.includes(fn)) MAL("falta " + fn.replace("function ", "").replace("(", ""));
 });
-if (!/function dibuja\(\)\{\s*pintaEstadio\(\);\s*pintaCielo\(\);/.test(html)) MAL("el cielo con sol no se pinta");
+/* el cielo va LO PRIMERO: la primera captura a 2K enseñó que, pintado después del estadio, tapaba las gradas y el público */
+if (!/function dibuja\(\)\{\s*pintaCielo\(\);/.test(html)) MAL("el cielo no se pinta lo primero (si va después, tapa las gradas)");
 console.log("  cuerpos en 3D (cápsulas y esferas iluminadas), cielo con sol, sombra de la red y diana ✅");
 
 /* ---------- 5b) 🎮 el mando no se pelea con el cuartel ---------- */
