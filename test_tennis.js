@@ -97,6 +97,38 @@ if (!/p\.cargando=true/.test(html) || !/p\.carga=Math\.min\(1,p\.carga\+/.test(h
 if (!/G\.saqueFase===0/.test(html)) MAL("el saque no va en dos tiempos");
 console.log("  cargar manteniendo ✅ · apuntar mientras cargas ✅ · saque en dos tiempos ✅ · mando B/A/X/Y ✅");
 
+/* ---------- 5a) 🎾 PEGARLE A LA BOLA TIENE QUE SER FÁCIL ----------
+   Lo que pidió David: que no haya que soltar en el fotograma exacto. El golpe se queda GUARDADO
+   un rato y sale solo cuando la bola entra en tu alcance */
+const srcJug = trozo("const ALCANCE=", "/* ---------- sonido");
+const GJ = { bola: null, estado: "juego", saca: 0, rally: 0, rallyMax: 0, jug: null, pts: [0, 0], t: 0 };
+let golpesDados = 0;
+let ENTRADA = { dx: 0, dz: 0, pulsa: {}, sprint: false };
+const J = new Function("G", "entrada", "golpea", "TIPOS", "ANCHO", "SAQUE", "G_GRAV", "punto", "sonido", "LARGO", "RED_Z", "DOBLES",
+  srcJug + "; return { humanoCorre, ALCANCE };")(
+  GJ, () => ENTRADA, () => { golpesDados++; GJ.bola.viva = false; },
+  { plano: { nom: "P", pot: 1, giro: 0, alto: 1 }, lift: { nom: "L", pot: 1, giro: 1, alto: 1.3 },
+    corte: { nom: "C", pot: 1, giro: -1, alto: .9 }, globo: { nom: "G", pot: 1, giro: .5, alto: 2.6 } },
+  8.23, 6.4, 9.81, () => {}, () => {}, 23.77, 23.77 / 2, 10.97);
+const jugadorNuevo = () => ({ lado: 0, x: 0, z: -1.4, swing: 0, tipo: "plano", carga: 0, cargando: false, mira: 0, paso: 0, guardado: null, prep: 0, dirRaqueta: 1 });
+function escena() { GJ.jug = jugadorNuevo(); GJ.bola = { x: 0, y: 1.1, z: 4.2, vx: 0, vy: 0, vz: -6, giro: 0, viva: true, botes: 1, lado: 1, estela: [] }; golpesDados = 0; }
+function corre(seg) { for (let i = 0; i < seg * 60; i++) { J.humanoCorre(1 / 60); GJ.bola.z += GJ.bola.vz / 60; } }
+console.log("  el alcance de la raqueta es de " + J.ALCANCE + " m (antes 1,9)");
+if (!(J.ALCANCE >= 2.5)) MAL("la raqueta sigue llegando poco");
+escena();
+ENTRADA = { dx: 0, dz: 0, pulsa: { plano: true }, sprint: false }; corre(0.25);
+ENTRADA = { dx: 0, dz: 0, pulsa: {}, sprint: false }; corre(0.45);
+console.log("  suelto el golpe ANTES de tiempo, con la bola aún lejos: ¿le doy igual? " + (golpesDados > 0 ? "sí ✅" : "no ❌"));
+if (!golpesDados) MAL("soltar un poco antes sigue siendo un golpe al aire");
+/* el imán coloca al jugador, pero poquito: no juega por ti */
+GJ.jug = jugadorNuevo();
+GJ.bola = { x: 1.8, y: 1.0, z: 3.0, vx: 0, vy: 0, vz: -5, giro: 0, viva: true, botes: 1, lado: 1, estela: [] };
+ENTRADA = { dx: 0, dz: 0, pulsa: {}, sprint: false };
+corre(0.4);
+console.log("  la bola viene 1,8 m a la derecha y yo no toco nada: el jugador se corre a " + GJ.jug.x.toFixed(2) + " (ayuda, pero no juega por ti)");
+if (!(GJ.jug.x > 0.05)) MAL("el imán de colocación no ayuda");
+if (GJ.jug.x > 1.2) MAL("el imán juega por ti: te lleva hasta la bola solo");
+
 /* ---------- 5b) 🎮 el mando no se pelea con el cuartel ---------- */
 const padre = fs.readFileSync("index.html", "utf8");
 const navOn = padre.match(/return !\(o\("gameFs"\)[^;]+;/)[0];

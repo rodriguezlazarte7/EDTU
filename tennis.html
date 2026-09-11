@@ -107,7 +107,7 @@ const G={ dif:"normal", sets:1, run:false, fin:false, t:0,
 
 function nuevoJugador(lado){
   return { lado, x:0, z: lado===0? -1.4 : LARGO+1.4, vx:0, vz:0,
-    swing:0, tipo:"plano", carga:0, cargando:false, mira:0, paso:0,
+    swing:0, tipo:"plano", carga:0, cargando:false, mira:0, paso:0, guardado:null,
     prep:0, ultimoGolpe:0, dirRaqueta:1 };
 }
 function nuevaBola(){ return { x:0,y:1,z:0, vx:0,vy:0,vz:0, giro:0, viva:false, botes:0, lado:0, estela:[] }; }
@@ -163,14 +163,27 @@ cv.addEventListener("touchmove",e=>{ if(!dedo) return;
 const sueltaDedo=e=>{ if(dedo) for(const t of e.changedTouches) if(t.identifier===dedo.id) dedo=null; };
 cv.addEventListener("touchend",sueltaDedo); cv.addEventListener("touchcancel",sueltaDedo);
 
-const PAD={ antes:{} };
+/* 🎮 El navegador solo le da el mando a la página que tiene el FOCO, y dentro de un iframe eso
+      falla a menudo. Por eso hay DOS vías: el mando de aquí, y el que el cuartel nos manda por
+      mensajes. Se usa el que esté fresco. */
+const PAD={ antes:{}, prestado:null, prestadoT:0 };
+addEventListener("message",e=>{ const d=e&&e.data; if(d&&d.edtuPad){ PAD.prestado=d; PAD.prestadoT=performance.now(); } });
+/* y al tocar la pantalla o el teclado, nos traemos el foco */
+const pillaFoco=()=>{ try{ window.focus(); }catch(e){} };
+addEventListener("pointerdown",pillaFoco); addEventListener("touchstart",pillaFoco,{passive:true}); addEventListener("keydown",pillaFoco);
+function padCrudo(){
+  const g=navigator.getGamepads&&navigator.getGamepads()[0];
+  if(g&&(g.axes||[]).length>=2) return { axes:g.axes, btn:i=>!!(g.buttons[i]&&(g.buttons[i].pressed||g.buttons[i].value>0.4)), propio:true };
+  if(PAD.prestado && performance.now()-PAD.prestadoT<400)
+    return { axes:PAD.prestado.axes, btn:i=>!!PAD.prestado.buttons[i], propio:false };
+  return null;
+}
 function leeMando(){
-  const g=navigator.getGamepads&&navigator.getGamepads()[0]; if(!g) return null;
+  const g=padCrudo(); if(!g) return null;
   const zona=v=>Math.abs(v)<0.22?0:v;
-  const b=i=>g.buttons[i]&&(g.buttons[i].pressed||g.buttons[i].value>0.4);
   return { dx:zona(g.axes[0]||0), dz:-zona(g.axes[1]||0),
-    plano:b(1), lift:b(0), corte:b(2), globo:b(3),         /* B plano · A liftado · X cortado · Y globo */
-    sprint:b(7)||b(5) };
+    plano:g.btn(1), lift:g.btn(0), corte:g.btn(2), globo:g.btn(3),   /* B plano · A liftado · X cortado · Y globo */
+    sprint:g.btn(7)||g.btn(5) };
 }
 
 /* ---------- lo que quiere hacer el humano ---------- */
@@ -304,7 +317,7 @@ function iaCorre(dt){
   /* ¿le pega? */
   if(b.viva && b.lado===0 && b.z>RED_Z){
     const cerca=Math.hypot(b.x-ia.x, b.z-ia.z);
-    if(cerca<1.5 && b.y<2.2 && b.y>0.1 && b.botes>=1){
+    if(cerca<2.3 && b.y<2.6 && b.y>0.08 && b.botes>=1){
       const tipo = b.y>1.5 ? "corte" : (Math.random()<0.55?"lift":"plano");
       const pot=(0.55+Math.random()*0.4)*D.pot;
       const apunta=(Math.random()*2-1)*ANCHO*0.40;
@@ -324,9 +337,17 @@ function iaCorre(dt){
 }
 
 /* ---------- tu jugador ---------- */
+const ALCANCE=2.9;                                       /* 🎾 lo lejos que llega tu raqueta (antes 1,9) */
 function humanoCorre(dt){
   const p=G.jug, b=G.bola, q=entrada();
   const vel=(6.2+(q.sprint?2.6:0));
+  /* 🧲 IMÁN DE COLOCACIÓN: si la bola viene hacia ti y ya estás cerca, tu jugador se ajusta solo
+        un poquito para llegar bien. Ayuda, pero no juega por ti: solo corrige lo justo */
+  if(b.viva && b.lado===1 && b.vz<0){
+    const d=Math.hypot(b.x-p.x, b.z-p.z);
+    if(d<4.2){ const k=(1-d/4.2)*2.6*dt;
+      p.x+=(b.x-p.x)*k; p.z+=(b.z-0.5-p.z)*k*0.5; }
+  }
   const l=Math.hypot(q.dx,q.dz);
   if(l>0.08){ p.x+=q.dx/Math.max(1,l)*vel*dt; p.z+=q.dz/Math.max(1,l)*vel*dt; p.paso+=dt*7; }
   p.x=Math.max(-DOBLES/2-1.4,Math.min(DOBLES/2+1.4,p.x));
@@ -350,7 +371,7 @@ function humanoCorre(dt){
         golpea(p,"plano",pot, lado*SAQUE*0.32, true);
         G.estado="juego";
       }
-      if(G.bola.y<0.3){ punto(1,"⛔ saque fallado"); G.bola.viva=false; }
+      if(G.bola.y<0.15){ punto(1,"⛔ saque fallado"); G.bola.viva=false; }
     }
     return;
   }
@@ -361,13 +382,20 @@ function humanoCorre(dt){
     p.mira=Math.max(-1,Math.min(1,p.mira+q.dx*dt*2.2));
   } else if(p.cargando){
     p.cargando=false;
+    p.guardado={ tipo:p.tipo, carga:p.carga, mira:p.mira, t:0.42 };   /* 🎾 se guarda el golpe */
+    p.carga=0;
+  }
+  /* 🎾 EL GOLPE ESPERA A LA BOLA: si sueltas un poco antes o un poco después, el raquetazo se
+        queda "guardado" 0,42 s y sale solo en cuanto la bola entra en tu alcance. Antes tenías
+        que soltar en el fotograma exacto, que es imposible */
+  if(p.guardado){
+    p.guardado.t-=dt;
     const cerca=Math.hypot(b.x-p.x, b.z-p.z);
-    if(b.viva && b.lado===1 && cerca<1.9 && b.y<2.4){
-      const apunta=p.mira*ANCHO*0.44;
-      golpea(p, p.tipo, p.carga, apunta, false);
-      G.estado="juego";
-    } else { p.swing=0.22; }                             /* golpe al aire */
-    p.carga=0; p.mira*=0.3;
+    if(b.viva && b.lado===1 && cerca<ALCANCE && b.y<2.9){
+      const apunta=p.guardado.mira*ANCHO*0.44;
+      golpea(p, p.guardado.tipo, p.guardado.carga, apunta, false);
+      G.estado="juego"; p.guardado=null; p.mira*=0.3;
+    } else if(p.guardado.t<=0){ p.swing=0.22; p.guardado=null; p.mira*=0.3; }   /* golpe al aire */
   }
   if(p.prep>0) p.prep-=dt*2.4;
   if(p.swing>0) p.swing-=dt;
@@ -633,6 +661,17 @@ function pintaJugador(p, col, col2, esTu){
   for(let i=-2;i<=2;i++){ ctx.beginPath(); ctx.moveTo(i*0.07*e,-0.25*e); ctx.lineTo(i*0.07*e,0.25*e); ctx.stroke(); }
   for(let i=-2;i<=2;i++){ ctx.beginPath(); ctx.moveTo(-0.18*e,i*0.09*e); ctx.lineTo(0.18*e,i*0.09*e); ctx.stroke(); }
   ctx.restore();
+  /* 🎾 el círculo de tu alcance: si la bola está dentro, le das seguro */
+  if(esTu){
+    const c=proyecta(p.x,0.015,p.z);
+    if(c){
+      const b=G.bola, aTiro=b.viva&&b.lado===1&&Math.hypot(b.x-p.x,b.z-p.z)<ALCANCE&&b.y<2.9;
+      ctx.strokeStyle=aTiro?"rgba(216,255,122,.75)":"rgba(216,255,122,.22)";
+      ctx.lineWidth=Math.max(1.2,(aTiro?0.05:0.028)*c.s);
+      ctx.beginPath(); ctx.ellipse(c.x,c.y,ALCANCE*c.s,ALCANCE*c.s*0.34,0,0,7); ctx.stroke();
+      if(aTiro){ ctx.fillStyle="rgba(216,255,122,.10)"; ctx.fill(); }
+    }
+  }
   /* el aro de carga, como en los juegos buenos */
   if(esTu && p.cargando){
     const c=proyecta(p.x,0.02,p.z); if(c){
@@ -833,8 +872,8 @@ function salir(){
   function mira(){
     requestAnimationFrame(mira);
     if(G.run) return;                                      /* jugando manda el juego, no el menú */
-    const g=navigator.getGamepads&&navigator.getGamepads()[0]; if(!g) return;
-    const b=i=>!!(g.buttons[i]&&(g.buttons[i].pressed||g.buttons[i].value>0.4));
+    const g=padCrudo(); if(!g) return;
+    const b=i=>g.btn(i);
     const nuevo=i=>{ const p=b(i), f=antes[i]; antes[i]=p; return p&&!f; };
     if(nuevo(0)) empieza();                                /* A */
     if(nuevo(1)) salir();                                  /* B */

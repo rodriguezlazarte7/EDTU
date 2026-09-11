@@ -9131,6 +9131,32 @@ function abreMundo(marco, panel, archivo, titulo, pasos){
   fr.addEventListener("load",listo);
   fr.src=archivo;
   $(panel).classList.add("open");
+  /* 🎮 el foco, al juego: sin esto el mando se lo queda el cuartel */
+  const enfoca=()=>{ try{ fr.focus(); if(fr.contentWindow) fr.contentWindow.focus(); }catch(e){} };
+  setTimeout(enfoca,120); setTimeout(enfoca,600); setTimeout(enfoca,1400);
+  puenteMando(fr,panel);
+}
+/* 🎮 mientras el mundo esté abierto, le vamos pasando lo que hace el mando. Así funciona
+      aunque el foco se quede en el cuartel (que es justo lo que le pasaba a David) */
+function puenteMando(fr,panel){
+  if(window._puenteMando) cancelAnimationFrame(window._puenteMando);
+  const manda=()=>{
+    const abierto=$(panel)&&$(panel).classList.contains("open");
+    if(!abierto){ window._puenteMando=null; return; }
+    window._puenteMando=requestAnimationFrame(manda);
+    try{
+      const pads=navigator.getGamepads?navigator.getGamepads():[];
+      let g=null;
+      for(const p of pads){ if(!p) continue; const id=(p.id||"").toLowerCase();
+        if(/jabra|speak|headset|audio|micr|webcam|camera|receiver/.test(id)) continue;
+        if((p.axes||[]).length>=2&&(p.buttons||[]).length>=4){ g=p; break; } }
+      if(!g||!fr.contentWindow) return;
+      fr.contentWindow.postMessage({ edtuPad:1,
+        axes:Array.from(g.axes||[]),
+        buttons:(g.buttons||[]).map(b=>b.pressed||b.value>0.4) }, "*");
+    }catch(e){}
+  };
+  window._puenteMando=requestAnimationFrame(manda);
 }
 function cierraMundo(marco,panel){ $(panel).classList.remove("open"); $(marco).src="about:blank"; Carga.cierra(); }
 
