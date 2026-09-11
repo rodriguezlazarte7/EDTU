@@ -303,6 +303,105 @@ if (chivato.nan || chivato.negativos) MAL("la escena completa dibuja cosas rotas
   if (chivato.nan || chivato.negativos) MAL("los jueces dibujan cosas rotas");
 }
 
+/* ---------- 7) 🧑🏟️🎾 ELEGIR JUGADOR, ESTADIO Y PISTA · la máquina, más fácil · caras para todos ---------- */
+{
+  for (const k in guardado) delete guardado[k];
+  const envO = navegador(2560, 1440, 1, false); vm.createContext(envO); vm.runInContext(codigo, envO);
+  const TO = envO.__T, G = TO.G, en = x => vm.runInContext(x, envO);
+  const JUG = en("JUGADORES"), EST = en("ESTADIOS"), PIS = en("PISTAS"), DIFS = en("DIFS");
+
+  /* 🧑 cada jugador es distinto por fuera */
+  const firmas = new Set(JUG.map(j => [j.camiseta, j.piel, j.pelo, j.cabeza].join("|")));
+  const peinados = new Set(JUG.map(j => j.cabeza)), zurdos = JUG.filter(j => j.zurdo).length;
+  console.log("  " + JUG.length + " jugadores: " + firmas.size + " aspectos distintos · " + peinados.size + " peinados (" + [...peinados].join(", ") + ") · " + zurdos + " zurdos · estaturas de " +
+              Math.round(185 * Math.min(...JUG.map(j => j.talla))) + " a " + Math.round(185 * Math.max(...JUG.map(j => j.talla))) + " cm");
+  if (JUG.length < 4 || firmas.size !== JUG.length) MAL("hay jugadores repetidos");
+  if (peinados.size < 4) MAL("casi todos llevan la misma cabeza");
+  if (!zurdos) MAL("no hay ningún zurdo");
+  if (JUG.some(j => j.vel < 0.85 || j.vel > 1.15 || j.pot < 0.85 || j.pot > 1.15)) MAL("algún jugador es demasiado bueno o demasiado malo");
+  /* el rival sale al azar, nunca eres tú, y salen todos */
+  const rivales = new Set(); let contraTi = 0;
+  G.elegido = 2;
+  for (let i = 0; i < 300; i++) { TO.nuevoPartido(); rivales.add(G.ia.ficha.nom); if (G.ia.ficha === G.jug.ficha) contraTi++; }
+  console.log("  en 300 partidos con " + JUG[2].nom + ": rivales distintos " + rivales.size + " de " + (JUG.length - 1) + " · veces contra ti mismo: " + contraTi);
+  if (contraTi) MAL("te ha tocado jugar contra ti mismo");
+  if (rivales.size !== JUG.length - 1) MAL("hay rivales que no salen nunca");
+  /* todos se pintan sin nada roto (con su estatura, su pelo y si son zurdos) */
+  chivato.nan = 0; chivato.negativos = 0;
+  for (const j of JUG) for (const q of [G.jug, G.ia]) { q.ficha = j; TO.animaJugador(q, 1 / 60); TO.pintaJugador(q, "#fff", "#000", q === G.jug); }
+  console.log("  los " + JUG.length + " jugadores pintados de los dos lados: " + chivato.nan + " NaN · " + chivato.negativos + " radios negativos");
+  if (chivato.nan || chivato.negativos) MAL("algún jugador se pinta roto");
+
+  /* 🙂 la cara solo se ve si la cabeza mira a la cámara */
+  const cabeza = { x: 0, y: 1.7, z: 23.77 };
+  chivato.dibujos = 0; envO.pintaCara(cabeza, 0, -1, -1, 0, 0.118, [30, 20, 10], [230, 190, 150]); const deFrente = chivato.dibujos;
+  chivato.dibujos = 0; envO.pintaCara(cabeza, 0, 1, 1, 0, 0.118, [30, 20, 10], [230, 190, 150]); const deEspaldas = chivato.dibujos;
+  console.log("  la cara de alguien que te mira: " + deFrente + " trazos (ojos, cejas, nariz y boca) · de espaldas: " + deEspaldas);
+  if (deFrente < 8) MAL("a quien te mira no se le ve la cara");
+  if (deEspaldas) MAL("se pinta la cara en la nuca");
+  const tramoPublico = html.slice(html.indexOf("function pintaFilaGente("), html.indexOf("function pintaEstadio("));
+  const tramoPersona = html.slice(html.indexOf("function pintaPersona("), html.indexOf("function pintaSilla("));
+  if (!/PELOS/.test(tramoPublico) || !/caras/.test(tramoPublico)) MAL("el público no tiene pelo o cara");
+  if (!/pintaCara/.test(tramoPersona) || !/pelo/.test(tramoPersona)) MAL("los jueces no tienen cara o pelo");
+
+  /* 🎾 cada pista bota distinto: la misma bola, soltada igual en las tres */
+  const bote = {};
+  for (const k of Object.keys(PIS)) {
+    G.pista = k; TO.nuevoPartido(); G.estado = "juego";
+    const b = G.bola; Object.assign(b, { x: 0, y: 1.2, z: 16, vx: 0, vy: -3, vz: 12, giro: 0, viva: true, lado: 0, botes: 0 });
+    let alto = 0, velTras = 0;
+    for (let f = 0; f < 240; f++) { en("bolaCorre(1/60)"); if (b.botes === 1) { if (!velTras) velTras = b.vz; alto = Math.max(alto, b.y); } if (b.botes > 1 || G.estado !== "juego") break; }
+    bote[k] = { alto, velTras };
+  }
+  console.log("  tras el bote: " + Object.keys(bote).map(k => PIS[k].nom + " sube " + bote[k].alto.toFixed(2) + " m y sale a " + bote[k].velTras.toFixed(1) + " m/s").join(" · "));
+  if (!(bote.arcilla.alto > bote.dura.alto && bote.dura.alto > bote.pasto.alto)) MAL("la arcilla tiene que botar más alto que la dura, y la dura más que el pasto");
+  if (!(bote.arcilla.velTras < bote.dura.velTras && bote.dura.velTras < bote.pasto.velTras)) MAL("la arcilla tiene que frenar la bola y el pasto dejarla correr");
+  if (!html.includes("function pintaSombrilla(") || !/pintaSombrilla\(g\)/.test(html)) MAL("el juez de silla no tiene sombrilla");
+
+  /* 🏟️ los 9 cruces de estadio y pista se pintan enteros sin nada roto (la noche con sus focos) */
+  chivato.nan = 0; chivato.negativos = 0; let cruces = 0;
+  for (const e of Object.keys(EST)) for (const p of Object.keys(PIS)) {
+    G.estadio = e; G.pista = p; TO.nuevoPartido(); G.estado = "juego"; G.marcas = [{ x: 1, z: 18, a: 0.2 }];
+    for (let i = 0; i < 4; i++) { G.t += 1 / 60; TO.dibuja(); } cruces++;
+  }
+  console.log("  " + cruces + " cruces de estadio y pista (" + Object.values(EST).map(x => x.nom).join(", ") + " × " + Object.values(PIS).map(x => x.nom).join(", ") + "): " + chivato.nan + " NaN · " + chivato.negativos + " radios negativos");
+  if (chivato.nan || chivato.negativos) MAL("algún estadio o pista se pinta roto");
+  for (const id of ["optJug", "optEst", "optPista"]) if (!html.includes('id="' + id + '"')) MAL("en el menú falta " + id);
+
+  /* 🏆 la máquina: se mide cuántos de tus golpes buenos devuelve, con el juego de verdad */
+  const devuelve = {};
+  for (const dif of ["facil", "normal", "dificil"]) {
+    let bien = 0, vuelve = 0;
+    for (let i = 0; i < 200; i++) {
+      G.dif = dif; G.pista = "pasto"; TO.nuevoPartido(); G.estado = "juego"; G.fin = false;
+      const J = G.jug, I = G.ia; J.x = (Math.random() * 2 - 1) * 2.5; J.z = -1.2; I.x = (Math.random() * 2 - 1) * 2; I.z = 23.77 + 1.2;
+      Object.assign(G.bola, { x: J.x + 0.3, y: 1.0, z: J.z + 0.2 });
+      TO.golpea(J, Math.random() < 0.5 ? "plano" : "lift", 0.5 + Math.random() * 0.4, (Math.random() * 2 - 1) * 8.23 * 0.42, false, Math.random());
+      let r = "";
+      for (let f = 0; f < 900; f++) {
+        TO.animaJugador(J, 1 / 60); TO.animaJugador(I, 1 / 60); en("iaCorre(1/60); bolaCorre(1/60)");
+        const b = G.bola;
+        if (G.estado === "fin_punto") { r = (b.lado === 0 && /fuera|red/i.test(G.msg || "")) ? "tuFallo" : "punto"; break; }
+        if (b.lado === 1 && b.botes >= 1 && b.z < 23.77 / 2) { r = "vuelve"; break; }
+      }
+      if (r === "tuFallo" || !r) continue;
+      bien++; if (r === "vuelve") vuelve++;
+    }
+    devuelve[dif] = vuelve / Math.max(1, bien);
+  }
+  console.log("  de tus golpes buenos, la máquina devuelve: FÁCIL " + Math.round(devuelve.facil * 100) + "% · NORMAL " + Math.round(devuelve.normal * 100) + "% · DIFÍCIL " + Math.round(devuelve.dificil * 100) + "% (antes: 99%, 98% y 93%)");
+  /* con 200 golpes la medida baila unos ±3 puntos: el límite deja ese margen, y aun así queda muy lejos del 98% de antes */
+  if (!(devuelve.normal <= 0.88)) MAL("en NORMAL la máquina lo devuelve casi todo: cuesta demasiado hacerle un punto");
+  if (!(devuelve.facil < devuelve.normal && devuelve.normal < devuelve.dificil)) MAL("los niveles no van de más fácil a más difícil");
+
+  /* 🟡 la pelota se nota: grande (al menos 5 px a 2K aunque esté lejos), con halo y contorno */
+  const tramoBola = html.slice(html.indexOf("function pintaBola("), html.indexOf("function pintaApunte("));
+  const minimo = +((tramoBola.match(/const r=Math\.max\(([\d.]+)\*u/) || [])[1] || 0);
+  console.log("  la pelota mide como mínimo " + minimo + " px de radio a 2K, con halo y contorno: " + (/halo/.test(tramoBola) && /stroke\(\)/.test(tramoBola)));
+  if (minimo < 5) MAL("la pelota es demasiado pequeña");
+  if (!/halo/.test(tramoBola) || !/stroke\(\)/.test(tramoBola)) MAL("la pelota no tiene halo o contorno");
+}
+
 console.log("");
 if (malos) { console.log("❌ " + malos + " fallo(s)"); process.exit(1); }
 console.log("✅ jugadores con esqueleto de verdad (huesos que no se estiran, derecha, revés, saque, carrera y saltito) y calidad 2K comprobada");
