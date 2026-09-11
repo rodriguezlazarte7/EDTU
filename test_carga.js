@@ -79,6 +79,11 @@ else console.log("  ✅ sin relojes colgando");
 
 /* ---------- 5) el seguro: si el mundo NUNCA carga, no te deja encerrado ---------- */
 const abre = html.slice(html.indexOf("function abreMundo("), html.indexOf("function cierraMundo("));
+/* el navegador de mentira también necesita requestAnimationFrame: al abrir un mundo arranca el
+   PUENTE DEL MANDO, que va fotograma a fotograma. Los fotogramas se guardan para moverlos a mano */
+const cuadros = [];
+global.requestAnimationFrame = cb => { cuadros.push(cb); return cuadros.length; };
+global.cancelAnimationFrame = () => {};
 const fn = new Function("$", "Carga", abre + "; return abreMundo;")(nuevo, Carga);
 fn("swFrame", "swFs", "starwars.html", "STAR WARS", ["…"]);
 console.log("  entro a STAR WARS: cargador " + abierto() + " · el marco apunta a «" + el.swFrame.src + "» · panel abierto " + el.swFs.classList.contains("open"));
@@ -107,6 +112,34 @@ const faltan = mundos.filter(m => !new RegExp('abreMundo\\("' + m + '"').test(ht
 console.log("  mundos con cargador: " + (mundos.length - faltan.length) + "/5" + (faltan.length ? " (faltan " + faltan.join(", ") + ")" : ""));
 if (faltan.length) MAL("hay mundos sin cargador");
 if (!/window\.EDTUCarga=Carga/.test(html)) MAL("el cargador no queda disponible para el resto de EDTU");
+
+/* ---------- 8) 🎮 EL PUENTE DEL MANDO ----------
+   El navegador solo le da el mando a la página que tiene el foco, y al abrir un mundo el foco se
+   queda en el cuartel. El puente le pasa el mando al juego fotograma a fotograma. Aquí se comprueba
+   que lo pasa mientras el mundo está abierto y que se CALLA al cerrarlo */
+nuevo("tenFrame"); nuevo("tenFs");
+const mensajes = [];
+el.tenFrame.contentWindow = { postMessage: d => mensajes.push(d), focus: () => {} };
+el.tenFrame.focus = () => {};
+const padFalso = { id: "Xbox Wireless Controller", axes: [0.8, -0.5, 0, 0],
+  buttons: [{ pressed: true, value: 1 }, { pressed: false, value: 0 }, { pressed: false, value: 0 }, { pressed: false, value: 0 }] };
+try { Object.defineProperty(globalThis, "navigator", { value: { getGamepads: () => [padFalso] }, configurable: true, writable: true }); }
+catch (e) { MAL("no se pudo simular el mando en esta versión de Node: " + e.message); }
+correr(20000);                                           /* que acabe lo de antes */
+cuadros.length = 0;
+fn("tenFrame", "tenFs", "tennis.html", "EDTU TENNIS", ["…"]);
+for (let i = 0; i < 5 && cuadros.length; i++) cuadros.shift()();
+console.log("  con el tenis abierto, el puente le pasa el mando al juego: " + mensajes.length + " mensajes en 5 fotogramas · palanca x=" +
+            (mensajes[0] ? mensajes[0].axes[0] : "?") + " · botón A=" + (mensajes[0] ? mensajes[0].buttons[0] : "?"));
+if (mensajes.length < 4) MAL("el puente no le pasa el mando al juego");
+if (mensajes[0] && (mensajes[0].axes[0] !== 0.8 || mensajes[0].buttons[0] !== true)) MAL("el puente pasa mal la palanca o los botones");
+el.tenFs.classList.remove("open");
+const antesDeCerrar = mensajes.length;
+for (let i = 0; i < 5 && cuadros.length; i++) cuadros.shift()();
+console.log("  al cerrar el tenis: " + (mensajes.length - antesDeCerrar) + " mensajes más y " + cuadros.length + " fotogramas pendientes (se para solo)");
+if (mensajes.length !== antesDeCerrar) MAL("el puente sigue mandando el mando con el juego cerrado");
+if (cuadros.length) MAL("el puente se queda dando vueltas con el juego cerrado");
+correr(20000);
 
 console.log("");
 if (malos) { console.log("❌ " + malos + " fallo(s)"); process.exit(1); }
