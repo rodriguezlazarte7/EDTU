@@ -70,6 +70,7 @@ kbd{border:1px solid #5a5370;border-radius:3px;padding:1px 6px;background:#1c1a2
   <div class="tb" id="tFreno" style="right:26vw;bottom:5vh;width:14vmin;height:14vmin">FRENO</div>
   <div class="tb" id="tNitro" style="right:6vw;bottom:26vh;width:13vmin;height:13vmin">🔥</div>
   <div class="tb" id="tMano" style="right:26vw;bottom:21vh;width:12vmin;height:12vmin">DERRAPE</div>
+  <div class="tb" id="tEntrar" style="left:50%;transform:translateX(-50%);bottom:30vh;width:26vmin;height:13vmin;border-radius:8px;display:none">🏁 CORRER</div>
 </div>
 <div id="nogl">Este navegador no puede dibujar en 3D (WebGL2).<br>Prueba con Chrome o Edge actualizados.</div>
 <button id="salir">✕ Salir</button>
@@ -1852,19 +1853,21 @@ function padCrudo(){
 }
 /* lo que quiere hacer el jugador ahora mismo: gas, freno, giro, freno de mano y nitro */
 function leeEntrada(){
-  const E={ gas:0, freno:0, giro:0, mano:false, nitro:false };
+  const E={ gas:0, freno:0, giro:0, mano:false, nitro:false, entrar:false };
   if(TECLAS.KeyW||TECLAS.ArrowUp||TACTIL.gas) E.gas=1;
   if(TECLAS.KeyS||TECLAS.ArrowDown||TACTIL.freno) E.freno=1;
   if(TECLAS.KeyA||TECLAS.ArrowLeft||TACTIL.izq) E.giro-=1;
   if(TECLAS.KeyD||TECLAS.ArrowRight||TACTIL.der) E.giro+=1;
   if(TECLAS.Space||TACTIL.mano) E.mano=true;
   if(TECLAS.ShiftLeft||TECLAS.ShiftRight||TECLAS.KeyN||TACTIL.nitro) E.nitro=true;
+  if(TECLAS.KeyE||TECLAS.Enter||TACTIL.entrar) E.entrar=true;   /* 🏁 entrar en la carrera */
   const P=padCrudo();
   if(P){
     const x=P.axes[0]||0; if(Math.abs(x)>0.12) E.giro=clamp(E.giro+Math.sign(x)*((Math.abs(x)-0.12)/0.88),-1,1);
     E.gas=Math.max(E.gas,P.boton(7)); E.freno=Math.max(E.freno,P.boton(6));                  /* RT gas · LT freno */
     if(P.boton(0)>0.5||P.boton(5)>0.5) E.nitro=true;                                           /* A o RB: nitro */
     if(P.boton(2)>0.5||P.boton(1)>0.5) E.mano=true;                                            /* X o B: freno de mano */
+    if(P.boton(12)>0.5) E.entrar=true;                                                         /* cruceta arriba: entrar en la carrera */
     const pulsa=i=>P.boton(i)>0.5&&!PAD.antes[i];
     if(G.estado==="juego"){ if(pulsa(3)) G.cam.modo=(G.cam.modo+1)%3; if(pulsa(4)) G.mapa=!G.mapa; if(pulsa(9)) G.pausa=!G.pausa; if(pulsa(8)){ recolocaCoche(G.coche); avisa("DE VUELTA A LA CARRETERA","#c8ff2e"); } }
     else if(G.estado==="menu" && pulsa(0)) empieza();
@@ -1879,7 +1882,7 @@ function preparaTactil(){
   const une=(id,k)=>{ const el=document.getElementById(id); if(!el) return;
     const on=e=>{ e.preventDefault(); TACTIL[k]=true; el.classList.add("on"); }, off=e=>{ e.preventDefault(); TACTIL[k]=false; el.classList.remove("on"); };
     el.addEventListener("pointerdown",on); el.addEventListener("pointerup",off); el.addEventListener("pointercancel",off); el.addEventListener("pointerleave",off); };
-  une("tIzq","izq"); une("tDer","der"); une("tGas","gas"); une("tFreno","freno"); une("tNitro","nitro"); une("tMano","mano");
+  une("tIzq","izq"); une("tDer","der"); une("tGas","gas"); une("tFreno","freno"); une("tNitro","nitro"); une("tMano","mano"); une("tEntrar","entrar");
   return tactil;
 }
 
@@ -2089,6 +2092,17 @@ function pintaHud(C,dt){
     x.fillStyle="rgba(255,255,255,.18)"; x.fillRect(cx-170*u,y0+64*u,340*u,5*u);
     x.fillStyle=lejos?"#c8ff2e":"#ff3a48"; x.fillRect(cx-170*u,y0+64*u,340*u*(lejos?clamp(POLICIA.escape/6,0,1):clamp(POLICIA.parado/3,0,1)),5*u);
   }
+  /* 🏁 el cartel de entrar en una carrera, cuando tienes una al lado */
+  if(G.carreraCerca && !CARRERA.activa){
+    const nom=G.carreraCerca.nombre.replace("CARRERA · ",""), y0=vert?H*0.44:H*0.70;
+    const w=Math.min(560*u,W*0.86), x0=(W-w)/2;
+    x.fillStyle="rgba(8,10,20,.78)"; x.fillRect(x0,y0,w,66*u);
+    x.fillStyle="#9b3dff"; x.fillRect(x0,y0,w,5*u);
+    x.textAlign="center"; x.textBaseline="middle";
+    x.font=fuente("900 italic",24); x.fillStyle="#fff"; x.fillText("🏁 "+nom,W/2,y0+25*u);
+    x.font=fuente("800",17); x.fillStyle="#c8ff2e";
+    x.fillText(ES_TACTIL()?"toca CORRER para empezar":"pulsa E (o ▲ del mando) para correr",W/2,y0+50*u);
+  }
   /* ✨ los trucos, sobre el velocímetro (en amarillo, como en el video) */
   G.trucos=G.trucos.filter(q=>(q.t-=dt)>0);
   x.textAlign="right"; x.font=fuente("900 italic",19);
@@ -2179,6 +2193,7 @@ function premio(def,valor,texto){
 }
 function eventosCorren(dt,ev){
   const C=G.coche;
+  let cerca=null;
   for(const k in RECUERDA) if((RECUERDA[k]-=dt)<=0) delete RECUERDA[k];
   /* la zona de derrape en marcha */
   if(G.evento){ const Z=G.evento, q=carreteraCerca(C.x,C.z,40);
@@ -2196,9 +2211,14 @@ function eventosCorren(dt,ev){
         valor(){ return this.metros; }, texto(){ return Math.round(this.metros)+" m"; }, metaTxt:m=>m+" m" };
       G.evento=Z; avisa("ZONA DE DERRAPE","#b46bff"); pitido(660,0.2);
     }
-    if(e.tipo==="carrera" && !CARRERA.activa && d<12){ RECUERDA[id]=2; empiezaCarrera(e.carrera,C); }
+    if(e.tipo==="carrera" && !CARRERA.activa && d<26){ cerca=e; }   /* 🏁 solo se ofrece: entras tú */
     if(e.tipo==="radar" && d<11){ RECUERDA[id]=6; premio(e,Math.round(C.kmh),"RADAR · "+Math.round(C.kmh)+" km/h"); }
   }
+  /* 🏁 si hay una carrera al lado, se ofrece; y si pulsas E (o ▲), empieza */
+  G.carreraCerca=cerca;
+  const btnEntrar=document.getElementById("tEntrar");
+  if(btnEntrar) btnEntrar.style.display=(cerca&&ES_TACTIL())?"flex":"none";
+  if(cerca && ev.entrar && !CARRERA.activa){ RECUERDA[idEvento(cerca)]=2; empiezaCarrera(cerca.carrera,C); G.carreraCerca=null; }
   /* 🛫 los saltos: se mide desde que despega cerca de una rampa hasta que aterriza */
   if(ev.despega){ const r=EVENTOS.find(e=>e.tipo==="salto"&&Math.hypot(e.rampa.x+e.rampa.tx*e.rampa.largo-C.x,e.rampa.z+e.rampa.tz*e.rampa.largo-C.z)<40);
     G.salto={ x:C.x, z:C.z, def:r||null }; }
@@ -2281,7 +2301,7 @@ function pintaMenu(){
     "Si va a tirones, el juego baja la calidad solo y te avisa. Los fps se ven en la esquina mientras juegas";
   $("ayuda").innerHTML = ES_TACTIL()
     ? "◀ ▶ girar · <b>GAS</b> y <b>FRENO</b> · <b>DERRAPE</b> suelta la parte de atrás · 🔥 nitro"
-    : "<kbd>W</kbd> gas · <kbd>S</kbd> freno · <kbd>A</kbd> <kbd>D</kbd> girar · <kbd>ESPACIO</kbd> derrape · <kbd>SHIFT</kbd> nitro · <kbd>C</kbd> cámara · <kbd>M</kbd> mapa · <kbd>R</kbd> volver a la carretera · <kbd>P</kbd> pausa<br>"+
+    : "<kbd>W</kbd> gas · <kbd>S</kbd> freno · <kbd>A</kbd> <kbd>D</kbd> girar · <kbd>ESPACIO</kbd> derrape · <kbd>SHIFT</kbd> nitro · <kbd>E</kbd> entrar en una carrera · <kbd>C</kbd> cámara · <kbd>M</kbd> mapa · <kbd>R</kbd> volver · <kbd>P</kbd> pausa<br>"+
       "🎮 mando: <kbd>RT</kbd> gas · <kbd>LT</kbd> freno · stick izquierdo gira · <kbd>X</kbd>/<kbd>B</kbd> derrape · <kbd>A</kbd>/<kbd>RB</kbd> nitro · <kbd>Y</kbd> cámara · <kbd>LB</kbd> mapa · <kbd>START</kbd> pausa<br>"+
       "💜 en el mapa: <b>zonas de derrape</b>, <b>radares</b>, <b>saltos</b> y 🏁 <b>carreras</b> contra NOVA, KIRO y LENA · cada uno da hasta 3 estrellas y dinero<br>"+
       "🚗 hay <b>tráfico</b>: adelantar en sentido contrario y pasar rozando llena el nitro · 🚓 si te ve la <b>policía</b> a más de 120 km/h te persigue: despístalos y cobras, te pillan parado y pagas<br>"+
@@ -2332,6 +2352,7 @@ function bucle(ahora){
     G.marchaAnt=G.coche.marcha;
     if(G.coche.usandoNitro && !G.nitroAnt) whoosh();
     G.nitroAnt=G.coche.usandoNitro;
+    junto.entrar=E.entrar;
     eventosCorren(dt,junto); trucosCorren(dt,junto); emite(dt,junto); particulasCorren(dt);
     camaraSigue(G.cam,G.coche,dt); G.t+=dt;
     if((zonaT-=dt)<=0){ zonaT=0.5; G.zona=zonaDe(G.coche.x,G.coche.z); }
@@ -2391,6 +2412,8 @@ function modoFoto(){
     POLICIA.nivel=2; POLICIA.calor=0.4; POLICIA.t=0.05;                    /* 🚓 dos patrullas pegadas a ti */
     for(const [lx,lz] of [[-3.6,5],[3.4,-3]])   /* a tu lado, que se vean */{ const p=puntoCoche(C,lx,0,lz); POLICIA.coches.push({ x:p.x, z:p.z, y:sueloEn(p.x,p.z).y, rumbo:C.rumbo, vel:58, golpe:0, malla:POLI_MALLA }); }
   }
+  else if(sitio==="oferta"){ const ev=EVENTOS.find(e=>e.tipo==="carrera"&&/CIUDAD/.test(e.carrera.nombre));
+    const c=ev.carrera.c, i=Math.max(0,ev.carrera.i0-4); pon(c,i,1,46); G.carreraCerca=ev; }
   else if(sitio==="carrera"){ const ev=EVENTOS.find(e=>e.tipo==="carrera"&&e.carrera.nombre==="VUELTA AL LAGO"); empiezaCarrera(ev.carrera,C);
     const A=CARRERA.activa; A.t=31.4; A.cuenta=0; A.tiempo=31.4;
     for(let k=0;k<420;k++){ for(const R of RIVALES) rivalCorre(R,1/60,C); }             /* 7 s de carrera de los rivales */
