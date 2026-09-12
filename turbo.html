@@ -1267,6 +1267,126 @@ function vasAlReves(C){
                                                           no solo rozando el eje al recortar una curva */
 }
 
+/* ================= 🚓 LA POLICÍA =================
+   Patrullas que circulan como el tráfico. Si pasas volando a su lado (o te las llevas por delante) se
+   lanzan a por ti: sirena, luces, embestidas y refuerzos por niveles. O los despistas (y cobras) o te
+   pillan parado (y pagas) */
+const POLICIA={ nivel:0, calor:0, coches:[], escape:0, parado:0, aviso:0, t:0, despistados:0, pillado:0 };
+const POLI_MALLA=8;                                  /* la malla 8 de la lista del tráfico */
+const POLI_VMAX=[0,54,60,64];                        /* m/s por nivel (195, 216 y 230 km/h): con nitro se les escapa */
+/* 🚓 el coche patrulla: blanco con las puertas negras, barra de luces y el rótulo */
+function obraPoliciaMalla(){
+  const O=new Obra(), blanco=[0.86,0.87,0.9], negro=[0.05,0.05,0.06], EXT=[0.6,0], vidrio=[0.05,0.07,0.09];
+  const L=4.6, W=1.86, H=0.8;
+  O.caja(0,0.34,0,W,H,L,blanco,EXT);
+  O.caja(0,0.34+H,-0.25,W*0.92,0.74,L*0.46,vidrio,[0.9,0]);
+  O.caja(0,0.34+H+0.71,-0.25,W*0.86,0.06,L*0.42,blanco,EXT);
+  for(const sx of [-1,1]) O.caja(sx*(W/2-0.01),0.5,0.1,0.03,0.55,1.9,negro,EXT);          /* las puertas negras */
+  O.caja(0,0.34+H-0.02,L/2-0.55,W*0.96,0.05,0.9,negro,EXT);                                  /* el capó negro */
+  O.caja(0,0.34+H+0.77,-0.2,1.3,0.16,0.34,[0.1,0.1,0.12],[0.3,0]);                           /* la barra */
+  O.caja(-0.42,0.34+H+0.79,-0.2,0.5,0.16,0.32,[0.2,0.35,1.0],[0.3,1.6]);                     /* azul */
+  O.caja(0.42,0.34+H+0.79,-0.2,0.5,0.16,0.32,[1.0,0.15,0.12],[0.3,1.6]);                     /* rojo */
+  for(const sx of [-0.62,0.62]){
+    O.caja(sx*W/2*1.05,0.62,L/2-0.02,0.34,0.14,0.06,[1,0.96,0.85],[0.8,1.1]);
+    O.caja(sx*W/2*1.05,0.62,-L/2+0.02,0.34,0.14,0.06,[1,0.08,0.06],[0.4,1.0]);
+  }
+  O.caja(0,0.28,L/2-0.1,W*0.9,0.12,0.2,negro,[0.2,0]); O.caja(0,0.28,-L/2+0.1,W*0.9,0.12,0.2,negro,[0.2,0]);
+  for(const z of [L*0.30,-L*0.30]) for(const sx of [-1,1]){ const x=sx*(W/2-0.16);
+    for(let s=0;s<10;s++){ const a0=s/10*TAU, a1=(s+1)/10*TAU, r=0.33;
+      const p=(a,xx)=>v3(x+xx,0.33+Math.sin(a)*r,z+Math.cos(a)*r);
+      O.quad(p(a0,-0.12),p(a0,0.12),p(a1,0.12),p(a1,-0.12),negro,[0.15,0]); } }
+  return O;
+}
+const patrullas=()=>TRAFICO.filter(v=>v.poli);
+/* un perseguidor nuevo, sobre tu carretera, a 160-240 m (por detrás si se puede) */
+function nacePerseguidor(C){
+  const q=carreteraCerca(C.x,C.z,60); if(!q) return null;
+  const c=q.c, n=c.n, atras=-Math.sign(Math.sin(C.rumbo)*q.tx+Math.cos(C.rumbo)*q.tz)||-1;
+  let i=q.i+atras*Math.round((160+Math.random()*80)/MUESTRA);
+  if(c.cerrada) i=((i%n)+n)%n; else if(i<0||i>=n) i=q.i-atras*Math.round(200/MUESTRA), i=clamp(i,0,n-1);
+  const P={ x:c.x[i], z:c.z[i], y:c.y[i], rumbo:Math.atan2(C.x-c.x[i],C.z-c.z[i]), vel:20, golpe:0, malla:POLI_MALLA };
+  POLICIA.coches.push(P); return P;
+}
+function empiezaPersecucion(C,motivo){
+  if(POLICIA.nivel===0){ POLICIA.nivel=1; POLICIA.calor=0; POLICIA.escape=0; POLICIA.parado=0;
+    avisa("🚨 BUSCADO · "+motivo,"#ff4a5a",2.8); pitido(880,0.15,"square"); setTimeout(()=>pitido(660,0.15,"square"),160); }
+  /* las patrullas que te vieron se convierten en perseguidores */
+  for(let k=TRAFICO.length-1;k>=0;k--){ const v=TRAFICO[k]; if(!v.poli) continue;
+    if(Math.hypot(v.x-C.x,v.z-C.z)<110){ TRAFICO.splice(k,1); POLICIA.coches.push({ x:v.x, z:v.z, y:v.y, rumbo:v.rumbo, vel:v.vel, golpe:0, malla:POLI_MALLA }); } }
+}
+function policiaCorre(dt,C){
+  const ev={}, vel=Math.hypot(C.vx,C.vz), kmh=vel*3.6;
+  POLICIA.t+=dt;
+  /* 1) siempre hay un par de patrullas rondando entre el tráfico */
+  if(patrullas().length<2){ const lejos=TRAFICO.filter(v=>!v.poli&&Math.hypot(v.x-C.x,v.z-C.z)>150);
+    if(lejos.length){ const v=lejos[(Math.random()*lejos.length)|0]; v.poli=true; v.malla=POLI_MALLA; } }
+  /* 2) sin persecución: ¿te ven hacer algo? */
+  if(POLICIA.nivel===0){
+    for(const v of patrullas()){ const d=Math.hypot(v.x-C.x,v.z-C.z);
+      if(d<75 && kmh>120){ empiezaPersecucion(C,"exceso de velocidad"); break; }
+      if(d<3.6){ empiezaPersecucion(C,"has embestido a una patrulla"); break; } }
+    return ev;
+  }
+  /* 3) en persecución: refuerzos según el nivel, y el calor sube con el tiempo y los golpes */
+  POLICIA.calor+=dt*0.008;
+  const nivelObj=POLICIA.calor>0.66?3:POLICIA.calor>0.33?2:1;
+  if(nivelObj>POLICIA.nivel){ POLICIA.nivel=nivelObj; avisa("🚨 NIVEL "+POLICIA.nivel+" · LLEGAN REFUERZOS","#ff4a5a",2.2); pitido(990,0.2,"square"); }
+  const quiero=[0,2,3,4][POLICIA.nivel];
+  if(POLICIA.coches.length<quiero && POLICIA.escape<0.5 && Math.random()<dt*0.5) nacePerseguidor(C);   /* sin refuerzos mientras te estás escapando */
+  /* 4) cada perseguidor va a por ti (por donde sea), esquiva lo que choca y te embiste */
+  const vmax=POLI_VMAX[POLICIA.nivel];
+  let masCerca=1e9;
+  for(let k=POLICIA.coches.length-1;k>=0;k--){ const P=POLICIA.coches[k];
+    const dx=C.x-P.x, dz=C.z-P.z, d=Math.hypot(dx,dz); masCerca=Math.min(masCerca,d);
+    if(d>650){ POLICIA.coches.splice(k,1); continue; }                     /* se quedó atrás del todo */
+    /* apunta un poco por delante de ti (te corta el paso) */
+    const ade=clamp(d*0.35,0,25), ox=C.x+Math.sin(C.rumbo)*ade, oz=C.z+Math.cos(C.rumbo)*ade;
+    const objetivo=Math.atan2(ox-P.x,oz-P.z), dif=angDif(P.rumbo,objetivo);
+    const giroMax=lerp(2.6,0.9,clamp(P.vel/50,0,1));
+    P.rumbo+=clamp(dif,-giroMax*dt,giroMax*dt);
+    const S=sueloEn(P.x,P.z), enCarr=!!S.carretera;
+    let velObj=vmax*(enCarr?1:0.62); if(Math.abs(dif)>0.7) velObj*=0.55; if(d<12) velObj=Math.max(vel+3,12);
+    if(vel<4 && d<30) velObj=clamp((d-6)*1.2,0,12);                    /* 🐛 estás parado: se arriman y FRENAN a tu lado (antes daban vueltas) */
+    P.vel+=clamp(velObj-P.vel,-14*dt,9*dt);
+    let nx=P.x+Math.sin(P.rumbo)*P.vel*dt, nz=P.z+Math.cos(P.rumbo)*P.vel*dt;
+    const h=choqueEn(nx,nz,1.2); if(h){ nx+=h.nx*h.pen; nz+=h.nz*h.pen; P.vel*=0.6; P.rumbo+=(Math.random()-0.5)*0.4; }
+    const tope=MITAD-25; nx=clamp(nx,-tope,tope); nz=clamp(nz,-tope,tope);
+    P.x=nx; P.z=nz; P.y=sueloEn(P.x,P.z).y; P.golpe=Math.max(0,P.golpe-dt);
+    /* que no se monten unos encima de otros */
+    for(const O of POLICIA.coches){ if(O===P) continue; const ex=P.x-O.x, ez=P.z-O.z, e=Math.hypot(ex,ez); if(e<3.6&&e>0.01){ P.x+=ex/e*(3.6-e)*0.5; P.z+=ez/e*(3.6-e)*0.5; } }
+    /* 💥 la embestida */
+    const ddx=C.x-P.x, ddz=C.z-P.z, dd=Math.hypot(ddx,ddz);
+    if(dd<3.4){ const nX=ddx/(dd||1), nZ=ddz/(dd||1), vn=(C.vx-Math.sin(P.rumbo)*P.vel)*nX+(C.vz-Math.cos(P.rumbo)*P.vel)*nZ;
+      if(vn<0){ C.x=P.x+nX*3.5; C.z=P.z+nZ*3.5; C.vx-=nX*vn*1.4; C.vz-=nZ*vn*1.4; C.vx*=0.85; C.vz*=0.85; P.vel*=0.7;
+        ev.choque=Math.max(ev.choque||0,-vn); C.golpe=Math.min(1,-vn/20); POLICIA.calor=Math.min(1,POLICIA.calor+0.02); }
+    }
+  }
+  /* 5) despistarlos: 6 s con todos a más de 180 m · o que te pillen: 3 s parado con uno al lado */
+  if(masCerca>180 || POLICIA.coches.length===0){ POLICIA.escape+=dt; if(POLICIA.escape>=6){ ev.despistado=true; acabaPersecucion(true); return ev; } }
+  else POLICIA.escape=Math.max(0,POLICIA.escape-dt*2);
+  if(vel<3 && masCerca<12){ POLICIA.parado+=dt; if(POLICIA.parado>=3){ ev.pillado=true; acabaPersecucion(false); return ev; } }
+  else POLICIA.parado=Math.max(0,POLICIA.parado-dt);
+  return ev;
+}
+function acabaPersecucion(escapaste){
+  const n=POLICIA.nivel;
+  if(escapaste){ const premio=800*n+Math.round(POLICIA.calor*2000); AJUSTES.dinero+=premio; POLICIA.despistados++;
+    avisa("😎 LOS HAS DESPISTADO","#c8ff2e",3); avisa("+ $ "+premio.toLocaleString("es-CL"),"#c8ff2e",3); pitido(1318,0.3); setTimeout(()=>pitido(1760,0.35),150); }
+  else { const multa=Math.round(AJUSTES.dinero*0.15); AJUSTES.dinero-=multa; POLICIA.pillado++;
+    avisa("🚔 ¡TE PILLARON!","#ff4a5a",3); avisa("− $ "+multa.toLocaleString("es-CL")+" de multa","#ff4a5a",3); pitido(220,0.5,"sawtooth"); }
+  guardaAjustes();
+  POLICIA.nivel=0; POLICIA.calor=0; POLICIA.escape=0; POLICIA.parado=0; POLICIA.coches.length=0;
+}
+/* 🚨 las luces: puntos de luz rojos y azules alternando sobre cada patrulla en persecución */
+function emitePolicia(dt){
+  const rojo=Math.floor(POLICIA.t*6)%2===0;
+  for(const P of POLICIA.coches){
+    const fx=Math.sin(P.rumbo), fz=Math.cos(P.rumbo), rx=fz, rz=-fx;
+    for(const lado of [-1,1]){ const esRojo=(lado>0)===rojo;
+      suelta({ x:P.x+rx*0.42*lado-fx*0.2, y:P.y+2.05, z:P.z+rz*0.42*lado-fz*0.2, vida:0.05, max:0.05, tam:1.1, r:esRojo?1:0.2, g:esRojo?0.12:0.35, b:esRojo?0.1:1, a:1.8, luz:true }); }
+  }
+}
+
 /* ================= 🎬 LA ESCENA: subir el mundo a la tarjeta y dibujarlo cada fotograma ================= */
 const ESC={}, TEX={};
 const SOL=vNorm(v3(-0.50,0.30,0.81));            /* ☀️ un sol bajo de tarde, como el del video */
@@ -1320,7 +1440,7 @@ async function subeMundo(progreso){
   ESC.pinos=subePinos(ARBOLES.length); gl.bindBuffer(gl.ARRAY_BUFFER,ESC.pinos.buf); gl.bufferSubData(gl.ARRAY_BUFFER,0,datosPinos(ARBOLES)); ESC.pinos.cuantos=ARBOLES.length;
   ESC.pinosCerca=subePinos(ARBOLES.length);
   ESC.rueda=subeMalla(obraRueda().malla());
-  ESC.trafico=obraTraficoMallas().map(o=>subeMalla(o.malla()));   /* 🚗 los coches del tráfico */
+  ESC.trafico=obraTraficoMallas().concat([obraPoliciaMalla()]).map(o=>subeMalla(o.malla()));   /* 🚗 el tráfico y 🚓 la patrulla (la 8) */
   subeCoche();
   /* ✨ las partículas: un cuadrado y hasta 2.000 copias */
   ESC.part={ vao:gl.createVertexArray(), buf:gl.createBuffer(), max:2000 };
@@ -1398,6 +1518,7 @@ function dibujaFotograma(C,K,t,efectos){
     const sm=(M,m)=>{ gl.uniformMatrix4fv(U(p,"uM"),false,m||ID4); gl.bindVertexArray(M.vao); gl.drawElements(gl.TRIANGLES,M.n,M.tipo,0); };
     sm(ESC.coche,Mc); for(const m of MR) sm(ESC.rueda,m);
     for(const v of TRAFICO) if(Math.abs(v.x-C.x)<120&&Math.abs(v.z-C.z)<120) sm(ESC.trafico[v.malla],m4Coche(v.x,v.y,v.z,v.rumbo,0,0));
+    for(const P of POLICIA.coches) if(Math.abs(P.x-C.x)<120&&Math.abs(P.z-C.z)<120) sm(ESC.trafico[POLI_MALLA],m4Coche(P.x,P.y,P.z,P.rumbo,0,0));
     sm(ESC.fachadas); sm(ESC.azoteas); sm(ESC.detalles); sm(ESC.arcenes);
     p=PROGS.sombraArbol; gl.useProgram(p); gl.uniformMatrix4fv(U(p,"uLuzVP"),false,RENDER.luzVP);
     gl.bindVertexArray(ESC.pinosCerca.vao); gl.drawElementsInstanced(gl.TRIANGLES,ESC.pinosCerca.n,ESC.pinosCerca.tipo,0,ESC.pinosCerca.cuantos);
@@ -1427,6 +1548,7 @@ function dibujaFotograma(C,K,t,efectos){
   gl.enable(gl.CULL_FACE);
   dibuja(ESC.coche,Mc,0); for(const m of MR) dibuja(ESC.rueda,m,0);
   for(const v of TRAFICO) dibuja(ESC.trafico[v.malla],m4Coche(v.x,v.y,v.z,v.rumbo,0,0),0);
+  for(const P of POLICIA.coches) dibuja(ESC.trafico[POLI_MALLA],m4Coche(P.x,P.y,P.z,P.rumbo,0,0),0);
   gl.disable(gl.CULL_FACE);
   p=PROGS.arbol; gl.useProgram(p); uniformesLuz(p,t); gl.uniformMatrix4fv(U(p,"uVP"),false,RENDER.vp); gl.uniform1f(U(p,"uModo"),0);
   gl.bindVertexArray(ESC.pinos.vao); gl.drawElementsInstanced(gl.TRIANGLES,ESC.pinos.n,ESC.pinos.tipo,0,ESC.pinos.cuantos);
@@ -1546,7 +1668,8 @@ function iniciaSonido(){
     const gCh=A.createGain(); gCh.gain.value=0; fuente.connect(chirrido); chirrido.connect(gCh); gCh.connect(M);
     const vientoF=A.createBiquadFilter(); vientoF.type="lowpass"; vientoF.frequency.value=500; const gV=A.createGain(); gV.gain.value=0; fuente.connect(vientoF); vientoF.connect(gV); gV.connect(M);
     fuente.start();
-    Object.assign(SON,{ ctx:A, o1, o2, motor, filtro, gCh, gV, chirrido });
+    const sir=A.createOscillator(), gS=A.createGain(); sir.type="triangle"; sir.frequency.value=700; gS.gain.value=0; sir.connect(gS); gS.connect(M); sir.start();
+    Object.assign(SON,{ ctx:A, o1, o2, motor, filtro, gCh, gV, chirrido, sir, gS });
   }catch(e){}
 }
 function sonidoCorre(C,E){
@@ -1557,6 +1680,11 @@ function sonidoCorre(C,E){
   SON.filtro.frequency.setTargetAtTime(500+E.gas*1500+C.rpm*800,t,k);
   SON.gCh.gain.setTargetAtTime(!G.pausa&&C.enSuelo&&(C.derrapando||Math.abs(C.vR)>4)?clamp(Math.abs(C.vR)/14,0.05,0.22):0,t,0.05);
   SON.gV.gain.setTargetAtTime(G.pausa?0:clamp(Math.hypot(C.vx,C.vz)/80,0,1)*0.30,t,k);
+  /* 🚨 la sirena: sube y baja, y se oye más cuanto más cerca está la patrulla más cercana */
+  if(SON.sir){ let cerca=1e9; for(const P of POLICIA.coches) cerca=Math.min(cerca,Math.hypot(P.x-C.x,P.z-C.z));
+    const hay=!G.pausa&&POLICIA.nivel>0&&POLICIA.coches.length>0;
+    SON.sir.frequency.setTargetAtTime(hay?(Math.floor(POLICIA.t*2.2)%2?960:700):700,t,0.04);
+    SON.gS.gain.setTargetAtTime(hay?0.10*clamp(1-cerca/260,0.12,1):0,t,0.1); }
 }
 function pitido(nota,dur,tipo){
   if(!SON.ctx) return; try{ const A=SON.ctx, o=A.createOscillator(), g=A.createGain(); o.type=tipo||"triangle"; o.frequency.value=nota;
@@ -1658,6 +1786,21 @@ function pintaHud(C,dt){
     x.fillStyle="rgba(255,255,255,.2)"; x.fillRect(x0+14*u,y0+130*u,w-28*u,6*u); x.fillStyle="#9b3dff"; x.fillRect(x0+14*u,y0+130*u,(w-28*u)*clamp(v/tope,0,1),6*u);
     if(EV.tiempo!==undefined){ x.fillStyle="#d8203a"; x.fillRect(x0+w*0.25,y0+156*u,w*0.5,30*u); x.fillStyle="#fff"; x.font=fuente("900",18);
       const s=Math.max(0,Math.ceil(EV.tiempo)); x.fillText("00:"+String(s).padStart(2,"0"),x0+w/2,y0+172*u); }
+  }
+  /* 🚨 BUSCADO: el cartel de arriba, la barra de despistar y el borde de la pantalla latiendo */
+  if(POLICIA.nivel>0){
+    const rojo=Math.floor(POLICIA.t*6)%2===0, cx=W/2, y0=26*u;
+    x.fillStyle=rojo?"rgba(255,40,50,.16)":"rgba(40,90,255,.16)";
+    x.fillRect(0,0,W,26*u); x.fillRect(0,H-26*u,W,26*u); x.fillRect(0,0,26*u,H); x.fillRect(W-26*u,0,26*u,H);
+    x.fillStyle="rgba(8,10,20,.72)"; x.fillRect(cx-190*u,y0,380*u,74*u);
+    x.fillStyle=rojo?"#ff3a48":"#3a6cff"; x.fillRect(cx-190*u,y0,380*u,6*u);
+    x.textAlign="center"; x.textBaseline="middle"; x.fillStyle="#fff"; x.font=fuente("900 italic",26);
+    x.fillText("🚨 BUSCADO  "+"★".repeat(POLICIA.nivel)+"☆".repeat(3-POLICIA.nivel),cx,y0+30*u);
+    x.font=fuente("700",13); x.fillStyle="rgba(255,255,255,.8)";
+    const lejos=POLICIA.escape>0.2;
+    x.fillText(lejos?"DESPISTÁNDOLOS…":(POLICIA.parado>0.3?"¡MUÉVETE O TE PILLAN!":POLICIA.coches.length+" patrulla"+(POLICIA.coches.length===1?"":"s")+" detrás de ti"),cx,y0+54*u);
+    x.fillStyle="rgba(255,255,255,.18)"; x.fillRect(cx-170*u,y0+64*u,340*u,5*u);
+    x.fillStyle=lejos?"#c8ff2e":"#ff3a48"; x.fillRect(cx-170*u,y0+64*u,340*u*(lejos?clamp(POLICIA.escape/6,0,1):clamp(POLICIA.parado/3,0,1)),5*u);
   }
   /* ✨ los trucos, sobre el velocímetro (en amarillo, como en el video) */
   G.trucos=G.trucos.filter(q=>(q.t-=dt)>0);
@@ -1831,6 +1974,9 @@ function bucle(ahora){
     const evT=traficoCorre(dt,G.coche);                                   /* 🚗 el tráfico */
     if(evT.choque) junto.choque=Math.max(junto.choque||0,evT.choque);
     if(evT.cerca) junto.cerca=true;
+    const evP=policiaCorre(dt,G.coche);                                   /* 🚓 la policía */
+    if(evP.choque) junto.choque=Math.max(junto.choque||0,evP.choque);
+    if(POLICIA.nivel>0) emitePolicia(dt);
     eventosCorren(dt,junto); trucosCorren(dt,junto); emite(dt,junto); particulasCorren(dt);
     camaraSigue(G.cam,G.coche,dt); G.t+=dt;
     if((zonaT-=dt)<=0){ zonaT=0.5; G.zona=zonaDe(G.coche.x,G.coche.z); }
@@ -1881,13 +2027,17 @@ function modoFoto(){
     for(const d of [26,44,62]) ponTraficoEn(c,Math.min(c.n-1,i0+Math.round(d/4)),1,false);
     for(const d of [34,56]) ponTraficoEn(c,Math.min(c.n-1,i0+Math.round(d/4)),-1,false);
   }
+  else if(sitio==="policia"){ const c=porNombre("Autopista 7"), i0=Math.floor(c.n*0.40); pon(c,i0,1,214); C.usandoNitro=true; C.nitro=0.6;
+    POLICIA.nivel=2; POLICIA.calor=0.4; POLICIA.t=0.05;                    /* 🚓 dos patrullas pegadas a ti */
+    for(const [lx,lz] of [[-3.6,5],[3.4,-3]])   /* a tu lado, que se vean */{ const p=puntoCoche(C,lx,0,lz); POLICIA.coches.push({ x:p.x, z:p.z, y:sueloEn(p.x,p.z).y, rumbo:C.rumbo, vel:58, golpe:0, malla:POLI_MALLA }); }
+  }
   else if(sitio==="lago"){ const c=porNombre("Vuelta al Lago Plateado"); pon(c,Math.floor(c.n*0.30),1,142); }
   else { const e=EVENTOS.find(x=>x.tipo==="derrape"); pon(e.c,e.i0+12,1,96); C.derrapando=true; C.anguloDerrape=0.42; C.vR=9; C.rumbo+=0.40; C.direccion=-0.6;
     G.evento={ def:e, tiempo:41, metros:187, fuera:0, i:e.i0+12, largo:1, recorrido(){ return 0; }, valor(){ return this.metros; }, texto(){ return Math.round(this.metros)+" m"; }, metaTxt:m=>m+" m" };
     truco("DERRAPE","1.76"); }
   C.marcha=C.kmh>160?5:C.kmh>120?4:3; C.rpm=0.7; C.nitro=Math.max(C.nitro,0.55); G.zona=zonaDe(C.x,C.z);
   G.cam=nuevaCamara(C); G.cam.rumbo=C.rumbo-(C.derrapando?0.25:0);
-  for(let k=0;k<90;k++){ traficoCorre(1/60,C); emite(1/60,{}); particulasCorren(1/60); camaraSigue(G.cam,C,1/60); }   /* que en la foto haya tráfico */
+  for(let k=0;k<90;k++){ traficoCorre(1/60,C); if(POLICIA.nivel>0&&k>85) emitePolicia(1/60); emite(1/60,{}); particulasCorren(1/60); camaraSigue(G.cam,C,1/60); }   /* que en la foto haya tráfico (y luces de policía) */
   for(const t of G.trucos) t.t=99;
 }
 arranca();

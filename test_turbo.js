@@ -193,6 +193,43 @@ const cuadros = (N, n) => { const err = []; for (let i = 0; i < n; i++) { const 
     if (r.escalon > 0.35) MAL("hay un escalón de " + (r.escalon * 100).toFixed(0) + " cm en un cruce");
     if (r.saltan) MAL("el coche sale volando en " + r.saltan + " cruces");
   }
+  /* ---------- 6) 🚗 el tráfico y 🚓 la policía ---------- */
+  {
+    const { N } = await arrancaJuego("#foto&sitio=lago");
+    const en = x => vm.runInContext(x, N.env);
+    const r = en(`(()=>{
+      const piloto=(C,mira)=>{ const q=carreteraCerca(C.x,C.z,40); if(!q) return 0;
+        const s=Math.sign(Math.sin(C.rumbo)*q.tx+Math.cos(C.rumbo)*q.tz)||1, n=q.c.n, k=q.c.cerrada?((q.i+s*Math.round(mira/4))%n+n)%n:clamp(q.i+s*Math.round(mira/4),0,n-1);
+        return clamp(-angDif(C.rumbo,Math.atan2(q.c.x[k]-C.x,q.c.z[k]-C.z))*2.2,-1,1); };
+      const au=CARRETERAS.find(c=>c.tipo==="autopista"), i0=Math.floor(au.n*0.35), dir=Math.atan2(au.tx[i0],au.tz[i0]), out={};
+      /* 🚗 60 s de tráfico: cuántos, a qué distancia nacen, si se salen del carril */
+      const C=nuevoCoche(au.x[8],au.z[8],Math.atan2(au.tx[8],au.tz[8])); TRAFICO.length=0; POLICIA.coches.length=0; POLICIA.nivel=0;
+      out.vivos=0; out.nacer=1e9; out.fuera=0; out.nan=0;
+      for(let f=0;f<3600;f++){ const antes=new Set(TRAFICO); traficoCorre(1/60,C);
+        for(const v of TRAFICO){ if(!antes.has(v)) out.nacer=Math.min(out.nacer,Math.hypot(v.x-C.x,v.z-C.z)); const q=carreteraCerca(v.x,v.z,30); if(!q||q.c!==v.c||q.d>v.c.ancho/2+1.5) out.fuera++; if(!isFinite(v.x+v.z+v.rumbo)) out.nan++; }
+        out.vivos=Math.max(out.vivos,TRAFICO.length); cocheCorre(C,{gas:0.85,freno:0,giro:piloto(C,26),mano:false,nitro:false},1/60); }
+      /* 🚓 pasas a 150 km/h junto a una patrulla · te paras · te pillan (multa) */
+      const D=nuevoCoche(au.x[i0],au.z[i0],dir); D.vx=Math.sin(dir)*42; D.vz=Math.cos(dir)*42;
+      TRAFICO.length=0; const pat=ponTraficoEn(au,i0+10,1,false); pat.poli=true; pat.malla=POLI_MALLA;
+      out.vio=null; for(let f=0;f<240;f++){ cocheCorre(D,{gas:1,freno:0,giro:piloto(D,26),mano:false,nitro:false},1/60); traficoCorre(1/60,D); policiaCorre(1/60,D); if(POLICIA.nivel>0&&out.vio===null) out.vio=f/60; }
+      out.perseguidores=POLICIA.coches.length; const d0=AJUSTES.dinero=5000; out.pilla=null;
+      for(let f=0;f<60*40;f++){ cocheCorre(D,{gas:0,freno:1,giro:0,mano:false,nitro:false},1/60); traficoCorre(1/60,D); if(policiaCorre(1/60,D).pillado){ out.pilla=f/60; break; } }
+      out.multa=d0-AJUSTES.dinero; out.nivelTras=POLICIA.nivel;
+      /* 🚓 otra vez, y huyes con nitro con 300 m de ventaja: los despistas (premio) */
+      TRAFICO.length=0; const pat2=ponTraficoEn(au,i0+10,1,false); pat2.poli=true; pat2.malla=POLI_MALLA;
+      const E=nuevoCoche(au.x[i0],au.z[i0],dir); E.vx=Math.sin(dir)*42; E.vz=Math.cos(dir)*42;
+      for(let f=0;f<120;f++){ cocheCorre(E,{gas:1,freno:0,giro:piloto(E,26),mano:false,nitro:false},1/60); traficoCorre(1/60,E); policiaCorre(1/60,E); }
+      const lejosI=Math.min(au.n-1,i0+Math.round(300/4)); E.x=au.x[lejosI]; E.z=au.z[lejosI]; E.y=au.y[lejosI]; const d1=AJUSTES.dinero; out.escapa=null;
+      for(let f=0;f<60*30;f++){ E.nitro=1; cocheCorre(E,{gas:1,freno:0,giro:piloto(E,30),mano:false,nitro:true},1/60); traficoCorre(1/60,E); const ev=policiaCorre(1/60,E); if(ev.despistado){ out.escapa=f/60; break; } if(ev.pillado){ out.escapa=-1; break; } }
+      out.premio=AJUSTES.dinero-d1;
+      return out; })()`);
+    console.log("  🚗 tráfico, 60 s: hasta " + r.vivos + " coches · el más cercano nace a " + r.nacer.toFixed(0) + " m · fuera de su carretera " + r.fuera + " · números rotos " + r.nan);
+    if (r.vivos < 8) MAL("hay muy poco tráfico"); if (r.nacer < 80) MAL("un coche nace demasiado cerca (" + r.nacer.toFixed(0) + " m)"); if (r.fuera || r.nan) MAL("el tráfico se sale de la carretera o se rompe");
+    console.log("  🚓 pasas a 150 km/h junto a una patrulla: persecución a los " + (r.vio === null ? "NUNCA" : r.vio.toFixed(2) + " s") + " con " + r.perseguidores + " perseguidores · parado te pillan a los " + (r.pilla === null ? "NUNCA" : r.pilla.toFixed(1) + " s") + " y pagas $ " + r.multa + " · huyendo con nitro los despistas a los " + (r.escapa === null ? "NUNCA" : r.escapa < 0 ? "¡te pillan!" : r.escapa.toFixed(1) + " s") + " y cobras $ " + r.premio);
+    if (r.vio === null || r.vio > 2 || !r.perseguidores) MAL("la patrulla no te persigue");
+    if (r.pilla === null || r.multa <= 0 || r.nivelTras !== 0) MAL("parado no te pillan (o no hay multa)");
+    if (r.escapa === null || r.escapa < 0 || r.premio <= 0) MAL("no se puede despistar a la policía (o no paga)");
+  }
   console.log("");
   if (malos) { console.log("❌ " + malos + " fallo(s)"); process.exit(1); }
   console.log("✅ EDTU TURBO: arranca, se juega con teclado, física de arcade comprobada y enchufado en el cuartel");
