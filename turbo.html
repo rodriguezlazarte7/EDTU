@@ -141,7 +141,7 @@ function m4Proyecta(vp,p){
 /* ================= 🏔️ EL MUNDO: montañas, lago, ciudad, cantera y carreteras =================
    2,4 km × 2,4 km. El suelo es una rejilla de 601×601 alturas (una cada 4 m). Las carreteras son
    curvas suaves con la pendiente limitada, y el terreno se aplana debajo de ellas */
-const MUNDO=2400, MITAD=MUNDO/2, PASO=4, NV=MUNDO/PASO+1;
+const MUNDO=3200, MITAD=MUNDO/2, PASO=4, NV=MUNDO/PASO+1;   /* 🗺️ 3,2 km × 3,2 km */
 const AGUA_Y=0;
 const LAGO={x:-520,z:-430,r:300}, CUMBRE={x:-300,z:820}, CANTERA={x:430,z:-830};
 const CIUDAD={x0:490,x1:1030,z0:-610,z1:170,y:12};
@@ -152,7 +152,7 @@ function alturaBase(x,z){
   h+=norte*(40+crestas(x/380,z/380,5)*230);                                  /* ⛰️ la sierra del norte */
   const dc=Math.hypot(x-CUMBRE.x,z-CUMBRE.z); h+=150*Math.exp(-dc*dc/(2*240*240));   /* 🎿 la cumbre de la estación */
   const borde=Math.max(Math.abs(x),Math.abs(z));
-  h+=suave(880,1180,borde)*(140+crestas(x/300,z/300,4)*200);                 /* las montañas que cierran el mapa */
+  h+=suave(1280,1580,borde)*(140+crestas(x/300,z/300,4)*200);                 /* las montañas que cierran el mapa */
   const dq=Math.hypot(x-CANTERA.x,z-CANTERA.z);                              /* ⛏️ la cantera, a escalones */
   h=lerp(h, Math.min(h, 4+Math.floor(dq/30)*5), suave(200,130,dq));
   const dl=Math.hypot(x-LAGO.x,(z-LAGO.z)*1.15);                             /* 🌊 el lago */
@@ -320,7 +320,7 @@ function zonaDe(x,z){
 }
 
 /* ================= 🌲 LO QUE HAY EN EL MUNDO ================= */
-const ARBOLES=[], EDIFICIOS=[], FAROLAS=[], FLECHAS=[], PORTICOS=[], RAMPAS=[], EVENTOS=[];
+const ARBOLES=[], EDIFICIOS=[], CASAS=[], FAROLAS=[], FLECHAS=[], PORTICOS=[], RAMPAS=[], EVENTOS=[];
 
 /* 💥 los choques: rejilla de 16 m con troncos (círculos) y edificios (cajas) */
 const CH_C=16, CH_N=Math.ceil(MUNDO/CH_C)+1, CHOQUES=new Array(CH_N*CH_N);
@@ -378,6 +378,28 @@ function poneCiudad(azar){
   }
 }
 
+/* 🏠 el barrio: casitas con tejado a dos aguas, en filas junto a las calles del extrarradio */
+function poneCasas(azar){
+  CASAS.length=0;
+  const TEJADOS=[[0.55,0.18,0.15],[0.32,0.30,0.36],[0.20,0.32,0.45],[0.45,0.35,0.22]];
+  const PAREDES=[[0.86,0.82,0.74],[0.92,0.88,0.80],[0.78,0.74,0.70],[0.88,0.80,0.68]];
+  const filas=[];
+  for(const z of [-700,-660,220,260]) filas.push({ x0:420, x1:1120, z, dir:0 });   /* arriba y abajo de la ciudad */
+  for(const x of [380,420,1090,1130]) filas.push({ z0:-620, z1:180, x, dir:1 });   /* a los lados */
+  for(const f of filas){
+    const n=14+((azar()*6)|0);
+    for(let i=0;i<n;i++){
+      const t=(i+0.5)/n;
+      const cx=f.dir?f.x:lerp(f.x0,f.x1,t), cz=f.dir?lerp(f.z0,f.z1,t):f.z;
+      const x=cx+(azar()-0.5)*8, z=cz+(azar()-0.5)*8;
+      if(Math.hypot(x-CANTERA.x,z-CANTERA.z)<230) continue;
+      const q=carreteraCerca(x,z,30); if(q && q.d<q.c.ancho/2+4) continue;
+      const c={ x, z, y:altura(x,z)-0.2, w:7+azar()*4, d:6+azar()*3, h:3.2+azar()*2.4,
+                pared:PAREDES[(azar()*PAREDES.length)|0], tejado:TEJADOS[(azar()*TEJADOS.length)|0], giro:f.dir?Math.PI/2:0 };
+      CASAS.push(c); chApunta(c,c.x-c.w/2,c.z-c.d/2,c.x+c.w/2,c.z+c.d/2);
+    }
+  }
+}
 /* 🚦 farolas, señales de curva y pórticos de la autopista */
 function poneSenales(){
   FAROLAS.length=0; FLECHAS.length=0; PORTICOS.length=0;
@@ -452,6 +474,7 @@ async function construyeMundo(progreso){
   const azar=azarCon(2026);
   p(0.62,"plantando los pinos…"); await new Promise(r=>setTimeout(r,0)); poneArboles(azar);
   p(0.72,"construyendo la ciudad…"); poneCiudad(azar);
+  p(0.74,"levantando el barrio…"); poneCasas(azar);
   p(0.76,"poniendo señales…"); poneSenales(); poneEventos(); if(typeof defineCarreras==="function") defineCarreras();
 }
 
@@ -921,6 +944,28 @@ function obraEdificios(){
   }
   return { fachadas:F, azoteas:T };
 }
+/* 🏠 las casas: caja de paredes, tejado a dos aguas, puerta y ventanas */
+function obraCasas(){
+  const O=new Obra();
+  for(const c of CASAS){
+    const tx=Math.sin(c.giro), tz=Math.cos(c.giro), rx=tz, rz=-tx;
+    O.caja(c.x,c.y,c.z,c.w,c.h,c.d,c.pared,[0.05,0],tx,tz);
+    /* el tejado: dos faldones que se juntan en la cumbrera */
+    const hw=c.w/2+0.35, hd=c.d/2+0.35, y0=c.y+c.h, cum=y0+1.5+c.h*0.12;
+    const P=(a,b,cc)=>v3(c.x+rx*a+tx*cc, b, c.z+rz*a+tz*cc);
+    const A=P(-hw,y0,-hd), B=P(hw,y0,-hd), C=P(hw,y0,hd), D=P(-hw,y0,hd);
+    const E=P(0,cum,-hd), F=P(0,cum,hd);
+    O.quad(A,B,E,E,c.tejado,[0.1,0]);          /* frontón de delante */
+    O.quad(C,D,F,F,c.tejado,[0.1,0]);          /* frontón de atrás */
+    O.quad(B,C,F,E,c.tejado,[0.1,0]);          /* faldón derecho */
+    O.quad(D,A,E,F,c.tejado,[0.1,0]);          /* faldón izquierdo */
+    /* la puerta y dos ventanas */
+    O.caja(c.x+tx*(c.d/2+0.06),c.y,c.z+tz*(c.d/2+0.06),1.0,2.0,0.12,[0.30,0.20,0.14],[0.1,0],tx,tz);
+    for(const s of [-1,1]) O.caja(c.x+rx*s*c.w*0.28+tx*(c.d/2+0.06), c.y+1.3, c.z+rz*s*c.w*0.28+tz*(c.d/2+0.06),
+      1.1,1.1,0.10,[0.25,0.35,0.45],[0.8,0.05],tx,tz);
+  }
+  return O;
+}
 /* 🚦 farolas, señales, pórticos, rampas y las marcas moradas de los eventos */
 function obraDetalles(){
   const O=new Obra(), S=new Obra(), P=new Obra(), gris=[0.42,0.43,0.45], metal=[0.55,0.3];
@@ -1018,7 +1063,7 @@ function perfilCoche(z){
 function obraCoche(pintura,modelo){
   const MO=modelo||MODELOS[0];
   const O=new Obra(), P=pintura.rgb, EXT=[pintura.brillo,0], vidrio=[0.02,0.025,0.03], EXTV=[1.0,0], bajos=[0.03,0.03,0.035];
-  const ZS=[]; for(let i=0;i<=34;i++) ZS.push(lerp(-2.28*MO.largo,2.28*MO.largo,i/34));
+  const ZS=[]; for(let i=0;i<=56;i++) ZS.push(lerp(-2.28*MO.largo,2.28*MO.largo,i/56));   /* 🚘 más secciones: la carrocería queda más fina */
   const anillo=z=>{ const f=perfilCoche(z/MO.largo), w=f.w*MO.ancho, cab=f.t>f.s+0.12;
     const A=MO.alto, b=f.b*A, s=f.s*A, t=f.t*A;                      /* la misma forma, estirada */
     return { cab, pts:[[0,b],[0.90*w,b],[w,b+0.18*A],[w,s-0.14*A],[0.97*w,s],[0.80*w,s+0.03*A],[0.66*w,lerp(s,t,0.78)],[0.50*w,t],[0,t+0.02*A]] }; };
@@ -1051,6 +1096,8 @@ function obraCoche(pintura,modelo){
   for(const sx of [-0.52,-0.30,0.30,0.52]) O.cono(sx*W,0.30*A,-2.40*L,0.055,0.30*A,0.055,8,[0.25,0.24,0.22],[0.8,0]);
   for(const sx of [-1,1]) O.caja(sx*0.98*W,0.98*A,0.72*L,0.16,0.10,0.18,P,EXT);
   O.caja(0,0.24*A,-2.20*L,1.5*W,0.10,0.24,[0.04,0.04,0.045],[0.4,0]);            /* difusor */
+  for(const sx of [-1,1]) O.caja(sx*0.94*W,0.22*A,0,0.10,0.10,2.2*L,[0.05,0.05,0.06],[0.4,0]);   /* faldones laterales */
+  O.caja(0,0.20*A,2.30*L,1.7*W,0.06,0.30,[0.05,0.05,0.06],[0.5,0]);                              /* separador delantero */
   /* 🪽 el alerón (el de la BESTIA es enorme; el del CHISPA, discreto) */
   for(const sx of [-0.55,0.55]) O.caja(sx*W,0.96*A,-1.98*L,0.06,0.42*AL,0.22,[0.03,0.03,0.035],[0.6,0]);
   O.caja(0,(1.38+0.42*(AL-1))*A,-2.02*L,2.02*W*Math.min(1.05,AL),0.05,0.42,P,EXT);
@@ -1208,7 +1255,7 @@ function camaraSigue(K,C,dt){
 /* ================= 🚗 EL TRÁFICO =================
    Coches normales que van por su carril. Nacen cerca de ti (nunca a la vista de golpe), siguen la
    carretera, frenan si tienen a otro delante y desaparecen cuando te alejas */
-const TRAFICO=[], TRAF_MAX=14;
+const TRAFICO=[], TRAF_MAX=50;   /* 🚗 el mapa es más grande: cabe mucho más tráfico */
 const COLORES_TRAF=[[0.52,0.06,0.05],[0.05,0.16,0.48],[0.78,0.78,0.80],[0.10,0.10,0.12],[0.62,0.50,0.10],[0.16,0.38,0.24]];
 /* 🚙 un coche normal (o una furgoneta): carrocería, techo, lunas, luces y ruedas, todo en una malla */
 function obraTraficoCoche(col,furgo){
@@ -1248,12 +1295,12 @@ function traficoCorre(dt,C){
   const ev={};
   /* 1) los que se quedan lejos (o se salieron de su carretera) se van */
   for(let k=TRAFICO.length-1;k>=0;k--){ const v=TRAFICO[k];
-    if(Math.hypot(v.x-C.x,v.z-C.z)>460) TRAFICO.splice(k,1);
+    if(Math.hypot(v.x-C.x,v.z-C.z)>620) TRAFICO.splice(k,1);
   }
   /* 2) nacen nuevos entre 120 y 300 m, en carreteras cercanas y nunca encima de otro */
   let intentos=0;
-  while(TRAFICO.length<TRAF_MAX && intentos++<12){
-    const ang=Math.random()*TAU, d=120+Math.random()*180;
+  while(TRAFICO.length<TRAF_MAX && intentos++<30){
+    const ang=Math.random()*TAU, d=110+Math.random()*380;
     const q=carreteraCerca(C.x+Math.cos(ang)*d, C.z+Math.sin(ang)*d, 40);
     if(!q || q.d>q.c.ancho/2+6 || q.c.tipo==="tierra") continue;
     const s=Math.random()<0.5?1:-1, car=carrilDe(q.c,q.i,s), px=q.c.x[q.i]+car.x, pz=q.c.z[q.i]+car.z;
@@ -1320,7 +1367,7 @@ function vasAlReves(C){
    pillan parado (y pagas) */
 const POLICIA={ nivel:0, calor:0, coches:[], escape:0, parado:0, aviso:0, t:0, despistados:0, pillado:0, tregua:0 };
 const POLI_MALLA=8;                                  /* la malla 8 de la lista del tráfico */
-const POLI_VMAX=[0,54,60,64];                        /* m/s por nivel (195, 216 y 230 km/h): con nitro se les escapa */
+const POLI_VMAX=[0,43,48,52];                        /* 🚓 m/s por nivel (155, 173 y 187 km/h): van MAS DESPACIO que tu coche (236) */
 /* 🚓 el coche patrulla: blanco con las puertas negras, barra de luces y el rótulo */
 function obraPoliciaMalla(){
   const O=new Obra(), blanco=[0.86,0.87,0.9], negro=[0.05,0.05,0.06], EXT=[0.6,0], vidrio=[0.05,0.07,0.09];
@@ -1655,6 +1702,7 @@ async function subeMundo(progreso){
   const oc=obraCarreteras(); ESC.carr={}; for(const t in oc.porTipo) ESC.carr[t]=subeMalla(oc.porTipo[t].malla()); ESC.arcenes=subeMalla(oc.extra.malla());
   ESC.agua=subeMalla(obraAgua().malla());
   const oe=obraEdificios(); ESC.fachadas=subeMalla(oe.fachadas.malla()); ESC.azoteas=subeMalla(oe.azoteas.malla());
+  ESC.casas=subeMalla(obraCasas().malla());   /* 🏠 el barrio */
   const od=obraDetalles(); ESC.detalles=subeMalla(od.detalles.malla()); ESC.flechas=subeMalla(od.flechas.malla()); ESC.carteles=subeMalla(od.carteles.malla());
   p(0.95,"plantando los pinos…"); await respira();
   ESC.pinos=subePinos(ARBOLES.length); gl.bindBuffer(gl.ARRAY_BUFFER,ESC.pinos.buf); gl.bufferSubData(gl.ARRAY_BUFFER,0,datosPinos(ARBOLES)); ESC.pinos.cuantos=ARBOLES.length;
@@ -1746,7 +1794,7 @@ function dibujaFotograma(C,K,t,efectos){
     for(const v of TRAFICO) if(Math.abs(v.x-C.x)<120&&Math.abs(v.z-C.z)<120) sm(ESC.trafico[v.malla],m4Coche(v.x,v.y,v.z,v.rumbo,0,0));
     for(const P of POLICIA.coches) if(Math.abs(P.x-C.x)<120&&Math.abs(P.z-C.z)<120) sm(ESC.trafico[POLI_MALLA],m4Coche(P.x,P.y,P.z,P.rumbo,0,0));
     for(const R of RIVALES){ const M=m4Coche(R.x,R.y+0.02,R.z,R.rumbo,0,0); sm(ESC.rivales[R.malla],M); for(const m of matricesRuedas({direccion:0,vuelta:R.vuelta},M)) sm(ESC.rueda,m); }
-    sm(ESC.fachadas); sm(ESC.azoteas); sm(ESC.detalles); sm(ESC.arcenes);
+    sm(ESC.fachadas); sm(ESC.azoteas); sm(ESC.casas); sm(ESC.detalles); sm(ESC.arcenes);
     p=PROGS.sombraArbol; gl.useProgram(p); gl.uniformMatrix4fv(U(p,"uLuzVP"),false,RENDER.luzVP);
     gl.bindVertexArray(ESC.pinosCerca.vao); gl.drawElementsInstanced(gl.TRIANGLES,ESC.pinosCerca.n,ESC.pinosCerca.tipo,0,ESC.pinosCerca.cuantos);
     gl.disable(gl.POLYGON_OFFSET_FILL);
@@ -1769,7 +1817,7 @@ function dibujaFotograma(C,K,t,efectos){
   gl.disable(gl.POLYGON_OFFSET_FILL);
   dibuja(ESC.arcenes,null,0); dibuja(ESC.agua,null,3);
   gl.enable(gl.CULL_FACE);
-  dibuja(ESC.fachadas,null,2,TEX.fachada); dibuja(ESC.azoteas,null,0); dibuja(ESC.detalles,null,0);
+  dibuja(ESC.fachadas,null,2,TEX.fachada); dibuja(ESC.azoteas,null,0); dibuja(ESC.casas,null,0); dibuja(ESC.detalles,null,0);
   gl.disable(gl.CULL_FACE);
   dibuja(ESC.flechas,null,2,TEX.flecha); dibuja(ESC.carteles,null,2,TEX.carteles);
   gl.enable(gl.CULL_FACE);
@@ -2272,6 +2320,106 @@ function emite(dt,ev){
 
 /* ================= 🎛️ EL MENÚ (el garaje) ================= */
 const $=id=>document.getElementById(id);
+
+/* 🖼️ el retrato de un coche, dibujado de lado con su forma y su color */
+function retrataCoche(lienzoC,M,pint){
+  const x=lienzoC.getContext("2d"), W=lienzoC.width, H=lienzoC.height;
+  x.clearRect(0,0,W,H);
+  const col="rgb("+pint.rgb.map(v=>Math.round(Math.min(1,v*1.5+0.05)*255)).join(",")+")";
+  const L=W*0.86*M.largo/1.1, A=H*0.40*M.alto, x0=(W-L)/2, y0=H*0.68;
+  x.fillStyle="rgba(0,0,0,.28)"; x.beginPath(); x.ellipse(W/2,y0+A*0.34,L*0.52,A*0.13,0,0,7); x.fill();
+  /* la carrocería: morro bajo, techo curvo y cola corta */
+  x.fillStyle=col; x.beginPath();
+  x.moveTo(x0,y0);
+  x.quadraticCurveTo(x0+L*0.10,y0-A*0.42, x0+L*0.34,y0-A*0.46);
+  x.quadraticCurveTo(x0+L*0.50,y0-A*1.05, x0+L*0.70,y0-A*0.50);
+  x.lineTo(x0+L*0.96,y0-A*0.44);
+  x.quadraticCurveTo(x0+L,y0-A*0.30, x0+L,y0);
+  x.lineTo(x0,y0); x.closePath(); x.fill();
+  /* las lunas */
+  x.fillStyle="rgba(150,200,240,.55)"; x.beginPath();
+  x.moveTo(x0+L*0.37,y0-A*0.50); x.quadraticCurveTo(x0+L*0.50,y0-A*0.95, x0+L*0.66,y0-A*0.52); x.closePath(); x.fill();
+  /* el alerón */
+  x.fillStyle=col; x.fillRect(x0+L*0.90,y0-A*(0.70+0.30*M.aleron),L*0.16,A*0.09);
+  x.fillRect(x0+L*0.95,y0-A*(0.70+0.30*M.aleron),A*0.06,A*(0.30*M.aleron)+A*0.02);
+  /* las luces */
+  x.fillStyle="#fff7d0"; x.fillRect(x0-1,y0-A*0.22,L*0.05,A*0.10);
+  x.fillStyle="#ff4040"; x.fillRect(x0+L*0.96,y0-A*0.26,L*0.05,A*0.10);
+  /* las ruedas */
+  x.fillStyle="#15151a";
+  for(const rx of [x0+L*0.20, x0+L*0.80]){ x.beginPath(); x.arc(rx,y0,A*0.30,0,7); x.fill();
+    x.fillStyle="#4a4a55"; x.beginPath(); x.arc(rx,y0,A*0.15,0,7); x.fill(); x.fillStyle="#15151a"; }
+}
+/* 🚘 el selector de coches: una tarjeta por coche, con dibujo, texto y barras */
+function abreSelectorCoches(){
+  let cap=$("cochesFs");
+  if(!cap){ cap=document.createElement("div"); cap.id="cochesFs"; document.body.appendChild(cap); }
+  const pint=PINTURAS[AJUSTES.pintura]||PINTURAS[0];
+  const barra=(v,max)=>{ const n=Math.max(1,Math.round((v/max)*5)); return '<i class="bar">'+'▮'.repeat(n)+'▯'.repeat(5-n)+'</i>'; };
+  cap.innerHTML='<div class="cajaCoches"><h3>🚘 ELIGE TU COCHE</h3><div class="tarjetas">'+
+    MODELOS.map((M,i)=>'<div class="tarjeta'+((AJUSTES.coche|0)===i?' sel':'')+'" data-c="'+i+'">'+
+      '<canvas class="retrato" width="360" height="150"></canvas>'+
+      '<b>'+M.icono+' '+M.nom+'</b><small>'+M.dice+'</small>'+
+      '<div class="datos">'+
+        '<span>🏁 velocidad '+barra(M.vel,1.12)+' <em>'+Math.round(VMAX*M.vel*3.6)+' km/h</em></span>'+
+        '<span>⚡ aceleración '+barra(M.acel,1.16)+'</span>'+
+        '<span>🛞 agarre '+barra(M.agarre,1.16)+'</span>'+
+        '<span>📏 '+(4.56*M.largo).toFixed(2)+' m de largo</span>'+
+      '</div></div>').join("")+
+    '</div><button id="cerrarCoches">✔ LISTO</button></div>';
+  cap.classList.add("open");
+  cap.querySelectorAll(".tarjeta").forEach((t,i)=>{
+    retrataCoche(t.querySelector("canvas"),MODELOS[i],pint);
+    t.onclick=()=>{ AJUSTES.coche=i; guardaAjustes(); subeCoche(); abreSelectorCoches(); pintaMenu(); };
+  });
+  $("cerrarCoches").onclick=()=>{ cap.classList.remove("open"); pintaMenu(); };
+}
+/* 🗂️ el menú se reparte en pestañas: así no es una lista interminable */
+function montaPestanas(){
+  if($("pestanas")) return;
+  const menu=$("menu"), jugar=$("jugar");
+  const est=document.createElement("style");
+  est.textContent=".pest{display:flex;flex-wrap:wrap;gap:6px;justify-content:center;margin:6px 0}"+
+    ".pest button{border:2px solid #3a3350;background:#14111f;color:#cfc7e6;padding:8px 16px;border-radius:3px;font-weight:900;cursor:pointer;font-size:14px;transform:skewX(-9deg);font-family:inherit}"+
+    ".pest button.sel{background:#6a1fd8;border-color:#c8ff2e;color:#fff}"+
+    ".hoja{display:none;flex-direction:column;align-items:center;gap:8px;width:100%}.hoja.ver{display:flex}"+
+    "#elegirCoche{border:2px solid #c8ff2e;background:#14111f;color:#c8ff2e;padding:12px 26px;border-radius:4px;font-weight:900;font-size:18px;cursor:pointer;transform:skewX(-9deg);font-family:inherit}"+
+    "#cochesFs{position:fixed;inset:0;z-index:12;display:none;align-items:center;justify-content:center;background:rgba(3,3,9,.93);padding:14px;overflow:auto}"+
+    "#cochesFs.open{display:flex}"+
+    ".cajaCoches{max-width:1100px;width:100%;text-align:center}"+
+    ".cajaCoches h3{color:#c8ff2e;font-style:italic;font-size:26px;margin:4px 0 12px;transform:skewX(-9deg)}"+
+    ".tarjetas{display:flex;flex-wrap:wrap;gap:12px;justify-content:center}"+
+    ".tarjeta{width:300px;background:#14111f;border:2px solid #3a3350;border-radius:8px;padding:10px;cursor:pointer;color:#eee}"+
+    ".tarjeta.sel{border-color:#c8ff2e;box-shadow:0 0 22px rgba(200,255,46,.25)}"+
+    ".tarjeta canvas{width:100%;height:auto;background:linear-gradient(180deg,#1a1730,#0d0b16);border-radius:6px}"+
+    ".tarjeta b{display:block;margin:8px 0 2px;font-size:17px}.tarjeta small{color:#a99fc4;display:block;min-height:32px}"+
+    ".datos{display:flex;flex-direction:column;gap:3px;margin-top:8px;font-size:13px;text-align:left}"+
+    ".datos .bar{color:#c8ff2e;font-style:normal;letter-spacing:1px}.datos em{color:#8f86b0;font-style:normal}"+
+    "#cerrarCoches{margin-top:14px;background:#c8ff2e;color:#111;border:0;padding:12px 34px;font-weight:900;font-style:italic;font-size:20px;cursor:pointer;transform:skewX(-9deg);font-family:inherit}";
+  document.head.appendChild(est);
+  const barra=document.createElement("div"); barra.className="pest"; barra.id="pestanas";
+  menu.insertBefore(barra,jugar);
+  const hojas={};
+  for(const k of ["coche","aspecto","garaje","ajustes"]){
+    const h=document.createElement("div"); h.className="hoja"; h.id="hoja_"+k; menu.insertBefore(h,jugar); hojas[k]=h;
+  }
+  /* se MUEVEN las filas que ya existen a su pestaña (cada título con su fila) */
+  const mueve=(id,destino)=>{ const el=$(id); if(!el) return; const tit=el.previousElementSibling;
+    if(tit && tit.className==="titulo") hojas[destino].appendChild(tit);
+    hojas[destino].appendChild(el); };
+  const btn=document.createElement("button"); btn.id="elegirCoche"; btn.textContent="🚘 ELEGIR COCHE";
+  btn.onclick=abreSelectorCoches; hojas.coche.appendChild(btn);
+  mueve("cocheTxt","coche"); const oc=$("optCoche"); if(oc){ oc.style.display="none"; hojas.coche.appendChild(oc); }
+  mueve("optPintura","aspecto"); mueve("optNeon","aspecto");
+  mueve("optMej","garaje"); mueve("dineroTxt","garaje");
+  mueve("optHora","ajustes"); mueve("optVolante","ajustes"); mueve("optCal","ajustes"); mueve("calTxt","ajustes");
+  [["coche","🚘 COCHE"],["aspecto","🎨 ASPECTO"],["garaje","🔧 GARAJE"],["ajustes","⚙️ AJUSTES"]].forEach(([k,txt],i)=>{
+    const b=document.createElement("button"); b.textContent=txt; b.dataset.h=k;
+    b.onclick=()=>{ for(const j in hojas) hojas[j].classList.toggle("ver",j===k);
+      barra.querySelectorAll("button").forEach(q=>q.classList.toggle("sel",q.dataset.h===k)); };
+    barra.appendChild(b); if(i===0) setTimeout(()=>b.click(),0);
+  });
+}
 function pintaMenu(){
   $("optPintura").innerHTML=PINTURAS.map((p,i)=>'<button class="op'+(AJUSTES.pintura===i?' sel':'')+'" data-p="'+i+'"><span class="muestra" style="background:rgb('+p.rgb.map(v=>Math.round(Math.min(1,v*1.4+0.06)*255)).join(",")+')"></span>'+p.nom+'</button>').join("");
   $("optNeon").innerHTML=NEONES.map((n,i)=>'<button class="op'+(AJUSTES.neon===i?' sel':'')+'" data-n="'+i+'"><span class="muestra" style="color:rgb('+n.rgb.map(v=>Math.round(v*255)).join(",")+');background:currentColor"></span>'+n.nom+'</button>').join("");
@@ -2285,6 +2433,7 @@ function pintaMenu(){
     $("dineroTxt").innerHTML='💰 <b>$ '+Math.round(AJUSTES.dinero).toLocaleString("es-CL")+'</b> · punta <b>'+R.punta+' km/h</b> ('+R.nitro+' con nitro) · el nitro dura <b>'+R.segundosNitro+' s</b> · agarre '+R.agarre+'% · frenos '+R.freno+'%<br>'+
       RG.icono+' <b>'+RG.nombre+'</b> · ⭐ '+RG.estrellas+' de '+RG.tope+' estrellas'+(RG.siguiente?' · te faltan '+RG.faltan+' para '+RG.siguiente:' · ¡lo máximo!');
   }
+  montaPestanas();
   $("optCoche").innerHTML=MODELOS.map((M,i)=>'<button class="op'+((AJUSTES.coche|0)===i?" sel":"")+'" data-coche="'+i+'">'+M.icono+' '+M.nom+'</button>').join("");
   $("optCoche").querySelectorAll("[data-coche]").forEach(b=>b.onclick=()=>{ AJUSTES.coche=+b.dataset.coche; guardaAjustes(); subeCoche(); pintaMenu(); });
   { const M=modeloActual(); const barra=v=>"▮".repeat(Math.max(1,Math.round((v-0.85)/0.06)))+"▯".repeat(Math.max(0,5-Math.max(1,Math.round((v-0.85)/0.06))));
