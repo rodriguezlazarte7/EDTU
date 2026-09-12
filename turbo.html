@@ -1086,7 +1086,7 @@ function obraCoche(pintura,modelo){
   for(const [z,dir] of [[ZS[0],-1],[ZS[ZS.length-1],1]]){
     const A=anillo(z); for(const lado of [1,-1]) for(let k=0;k<8;k++){
       const a=v3(A.pts[k][0]*lado,A.pts[k][1],z), b=v3(A.pts[k+1][0]*lado,A.pts[k+1][1],z), c=v3(0,(A.pts[0][1]+A.pts[8][1])/2,z);
-      const k0=O.nv, n=[0,0,dir], col=dir>0?[0.03,0.03,0.035]:P;
+      const k0=O.nv, n=[0,0,dir], col=(dir>0&&k<2)?[0.03,0.03,0.035]:P;   /* 🖤 solo el paragolpes va oscuro: el capó lleva el color del coche */
       O.v(a.x,a.y,a.z,n[0],n[1],n[2],col,EXT); O.v(b.x,b.y,b.z,n[0],n[1],n[2],col,EXT); O.v(c.x,c.y,c.z,n[0],n[1],n[2],col,EXT);
       if((lado>0)===(dir>0)) O.tri(k0,k0+1,k0+2); else O.tri(k0,k0+2,k0+1);
     }
@@ -1101,8 +1101,8 @@ function obraCoche(pintura,modelo){
   for(const sx of [-1,1]) O.caja(sx*0.98*W,0.98*A,0.72*L,0.16,0.10,0.18,P,EXT);
   O.caja(0,0.24*A,-2.20*L,1.5*W,0.10,0.24,[0.04,0.04,0.045],[0.4,0]);            /* difusor */
   for(const sx of [-1,1]) O.caja(sx*0.94*W,0.22*A,0,0.10,0.10,2.2*L,[0.05,0.05,0.06],[0.4,0]);   /* faldones laterales */
-  if(MO.anchoExtra) for(const sx of [-1,1]) for(const rz of [1.36*L,-1.36*L])                      /* 👑 pasos de rueda anchos */
-    O.caja(sx*0.99*W,0.28*A,rz,0.14,0.36,1.10,P,EXT);
+  if(MO.anchoExtra) for(const sx of [-1,1]) for(const rz of [1.36*L,-1.36*L])                      /* 👑 aletas marcadas, pegadas al costado */
+    O.caja(sx*0.93*W,0.30*A,rz,0.09,0.26,0.86,P,EXT);
   O.caja(0,0.19*A,2.14*L,1.30*W,0.06,0.34,[0.05,0.05,0.06],[0.5,0]);                             /* separador delantero, ya pegado al morro */
   /* 🪽 el alerón (el de la BESTIA es enorme; el del CHISPA, discreto) */
   for(const sx of [-0.55,0.55]) O.caja(sx*W,0.76*A,-1.98*L,0.06,(0.40+0.30*(AL-1))*A,0.22,[0.03,0.03,0.035],[0.6,0]);
