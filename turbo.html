@@ -42,6 +42,9 @@ kbd{border:1px solid #5a5370;border-radius:3px;padding:1px 6px;background:#1c1a2
   <div class="sub">MAPA LIBRE · CARRERAS CALLEJERAS</div>
   <div class="titulo">PINTURA</div><div class="fila" id="optPintura"></div>
   <div class="titulo">NEÓN</div><div class="fila" id="optNeon"></div>
+  <div class="titulo">GARAJE · MEJORAS</div><div class="fila" id="optMej"></div>
+  <div class="ayuda" id="dineroTxt" style="margin-top:2px"></div>
+  <div class="titulo">VOLANTE</div><div class="fila" id="optVolante"></div>
   <div class="titulo">CALIDAD</div><div class="fila" id="optCal"></div>
   <button id="jugar">▶ A LA CALLE</button>
   <div class="ayuda" id="ayuda"></div>
@@ -1052,10 +1055,13 @@ function cocheCorre(C,E,dt){
   if(C.enSuelo){
     /* 🔥 motor, nitro y freno */
     C.usandoNitro=E.nitro && C.nitro>0.01 && E.gas>0.1;
-    const vmax=(C.usandoNitro?VMAX_NITRO:VMAX)*(C.fueraCarretera?0.62:1);
-    if(E.gas>0 && vF>-1){ const f=clamp(1-(vF/vmax)*(vF/vmax),0,1); vF+=E.gas*(10.5*f+(C.usandoNitro?8.5:0))*dt; }
-    if(C.usandoNitro) C.nitro=Math.max(0,C.nitro-dt*0.16);
-    if(E.freno>0){ if(vF>1) vF-=E.freno*24*dt; else vF=Math.max(-15,vF-E.freno*7*dt); }
+    const M=(typeof MEJ!=="undefined")?MEJ:{vmax:1,acel:1,agarre:1,freno:1,nitroGasto:1,nitroEmpuje:1};   /* 🔧 las mejoras del garaje */
+    /* 🐛 las mejoras de motor y de nitro se multiplicaban entre ellas: con todo al máximo salían 462 km/h.
+       Ahora hay un tope absoluto de 94 m/s (338 km/h), que ya es una barbaridad */
+    const vmax=Math.min(94,(C.usandoNitro?VMAX_NITRO*M.nitroEmpuje:VMAX)*M.vmax)*(C.fueraCarretera?0.62:1);
+    if(E.gas>0 && vF>-1){ const f=clamp(1-(vF/vmax)*(vF/vmax),0,1); vF+=E.gas*(10.5*M.acel*f+(C.usandoNitro?8.5*M.nitroEmpuje:0))*dt; }
+    if(C.usandoNitro) C.nitro=Math.max(0,C.nitro-dt*0.16*M.nitroGasto);
+    if(E.freno>0){ if(vF>1) vF-=E.freno*24*M.freno*dt; else vF=Math.max(-15,vF-E.freno*7*dt); }
     const roce=0.22+0.00042*vF*vF+(C.fueraCarretera?1.6:0)+(E.gas<0.05&&E.freno<0.05?0.9:0);
     vF-=Math.sign(vF)*Math.min(Math.abs(vF),roce*dt);
     if(vF>vmax+1) vF-=(vF-vmax)*1.5*dt;
@@ -1067,7 +1073,7 @@ function cocheCorre(C,E,dt){
     if(vel<6) C.derrapando=false;
     const yawObj=-vF*Math.tan(angulo)/BATALLA*(C.derrapando?1.30:1);   /* 🐛 el menos: con D el coche gira a la DERECHA de la pantalla */
     C.giroV+=(yawObj-C.giroV)*(1-Math.exp(-dt*(C.derrapando?3.2:11)));
-    const agarre=C.derrapando?(tierra?1.1:1.5):(tierra?5.5:10);
+    const agarre=(C.derrapando?(tierra?1.1:1.5):(tierra?5.5:10))*M.agarre;
     const antes=vR; vR*=Math.exp(-agarre*dt);
     if(C.derrapando){ vF+=Math.abs(antes-vR)*0.62*Math.sign(vF||1); if(E.mano) vF-=vF*0.10*dt; }   /* el derrape guarda la velocidad: divierte más */
     /* se inclina con la curva y cabecea al acelerar o frenar */
@@ -1304,7 +1310,7 @@ function nacePerseguidor(C){
   const c=q.c, n=c.n, atras=-Math.sign(Math.sin(C.rumbo)*q.tx+Math.cos(C.rumbo)*q.tz)||-1;
   let i=q.i+atras*Math.round((160+Math.random()*80)/MUESTRA);
   if(c.cerrada) i=((i%n)+n)%n; else if(i<0||i>=n) i=q.i-atras*Math.round(200/MUESTRA), i=clamp(i,0,n-1);
-  const P={ x:c.x[i], z:c.z[i], y:c.y[i], rumbo:Math.atan2(C.x-c.x[i],C.z-c.z[i]), vel:20, golpe:0, malla:POLI_MALLA };
+  const P={ x:c.x[i], z:c.z[i], y:c.y[i], rumbo:Math.atan2(C.x-c.x[i],C.z-c.z[i]), vel:20, golpe:0, malla:POLI_MALLA, ataque:0, espera:3+Math.random()*4, retirada:0 };
   POLICIA.coches.push(P); return P;
 }
 function empiezaPersecucion(C,motivo){
@@ -1312,7 +1318,7 @@ function empiezaPersecucion(C,motivo){
     avisa("🚨 BUSCADO · "+motivo,"#ff4a5a",2.8); pitido(880,0.15,"square"); setTimeout(()=>pitido(660,0.15,"square"),160); }
   /* las patrullas que te vieron se convierten en perseguidores */
   for(let k=TRAFICO.length-1;k>=0;k--){ const v=TRAFICO[k]; if(!v.poli) continue;
-    if(Math.hypot(v.x-C.x,v.z-C.z)<110){ TRAFICO.splice(k,1); POLICIA.coches.push({ x:v.x, z:v.z, y:v.y, rumbo:v.rumbo, vel:v.vel, golpe:0, malla:POLI_MALLA }); } }
+    if(Math.hypot(v.x-C.x,v.z-C.z)<110){ TRAFICO.splice(k,1); POLICIA.coches.push({ x:v.x, z:v.z, y:v.y, rumbo:v.rumbo, vel:v.vel, golpe:0, malla:POLI_MALLA, ataque:0, espera:2+Math.random()*4, retirada:0 }); } }
 }
 function policiaCorre(dt,C){
   const ev={}, vel=Math.hypot(C.vx,C.vz), kmh=vel*3.6;
@@ -1345,7 +1351,15 @@ function policiaCorre(dt,C){
     const giroMax=lerp(2.6,0.9,clamp(P.vel/50,0,1));
     P.rumbo+=clamp(dif,-giroMax*dt,giroMax*dt);
     const S=sueloEn(P.x,P.z), enCarr=!!S.carretera;
-    let velObj=vmax*(enCarr?1:0.62); if(Math.abs(dif)>0.7) velObj*=0.55; if(d<12) velObj=Math.max(vel+3,12);
+    let velObj=vmax*(enCarr?1:0.62); if(Math.abs(dif)>0.7) velObj*=0.55;
+    /* 🚓 NO se pegan a ti: van a una distancia cómoda (16 m), cada pocos segundos se lanzan a embestir
+          y, después del golpe, se apartan un rato. Es lo que pidió David */
+    P.ataque=Math.max(0,(P.ataque||0)-dt); P.espera=(P.espera||0)-dt; P.retirada=Math.max(0,(P.retirada||0)-dt);
+    if(P.retirada<=0 && P.ataque<=0 && P.espera<=0){ P.ataque=2.5+Math.random(); P.espera=7+Math.random()*6; }
+    const distObj = P.retirada>0 ? 34 : (P.ataque>0 ? 0 : 16);
+    if(vel>6 && d<distObj) velObj=Math.min(velObj, vel*clamp((d/distObj)*1.15,0.25,1.05));
+    if(P.retirada>0 && d<distObj*0.7) velObj=Math.min(velObj, vel*0.5);
+    if(P.ataque>0 && d<14) velObj=Math.max(vel+4,14);                  /* la embestida */
     if(vel<4 && d<30) velObj=clamp((d-6)*1.2,0,12);                    /* 🐛 estás parado: se arriman y FRENAN a tu lado (antes daban vueltas) */
     P.vel+=clamp(velObj-P.vel,-14*dt,9*dt);
     let nx=P.x+Math.sin(P.rumbo)*P.vel*dt, nz=P.z+Math.cos(P.rumbo)*P.vel*dt;
@@ -1358,7 +1372,8 @@ function policiaCorre(dt,C){
     const ddx=C.x-P.x, ddz=C.z-P.z, dd=Math.hypot(ddx,ddz);
     if(dd<3.4){ const nX=ddx/(dd||1), nZ=ddz/(dd||1), vn=(C.vx-Math.sin(P.rumbo)*P.vel)*nX+(C.vz-Math.cos(P.rumbo)*P.vel)*nZ;
       if(vn<0){ C.x=P.x+nX*3.5; C.z=P.z+nZ*3.5; C.vx-=nX*vn*1.4; C.vz-=nZ*vn*1.4; C.vx*=0.85; C.vz*=0.85; P.vel*=0.7;
-        ev.choque=Math.max(ev.choque||0,-vn); C.golpe=Math.min(1,-vn/20); POLICIA.calor=Math.min(1,POLICIA.calor+0.02); }
+        ev.choque=Math.max(ev.choque||0,-vn); C.golpe=Math.min(1,-vn/20); POLICIA.calor=Math.min(1,POLICIA.calor+0.02);
+        P.retirada=2.6+Math.random()*1.8; P.ataque=0;                 /* te ha embestido: ahora se aparta */ }
     }
   }
   /* 5) despistarlos: 6 s con todos a más de 180 m · o que te pillen: 3 s parado con uno al lado */
@@ -1458,7 +1473,7 @@ function carreraCorre(dt,C){
   if(q && q.c===c){ let d=(q.i-A.ultimoI); if(c.cerrada){ d=((d%n)+n)%n; if(d>n/2) d-=n; }
     A.acum+=d*s*MUESTRA; A.ultimoI=q.i; }
   if(A.acum>A.maxAcum) A.maxAcum=A.acum;
-  A.alReves = (A.maxAcum-A.acum>25) ? A.alReves+dt : 0;
+  A.alReves = (A.maxAcum-A.acum>12) ? A.alReves+dt : 0;   /* avisa antes: 12 m de retroceso ya cantan */
   /* los rivales */
   for(const R of RIVALES){ rivalCorre(R,dt,C);
     const dx=C.x-R.x, dz=C.z-R.z, d=Math.hypot(dx,dz);
@@ -1478,6 +1493,42 @@ function acabaCarrera(puesto){
   premio(evento, 4-puesto, (puesto===1?"🏆 ¡GANASTE! ":puesto+"º · ")+def.nombre+" · "+A.tiempo.toFixed(1)+" s");
   RECUERDA[idEvento(evento)]=12;
   CARRERA.activa=null; RIVALES.length=0;
+}
+
+/* ================= 🔧 LAS MEJORAS DEL GARAJE =================
+   El dinero que ganas en los eventos, las carreras y despistando a la policía se gasta aquí.
+   Cuatro piezas, cuatro niveles cada una, y cada nivel cuesta más que el anterior */
+const MEJORAS=[
+  { id:"motor",  nom:"MOTOR",  icono:"⚙️", dice:"más punta y más empuje" },
+  { id:"nitro",  nom:"NITRO",  icono:"🔥", dice:"empuja más y dura más" },
+  { id:"agarre", nom:"AGARRE", icono:"🛞", dice:"se pega más en las curvas" },
+  { id:"frenos", nom:"FRENOS", icono:"🛑", dice:"frena mucho antes" }
+];
+const MEJ_MAX=4, MEJ_PRECIOS=[4000,9000,18000,32000];
+/* lo que hace cada nivel (multiplicadores que usa la física) */
+const MEJ={ vmax:1, acel:1, agarre:1, freno:1, nitroGasto:1, nitroEmpuje:1 };
+function nivelMejora(id){ return clamp((AJUSTES.mejoras&&AJUSTES.mejoras[id])|0,0,MEJ_MAX); }
+function precioMejora(id){ const n=nivelMejora(id); return n>=MEJ_MAX?null:MEJ_PRECIOS[n]; }
+function aplicaMejoras(){
+  const m=nivelMejora("motor"), n=nivelMejora("nitro"), a=nivelMejora("agarre"), f=nivelMejora("frenos");
+  MEJ.vmax=1+m*0.045; MEJ.acel=1+m*0.075;
+  MEJ.nitroEmpuje=1+n*0.09; MEJ.nitroGasto=1-n*0.13;
+  MEJ.agarre=1+a*0.10; MEJ.freno=1+f*0.13;
+}
+function compraMejora(id){
+  const p=precioMejora(id);
+  if(p===null){ avisa("YA ESTÁ AL MÁXIMO","#b46bff",1.6); return false; }
+  if(AJUSTES.dinero<p){ avisa("TE FALTAN $ "+(p-Math.round(AJUSTES.dinero)).toLocaleString("es-CL"),"#ff4a5a",2); pitido(180,0.25,"sawtooth"); return false; }
+  AJUSTES.dinero-=p; AJUSTES.mejoras=AJUSTES.mejoras||{};
+  AJUSTES.mejoras[id]=nivelMejora(id)+1; guardaAjustes(); aplicaMejoras();
+  const M=MEJORAS.find(x=>x.id===id);
+  avisa(M.icono+" "+M.nom+" NIVEL "+nivelMejora(id),"#c8ff2e",2.2); pitido(880,0.15); setTimeout(()=>pitido(1320,0.25),120);
+  return true;
+}
+/* 🧪 lo que tendría tu coche con estas mejoras (para enseñarlo en el garaje) */
+function resumenMejoras(){
+  return { punta:Math.round(VMAX*MEJ.vmax*3.6), nitro:Math.round(VMAX_NITRO*MEJ.vmax*MEJ.nitroEmpuje*3.6),
+           segundosNitro:(1/(0.16*MEJ.nitroGasto)).toFixed(0), agarre:Math.round(MEJ.agarre*100), freno:Math.round(MEJ.freno*100) };
 }
 
 /* ================= 🎬 LA ESCENA: subir el mundo a la tarjeta y dibujarlo cada fotograma ================= */
@@ -1693,7 +1744,7 @@ function dibujaFotograma(C,K,t,efectos){
 
 /* ================= 🎮 AJUSTES, CONTROLES Y SONIDO ================= */
 const AJUSTES=(()=>{ let a={}; try{ a=JSON.parse(localStorage.getItem("edtu_turbo")||"{}"); }catch(e){}
-  return Object.assign({ pintura:0, neon:0, calidad:null, sombras:true, dinero:0, mejores:{} }, a); })();
+  return Object.assign({ pintura:0, neon:0, calidad:null, sombras:true, dinero:0, mejores:{}, mejoras:{}, volante:1 }, a); })();
 function guardaAjustes(){ try{ localStorage.setItem("edtu_turbo",JSON.stringify(AJUSTES)); }catch(e){} }
 const G={ estado:"carga", t:0, coche:null, cam:null, trucos:[], mensajes:[], evento:null, pausa:false, flash:0, avisoCal:null };
 
@@ -1738,6 +1789,7 @@ function leeEntrada(){
     else if(G.estado==="menu" && pulsa(0)) empieza();
     for(let i=0;i<16;i++) PAD.antes[i]=P.boton(i)>0.5;
   }
+  if(AJUSTES.volante===-1) E.giro=-E.giro;     /* 🕹️ el volante al revés, si lo eliges en el menú */
   return E;
 }
 function preparaTactil(){
@@ -2044,6 +2096,16 @@ const $=id=>document.getElementById(id);
 function pintaMenu(){
   $("optPintura").innerHTML=PINTURAS.map((p,i)=>'<button class="op'+(AJUSTES.pintura===i?' sel':'')+'" data-p="'+i+'"><span class="muestra" style="background:rgb('+p.rgb.map(v=>Math.round(Math.min(1,v*1.4+0.06)*255)).join(",")+')"></span>'+p.nom+'</button>').join("");
   $("optNeon").innerHTML=NEONES.map((n,i)=>'<button class="op'+(AJUSTES.neon===i?' sel':'')+'" data-n="'+i+'"><span class="muestra" style="color:rgb('+n.rgb.map(v=>Math.round(v*255)).join(",")+');background:currentColor"></span>'+n.nom+'</button>').join("");
+  /* 🔧 las mejoras (el dinero sirve para esto) */
+  { const R=resumenMejoras();
+    $("optMej").innerHTML=MEJORAS.map(M=>{ const n=nivelMejora(M.id), p=precioMejora(M.id);
+      return '<button class="op'+(p===null?' sel':'')+'" data-mej="'+M.id+'"'+(p!==null&&AJUSTES.dinero<p?' style="opacity:.55"':'')+'>'+
+        M.icono+' '+M.nom+' '+'▮'.repeat(n)+'▯'.repeat(MEJ_MAX-n)+'<br><small>'+(p===null?'AL MÁXIMO':'$ '+p.toLocaleString("es-CL"))+'</small></button>'; }).join("");
+    $("optMej").querySelectorAll("[data-mej]").forEach(b=>b.onclick=()=>{ if(compraMejora(b.dataset.mej)) pintaMenu(); });
+    $("dineroTxt").innerHTML='💰 <b>$ '+Math.round(AJUSTES.dinero).toLocaleString("es-CL")+'</b> · punta <b>'+R.punta+' km/h</b> ('+R.nitro+' con nitro) · el nitro dura <b>'+R.segundosNitro+' s</b> · agarre '+R.agarre+'% · frenos '+R.freno+'%';
+  }
+  $("optVolante").innerHTML=[[1,"NORMAL"],[-1,"INVERTIDO"]].map(v=>'<button class="op'+((AJUSTES.volante||1)===v[0]?' sel':'')+'" data-vol="'+v[0]+'">🕹️ '+v[1]+'</button>').join("");
+  $("optVolante").querySelectorAll("[data-vol]").forEach(b=>b.onclick=()=>{ AJUSTES.volante=+b.dataset.vol; guardaAjustes(); pintaMenu(); });
   $("optCal").innerHTML=ORDEN_CAL.map(k=>{ const t=tamRender(k,innerWidth,innerHeight); return '<button class="op'+(CALIDAD===k?' sel':'')+'" data-c="'+k+'">🖥️ '+CALIDADES[k].nom+' <small>'+t.w+'×'+t.h+'</small></button>'; }).join("");
   $("optPintura").querySelectorAll("[data-p]").forEach(b=>b.onclick=()=>{ AJUSTES.pintura=+b.dataset.p; guardaAjustes(); subeCoche(); pintaMenu(); });
   $("optNeon").querySelectorAll("[data-n]").forEach(b=>b.onclick=()=>{ AJUSTES.neon=+b.dataset.n; guardaAjustes(); pintaMenu(); });
@@ -2052,7 +2114,9 @@ function pintaMenu(){
     ? "◀ ▶ girar · <b>GAS</b> y <b>FRENO</b> · <b>DERRAPE</b> suelta la parte de atrás · 🔥 nitro"
     : "<kbd>W</kbd> gas · <kbd>S</kbd> freno · <kbd>A</kbd> <kbd>D</kbd> girar · <kbd>ESPACIO</kbd> derrape · <kbd>SHIFT</kbd> nitro · <kbd>C</kbd> cámara · <kbd>R</kbd> volver a la carretera · <kbd>P</kbd> pausa<br>"+
       "🎮 mando: <kbd>RT</kbd> gas · <kbd>LT</kbd> freno · stick izquierdo gira · <kbd>X</kbd>/<kbd>B</kbd> derrape · <kbd>A</kbd>/<kbd>RB</kbd> nitro · <kbd>Y</kbd> cámara · <kbd>START</kbd> pausa<br>"+
-      "💜 busca en el mapa las <b>zonas de derrape</b>, los <b>radares</b> y los <b>saltos</b>: cada uno da hasta 3 estrellas. Derrapar, volar y rozar árboles llena el nitro";
+      "💜 en el mapa: <b>zonas de derrape</b>, <b>radares</b>, <b>saltos</b> y 🏁 <b>carreras</b> contra NOVA, KIRO y LENA · cada uno da hasta 3 estrellas y dinero<br>"+
+      "🚗 hay <b>tráfico</b>: adelantar en sentido contrario y pasar rozando llena el nitro · 🚓 si te ve la <b>policía</b> a más de 120 km/h te persigue: despístalos y cobras, te pillan parado y pagas<br>"+
+      "🔧 con el dinero se compran <b>mejoras</b> en el garaje: motor, nitro, agarre y frenos";
 }
 function empieza(){
   iniciaSonido(); try{ if(SON.ctx&&SON.ctx.state!=="running") SON.ctx.resume(); }catch(e){}
@@ -2114,6 +2178,7 @@ async function arranca(){
   const prog=(f,t)=>{ $("barra").firstElementChild.style.width=Math.round(f*100)+"%"; if(t) $("cargaTxt").textContent=t; };
   try{ if(!iniciaGL(lienzoGL)){ $("nogl").style.display="flex"; $("carga").classList.add("oculto"); return; } }
   catch(e){ $("nogl").style.display="flex"; $("nogl").textContent="No se pudo preparar el 3D: "+e.message; $("carga").classList.add("oculto"); return; }
+  aplicaMejoras();                                           /* 🔧 lo comprado en el garaje */
   CALIDAD=AJUSTES.calidad&&CALIDADES[AJUSTES.calidad]?AJUSTES.calidad:(ES_TACTIL()?"hd":"k4");
   aplicaCalidad();
   await construyeMundo(prog);

@@ -276,6 +276,44 @@ const cuadros = (N, n) => { const err = []; for (let i = 0; i < n; i++) { const 
     if (r.fuera > r.pasos * 0.01 || r.nan) MAL("los rivales se salen de su ruta o se rompen");
     if (r.alReves < 0.5) MAL("no avisa del sentido equivocado");
   }
+  /* ---------- 8) 🔧 las mejoras del garaje ---------- */
+  {
+    const { N } = await arrancaJuego("#foto&sitio=lago");
+    const en = x => vm.runInContext(x, N.env);
+    const r = en(`(()=>{
+      const piloto=(C,mira)=>{ const q=carreteraCerca(C.x,C.z,40); if(!q) return 0;
+        const s=Math.sign(Math.sin(C.rumbo)*q.tx+Math.cos(C.rumbo)*q.tz)||1, n=q.c.n, k=q.c.cerrada?((q.i+s*Math.round(mira/4))%n+n)%n:clamp(q.i+s*Math.round(mira/4),0,n-1);
+        return clamp(-angDif(C.rumbo,Math.atan2(q.c.x[k]-C.x,q.c.z[k]-C.z))*2.2,-1,1); };
+      const au=CARRETERAS.find(c=>c.tipo==="autopista");
+      const mide=()=>{ const o={};
+        const C=nuevoCoche(au.x[8],au.z[8],Math.atan2(au.tx[8],au.tz[8])); let t=0, t100=null; o.punta=0;
+        for(let f=0;f<60*40&&C.x<980;f++,t+=1/60){ cocheCorre(C,{gas:1,freno:0,giro:piloto(C,26),mano:false,nitro:false},1/60); if(C.kmh>=100&&t100===null) t100=t; o.punta=Math.max(o.punta,C.kmh); }
+        o.t100=t100;
+        const D=nuevoCoche(au.x[8],au.z[8],Math.atan2(au.tx[8],au.tz[8])); const v=200/3.6; D.vx=Math.sin(D.rumbo)*v; D.vz=Math.cos(D.rumbo)*v; D.kmh=200;
+        const x0=D.x, z0=D.z; for(let f=0;f<60*20&&D.kmh>2;f++) cocheCorre(D,{gas:0,freno:1,giro:0,mano:false,nitro:false},1/60);
+        o.frenada=Math.hypot(D.x-x0,D.z-z0);
+        const E=nuevoCoche(au.x[8],au.z[8],Math.atan2(au.tx[8],au.tz[8])); E.nitro=1; let tn=0; o.puntaNitro=0;
+        for(let f=0;f<60*60&&E.nitro>0.011;f++,tn+=1/60){ cocheCorre(E,{gas:1,freno:0,giro:piloto(E,26),mano:false,nitro:true},1/60); o.puntaNitro=Math.max(o.puntaNitro,E.kmh); if(E.x>980){ E.x=au.x[8]; E.z=au.z[8]; } }
+        o.nitroSeg=tn; return o; };
+      AJUSTES.mejoras={}; aplicaMejoras();
+      const a=mide();
+      AJUSTES.dinero=100; const pobre=compraMejora("motor");            /* sin dinero no se compra */
+      AJUSTES.dinero=1e6; let gastado=0;
+      for(const M of MEJORAS) for(let k=0;k<MEJ_MAX+2;k++){ const p=precioMejora(M.id); if(p===null) break; gastado+=p; compraMejora(M.id); }
+      const b=mide();
+      return { a, b, pobre, gastado, queda:Math.round(AJUSTES.dinero), tope:MEJORAS.every(M=>nivelMejora(M.id)===MEJ_MAX), sigueComprable:precioMejora("motor")!==null };
+    })()`);
+    console.log("  🔧 sin mejoras: " + r.a.punta.toFixed(0) + " km/h · 0-100 " + r.a.t100.toFixed(1) + " s · frena de 200 en " + r.a.frenada.toFixed(0) + " m · nitro " + r.a.nitroSeg.toFixed(1) + " s");
+    console.log("  🔧 con todo al máximo ($ " + r.gastado.toLocaleString("es") + "): " + r.b.punta.toFixed(0) + " km/h · 0-100 " + r.b.t100.toFixed(1) + " s · frena en " + r.b.frenada.toFixed(0) + " m · nitro " + r.b.nitroSeg.toFixed(1) + " s (punta con nitro " + r.b.puntaNitro.toFixed(0) + ")");
+    if (r.pobre) MAL("se compran mejoras sin dinero");
+    if (!r.tope || r.sigueComprable) MAL("las mejoras no llegan al máximo (o se siguen vendiendo)");
+    if (1e6 - r.queda !== r.gastado) MAL("el dinero de las mejoras no cuadra");
+    if (r.b.punta < r.a.punta + 20) MAL("el motor no se nota");
+    if (r.b.t100 > r.a.t100 - 0.3) MAL("no acelera bastante más");
+    if (r.b.frenada > r.a.frenada - 10) MAL("los frenos no se notan");
+    if (r.b.nitroSeg < r.a.nitroSeg + 3) MAL("el nitro no dura bastante más");
+    if (r.b.puntaNitro > 365) MAL("con mejoras el coche se pasa de 365 km/h (" + r.b.puntaNitro.toFixed(0) + ")");   /* el tope son 338; cuesta abajo se pasa un poco */
+  }
   console.log("");
   if (malos) { console.log("❌ " + malos + " fallo(s)"); process.exit(1); }
   console.log("✅ EDTU TURBO: arranca, se juega con teclado, física de arcade comprobada y enchufado en el cuartel");
