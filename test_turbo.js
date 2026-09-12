@@ -206,7 +206,10 @@ const cuadros = (N, n) => { const err = []; for (let i = 0; i < n; i++) { const 
       const C=nuevoCoche(au.x[8],au.z[8],Math.atan2(au.tx[8],au.tz[8])); TRAFICO.length=0; POLICIA.coches.length=0; POLICIA.nivel=0;
       out.vivos=0; out.nacer=1e9; out.fuera=0; out.nan=0;
       for(let f=0;f<3600;f++){ const antes=new Set(TRAFICO); traficoCorre(1/60,C);
-        for(const v of TRAFICO){ if(!antes.has(v)) out.nacer=Math.min(out.nacer,Math.hypot(v.x-C.x,v.z-C.z)); const q=carreteraCerca(v.x,v.z,30); if(!q||q.c!==v.c||q.d>v.c.ancho/2+1.5) out.fuera++; if(!isFinite(v.x+v.z+v.rumbo)) out.nan++; }
+        for(const v of TRAFICO){ if(!antes.has(v)) out.nacer=Math.min(out.nacer,Math.hypot(v.x-C.x,v.z-C.z));
+          let md=1e9; for(let k=-6;k<=6;k++){ const i=v.c.cerrada?((v.i+k)%v.c.n+v.c.n)%v.c.n:clamp(v.i+k,0,v.c.n-1); md=Math.min(md,Math.hypot(v.c.x[i]-v.x,v.c.z[i]-v.z)); }
+          if(md>v.c.ancho/2+1.5){ out.fuera++; out.peorFuera=Math.max(out.peorFuera||0,md); }
+          if(!isFinite(v.x+v.z+v.rumbo)) out.nan++; }
         out.vivos=Math.max(out.vivos,TRAFICO.length); cocheCorre(C,{gas:0.85,freno:0,giro:piloto(C,26),mano:false,nitro:false},1/60); }
       /* 🚓 pasas a 150 km/h junto a una patrulla · te paras · te pillan (multa) */
       const D=nuevoCoche(au.x[i0],au.z[i0],dir); D.vx=Math.sin(dir)*42; D.vz=Math.cos(dir)*42;
@@ -223,12 +226,55 @@ const cuadros = (N, n) => { const err = []; for (let i = 0; i < n; i++) { const 
       for(let f=0;f<60*30;f++){ E.nitro=1; cocheCorre(E,{gas:1,freno:0,giro:piloto(E,30),mano:false,nitro:true},1/60); traficoCorre(1/60,E); const ev=policiaCorre(1/60,E); if(ev.despistado){ out.escapa=f/60; break; } if(ev.pillado){ out.escapa=-1; break; } }
       out.premio=AJUSTES.dinero-d1;
       return out; })()`);
-    console.log("  🚗 tráfico, 60 s: hasta " + r.vivos + " coches · el más cercano nace a " + r.nacer.toFixed(0) + " m · fuera de su carretera " + r.fuera + " · números rotos " + r.nan);
+    console.log("  🚗 tráfico, 60 s: hasta " + r.vivos + " coches · el más cercano nace a " + r.nacer.toFixed(0) + " m · fuera de su carril " + r.fuera + (r.peorFuera ? " (el peor a " + r.peorFuera.toFixed(1) + " m del eje)" : "") + " · números rotos " + r.nan);
     if (r.vivos < 8) MAL("hay muy poco tráfico"); if (r.nacer < 80) MAL("un coche nace demasiado cerca (" + r.nacer.toFixed(0) + " m)"); if (r.fuera || r.nan) MAL("el tráfico se sale de la carretera o se rompe");
     console.log("  🚓 pasas a 150 km/h junto a una patrulla: persecución a los " + (r.vio === null ? "NUNCA" : r.vio.toFixed(2) + " s") + " con " + r.perseguidores + " perseguidores · parado te pillan a los " + (r.pilla === null ? "NUNCA" : r.pilla.toFixed(1) + " s") + " y pagas $ " + r.multa + " · huyendo con nitro los despistas a los " + (r.escapa === null ? "NUNCA" : r.escapa < 0 ? "¡te pillan!" : r.escapa.toFixed(1) + " s") + " y cobras $ " + r.premio);
     if (r.vio === null || r.vio > 2 || !r.perseguidores) MAL("la patrulla no te persigue");
     if (r.pilla === null || r.multa <= 0 || r.nivelTras !== 0) MAL("parado no te pillan (o no hay multa)");
     if (r.escapa === null || r.escapa < 0 || r.premio <= 0) MAL("no se puede despistar a la policía (o no paga)");
+  }
+  /* ---------- 7) 🏁 las carreras contra los rivales ---------- */
+  {
+    const { N } = await arrancaJuego("#foto&sitio=lago");
+    const en = x => vm.runInContext(x, N.env);
+    const r = en(`(()=>{
+      const out={ carreras:[], quieto:0, fuera:0, pasos:0, nan:0, alReves:0 };
+      /* el piloto sigue LA RUTA de la carrera (no la carretera más cercana: se solapan) */
+      const piloto=(C,mira,def)=>{ const c=def.c, n=c.n; let mi=0, md=1e9;
+        for(let i=0;i<n;i++){ const d=Math.hypot(c.x[i]-C.x,c.z[i]-C.z); if(d<md){ md=d; mi=i; } }
+        const k=c.cerrada?((mi+def.s*Math.round(mira/4))%n+n)%n:clamp(mi+def.s*Math.round(mira/4),0,n-1);
+        return clamp(-angDif(C.rumbo,Math.atan2(c.x[k]-C.x,c.z[k]-C.z))*2.2,-1,1); };
+      for(const ev of EVENTOS.filter(e=>e.tipo==="carrera")){
+        const def=ev.carrera, C=nuevoCoche(0,0,0); TRAFICO.length=0; POLICIA.coches.length=0; POLICIA.nivel=0;
+        empiezaCarrera(def,C);
+        const x0=C.x, z0=C.z;
+        for(let f=0;f<180;f++){ cocheCorre(C,{gas:1,freno:0,giro:0,mano:false,nitro:false},1/60); carreraCorre(1/60,C); }
+        out.quieto=Math.max(out.quieto,Math.hypot(C.x-x0,C.z-z0));       /* en la cuenta atrás no te mueves */
+        let fin=null, puesto=0, t=0;
+        for(let f=0;f<60*240;f++,t+=1/60){ C.nitro=Math.max(C.nitro,0.4);
+          cocheCorre(C,{gas:1,freno:0,giro:piloto(C,28,def),mano:false,nitro:true},1/60);
+          const e=carreraCorre(1/60,C); if(CARRERA.activa) puesto=CARRERA.activa.puesto;
+          for(const R of RIVALES){ out.pasos++; if(!isFinite(R.x+R.z+R.vel)) out.nan++;
+            let md=1e9; for(let k=-6;k<=6;k++){ const i=R.c.cerrada?((R.i+k)%R.c.n+R.c.n)%R.c.n:clamp(R.i+k,0,R.c.n-1); md=Math.min(md,Math.hypot(R.c.x[i]-R.x,R.c.z[i]-R.z)); }
+            if(md>R.c.ancho/2+1.5) out.fuera++; }
+          if(e.fin){ fin=t; break; } }
+        out.carreras.push({ nom:def.nombre, largo:Math.round(def.largo), fin:fin===null?null:+fin.toFixed(1), puesto });
+      }
+      /* marcha atrás en la vuelta al lago: tiene que avisar */
+      const def=EVENTOS.find(e=>e.tipo==="carrera"&&e.carrera.c.cerrada).carrera, D=nuevoCoche(0,0,0);
+      empiezaCarrera(def,D);
+      for(let f=0;f<60*10;f++){ cocheCorre(D,{gas:1,freno:0,giro:piloto(D,28,def),mano:false,nitro:false},1/60); carreraCorre(1/60,D); }
+      for(let f=0;f<60*10;f++){ cocheCorre(D,{gas:0,freno:1,giro:0,mano:false,nitro:false},1/60); carreraCorre(1/60,D); }
+      out.alReves=CARRERA.activa?CARRERA.activa.alReves:0;
+      CARRERA.activa=null; RIVALES.length=0;
+      return out; })()`);
+    console.log("  🏁 " + r.carreras.map(c => c.nom + " (" + c.largo + " m): " + (c.fin === null ? "NO ACABA" : c.fin + " s, " + c.puesto + "º")).join(" · "));
+    console.log("  en la cuenta atrás te mueves " + r.quieto.toFixed(1) + " m · rivales fuera de su ruta " + r.fuera + "/" + r.pasos + " · números rotos " + r.nan + " · marcha atrás: avisa tras " + r.alReves.toFixed(1) + " s");
+    if (r.carreras.length !== 3) MAL("tienen que ser 3 carreras");
+    for (const c of r.carreras) if (c.fin === null) MAL("la carrera " + c.nom + " no acaba");
+    if (r.quieto > 1.5) MAL("el coche se mueve durante la cuenta atrás");
+    if (r.fuera > r.pasos * 0.01 || r.nan) MAL("los rivales se salen de su ruta o se rompen");
+    if (r.alReves < 0.5) MAL("no avisa del sentido equivocado");
   }
   console.log("");
   if (malos) { console.log("❌ " + malos + " fallo(s)"); process.exit(1); }

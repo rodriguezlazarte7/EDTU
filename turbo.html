@@ -430,7 +430,7 @@ async function construyeMundo(progreso){
   const azar=azarCon(2026);
   p(0.62,"plantando los pinos…"); await new Promise(r=>setTimeout(r,0)); poneArboles(azar);
   p(0.72,"construyendo la ciudad…"); poneCiudad(azar);
-  p(0.76,"poniendo señales…"); poneSenales(); poneEventos();
+  p(0.76,"poniendo señales…"); poneSenales(); poneEventos(); if(typeof defineCarreras==="function") defineCarreras();
 }
 
 /* ================= 🖥️ WEBGL2: la tarjeta gráfica dibuja el mundo =================
@@ -1387,6 +1387,99 @@ function emitePolicia(dt){
   }
 }
 
+/* ================= 🏁 LAS CARRERAS =================
+   Tres carreras en el mapa contra tres rivales con nombre. Entras en la bandera, cuenta atrás en la
+   parrilla, y a correr: posiciones, cronómetro, sentido equivocado y premio según el puesto */
+const RIVAL_NOMBRES=["NOVA","KIRO","LENA"], RIVAL_PINTURAS=[2,3,4];    /* rojo, azul y lima */
+const RIVALES=[];
+const CARRERA={ activa:null };
+function defineCarreras(){
+  const porNombre=n=>CARRETERAS.find(c=>c.nombre===n);
+  const au=porNombre("Autopista 7"), lago=porNombre("Vuelta al Lago Plateado"), paso=porNombre("Paso de la Cumbre");
+  const lista=[
+    { nombre:"SPRINT A LA CIUDAD", c:au, i0:6, i1:au.n-8, s:1, vueltas:1 },
+    { nombre:"VUELTA AL LAGO", c:lago, i0:Math.floor(lago.n*0.05), i1:null, s:1, vueltas:1 },
+    { nombre:"SUBIDA A LA CUMBRE", c:paso, i0:4, i1:paso.n-6, s:1, vueltas:1 }
+  ];
+  for(const r of lista){
+    r.largo = r.c.cerrada ? r.c.n*MUESTRA*r.vueltas : Math.abs(r.i1-r.i0)*MUESTRA;
+    EVENTOS.push({ tipo:"carrera", nombre:"CARRERA · "+r.nombre, c:r.c, i:r.i0, x:r.c.x[r.i0], z:r.c.z[r.i0], y:r.c.y[r.i0], metas:[1,2,3], mejor:0, carrera:r });
+  }
+}
+/* la derecha de la marcha en una carretera (hacia donde va la carrera) */
+function derechaDe(c,i,s){ return { x:-c.tz[i]*s, z:c.tx[i]*s }; }
+function idxRuta(c,k){ const n=c.n; return c.cerrada?((k%n)+n)%n:clamp(k,0,n-1); }
+function empiezaCarrera(def,C){
+  const c=def.c, s=def.s, d=derechaDe(c,def.i0,s), carril=Math.min(c.ancho/4,3.2);
+  /* la parrilla: tú delante a la derecha, los rivales escalonados detrás */
+  C.x=c.x[def.i0]+d.x*carril; C.z=c.z[def.i0]+d.z*carril; C.y=sueloEn(C.x,C.z).y; C.rumbo=Math.atan2(c.tx[def.i0]*s,c.tz[def.i0]*s);
+  C.vx=C.vz=C.vy=0; C.giroV=0; C.derrapando=false; C.enSuelo=true;
+  RIVALES.length=0;
+  RIVAL_NOMBRES.forEach((nom,k)=>{ const i=idxRuta(c,def.i0-s*(2+k*2)), lado=(k%2?1:-1), dd=derechaDe(c,i,s);
+    RIVALES.push({ nom, malla:k, c, i, s, t:0, lat:lado*carril*0.8, latObj:lado*carril*0.8, vel:0, acum:-(2+k*2)*MUESTRA, skill:[0.55,0.85,0.7][k], nitroT:0, vuelta:0,
+      x:c.x[i]+dd.x*lado*carril*0.8, z:c.z[i]+dd.z*lado*carril*0.8, y:c.y[i], rumbo:Math.atan2(c.tx[i]*s,c.tz[i]*s) }); });
+  CARRERA.activa={ def, t:-3.5, cuenta:4, acum:0, ultimoI:def.i0, maxAcum:0, alReves:0, fin:false, puesto:1, tiempo:0 };
+  G.cam.rumbo=C.rumbo; avisa(def.nombre,"#b46bff",2.5);
+}
+function rivalCorre(R,dt,C){
+  const c=R.c, s=R.s, n=c.n;
+  /* la curva que viene: cuanto más cerrada, más frena */
+  const a=Math.atan2(c.tx[R.i]*s,c.tz[R.i]*s), i2=idxRuta(c,R.i+s*12), b=Math.atan2(c.tx[i2]*s,c.tz[i2]*s), curva=Math.abs(angDif(a,b));
+  const vmax=56+R.skill*10, nitro=R.nitroT>0?1.12:1;
+  let velObj=vmax*nitro*clamp(1-curva*1.25,0.38,1);
+  if(!c.cerrada){ const i1=CARRERA.activa.def.i1; if(Math.abs(i1-R.i)<8) velObj*=0.5; }         /* frena al llegar */
+  /* no se come al de delante (ni a ti) */
+  for(const O of RIVALES.concat([{x:C.x,z:C.z}])){ if(O===R) continue; const dx=O.x-R.x, dz=O.z-R.z, ade=dx*Math.sin(R.rumbo)+dz*Math.cos(R.rumbo), lado=Math.abs(dx*Math.cos(R.rumbo)-dz*Math.sin(R.rumbo));
+    if(ade>0&&ade<14&&lado<2.2){ velObj=Math.min(velObj,Math.max(8,ade*3.5)); if(Math.random()<dt*2) R.latObj=-Math.sign(R.lat||1)*Math.min(c.ancho/4,3.2); } }
+  R.vel+=clamp(velObj-R.vel,-18*dt,(8+R.skill*3)*dt);
+  if(R.nitroT>0) R.nitroT-=dt; else if(Math.random()<dt*0.05) R.nitroT=2+Math.random()*2;
+  /* avanza por la ruta */
+  /* 🐛 antes se tiraba la fracción de tramo cada fotograma y los rivales se quedaban clavados en la salida */
+  const pasoDe=i=>{ const j=idxRuta(c,i+s); return Math.hypot(c.x[j]-c.x[i],c.z[j]-c.z[i])||MUESTRA; };
+  let queda=R.vel*dt+R.t*pasoDe(R.i); R.acum+=R.vel*dt; R.t=0;
+  while(queda>0){ const sig=idxRuta(c,R.i+s); if(!c.cerrada&&sig===R.i){ R.t=0; break; }
+    const paso=pasoDe(R.i); if(queda<paso){ R.t=queda/paso; break; } R.i=sig; queda-=paso; }
+  R.lat+=(R.latObj-R.lat)*(1-Math.exp(-dt*1.2));
+  const sig=idxRuta(c,R.i+s), dd=derechaDe(c,R.i,s);
+  R.x=lerp(c.x[R.i],c.x[sig],R.t)+dd.x*R.lat; R.z=lerp(c.z[R.i],c.z[sig],R.t)+dd.z*R.lat; R.y=sueloEn(R.x,R.z).y;
+  R.rumbo=Math.atan2(c.tx[R.i]*s,c.tz[R.i]*s); R.vuelta+=R.vel*dt/RUEDA_R;
+}
+function carreraCorre(dt,C){
+  const A=CARRERA.activa; if(!A) return {};
+  const ev={}, def=A.def, c=def.c, s=def.s, n=c.n;
+  A.t+=dt;
+  /* la cuenta atrás: el coche no se mueve */
+  if(A.t<0){ const q=Math.ceil(-A.t); if(q<A.cuenta&&q>=1){ A.cuenta=q; avisa(String(q),"#fff",0.9); pitido(660,0.15); }
+    C.vx=C.vz=0; for(const R of RIVALES){ R.x=R.x; } return ev; }
+  if(A.cuenta!==0){ A.cuenta=0; avisa("¡YA!","#c8ff2e",1); pitido(1320,0.4); }
+  A.tiempo+=dt;
+  /* tu avance por la ruta (en metros acumulados, contando vueltas) */
+  const q=carreteraCerca(C.x,C.z,45);
+  if(q && q.c===c){ let d=(q.i-A.ultimoI); if(c.cerrada){ d=((d%n)+n)%n; if(d>n/2) d-=n; }
+    A.acum+=d*s*MUESTRA; A.ultimoI=q.i; }
+  if(A.acum>A.maxAcum) A.maxAcum=A.acum;
+  A.alReves = (A.maxAcum-A.acum>25) ? A.alReves+dt : 0;
+  /* los rivales */
+  for(const R of RIVALES){ rivalCorre(R,dt,C);
+    const dx=C.x-R.x, dz=C.z-R.z, d=Math.hypot(dx,dz);
+    if(d<3.3){ const nx=dx/(d||1), nz=dz/(d||1), vn=(C.vx-Math.sin(R.rumbo)*R.vel)*nx+(C.vz-Math.cos(R.rumbo)*R.vel)*nz;
+      if(vn<0){ C.x=R.x+nx*3.4; C.z=R.z+nz*3.4; C.vx-=nx*vn*1.2; C.vz-=nz*vn*1.2; C.vx*=0.85; C.vz*=0.85; R.vel*=0.8; ev.choque=Math.max(ev.choque||0,-vn); C.golpe=Math.min(1,-vn/22); } } }
+  /* las posiciones */
+  A.puesto=1+RIVALES.filter(R=>R.acum>A.acum).length;
+  /* ¿alguien ha llegado? */
+  const llegados=RIVALES.filter(R=>R.acum>=def.largo).length;
+  if(A.acum>=def.largo){ ev.fin=true; acabaCarrera(1+llegados); }
+  else if(A.tiempo>240){ ev.fin=true; acabaCarrera(4); }
+  return ev;
+}
+function acabaCarrera(puesto){
+  const A=CARRERA.activa; if(!A) return;
+  const def=A.def, evento=EVENTOS.find(e=>e.carrera===def);
+  premio(evento, 4-puesto, (puesto===1?"🏆 ¡GANASTE! ":puesto+"º · ")+def.nombre+" · "+A.tiempo.toFixed(1)+" s");
+  RECUERDA[idEvento(evento)]=12;
+  CARRERA.activa=null; RIVALES.length=0;
+}
+
 /* ================= 🎬 LA ESCENA: subir el mundo a la tarjeta y dibujarlo cada fotograma ================= */
 const ESC={}, TEX={};
 const SOL=vNorm(v3(-0.50,0.30,0.81));            /* ☀️ un sol bajo de tarde, como el del video */
@@ -1442,6 +1535,7 @@ async function subeMundo(progreso){
   ESC.rueda=subeMalla(obraRueda().malla());
   ESC.trafico=obraTraficoMallas().concat([obraPoliciaMalla()]).map(o=>subeMalla(o.malla()));   /* 🚗 el tráfico y 🚓 la patrulla (la 8) */
   subeCoche();
+  ESC.rivales=RIVAL_PINTURAS.map(k=>subeMalla(obraCoche(PINTURAS[k]).malla()));   /* 🏁 los rivales */
   /* ✨ las partículas: un cuadrado y hasta 2.000 copias */
   ESC.part={ vao:gl.createVertexArray(), buf:gl.createBuffer(), max:2000 };
   gl.bindVertexArray(ESC.part.vao);
@@ -1519,6 +1613,7 @@ function dibujaFotograma(C,K,t,efectos){
     sm(ESC.coche,Mc); for(const m of MR) sm(ESC.rueda,m);
     for(const v of TRAFICO) if(Math.abs(v.x-C.x)<120&&Math.abs(v.z-C.z)<120) sm(ESC.trafico[v.malla],m4Coche(v.x,v.y,v.z,v.rumbo,0,0));
     for(const P of POLICIA.coches) if(Math.abs(P.x-C.x)<120&&Math.abs(P.z-C.z)<120) sm(ESC.trafico[POLI_MALLA],m4Coche(P.x,P.y,P.z,P.rumbo,0,0));
+    for(const R of RIVALES){ const M=m4Coche(R.x,R.y+0.02,R.z,R.rumbo,0,0); sm(ESC.rivales[R.malla],M); for(const m of matricesRuedas({direccion:0,vuelta:R.vuelta},M)) sm(ESC.rueda,m); }
     sm(ESC.fachadas); sm(ESC.azoteas); sm(ESC.detalles); sm(ESC.arcenes);
     p=PROGS.sombraArbol; gl.useProgram(p); gl.uniformMatrix4fv(U(p,"uLuzVP"),false,RENDER.luzVP);
     gl.bindVertexArray(ESC.pinosCerca.vao); gl.drawElementsInstanced(gl.TRIANGLES,ESC.pinosCerca.n,ESC.pinosCerca.tipo,0,ESC.pinosCerca.cuantos);
@@ -1549,6 +1644,7 @@ function dibujaFotograma(C,K,t,efectos){
   dibuja(ESC.coche,Mc,0); for(const m of MR) dibuja(ESC.rueda,m,0);
   for(const v of TRAFICO) dibuja(ESC.trafico[v.malla],m4Coche(v.x,v.y,v.z,v.rumbo,0,0),0);
   for(const P of POLICIA.coches) dibuja(ESC.trafico[POLI_MALLA],m4Coche(P.x,P.y,P.z,P.rumbo,0,0),0);
+  for(const R of RIVALES){ const M=m4Coche(R.x,R.y+0.02,R.z,R.rumbo,0,0); dibuja(ESC.rivales[R.malla],M,0); for(const m of matricesRuedas({direccion:0,vuelta:R.vuelta},M)) dibuja(ESC.rueda,m,0); }
   gl.disable(gl.CULL_FACE);
   p=PROGS.arbol; gl.useProgram(p); uniformesLuz(p,t); gl.uniformMatrix4fv(U(p,"uVP"),false,RENDER.vp); gl.uniform1f(U(p,"uModo"),0);
   gl.bindVertexArray(ESC.pinos.vao); gl.drawElementsInstanced(gl.TRIANGLES,ESC.pinos.n,ESC.pinos.tipo,0,ESC.pinos.cuantos);
@@ -1722,7 +1818,7 @@ function iconoEvento(x,e,px,py,tam){
   x.fillStyle="#9b3dff"; x.strokeStyle="#fff"; x.lineWidth=tam*0.12;
   x.beginPath(); x.moveTo(0,-tam); x.lineTo(tam,0); x.lineTo(0,tam); x.lineTo(-tam,0); x.closePath(); x.fill(); x.stroke();
   x.fillStyle="#fff"; x.font="900 "+(tam*0.9)+"px 'Segoe UI',sans-serif"; x.textAlign="center"; x.textBaseline="middle";
-  x.fillText(e.tipo==="derrape"?"S":e.tipo==="radar"?"⚡":"▲",0,tam*0.05); x.restore();
+  x.fillText(e.tipo==="derrape"?"S":e.tipo==="radar"?"⚡":e.tipo==="carrera"?"🏁":"▲",0,tam*0.05); x.restore();
 }
 function pintaHud(C,dt){
   const x=hx, u=HU, W=HW, H=HH;
@@ -1786,6 +1882,23 @@ function pintaHud(C,dt){
     x.fillStyle="rgba(255,255,255,.2)"; x.fillRect(x0+14*u,y0+130*u,w-28*u,6*u); x.fillStyle="#9b3dff"; x.fillRect(x0+14*u,y0+130*u,(w-28*u)*clamp(v/tope,0,1),6*u);
     if(EV.tiempo!==undefined){ x.fillStyle="#d8203a"; x.fillRect(x0+w*0.25,y0+156*u,w*0.5,30*u); x.fillStyle="#fff"; x.font=fuente("900",18);
       const s=Math.max(0,Math.ceil(EV.tiempo)); x.fillText("00:"+String(s).padStart(2,"0"),x0+w/2,y0+172*u); }
+  }
+  /* 🏁 la carrera: cuenta atrás, posición, tiempo, barra de avance y los rivales con su nombre */
+  if(CARRERA.activa){ const A=CARRERA.activa, cx=W/2;
+    if(A.t<0){ const q=Math.ceil(-A.t), f=1-(q+A.t); x.save(); x.translate(cx,H*0.42); x.scale(1+f*0.6,1+f*0.6); x.globalAlpha=1-f*0.7;
+      x.textAlign="center"; x.textBaseline="middle"; x.font=fuente("900 italic",160); x.lineWidth=10*u; x.strokeStyle="rgba(10,6,24,.85)"; x.strokeText(q>3?"":String(q),0,0); x.fillStyle="#c8ff2e"; x.fillText(q>3?"":String(q),0,0); x.restore(); }
+    const y0=POLICIA.nivel>0?112*u:26*u;
+    x.fillStyle="rgba(8,10,20,.72)"; x.fillRect(cx-230*u,y0,460*u,70*u); x.fillStyle="#9b3dff"; x.fillRect(cx-230*u,y0,460*u,6*u);
+    x.textAlign="left"; x.textBaseline="middle"; x.fillStyle="#fff"; x.font=fuente("900 italic",34); x.fillText(A.puesto+"º",cx-214*u,y0+38*u);
+    x.font=fuente("700",13); x.fillStyle="rgba(255,255,255,.75)"; x.fillText("/ "+(RIVALES.length+1),cx-160*u,y0+40*u);
+    x.textAlign="center"; x.font=fuente("900",16); x.fillStyle="#fff"; x.fillText(A.def.nombre,cx,y0+24*u);
+    const mm=Math.floor(A.tiempo/60), ss=(A.tiempo%60); x.font=fuente("700",15); x.fillStyle="#c8ff2e"; x.fillText(mm+":"+(ss<10?"0":"")+ss.toFixed(1),cx,y0+48*u);
+    x.textAlign="right"; x.font=fuente("700",13); x.fillStyle=A.alReves>0.5?"#ff4a5a":"rgba(255,255,255,.75)"; x.fillText(A.alReves>0.5?"⟲ SENTIDO EQUIVOCADO":Math.round(clamp(A.acum/A.def.largo,0,1)*100)+" %",cx+214*u,y0+40*u);
+    x.fillStyle="rgba(255,255,255,.18)"; x.fillRect(cx-214*u,y0+60*u,428*u,5*u);
+    x.fillStyle="#b46bff"; x.fillRect(cx-214*u,y0+60*u,428*u*clamp(A.acum/A.def.largo,0,1),5*u);
+    for(const R of RIVALES){ const d=Math.hypot(R.x-C.x,R.z-C.z); if(d<8||d>500) continue; const q=m4Proyecta(RENDER.vp,v3(R.x,R.y+2.2,R.z)); if(!q||q.x<0||q.x>1||q.y<0||q.y>1) continue;
+      x.textAlign="center"; x.font=fuente("900",15); x.fillStyle=R.acum>A.acum?"#ff6a6a":"#c8ff2e"; x.shadowColor="rgba(0,0,0,.9)"; x.shadowBlur=5*u;
+      x.fillText(R.nom+" · "+Math.round(d)+" m",q.x*W,q.y*H); x.shadowBlur=0; }
   }
   /* 🚨 BUSCADO: el cartel de arriba, la barra de despistar y el borde de la pantalla latiendo */
   if(POLICIA.nivel>0){
@@ -1877,6 +1990,7 @@ function eventosCorren(dt,ev){
         valor(){ return this.metros; }, texto(){ return Math.round(this.metros)+" m"; }, metaTxt:m=>m+" m" };
       G.evento=Z; avisa("ZONA DE DERRAPE","#b46bff"); pitido(660,0.2);
     }
+    if(e.tipo==="carrera" && !CARRERA.activa && d<12){ RECUERDA[id]=2; empiezaCarrera(e.carrera,C); }
     if(e.tipo==="radar" && d<11){ RECUERDA[id]=6; premio(e,Math.round(C.kmh),"RADAR · "+Math.round(C.kmh)+" km/h"); }
   }
   /* 🛫 los saltos: se mide desde que despega cerca de una rampa hasta que aterriza */
@@ -1974,6 +2088,8 @@ function bucle(ahora){
     const evT=traficoCorre(dt,G.coche);                                   /* 🚗 el tráfico */
     if(evT.choque) junto.choque=Math.max(junto.choque||0,evT.choque);
     if(evT.cerca) junto.cerca=true;
+    const evC=carreraCorre(dt,G.coche);                                   /* 🏁 la carrera */
+    if(evC.choque) junto.choque=Math.max(junto.choque||0,evC.choque);
     const evP=policiaCorre(dt,G.coche);                                   /* 🚓 la policía */
     if(evP.choque) junto.choque=Math.max(junto.choque||0,evP.choque);
     if(POLICIA.nivel>0) emitePolicia(dt);
@@ -2031,6 +2147,12 @@ function modoFoto(){
     POLICIA.nivel=2; POLICIA.calor=0.4; POLICIA.t=0.05;                    /* 🚓 dos patrullas pegadas a ti */
     for(const [lx,lz] of [[-3.6,5],[3.4,-3]])   /* a tu lado, que se vean */{ const p=puntoCoche(C,lx,0,lz); POLICIA.coches.push({ x:p.x, z:p.z, y:sueloEn(p.x,p.z).y, rumbo:C.rumbo, vel:58, golpe:0, malla:POLI_MALLA }); }
   }
+  else if(sitio==="carrera"){ const ev=EVENTOS.find(e=>e.tipo==="carrera"&&e.carrera.nombre==="VUELTA AL LAGO"); empiezaCarrera(ev.carrera,C);
+    const A=CARRERA.activa; A.t=31.4; A.cuenta=0; A.tiempo=31.4;
+    for(let k=0;k<420;k++){ for(const R of RIVALES) rivalCorre(R,1/60,C); }             /* 7 s de carrera de los rivales */
+    const R0=RIVALES[1]; C.x=R0.x-Math.sin(R0.rumbo)*9; C.z=R0.z-Math.cos(R0.rumbo)*9; C.rumbo=R0.rumbo; C.y=sueloEn(C.x,C.z).y;
+    C.vx=Math.sin(C.rumbo)*40; C.vz=Math.cos(C.rumbo)*40; C.kmh=144; C.vF=40; A.acum=R0.acum-9; A.puesto=2;
+    for(const R of RIVALES) R.acum=R.acum; }
   else if(sitio==="lago"){ const c=porNombre("Vuelta al Lago Plateado"); pon(c,Math.floor(c.n*0.30),1,142); }
   else { const e=EVENTOS.find(x=>x.tipo==="derrape"); pon(e.c,e.i0+12,1,96); C.derrapando=true; C.anguloDerrape=0.42; C.vR=9; C.rumbo+=0.40; C.direccion=-0.6;
     G.evento={ def:e, tiempo:41, metros:187, fuera:0, i:e.i0+12, largo:1, recorrido(){ return 0; }, valor(){ return this.metros; }, texto(){ return Math.round(this.metros)+" m"; }, metaTxt:m=>m+" m" };
