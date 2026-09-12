@@ -272,7 +272,12 @@ const cuadros = (N, n) => { const err = []; for (let i = 0; i < n; i++) { const 
       const def=EVENTOS.find(e=>e.tipo==="carrera"&&e.carrera.c.cerrada).carrera, D=nuevoCoche(0,0,0);
       empiezaCarrera(def,D);
       for(let f=0;f<60*10;f++){ cocheCorre(D,{gas:1,freno:0,giro:piloto(D,28,def),mano:false,nitro:false},1/60); carreraCorre(1/60,D); }
-      for(let f=0;f<60*10;f++){ cocheCorre(D,{gas:0,freno:1,giro:0,mano:false,nitro:false},1/60); carreraCorre(1/60,D); }
+      /* ⟲ se conduce EN SENTIDO CONTRARIO de verdad (antes se frenaba en seco y el retroceso quedaba
+            en 12 m justos, con el aviso pidiendo MÁS de 12: el caso vivía en el filo) */
+      const alReves=(C2,mira)=>{ const q=carreteraCerca(C2.x,C2.z,40); if(!q) return 0;
+        const k=idxRuta(q.c,q.i-Math.round(mira/4));
+        return clamp(-angDif(C2.rumbo,Math.atan2(q.c.x[k]-C2.x,q.c.z[k]-C2.z))*2.2,-1,1); };
+      for(let f=0;f<60*12;f++){ cocheCorre(D,{gas:0.8,freno:0,giro:alReves(D,28),mano:false,nitro:false},1/60); carreraCorre(1/60,D); }
       out.alReves=CARRERA.activa?CARRERA.activa.alReves:0;
       CARRERA.activa=null; RIVALES.length=0;
       return out; })()`);

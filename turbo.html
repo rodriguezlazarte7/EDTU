@@ -145,7 +145,7 @@ function m4Proyecta(vp,p){
 const MUNDO=3200, MITAD=MUNDO/2, PASO=4, NV=MUNDO/PASO+1;   /* 🗺️ 3,2 km × 3,2 km */
 const AGUA_Y=0;
 const LAGO={x:-520,z:-430,r:300}, CUMBRE={x:-300,z:820}, CANTERA={x:430,z:-830};
- const PISTA={x:1180,z:1180,y:236};   /* 🏟️ el centro de eventos y su pista */
+ const PISTA={x:1000,z:1010,y:210, R1:540, R2:390};   /* 🏟️ el centro de eventos y su PISTA GIGANTE */
 const CIUDAD={x0:490,x1:1030,z0:-610,z1:170,y:12};
 
 function alturaBase(x,z){
@@ -166,7 +166,7 @@ function alturaBase(x,z){
         Sin esto el terreno asoma por encima del asfalto (medido: hasta 1,3 m). */
   /* 🏟️ la meseta del centro de eventos, plana: el terreno JUSTO BAJO el asfalto lo fija luego el
         constructor del mundo (carretera menos 6 cm), así que aquí solo se allana el entorno */
-  const ep=Math.hypot((x-PISTA.x)/390,(z-PISTA.z)/270), mp=1-suave(1.0,1.45,ep);
+  const ep=Math.hypot((x-PISTA.x)/(PISTA.R1+90),(z-PISTA.z)/(PISTA.R2+90)), mp=1-suave(1.0,1.32,ep);   /* 🏟️ la explanada crece con la pista */
   return lerp(h,PISTA.y-0.35,mp);
 }
 
@@ -230,8 +230,8 @@ function trazaCarreteras(){
   /* 🛸 LA PISTA FUTURISTA de NO SPEED LIMIT: un óvalo aislado en la meseta vacía del noreste
         (medido: a más de 660 m de cualquier otra carretera, así que no se mezcla con el mapa libre) */
   {
-    const P=[], R1=330, R2=210;
-    for(let i=0;i<20;i++){ const a=i/20*TAU;
+    const P=[], R1=PISTA.R1, R2=PISTA.R2;
+    for(let i=0;i<28;i++){ const a=i/28*TAU;          /* más puntos: una pista gigante necesita curvas finas */
       P.push([PISTA.x+Math.cos(a)*R1, PISTA.z+Math.sin(a)*R2]); }
     const p=nuevaCarretera("Pista Orbital","pista",22,P,true,PISTA.y);
     p.y.fill(PISTA.y);                                  /* llana del todo: es una pista, no una carretera */
@@ -487,8 +487,8 @@ function poneEventos(){
     if(av && pista){
       const i=Math.floor(av.n*0.5);
       EVENTOS.push({ tipo:"centro", nombre:"CENTRO DE EVENTOS", c:av, i, x:av.x[i]+28, z:av.z[i], y:av.y[i], mejor:0,
-                     metas:[1,2,3], carrera:{ nombre:"NO SPEED LIMIT", c:pista, i0:0, i1:pista.n-1, s:1, vueltas:3,
-                                              largo:pista.n*MUESTRA*3, corredores:50, premio:100000, gran:true } });
+                     metas:[1,2,3], carrera:{ nombre:"NO SPEED LIMIT", c:pista, i0:0, i1:pista.n-1, s:1, vueltas:4,
+                                              largo:pista.n*MUESTRA*4, corredores:50, premio:100000, gran:true } });   /* 🏁 más larga: 4 vueltas */
     }
   }
 }
@@ -1182,8 +1182,8 @@ function cocheCorre(C,E,dt){
   const MO=(typeof MODELOS!=="undefined")?modeloActual():{vel:1,acel:1,agarre:1,largo:1};   /* 🚘 el coche elegido */
   const tierra=C.fueraCarretera || (C.sobre&&C.sobre.c&&C.sobre.c.tipo==="tierra");
   /* el volante: cuanto más rápido, menos gira (si no, sería imposible) */
-  C.direccion=lerp(C.direccion,E.giro,1-Math.exp(-dt*(Math.abs(E.giro)>Math.abs(C.direccion)?7:11)));
-  const angulo=C.direccion*lerp(0.62,0.14,clamp(vel/62,0,1))*(0.92+0.12*(MO.agarre||1));   /* el ágil mueve más el volante */
+  C.direccion=lerp(C.direccion,E.giro,1-Math.exp(-dt*(Math.abs(E.giro)>Math.abs(C.direccion)?4.2:12)));   /* 🕹️ entra suave, vuelve rápido */
+  const angulo=C.direccion*lerp(0.52,0.10,clamp(vel/62,0,1))*(0.92+0.12*(MO.agarre||1));   /* 🕹️ menos ángulo, sobre todo lanzado: se controla mejor */
   if(C.enSuelo){
     /* 🔥 motor, nitro y freno */
     C.usandoNitro=E.nitro && C.nitro>0.01 && E.gas>0.1;
@@ -1256,6 +1256,27 @@ function cocheCorre(C,E,dt){
     if(C.y<=S.y){ ev.aterriza={ tiempo:C.aire, golpe:-C.vy }; C.y=S.y; C.enSuelo=true; C.vySuelo=0; C.rampa=0; C.vy=0; C.cabeceo=0.06; }
   }
   C.sobre=S.carretera; C.fueraCarretera=!S.carretera;
+  /* 🧱 EL MURO DE LA PISTA: en la pista futurista no se puede salir. Si te pasas del borde, te
+        devuelve al asfalto y te quita la velocidad que llevabas HACIA fuera (la de avance se respeta,
+        solo se roza). */
+  {
+    const q=carreteraCerca(C.x,C.z,60);
+    if(q && q.c.futurista){
+      const tope=q.c.ancho/2-1.1;                       /* 1,1 m: el ancho del coche hasta el muro */
+      if(q.d>tope){
+        const j=(q.i+1)%q.c.n;
+        const ax=q.c.x[q.i], az=q.c.z[q.i];
+        const sx=q.c.x[j]-ax, sz=q.c.z[j]-az, l2=(sx*sx+sz*sz)||1;
+        const t=clamp(((C.x-ax)*sx+(C.z-az)*sz)/l2,0,1);
+        const px=ax+sx*t, pz=az+sz*t;                    /* el punto del eje más cercano */
+        let nx=C.x-px, nz=C.z-pz; const d=Math.hypot(nx,nz)||1; nx/=d; nz/=d;
+        C.x=px+nx*tope; C.z=pz+nz*tope;                  /* de vuelta dentro */
+        const hacia=C.vx*nx+C.vz*nz;                     /* velocidad HACIA el muro */
+        if(hacia>0){ C.vx-=nx*hacia*1.7; C.vz-=nz*hacia*1.7; C.golpe=Math.min(1,hacia/16); }
+        C.vx*=0.97; C.vz*=0.97;                          /* rozar cuesta un poco */
+      }
+    }
+  }
   if(C.enSuelo && S.carretera && S.carretera.c){ C.ultimoSuelo={ x:C.x, z:C.z, rumbo:C.rumbo }; }
   if(C.y<AGUA_Y-0.9){ ev.agua=true; }
   /* marcha y revoluciones, para el velocímetro y el sonido */
@@ -2124,7 +2145,7 @@ function leeEntrada(){
   if(TECLAS.KeyQ||TACTIL.mirar) E.mirar=1;                       /* 👀 mirar atrás sin soltar el volante */
   const P=padCrudo();
   if(P){
-    const x=P.axes[0]||0; if(Math.abs(x)>0.12) E.giro=clamp(E.giro+Math.sign(x)*((Math.abs(x)-0.12)/0.88),-1,1);
+    const x=P.axes[0]||0; if(Math.abs(x)>0.16) E.giro=clamp(E.giro+Math.sign(x)*((Math.abs(x)-0.16)/0.84),-1,1);   /* 🕹️ zona muerta un poco mayor */
     const mx=P.axes[2]||0;                                                                     /* 👀 STICK DERECHO: giras la vista, no el coche */
     if(Math.abs(mx)>0.18) E.mirar=clamp(Math.sign(mx)*((Math.abs(mx)-0.18)/0.82),-1,1);
     E.gas=Math.max(E.gas,P.boton(7)); E.freno=Math.max(E.freno,P.boton(6));                  /* RT gas · LT freno */
