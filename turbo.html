@@ -1462,14 +1462,18 @@ function empiezaCarrera(def,C){
   RIVAL_NOMBRES.forEach((nom,k)=>{ const i=idxRuta(c,def.i0-s*(2+k*2)), lado=(k%2?1:-1), dd=derechaDe(c,i,s);
     RIVALES.push({ nom, malla:k, c, i, s, t:0, lat:lado*carril*0.8, latObj:lado*carril*0.8, vel:0, acum:-(2+k*2)*MUESTRA, skill:[0.55,0.85,0.7][k], nitroT:0, vuelta:0,
       x:c.x[i]+dd.x*lado*carril*0.8, z:c.z[i]+dd.z*lado*carril*0.8, y:c.y[i], rumbo:Math.atan2(c.tx[i]*s,c.tz[i]*s) }); });
-  CARRERA.activa={ def, t:-3.5, cuenta:4, acum:0, ultimoI:def.i0, maxAcum:0, alReves:0, fin:false, puesto:1, tiempo:0 };
+  /* 🏁 cuánto corre tu coche AHORA (modelo + mejoras): los rivales se ponen a esa altura, con un tope */
+  const pot=((typeof MEJ!=="undefined")?MEJ.vmax:1)*((typeof modeloActual==="function")?(modeloActual().vel||1):1);
+  const nivel=clamp(pot*0.99,0.96,1.28);
+  CARRERA.activa={ def, t:-3.5, cuenta:4, acum:0, ultimoI:def.i0, maxAcum:0, alReves:0, fin:false, puesto:1, tiempo:0, nivel };
   G.cam.rumbo=C.rumbo; avisa(def.nombre,"#b46bff",2.5);
+  if(nivel>1.12) avisa("⚠️ RIVALES MEJORADOS","#ff9a3a",2.2);   /* si vas muy fuerte, ellos también */
 }
 function rivalCorre(R,dt,C){
   const c=R.c, s=R.s, n=c.n;
   /* la curva que viene: cuanto más cerrada, más frena */
   const a=Math.atan2(c.tx[R.i]*s,c.tz[R.i]*s), i2=idxRuta(c,R.i+s*12), b=Math.atan2(c.tx[i2]*s,c.tz[i2]*s), curva=Math.abs(angDif(a,b));
-  const vmax=56+R.skill*10, nitro=R.nitroT>0?1.12:1;
+  const vmax=(56+R.skill*10)*((CARRERA.activa&&CARRERA.activa.nivel)||1), nitro=R.nitroT>0?1.12:1;
   let velObj=vmax*nitro*clamp(1-curva*1.25,0.38,1);
   if(!c.cerrada){ const i1=CARRERA.activa.def.i1; if(Math.abs(i1-R.i)<8) velObj*=0.5; }         /* frena al llegar */
   /* no se come al de delante (ni a ti) */
