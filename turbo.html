@@ -213,7 +213,7 @@ function trazaCarreteras(){
   /* ⛰️ el paso de montaña, con curvas de herradura, hasta la estación de esquí */
   nuevaCarretera("Paso de la Cumbre","monte",10,[[-260,25],[-230,160],[-120,270],[-300,350],[-120,440],[-360,520],[-180,610],[-380,680],[-250,780],[-330,860]],false);
   /* ⛏️ bajada a la cantera y su vuelta de tierra */
-  nuevaCarretera("Camino de la Cantera","monte",10,[[250,-60],[300,-260],[250,-460],[330,-640]],false);
+  nuevaCarretera("Camino de la Cantera","monte",10,[[250,-60],[300,-260],[250,-460],[330,-640],[352,-700],[378,-760]],false);   /* 🔗 ahora SÍ llega a la cantera y cruza su anillo: une las dos mitades del mapa */
   const cant=[]; for(let i=0;i<12;i++){ const a=i/12*TAU, r=155+Math.sin(a*2+1)*25; cant.push([CANTERA.x+Math.cos(a)*r, CANTERA.z+Math.sin(a)*r]); }
   nuevaCarretera("Circuito de la Cantera","tierra",12,cant,true,3);
   nuevaCarretera("Atajo del Lago","lago",10,[[LAGO.x+410,LAGO.z],[-40,-640],[140,-760],[280,-820]],false,3.5);
@@ -945,6 +945,18 @@ function obraEdificios(){
   }
   return { fachadas:F, azoteas:T };
 }
+/* 🧭 una CINTA LUMINOSA por el suelo (la ruta): un cuadrilátero por tramo, un pelín por encima del asfalto */
+function obraLinea(pts,col,ancho,emi){
+  const O=new Obra(); if(!pts||pts.length<2) return O;
+  const w=(ancho||1.5)/2, ext=[0.1, emi===undefined?0.85:emi];   /* fina y con brillo suave */
+  for(let i=0;i<pts.length-1;i++){
+    const a=pts[i], b=pts[i+1], dx=b.x-a.x, dz=b.z-a.z, l=Math.hypot(dx,dz);
+    if(l<0.01) continue;
+    const nx=-dz/l*w, nz=dx/l*w, y0=a.y+0.05, y1=b.y+0.05;   /* pegada al asfalto */
+    O.quad(v3(a.x+nx,y0,a.z+nz), v3(b.x+nx,y1,b.z+nz), v3(b.x-nx,y1,b.z-nz), v3(a.x-nx,y0,a.z-nz), col, ext);
+  }
+  return O;
+}
 /* 🏠 las casas: caja de paredes, tejado a dos aguas, puerta y ventanas */
 function obraCasas(){
   const O=new Obra();
@@ -1303,6 +1315,8 @@ function ponTraficoEn(c,i,s,lejos){
 }
 function traficoCorre(dt,C){
   const ev={};
+  /* 🏁 EN CARRERA NO HAY TRÁFICO AJENO: la calle es solo para ti y tus rivales */
+  if(typeof CARRERA!=="undefined" && CARRERA.activa){ if(TRAFICO.length) TRAFICO.length=0; return ev; }
   /* 1) los que se quedan lejos (o se salieron de su carretera) se van */
   for(let k=TRAFICO.length-1;k>=0;k--){ const v=TRAFICO[k];
     if(Math.hypot(v.x-C.x,v.z-C.z)>620) TRAFICO.splice(k,1);
@@ -1509,6 +1523,105 @@ function emitePolicia(dt){
 const RIVAL_NOMBRES=["NOVA","KIRO","LENA"], RIVAL_PINTURAS=[2,3,4];    /* rojo, azul y lima */
 const RIVALES=[];
 const CARRERA={ activa:null };
+
+/* ================= 🧭 EL NAVEGADOR (como Waze) =================
+   Un grafo con TODAS las muestras de TODAS las carreteras: avanzar cuesta 4 m y en los cruces se
+   salta de una calle a otra. Con eso, Dijkstra da la ruta más corta POR CARRETERA (no en línea recta). */
+const NAV={ destino:null, puntos:null, metros:0, recalc:0 };
+let GRAFO=null;
+function construyeGrafo(){
+  const base=[]; let total=0;
+  for(let k=0;k<CARRETERAS.length;k++){ base[k]=total; total+=CARRETERAS[k].n; }
+  const ady=new Array(total);
+  const une=(a,b,w)=>{ (ady[a]||(ady[a]=[])).push(b,w); (ady[b]||(ady[b]=[])).push(a,w); };
+  for(let k=0;k<CARRETERAS.length;k++){ const c=CARRETERAS[k];
+    for(let i=0;i<c.n;i++){ const sig=c.cerrada?((i+1)%c.n):(i+1);
+      if(sig<c.n && sig!==i) une(base[k]+i,base[k]+sig,MUESTRA); } }
+  /* 🔗 los cruces: donde dos carreteras se tocan se puede cambiar de una a otra (igual que ajustaCruces) */
+  let cruces=0;
+  for(let k=0;k<CARRETERAS.length;k++){ const A=CARRETERAS[k];
+    for(let i=0;i<A.n;i+=2){
+      const q=carreteraCerca(A.x[i],A.z[i],30,A); if(!q) continue;
+      if(q.d>(A.ancho+q.c.ancho)/2*0.9) continue;
+      une(base[k]+i, base[CARRETERAS.indexOf(q.c)]+q.i, 2); cruces++;
+    } }
+  GRAFO={ base, total, ady, cruces };
+  return GRAFO;
+}
+function nodoDe(x,z){ if(!GRAFO) construyeGrafo();
+  const q=carreteraCerca(x,z,600);
+  if(q) return GRAFO.base[CARRETERAS.indexOf(q.c)]+q.i;
+  /* el punto está lejísimos de todo (en medio del lago o del monte): se busca la muestra más cercana
+     de todas, para llevarte igualmente a la carretera más próxima al sitio que tocaste */
+  let mejor=-1, md=Infinity;
+  for(let k=0;k<CARRETERAS.length;k++){ const c=CARRETERAS[k];
+    for(let i=0;i<c.n;i+=3){ const dx=c.x[i]-x, dz=c.z[i]-z, d=dx*dx+dz*dz;
+      if(d<md){ md=d; mejor=GRAFO.base[k]+i; } } }
+  return mejor; }
+function puntoDeNodo(n){ const b=GRAFO.base;
+  let k=b.length-1; while(k>0 && b[k]>n) k--;
+  const c=CARRETERAS[k], i=n-b[k]; return { x:c.x[i], y:c.y[i], z:c.z[i] }; }
+/* 🧮 Dijkstra con montículo binario (el mundo tiene ~12.000 nodos: tarda milisegundos) */
+function rutaEntre(x0,z0,x1,z1){
+  const ini=nodoDe(x0,z0), fin=nodoDe(x1,z1);
+  if(ini<0||fin<0) return null;
+  const N=GRAFO.total, dist=new Float32Array(N).fill(Infinity), previo=new Int32Array(N).fill(-1);
+  const hp=new Int32Array(N+1), hd=new Float32Array(N+1); let hn=0;
+  const mete=(nodo,d)=>{ let i=++hn; hp[i]=nodo; hd[i]=d;
+    while(i>1 && hd[i>>1]>hd[i]){ const p=i>>1; [hp[i],hp[p]]=[hp[p],hp[i]]; [hd[i],hd[p]]=[hd[p],hd[i]]; i=p; } };
+  const saca=()=>{ const top=hp[1]; const td=hd[1]; hp[1]=hp[hn]; hd[1]=hd[hn]; hn--;
+    let i=1; for(;;){ const l=i*2, r=l+1; let m=i;
+      if(l<=hn && hd[l]<hd[m]) m=l; if(r<=hn && hd[r]<hd[m]) m=r;
+      if(m===i) break; [hp[i],hp[m]]=[hp[m],hp[i]]; [hd[i],hd[m]]=[hd[m],hd[i]]; i=m; }
+    return [top,td]; };
+  dist[ini]=0; mete(ini,0);
+  while(hn>0){
+    const [u,du]=saca(); if(du>dist[u]+1e-3) continue;
+    if(u===fin) break;
+    const L=GRAFO.ady[u]; if(!L) continue;
+    for(let j=0;j<L.length;j+=2){ const v=L[j], nd=du+L[j+1];
+      if(nd<dist[v]){ dist[v]=nd; previo[v]=u; mete(v,nd); } }
+  }
+  if(!isFinite(dist[fin])) return null;
+  const camino=[]; for(let n=fin;n!==-1;n=previo[n]){ camino.push(puntoDeNodo(n)); if(n===ini) break; }
+  camino.reverse();
+  return camino.length>1?camino:null;
+}
+function largoDeRuta(p){ let s=0; for(let i=1;i<p.length;i++) s+=Math.hypot(p[i].x-p[i-1].x,p[i].z-p[i-1].z); return s; }
+function distBonita(m){ return m>=1000 ? (m/1000).toFixed(1)+" km" : Math.round(m)+" m"; }
+/* 🏁 la ruta de una carrera: su propia carretera, desde la salida y en su sentido */
+function rutaDeCarrera(def){
+  const c=def.c, s=def.s, pts=[]; let i=def.i0, largo=0;
+  for(let k=0;k<20000 && largo<=def.largo;k++){
+    pts.push({ x:c.x[i], y:c.y[i], z:c.z[i] });
+    const j=idxRuta(c,i+s); if(j===i) break;
+    largo+=Math.hypot(c.x[j]-c.x[i],c.z[j]-c.z[i]); i=j;
+  }
+  return pts;
+}
+/* 📍 poner (o quitar) el destino que elegiste en el mapa */
+function ponDestino(wx,wz){
+  if(wx===null||wx===undefined){ NAV.destino=null; NAV.puntos=null; NAV.metros=0;
+    if(typeof quitaRuta==="function" && !CARRERA.activa) quitaRuta();
+    if(typeof avisa==="function") avisa("🧭 destino quitado","#8fd0ff",1.2); return false; }
+  const C=G.coche, pts=rutaEntre(C.x,C.z,wx,wz);
+  if(!pts){ if(typeof avisa==="function") avisa("🧭 ahí no llego por carretera","#ff9090",1.8); return false; }
+  NAV.destino={ x:wx, z:wz }; NAV.puntos=pts; NAV.metros=largoDeRuta(pts); NAV.recalc=1.5;
+  if(typeof ponRuta==="function" && !CARRERA.activa) ponRuta(pts,[0.06,0.30,0.85]);
+  if(typeof avisa==="function") avisa("🧭 destino a "+distBonita(NAV.metros),"#8fd0ff",2);
+  return true;
+}
+/* 🔄 mientras conduces, la ruta se recalcula (si te la saltas, te la vuelve a trazar) */
+function navCorre(dt,C){
+  if(!NAV.destino || CARRERA.activa) return;
+  if(Math.hypot(NAV.destino.x-C.x,NAV.destino.z-C.z)<28){
+    if(typeof avisa==="function") avisa("🧭 ¡HAS LLEGADO!","#c8ff2e",2.4);
+    ponDestino(null); return; }
+  NAV.recalc-=dt; if(NAV.recalc>0) return;
+  NAV.recalc=1.5;
+  const pts=rutaEntre(C.x,C.z,NAV.destino.x,NAV.destino.z);
+  if(pts){ NAV.puntos=pts; NAV.metros=largoDeRuta(pts); if(typeof ponRuta==="function") ponRuta(pts,[0.06,0.30,0.85]); }
+}
 function defineCarreras(){
   const porNombre=n=>CARRETERAS.find(c=>c.nombre===n);
   const au=porNombre("Autopista 7"), lago=porNombre("Vuelta al Lago Plateado"), paso=porNombre("Paso de la Cumbre");
@@ -1573,6 +1686,7 @@ function rivalCorre(R,dt,C){
 function carreraCorre(dt,C){
   const A=CARRERA.activa; if(!A) return {};
   const ev={}, def=A.def, c=def.c, s=def.s, n=c.n;
+  if(!A.rutaPuesta){ A.rutaPuesta=true; if(typeof ponRuta==="function") ponRuta(rutaDeCarrera(def),[0.45,0.12,0.85]); }   /* 🏁 la línea de la ruta */
   A.t+=dt;
   /* la cuenta atrás: el coche no se mueve */
   if(A.t<0){ const q=Math.ceil(-A.t); if(q<A.cuenta&&q>=1){ A.cuenta=q; avisa(String(q),"#fff",0.9); pitido(660,0.15); }
@@ -1600,6 +1714,7 @@ function carreraCorre(dt,C){
 }
 function acabaCarrera(puesto){
   const A=CARRERA.activa; if(!A) return;
+  if(typeof quitaRuta==="function") quitaRuta(); NAV.recalc=0;   /* 🏁 se borra la línea de la carrera */
   const def=A.def, evento=EVENTOS.find(e=>e.carrera===def);
   premio(evento, 4-puesto, (puesto===1?"🏆 ¡GANASTE! ":puesto+"º · ")+def.nombre+" · "+A.tiempo.toFixed(1)+" s");
   RECUERDA[idEvento(evento)]=12;
@@ -1754,6 +1869,13 @@ function uniformesLuz(p,t){
   gl.activeTexture(gl.TEXTURE2); gl.bindTexture(gl.TEXTURE_2D,FBO.sombra.tex); gl.uniform1i(U(p,"uSombra"),2);
   gl.activeTexture(gl.TEXTURE1); gl.bindTexture(gl.TEXTURE_2D,TEX.det); gl.uniform1i(U(p,"uDet"),1);
 }
+/* 🧭 la ruta: se rehace cada vez que cambia (se borra el VAO viejo, como hace subeCoche) */
+function ponRuta(pts,col){
+  quitaRuta();
+  if(!pts||pts.length<2) return;
+  ESC.ruta=subeMalla(obraLinea(pts,col,1.5,0.85).malla());
+}
+function quitaRuta(){ if(ESC.ruta){ gl.deleteVertexArray(ESC.ruta.vao); ESC.ruta=null; } }
 function dibuja(M,modelo,modo,tex){
   const p=PROGS.mundo;
   gl.uniformMatrix4fv(U(p,"uM"),false,modelo||ID4); gl.uniform1f(U(p,"uModo"),modo||0);
@@ -1830,6 +1952,7 @@ function dibujaFotograma(C,K,t,efectos){
   dibuja(ESC.fachadas,null,2,TEX.fachada); dibuja(ESC.azoteas,null,0); dibuja(ESC.casas,null,0); dibuja(ESC.detalles,null,0);
   gl.disable(gl.CULL_FACE);
   dibuja(ESC.flechas,null,2,TEX.flecha); dibuja(ESC.carteles,null,2,TEX.carteles);
+  if(ESC.ruta) dibuja(ESC.ruta,null,0);   /* 🧭 la línea de la ruta, por el suelo */
   gl.enable(gl.CULL_FACE);
   dibuja(ESC.coche,Mc,0); for(const m of MR) dibuja(ESC.rueda,m,0);
   for(const v of TRAFICO) dibuja(ESC.trafico[v.malla],m4Coche(v.x,v.y,v.z,v.rumbo,0,0),0);
@@ -1898,6 +2021,17 @@ addEventListener("keydown",e=>{
   if(e.code==="KeyR"&&!e.repeat){ recolocaCoche(G.coche); avisa("DE VUELTA A LA CARRETERA","#c8ff2e"); }
 });
 addEventListener("keyup",e=>{ TECLAS[e.code]=false; });
+/* 👆🧭 TOCAR EL MAPA para elegir a dónde ir (como Waze). Se escucha en la ventana para no depender
+      de qué lienzo está encima; solo hace caso con el mapa abierto. */
+addEventListener("pointerdown",e=>{
+  if(G.estado!=="juego" || !G.mapa || !G.mapaRect) return;
+  const cv=document.getElementById("hud"); if(!cv) return;
+  const r=cv.getBoundingClientRect(); if(!r.width||!r.height) return;
+  const px=(e.clientX-r.left)*cv.width/r.width, py=(e.clientY-r.top)*cv.height/r.height;
+  const M=G.mapaRect;
+  if(px<M.mx||px>M.mx+M.lado||py<M.my||py>M.my+M.lado){ ponDestino(null); return; }
+  if(ponDestino((px-M.mx)/M.e-MITAD, (py-M.my)/M.e-MITAD)) G.mapa=false;   /* elegido: se cierra el mapa */
+});
 addEventListener("blur",()=>{ for(const k in TECLAS) TECLAS[k]=false; });
 /* 🎮 el mando: el propio, o el que nos pasa el cuartel (si el foco se quedó fuera del juego) */
 const PAD={ prestado:null, antes:[] };
@@ -2071,6 +2205,15 @@ function pintaHud(C,dt){
       x.strokeStyle="rgba(255,255,255,.15)"; x.lineWidth=10*u; x.beginPath(); x.arc(cx-6*u,cy,R+34*u,b0,b1); x.stroke();
       if(lleno>0){ x.strokeStyle=C.usandoNitro?"#8fd0ff":"#2f8bff"; x.beginPath(); x.arc(cx-6*u,cy,R+34*u,b0,b0+(b1-b0)*lleno); x.stroke(); } }
   }
+  /* 🧭 el cartel del navegador: cuánto queda hasta el destino */
+  if(NAV.destino && !CARRERA.activa){
+    const bw=Math.min(300*u,W*0.5), bx=(vert?26:150)*u-bw/2+bw/2, by=(vert?H*0.50:H-300*u);
+    x.fillStyle="rgba(8,12,26,.82)"; x.fillRect(bx,by,bw,44*u);
+    x.fillStyle="#2f8bff"; x.fillRect(bx,by,6*u,44*u);
+    x.textAlign="left"; x.textBaseline="middle";
+    x.font=fuente("900",19); x.fillStyle="#8fd0ff"; x.fillText("🧭 "+distBonita(NAV.metros),bx+16*u,by+16*u);
+    x.font=fuente("700",14); x.fillStyle="rgba(255,255,255,.75)"; x.fillText("sigue la línea azul",bx+16*u,by+33*u);
+  }
   /* 🗺️ minimapa redondo que gira con el coche, abajo a la izquierda */
   if(MAPA){ const R=(vert?86:108)*u, cx=(vert?100:150)*u, cy=vert?H*0.63:H-165*u, metros=420, e=MAPA_T/MUNDO, esc=R/(metros*e);
     x.save(); x.beginPath(); x.arc(cx,cy,R,0,TAU); x.fillStyle="#1b2a22"; x.fill(); x.clip();
@@ -2180,6 +2323,7 @@ function pintaHud(C,dt){
   if(G.mapa && MAPA){
     x.fillStyle="rgba(4,3,10,.88)"; x.fillRect(0,0,W,H);
     const lado=Math.min(W,H)*0.84, mx=(W-lado)/2, my=(H-lado)/2+10*u, e=lado/MUNDO;
+    G.mapaRect={ mx, my, lado, e };   /* 🧭 para saber dónde tocas */
     const P=(wx,wz)=>[mx+(wx+MITAD)*e, my+(wz+MITAD)*e];
     x.save(); x.beginPath(); x.rect(mx,my,lado,lado); x.clip();
     x.drawImage(MAPA,mx,my,lado,lado);
@@ -2192,6 +2336,16 @@ function pintaHud(C,dt){
     for(const ev of EVENTOS){ const [px,py]=P(ev.x,ev.z), tam=13*u;
       iconoEvento(x,ev,px,py,tam);
       if(ev.mejor){ x.font=fuente("900",13); x.fillStyle="#ffd23a"; x.fillText("★".repeat(ev.mejor),px,py+tam+11*u); } }
+    /* 🧭 la ruta hasta tu destino, y el destino */
+    if(NAV.puntos && NAV.puntos.length>1){
+      x.strokeStyle="rgba(40,140,255,.95)"; x.lineWidth=5*u; x.lineJoin="round"; x.beginPath();
+      for(let i=0;i<NAV.puntos.length;i++){ const [px,py]=P(NAV.puntos[i].x,NAV.puntos[i].z); i?x.lineTo(px,py):x.moveTo(px,py); }
+      x.stroke();
+    }
+    if(NAV.destino){ const [dx0,dy0]=P(NAV.destino.x,NAV.destino.z);
+      x.fillStyle="#2f8bff"; x.beginPath(); x.arc(dx0,dy0-9*u,7*u,0,TAU); x.fill();
+      x.beginPath(); x.moveTo(dx0-6*u,dy0-5*u); x.lineTo(dx0+6*u,dy0-5*u); x.lineTo(dx0,dy0+5*u); x.closePath(); x.fill();
+      x.strokeStyle="rgba(0,0,0,.6)"; x.lineWidth=2*u; x.stroke(); }
     /* tú */
     const [cx,cy]=P(C.x,C.z);
     x.save(); x.translate(cx,cy); x.rotate(Math.atan2(Math.sin(C.rumbo),Math.cos(C.rumbo)));
@@ -2205,7 +2359,7 @@ function pintaHud(C,dt){
     x.font=fuente("700",16); x.fillStyle="#d6b8ff";
     x.fillText((RG?RG.icono+" "+RG.nombre+" · ⭐ "+RG.estrellas+"/"+RG.tope+"  ·  ":"")+"💰 $ "+Math.round(AJUSTES.dinero).toLocaleString("es-CL"),W/2,my-12*u);
     x.font=fuente("700",15); x.fillStyle="rgba(255,255,255,.75)";
-    x.fillText("S derrape  ·  ⚡ radar  ·  ▲ salto  ·  🏁 carrera        M o ESC para cerrar",W/2,my+lado+24*u);
+    x.fillText("🧭 TOCA EL MAPA para poner destino y te guío  ·  toca fuera para quitarlo        M o ESC para cerrar",W/2,my+lado+24*u);
     return;
   }
   if(G.pausa){ x.fillStyle="rgba(4,3,10,.6)"; x.fillRect(0,0,W,H); x.textAlign="center"; x.fillStyle="#c8ff2e"; x.font=fuente("900 italic",90); x.fillText("PAUSA",W/2,H/2);
@@ -2465,7 +2619,7 @@ function pintaMenu(){
     "Si va a tirones, el juego baja la calidad solo y te avisa. Los fps se ven en la esquina mientras juegas";
   $("ayuda").innerHTML = ES_TACTIL()
     ? "◀ ▶ girar · <b>GAS</b> y <b>FRENO</b> · <b>DERRAPE</b> suelta la parte de atrás · 🔥 nitro"
-    : "<kbd>W</kbd> gas · <kbd>S</kbd> freno · <kbd>A</kbd> <kbd>D</kbd> girar · <kbd>ESPACIO</kbd> derrape · <kbd>SHIFT</kbd> nitro · <kbd>E</kbd> entrar en una carrera · <kbd>C</kbd> cámara · <kbd>M</kbd> mapa · <kbd>Q</kbd> mirar atrás · <kbd>R</kbd> volver · <kbd>P</kbd> pausa<br>"+
+    : "<kbd>W</kbd> gas · <kbd>S</kbd> freno · <kbd>A</kbd> <kbd>D</kbd> girar · <kbd>ESPACIO</kbd> derrape · <kbd>SHIFT</kbd> nitro · <kbd>E</kbd> entrar en una carrera · <kbd>C</kbd> cámara · <kbd>M</kbd> mapa (toca un punto y te guío) · <kbd>Q</kbd> mirar atrás · <kbd>R</kbd> volver · <kbd>P</kbd> pausa<br>"+
       "🎮 mando: <kbd>RT</kbd> gas · <kbd>LT</kbd> freno · stick izquierdo gira · <b>stick derecho mira alrededor</b> · <kbd>X</kbd>/<kbd>B</kbd> derrape · <kbd>A</kbd>/<kbd>RB</kbd> nitro · <kbd>Y</kbd> cámara · <kbd>LB</kbd> mapa · <kbd>START</kbd> pausa<br>"+
       "💜 en el mapa: <b>zonas de derrape</b>, <b>radares</b>, <b>saltos</b> y 🏁 <b>carreras</b> contra NOVA, KIRO y LENA · cada uno da hasta 3 estrellas y dinero<br>"+
       "🚗 hay <b>tráfico</b>: adelantar en sentido contrario y pasar rozando llena el nitro · 🚓 si te ve la <b>policía</b> a más de 120 km/h te persigue: despístalos y cobras, te pillan parado y pagas<br>"+
@@ -2517,6 +2671,7 @@ function bucle(ahora){
     if(G.coche.usandoNitro && !G.nitroAnt) whoosh();
     G.nitroAnt=G.coche.usandoNitro;
     junto.entrar=E.entrar;
+    navCorre(dt,G.coche);   /* 🧭 la ruta se recalcula mientras conduces */
     eventosCorren(dt,junto); trucosCorren(dt,junto); emite(dt,junto); particulasCorren(dt);
     camaraSigue(G.cam,G.coche,dt,E.mirar); G.t+=dt;
     if((zonaT-=dt)<=0){ zonaT=0.5; G.zona=zonaDe(G.coche.x,G.coche.z); }
