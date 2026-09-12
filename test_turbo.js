@@ -103,7 +103,7 @@ const cuadros = (N, n) => { const err = []; for (let i = 0; i < n; i++) { const 
     const r = en(`(()=>{
       const dt=1/120, piloto=(C,mira)=>{ const q=carreteraCerca(C.x,C.z,40); if(!q) return 0;
         const s=Math.sign(Math.sin(C.rumbo)*q.tx+Math.cos(C.rumbo)*q.tz)||1, n=q.c.n, k=q.c.cerrada?((q.i+s*Math.round(mira/4))%n+n)%n:clamp(q.i+s*Math.round(mira/4),0,n-1);
-        return clamp(angDif(C.rumbo,Math.atan2(q.c.x[k]-C.x,q.c.z[k]-C.z))*2.2,-1,1); };
+        return clamp(-angDif(C.rumbo,Math.atan2(q.c.x[k]-C.x,q.c.z[k]-C.z))*2.2,-1,1); };   /* el menos: con D se gira a la derecha */
       const au=CARRETERAS.find(c=>c.tipo==="autopista"), out={};
       for(const nitro of [false,true]){ const C=nuevoCoche(au.x[8],au.z[8],Math.atan2(au.tx[8],au.tz[8])); let max=0, en=0, p=0;
         for(let t=0;t<38&&C.x<980;t+=dt){ if(nitro) C.nitro=1; cocheCorre(C,{gas:1,freno:0,giro:piloto(C,26),mano:false,nitro},dt); max=Math.max(max,C.kmh); p++; if(C.sobre) en++; }
@@ -139,6 +139,59 @@ const cuadros = (N, n) => { const err = []; for (let i = 0; i < n; i++) { const 
     console.log("  archivos de fuera (imágenes, sonidos, modelos): " + fuera.length + " · marcas o logos de otros juegos: " + (/need for speed|nfs|unbound/i.test(html) ? "SÍ" : "ninguno"));
     if (fuera.length) MAL("el juego carga cosas de fuera");
     if (/need for speed|nfs|unbound/i.test(html)) MAL("aparece el nombre de otro juego");
+  }
+  /* ---------- 5) 🎮 el volante no va en espejo · 🔗 los cruces no lanzan el coche ---------- */
+  {
+    const { N } = await arrancaJuego("#foto&sitio=lago");
+    const en = x => vm.runInContext(x, N.env);
+    const r = en(`(()=>{
+      const au=CARRETERAS.find(c=>c.tipo==="autopista"), i=10, out={};
+      /* con la cámara del juego: ¿a qué lado de la PANTALLA acaba el coche al pulsar D? */
+      for(const giro of [1,-1]){
+        const C=nuevoCoche(au.x[i],au.z[i],Math.atan2(au.tx[i],au.tz[i]));
+        C.vx=Math.sin(C.rumbo)*25; C.vz=Math.cos(C.rumbo)*25;
+        const K=nuevaCamara(C); camaraSigue(K,C,1/60);
+        const VP=m4Mul(m4Persp(K.fov,16/9,0.35,4600), m4Mirar(v3(K.x,K.y,K.z),K.mira,v3(0,1,0)));
+        const p0=m4Proyecta(VP,v3(C.x,C.y+0.6,C.z));
+        for(let f=0;f<75;f++) cocheCorre(C,{gas:1,freno:0,giro,mano:false,nitro:false},1/60);
+        const p1=m4Proyecta(VP,v3(C.x,C.y+0.6,C.z));
+        out[giro>0?"derecha":"izquierda"]=p1.x-p0.x;
+      }
+      /* todos los cruces entre carreteras: escalón del suelo y si el coche despega sin rampa */
+      const cortan=(a,b,c,d)=>{ const r1=b[0]-a[0], r2=b[1]-a[1], s1=d[0]-c[0], s2=d[1]-c[1], den=r1*s2-r2*s1;
+        if(Math.abs(den)<1e-9) return null; const t=((c[0]-a[0])*s2-(c[1]-a[1])*s1)/den, u=((c[0]-a[0])*r2-(c[1]-a[1])*r1)/den;
+        return (t>=0&&t<=1&&u>=0&&u<=1)?[a[0]+r1*t,a[1]+r2*t]:null; };
+      /* el coche cruza SIGUIENDO la carretera (yendo recto se saldría en las curvas y saltaría por el campo) */
+      const piloto=(C,mira)=>{ const q=carreteraCerca(C.x,C.z,40); if(!q) return 0;
+        const s=Math.sign(Math.sin(C.rumbo)*q.tx+Math.cos(C.rumbo)*q.tz)||1, n=q.c.n, k=q.c.cerrada?((q.i+s*Math.round(mira/4))%n+n)%n:clamp(q.i+s*Math.round(mira/4),0,n-1);
+        return clamp(-angDif(C.rumbo,Math.atan2(q.c.x[k]-C.x,q.c.z[k]-C.z))*2.2,-1,1); };   /* el menos: con D se gira a la derecha */
+      const cruces=[];
+      for(let x=0;x<CARRETERAS.length;x++) for(let y=x+1;y<CARRETERAS.length;y++){
+        const A=CARRETERAS[x], B=CARRETERAS[y];
+        for(let i=0;i<A.n-1;i++) for(let j=0;j<B.n-1;j++){
+          if(Math.abs(A.x[i]-B.x[j])>40||Math.abs(A.z[i]-B.z[j])>40) continue;
+          const p=cortan([A.x[i],A.z[i]],[A.x[i+1],A.z[i+1]],[B.x[j],B.z[j]],[B.x[j+1],B.z[j+1]]);
+          if(p && !cruces.some(q=>Math.hypot(q.x-p[0],q.z-p[1])<25)) cruces.push({ x:p[0], z:p[1], A, i });
+        } }
+      out.cruces=cruces.length; out.escalon=0; out.saltan=0; out.peor="";
+      for(const c of cruces){
+        /* el escalón se mide SIGUIENDO la carretera (es lo que pisa el coche), no en línea recta */
+        const n=c.A.n, idx=k=>c.A.cerrada?((k%n)+n)%n:Math.max(0,Math.min(n-1,k));
+        let salto=0, yAnt=null;
+        for(let k=-8;k<=8;k+=0.25){ const a=idx(Math.floor(c.i+k)), b=idx(Math.floor(c.i+k)+1), t=(c.i+k)-Math.floor(c.i+k);
+          const y=sueloEn(c.A.x[a]+(c.A.x[b]-c.A.x[a])*t, c.A.z[a]+(c.A.z[b]-c.A.z[a])*t).y;
+          if(yAnt!==null) salto=Math.max(salto,Math.abs(y-yAnt)); yAnt=y; }
+        if(salto>out.escalon){ out.escalon=salto; out.peor=c.A.nombre+" ("+c.x.toFixed(0)+", "+c.z.toFixed(0)+")"; }
+        const i0=idx(c.i-13), dir=Math.atan2(c.A.tx[i0],c.A.tz[i0]);      /* el coche sale 52 m antes, sobre el asfalto */
+        const C=nuevoCoche(c.A.x[i0],c.A.z[i0],dir); C.vx=Math.sin(dir)*28; C.vz=Math.cos(dir)*28;
+        for(let f=0;f<220;f++) if(cocheCorre(C,{gas:0.6,freno:0,giro:0,mano:false,nitro:false},1/120).despega){ out.saltan++; break; }
+      }
+      return out; })()`);
+    console.log("  el volante: con D el coche se va " + (r.derecha > 0 ? "a la DERECHA" : "a la IZQUIERDA") + " de la pantalla (" + r.derecha.toFixed(2) + ") y con A " + (r.izquierda < 0 ? "a la IZQUIERDA" : "a la DERECHA") + " (" + r.izquierda.toFixed(2) + ")");
+    if (r.derecha < 0.05 || r.izquierda > -0.05) MAL("los giros van en espejo (D tiene que ir a la derecha de la pantalla)");
+    console.log("  " + r.cruces + " cruces de carreteras: el peor escalón mide " + (r.escalon * 100).toFixed(0) + " cm en " + r.peor + " · el coche despega sin rampa en " + r.saltan);
+    if (r.escalon > 0.35) MAL("hay un escalón de " + (r.escalon * 100).toFixed(0) + " cm en un cruce");
+    if (r.saltan) MAL("el coche sale volando en " + r.saltan + " cruces");
   }
   console.log("");
   if (malos) { console.log("❌ " + malos + " fallo(s)"); process.exit(1); }

@@ -139,7 +139,8 @@ function alturaBase(x,z){
   h=lerp(h, Math.min(h, 4+Math.floor(dq/30)*5), suave(200,130,dq));
   const dl=Math.hypot(x-LAGO.x,(z-LAGO.z)*1.15);                             /* 🌊 el lago */
   h=lerp(h,-14,suave(LAGO.r+70,LAGO.r-80,dl));
-  const mc=suave(0,80,Math.min(x-CIUDAD.x0,CIUDAD.x1-x,z-CIUDAD.z0,CIUDAD.z1-z));   /* 🏙️ la ciudad, plana */
+  const fx=Math.max(CIUDAD.x0-x,0,x-CIUDAD.x1), fz=Math.max(CIUDAD.z0-z,0,z-CIUDAD.z1);   /* 🏙️ la ciudad: plana ENTERA */
+  const mc=1-suave(0,90,Math.hypot(fx,fz));                                              /* y el degradado, solo por fuera */
   return lerp(h,CIUDAD.y,mc);
 }
 
@@ -203,6 +204,30 @@ function trazaCarreteras(){
   for(const c of CARRETERAS) if(c.tipo==="ciudad") c.y.fill(CIUDAD.y);
 }
 
+/* 🔗 LOS CRUCES: donde dos carreteras se cruzan tienen que estar a la MISMA altura. Si no, al pasar
+      de una a otra el suelo da un escalón y el coche sale volando (le pasaba a David al entrar en la
+      autopista). Manda la más ancha; la otra se acomoda con una rampa suave de 120 m */
+function ajustaCruces(){
+  const orden=CARRETERAS.map((c,i)=>i).sort((a,b)=>CARRETERAS[b].ancho-CARRETERAS[a].ancho);
+  for(let pasada=0;pasada<3;pasada++){
+    for(const k of orden){
+      const A=CARRETERAS[k], corr=new Float32Array(A.n); let hay=false;
+      for(let i=0;i<A.n;i++){
+        const q=carreteraCerca(A.x[i],A.z[i],30,A);
+        if(!q) continue;
+        const B=q.c, mandaB = B.ancho>A.ancho || (B.ancho===A.ancho && CARRETERAS.indexOf(B)<k);
+        if(!mandaB || q.d > (A.ancho+B.ancho)/2*0.8) continue;
+        corr[i]=q.y-A.y[i]; hay=true;
+      }
+      if(!hay) continue;
+      const R=30, suave2=new Float32Array(A.n);                  /* la corrección se reparte 120 m a cada lado */
+      for(let i=0;i<A.n;i++){ if(!corr[i]) continue;
+        for(let j=Math.max(0,i-R);j<=Math.min(A.n-1,i+R);j++){
+          const v=corr[i]*(1-Math.abs(j-i)/R); if(Math.abs(v)>Math.abs(suave2[j])) suave2[j]=v; } }
+      for(let i=0;i<A.n;i++) A.y[i]+=suave2[i];
+    }
+  }
+}
 /* 🔎 la carretera más cercana: rejilla de 20 m con las muestras de todas */
 const REJ_C=20, REJ_N=Math.ceil(MUNDO/REJ_C)+1, REJ=new Array(REJ_N*REJ_N);
 function indexaCarreteras(){
@@ -213,13 +238,14 @@ function indexaCarreteras(){
       if(gx<0||gz<0||gx>=REJ_N||gz>=REJ_N) continue;
       const k=gz*REJ_N+gx; (REJ[k]||(REJ[k]=[])).push(ci,i); } });
 }
-function carreteraCerca(x,z,radio){
+function carreteraCerca(x,z,radio,salta){
   const r=Math.ceil((radio||30)/REJ_C), gx=Math.floor((x+MITAD)/REJ_C), gz=Math.floor((z+MITAD)/REJ_C);
   let mejor=null, md=1e9;
   for(let a=gz-r;a<=gz+r;a++){ if(a<0||a>=REJ_N) continue;
     for(let b=gx-r;b<=gx+r;b++){ if(b<0||b>=REJ_N) continue; const L=REJ[a*REJ_N+b]; if(!L) continue;
       for(let k=0;k<L.length;k+=2){
-        const c=CARRETERAS[L[k]], i=L[k+1], j=(i+1)%c.n;
+        const c=CARRETERAS[L[k]]; if(c===salta) continue;
+        const i=L[k+1], j=(i+1)%c.n;
         const ax=c.x[i], az=c.z[i], sx=c.x[j]-ax, sz=c.z[j]-az, l2=sx*sx+sz*sz||1;
         const t=clamp(((x-ax)*sx+(z-az)*sz)/l2,0,1), px=ax+sx*t, pz=az+sz*t, d=Math.hypot(x-px,z-pz);
         const borde=d-c.ancho/2;
@@ -237,7 +263,7 @@ async function construyeTerreno(progreso){
       const x=-MITAD+i*PASO;
       let h=alturaBase(x,z);
       const q=carreteraCerca(x,z,34);
-      if(q){ const r=q.c.ancho/2, w=suave(r+18, r+1.5, q.d); h=lerp(h, q.y-0.30, w); }
+      if(q){ const r=q.c.ancho/2, w=suave(r+18, r+1.5, q.d); h=lerp(h, q.y-0.06, w); }   /* 🐛 antes 30 cm: donde se acababa una carretera el suelo caía de golpe y el coche saltaba */
       ALT[j*NV+i]=h;
     }
     if(j%40===0 && progreso){ progreso(j/NV); await new Promise(r=>setTimeout(r,0)); }
@@ -254,7 +280,13 @@ function normalEn(x,z){ const e=2; return vNorm(v3(altura(x-e,z)-altura(x+e,z), 
 function sueloEn(x,z){
   const q=carreteraCerca(x,z,20);
   let y, sobre=null;
-  if(q && q.d<q.c.ancho/2+0.8){ y=q.y; sobre=q; } else y=altura(x,z);
+  if(q && q.d<q.c.ancho/2+4){
+    /* el borde del asfalto se funde con el terreno a lo largo de 4 m: cualquier desnivel que quede se
+       reparte en una cuestecita en vez de ser un escalón que hace saltar al coche */
+    const r=q.c.ancho/2, t=suave(r+4, r+0.5, q.d);
+    y=lerp(altura(x,z), q.y, t);
+    if(t>0.6) sobre=q;
+  } else y=altura(x,z);
   if(typeof rampaAltura==="function"){ const r=rampaAltura(x,z); if(r!==null && r>y){ y=r; sobre=sobre||{rampa:true}; } }
   return { y, carretera:sobre };
 }
@@ -392,7 +424,7 @@ function poneEventos(){
 /* ================= 🏗️ CONSTRUIR TODO (con barra de progreso) ================= */
 async function construyeMundo(progreso){
   const p=progreso||(()=>{});
-  p(0.02,"trazando las carreteras…"); trazaCarreteras(); indexaCarreteras();
+  p(0.02,"trazando las carreteras…"); trazaCarreteras(); indexaCarreteras(); ajustaCruces();
   await construyeTerreno(f=>p(0.05+f*0.55,"levantando las montañas…"));
   CHOQUES.fill(undefined);
   const azar=azarCon(2026);
@@ -1033,7 +1065,7 @@ function cocheCorre(C,E,dt){
     C.anguloDerrape=Math.atan2(vR,Math.max(1,Math.abs(vF)));
     if(C.derrapando && !E.mano && Math.abs(C.anguloDerrape)<0.10 && Math.abs(E.giro)<0.3) C.derrapando=false;
     if(vel<6) C.derrapando=false;
-    const yawObj=vF*Math.tan(angulo)/BATALLA*(C.derrapando?1.30:1);
+    const yawObj=-vF*Math.tan(angulo)/BATALLA*(C.derrapando?1.30:1);   /* 🐛 el menos: con D el coche gira a la DERECHA de la pantalla */
     C.giroV+=(yawObj-C.giroV)*(1-Math.exp(-dt*(C.derrapando?3.2:11)));
     const agarre=C.derrapando?(tierra?1.1:1.5):(tierra?5.5:10);
     const antes=vR; vR*=Math.exp(-agarre*dt);
@@ -1062,13 +1094,27 @@ function cocheCorre(C,E,dt){
   /* 🛫 el suelo: si la carretera baja más rápido de lo que el coche puede seguir, ¡al aire! */
   const S=sueloEn(C.x,C.z);
   if(C.enSuelo){
-    const esperado=C.y+C.vySuelo*dt;
-    if(S.y<esperado-0.18 && Math.hypot(C.vx,C.vz)>14){ C.enSuelo=false; C.vy=C.vySuelo; C.aire=0; ev.despega=true; }
-    else { C.vySuelo=clamp((S.y-C.y)/dt,-40,40); C.y=S.y; C.vy=0; }
+    C.rampa=lerp(C.rampa||0, C.vySuelo, 1-Math.exp(-dt*8));   /* la subida/bajada SOSTENIDA (una rampa dura medio segundo) */
+    const esperado=C.y+C.vySuelo*dt, caida=esperado-S.y;
+    /* 🐛 antes bastaba un escalón de unos centímetros en un cruce para salir volando. Ahora hace falta
+          venir subiendo o bajando de verdad (una rampa) o que el suelo desaparezca de golpe (un barranco) */
+    if(caida>0.18 && Math.hypot(C.vx,C.vz)>14 && (Math.abs(C.rampa)>2.5 || caida>1.2)){
+      /* 🐛 antes bastaba un brinco de UN fotograma (un borde de carretera) para salir volando */
+      C.enSuelo=false; C.vy=clamp(C.rampa,-30,30); C.aire=0; ev.despega=true;
+    } else {
+      const dif=S.y-C.y, maxPaso=Math.max(0.12,Math.abs(C.vF)*dt*0.55);
+      /* la subida o bajada del suelo no puede pasar de una pendiente creíble (45%): así un escalón
+         no se disfraza de rampa de 30 m/s, y una rampa de verdad sí cuenta */
+      const tope=Math.abs(C.vF)*0.45+1;
+      if(Math.abs(dif)<=maxPaso){ C.vySuelo=clamp(dif/dt,-tope,tope); C.y=S.y; }
+      else C.y+=clamp(dif,-maxPaso,maxPaso);   /* 🐛 un ESCALÓN se sube poco a poco y NO cuenta como rampa
+                                                     (si contaba, el coche creía que subía a 22 m/s y despegaba solo) */
+      C.vy=0;
+    }
   }
   if(!C.enSuelo){
     C.vy-=15.5*dt; C.y+=C.vy*dt; C.aire+=dt;
-    if(C.y<=S.y){ ev.aterriza={ tiempo:C.aire, golpe:-C.vy }; C.y=S.y; C.enSuelo=true; C.vySuelo=0; C.vy=0; C.cabeceo=0.06; }
+    if(C.y<=S.y){ ev.aterriza={ tiempo:C.aire, golpe:-C.vy }; C.y=S.y; C.enSuelo=true; C.vySuelo=0; C.rampa=0; C.vy=0; C.cabeceo=0.06; }
   }
   C.sobre=S.carretera; C.fueraCarretera=!S.carretera;
   if(C.enSuelo && S.carretera && S.carretera.c){ C.ultimoSuelo={ x:C.x, z:C.z, rumbo:C.rumbo }; }
@@ -1209,7 +1255,7 @@ function matricesRuedas(C,Mc){
   const out=[];
   for(const z of RUEDAS_Z) for(const sx of [-1,1]){
     let m=m4Mul(Mc,m4Trasl(sx*VIA,RUEDA_R+0.01,z));
-    if(z>0) m=m4Mul(m,m4RotY(C.direccion*0.5));
+    if(z>0) m=m4Mul(m,m4RotY(-C.direccion*0.5));   /* las ruedas de delante miran hacia donde gira de verdad */
     m=m4Mul(m,m4RotX(C.vuelta)); out.push(m);
   }
   return out;
