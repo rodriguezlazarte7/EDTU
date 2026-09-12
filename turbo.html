@@ -982,9 +982,9 @@ const RUEDA_R=0.34, BATALLA=2.72, VIA=0.83, RUEDAS_Z=[1.36,-1.36];
 /* 🚘 los tres coches del garaje. largo/ancho/alto estiran la MISMA carrocería, y vel/acel/agarre
       cambian cómo se conduce. Ninguno es el mejor en todo: el pesado corre más pero gira peor */
 const MODELOS=[
-  { nom:"TURBO GT", icono:"🏎️", largo:1.00, ancho:1.00, alto:1.00, aleron:1.00, vel:1.00, acel:1.00, agarre:1.00, dice:"equilibrado: el de siempre" },
-  { nom:"BESTIA",   icono:"🐂", largo:1.10, ancho:1.08, alto:1.06, aleron:1.25, vel:1.07, acel:0.94, agarre:0.90, dice:"grande y bruto: más punta, gira peor" },
-  { nom:"CHISPA",   icono:"⚡", largo:0.90, ancho:0.94, alto:0.94, aleron:0.70, vel:0.95, acel:1.12, agarre:1.12, dice:"pequeño y vivo: acelera y se agarra" }
+  { nom:"TURBO GT", icono:"🏎️", largo:1.00, ancho:1.00, alto:1.00, aleron:1.00, vel:1.00, acel:1.00, agarre:1.00, voz:1.00, dice:"equilibrado: el de siempre" },
+  { nom:"BESTIA",   icono:"🐂", largo:1.10, ancho:1.08, alto:1.06, aleron:1.25, vel:1.07, acel:0.94, agarre:0.90, voz:0.80, dice:"grande y bruto: más punta, gira peor · motor grave" },
+  { nom:"CHISPA",   icono:"⚡", largo:0.90, ancho:0.94, alto:0.94, aleron:0.70, vel:0.95, acel:1.12, agarre:1.12, voz:1.22, dice:"pequeño y vivo: acelera y se agarra · motor agudo" }
 ];
 const modeloActual=()=>MODELOS[clamp((typeof AJUSTES!=="undefined"?AJUSTES.coche:0)|0,0,MODELOS.length-1)];
 const ruedasZDe=M=>[RUEDAS_Z[0]*M.largo, RUEDAS_Z[1]*M.largo];
@@ -1554,6 +1554,12 @@ function compraMejora(id){
   avisa(M.icono+" "+M.nom+" NIVEL "+nivelMejora(id),"#c8ff2e",2.2); pitido(880,0.15); setTimeout(()=>pitido(1320,0.25),120);
   return true;
 }
+/* 🏅 el rango: cuantas más estrellas juntes en los eventos y las carreras, más alto */
+const RANGOS=[[0,"NOVATO","🔰"],[4,"CALLEJERO","🛞"],[10,"PILOTO","🏁"],[18,"AS DEL VOLANTE","🥇"],[28,"LEYENDA","👑"]];
+function estrellasTotales(){ let n=0; for(const e of EVENTOS) n+=e.mejor||0; return n; }
+function rangoActual(){ const n=estrellasTotales(); let r=RANGOS[0]; for(const x of RANGOS) if(n>=x[0]) r=x;
+  const sig=RANGOS.find(x=>x[0]>n);
+  return { estrellas:n, nombre:r[1], icono:r[2], faltan:sig?sig[0]-n:0, siguiente:sig?sig[1]:null, tope:EVENTOS.length*3 }; }
 /* 🧪 lo que tendría tu coche con estas mejoras (para enseñarlo en el garaje) */
 function resumenMejoras(){
   return { punta:Math.round(VMAX*MEJ.vmax*3.6), nitro:Math.round(VMAX_NITRO*MEJ.vmax*MEJ.nitroEmpuje*3.6),
@@ -1869,7 +1875,8 @@ function iniciaSonido(){
 }
 function sonidoCorre(C,E){
   if(!SON.ctx||SON.ctx.state!=="running") return; const t=SON.ctx.currentTime, k=0.08;
-  const f=48+C.rpm*190+(C.marcha-1)*6;
+  const voz=(typeof modeloActual==="function"?(modeloActual().voz||1):1);   /* 🔊 la BESTIA ruge grave y el CHISPA canta agudo */
+  const f=(48+C.rpm*190+(C.marcha-1)*6)*voz;
   SON.o1.frequency.setTargetAtTime(f,t,k); SON.o2.frequency.setTargetAtTime(f*0.5,t,k);
   SON.motor.gain.setTargetAtTime(G.pausa?0:0.10+E.gas*0.14+(C.usandoNitro?0.05:0),t,k);
   SON.filtro.frequency.setTargetAtTime(500+E.gas*1500+C.rpm*800,t,k);
@@ -1960,6 +1967,9 @@ function pintaHud(C,dt){
   /* 💰 dinero, arriba a la derecha */
   x.textAlign="right"; x.textBaseline="middle"; x.font=fuente("800",24);
   x.fillStyle="rgba(8,10,20,.6)"; x.fillRect(W-330*u,64*u,300*u,44*u); x.fillStyle="#c8ff2e"; x.fillText("$ "+Math.round(AJUSTES.dinero).toLocaleString("es-CL"),W-46*u,86*u);   /* debajo del botón Salir */
+  if(typeof rangoActual==="function"){ const RG=rangoActual();
+    x.fillStyle="rgba(8,10,20,.6)"; x.fillRect(W-330*u,112*u,300*u,34*u);
+    x.font=fuente("800",16); x.fillStyle="#d6b8ff"; x.fillText(RG.icono+" "+RG.nombre+"  ⭐ "+RG.estrellas,W-46*u,129*u); x.font=fuente("800",24); }
   /* 💜 iconos de los eventos flotando en el mundo, con la distancia */
   for(const ev of EVENTOS){ const d=Math.hypot(ev.x-C.x,ev.z-C.z); if(d>700||d<14) continue;
     const q=m4Proyecta(RENDER.vp,v3(ev.x,ev.y+9,ev.z)); if(!q||q.x<0||q.x>1||q.y<0||q.y>1) continue;
@@ -2154,7 +2164,9 @@ function pintaMenu(){
       return '<button class="op'+(p===null?' sel':'')+'" data-mej="'+M.id+'"'+(p!==null&&AJUSTES.dinero<p?' style="opacity:.55"':'')+'>'+
         M.icono+' '+M.nom+' '+'▮'.repeat(n)+'▯'.repeat(MEJ_MAX-n)+'<br><small>'+(p===null?'AL MÁXIMO':'$ '+p.toLocaleString("es-CL"))+'</small></button>'; }).join("");
     $("optMej").querySelectorAll("[data-mej]").forEach(b=>b.onclick=()=>{ if(compraMejora(b.dataset.mej)) pintaMenu(); });
-    $("dineroTxt").innerHTML='💰 <b>$ '+Math.round(AJUSTES.dinero).toLocaleString("es-CL")+'</b> · punta <b>'+R.punta+' km/h</b> ('+R.nitro+' con nitro) · el nitro dura <b>'+R.segundosNitro+' s</b> · agarre '+R.agarre+'% · frenos '+R.freno+'%';
+    const RG=rangoActual();
+    $("dineroTxt").innerHTML='💰 <b>$ '+Math.round(AJUSTES.dinero).toLocaleString("es-CL")+'</b> · punta <b>'+R.punta+' km/h</b> ('+R.nitro+' con nitro) · el nitro dura <b>'+R.segundosNitro+' s</b> · agarre '+R.agarre+'% · frenos '+R.freno+'%<br>'+
+      RG.icono+' <b>'+RG.nombre+'</b> · ⭐ '+RG.estrellas+' de '+RG.tope+' estrellas'+(RG.siguiente?' · te faltan '+RG.faltan+' para '+RG.siguiente:' · ¡lo máximo!');
   }
   $("optCoche").innerHTML=MODELOS.map((M,i)=>'<button class="op'+((AJUSTES.coche|0)===i?" sel":"")+'" data-coche="'+i+'">'+M.icono+' '+M.nom+'</button>').join("");
   $("optCoche").querySelectorAll("[data-coche]").forEach(b=>b.onclick=()=>{ AJUSTES.coche=+b.dataset.coche; guardaAjustes(); subeCoche(); pintaMenu(); });
