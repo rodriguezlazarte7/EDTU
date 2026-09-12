@@ -40,6 +40,8 @@ kbd{border:1px solid #5a5370;border-radius:3px;padding:1px 6px;background:#1c1a2
 <div id="menu" class="oculto">
   <div class="logo">EDTU<br>TURBO</div>
   <div class="sub">MAPA LIBRE · CARRERAS CALLEJERAS</div>
+  <div class="titulo">COCHE</div><div class="fila" id="optCoche"></div>
+  <div class="ayuda" id="cocheTxt" style="margin-top:2px"></div>
   <div class="titulo">PINTURA</div><div class="fila" id="optPintura"></div>
   <div class="titulo">NEÓN</div><div class="fila" id="optNeon"></div>
   <div class="titulo">GARAJE · MEJORAS</div><div class="fila" id="optMej"></div>
@@ -977,6 +979,15 @@ const NEONES=[
   { nom:"ROJO", rgb:[1.0,0.12,0.10] }, { nom:"ORO", rgb:[1.0,0.62,0.12] }, { nom:"TURQUESA", rgb:[0.10,0.95,0.85] }
 ];
 const RUEDA_R=0.34, BATALLA=2.72, VIA=0.83, RUEDAS_Z=[1.36,-1.36];
+/* 🚘 los tres coches del garaje. largo/ancho/alto estiran la MISMA carrocería, y vel/acel/agarre
+      cambian cómo se conduce. Ninguno es el mejor en todo: el pesado corre más pero gira peor */
+const MODELOS=[
+  { nom:"TURBO GT", icono:"🏎️", largo:1.00, ancho:1.00, alto:1.00, aleron:1.00, vel:1.00, acel:1.00, agarre:1.00, dice:"equilibrado: el de siempre" },
+  { nom:"BESTIA",   icono:"🐂", largo:1.10, ancho:1.08, alto:1.06, aleron:1.25, vel:1.07, acel:0.94, agarre:0.90, dice:"grande y bruto: más punta, gira peor" },
+  { nom:"CHISPA",   icono:"⚡", largo:0.90, ancho:0.94, alto:0.94, aleron:0.70, vel:0.95, acel:1.12, agarre:1.12, dice:"pequeño y vivo: acelera y se agarra" }
+];
+const modeloActual=()=>MODELOS[clamp((typeof AJUSTES!=="undefined"?AJUSTES.coche:0)|0,0,MODELOS.length-1)];
+const ruedasZDe=M=>[RUEDAS_Z[0]*M.largo, RUEDAS_Z[1]*M.largo];
 
 /* el perfil de la carrocería a lo largo del coche: ancho, bajos, línea de hombros y techo */
 function perfilCoche(z){
@@ -992,11 +1003,13 @@ function perfilCoche(z){
   }
   return { w, b, s, t: Math.max(t,s+0.02) };
 }
-function obraCoche(pintura){
+function obraCoche(pintura,modelo){
+  const MO=modelo||MODELOS[0];
   const O=new Obra(), P=pintura.rgb, EXT=[pintura.brillo,0], vidrio=[0.02,0.025,0.03], EXTV=[1.0,0], bajos=[0.03,0.03,0.035];
-  const ZS=[]; for(let i=0;i<=34;i++) ZS.push(lerp(-2.28,2.28,i/34));
-  const anillo=z=>{ const f=perfilCoche(z), w=f.w, cab=f.t>f.s+0.12;
-    return { cab, pts:[[0,f.b],[0.90*w,f.b],[w,f.b+0.18],[w,f.s-0.14],[0.97*w,f.s],[0.80*w,f.s+0.03],[0.66*w,lerp(f.s,f.t,0.78)],[0.50*w,f.t],[0,f.t+0.02]] }; };
+  const ZS=[]; for(let i=0;i<=34;i++) ZS.push(lerp(-2.28*MO.largo,2.28*MO.largo,i/34));
+  const anillo=z=>{ const f=perfilCoche(z/MO.largo), w=f.w*MO.ancho, cab=f.t>f.s+0.12;
+    const A=MO.alto, b=f.b*A, s=f.s*A, t=f.t*A;                      /* la misma forma, estirada */
+    return { cab, pts:[[0,b],[0.90*w,b],[w,b+0.18*A],[w,s-0.14*A],[0.97*w,s],[0.80*w,s+0.03*A],[0.66*w,lerp(s,t,0.78)],[0.50*w,t],[0,t+0.02*A]] }; };
   const colTramo=(k,cab)=> k===0?bajos : (cab&&(k===5||k===6))?vidrio : P;
   const extTramo=(k,cab)=> k===0?[0,0] : (cab&&(k===5||k===6))?EXTV : EXT;
   for(let s=0;s<ZS.length-1;s++){
@@ -1018,18 +1031,18 @@ function obraCoche(pintura){
     }
   }
   /* 🔴 las luces de atrás (una tira que brilla), faros, parrilla, escapes y retrovisores */
-  const rojo=[1.0,0.05,0.04];
-  O.caja(0,0.74,-2.27,1.62,0.07,0.04,rojo,[0.3,1.3]);
-  for(const sx of [-0.66,0.66]) O.caja(sx,0.70,-2.265,0.36,0.14,0.05,rojo,[0.3,1.6]);
-  for(const sx of [-0.68,0.68]) O.caja(sx,0.62,2.22,0.42,0.09,0.12,[0.95,0.97,1.0],[0.8,1.4]);
-  O.caja(0,0.36,2.24,1.1,0.28,0.06,[0.02,0.02,0.02],[0.3,0]);
-  for(const sx of [-0.52,-0.30,0.30,0.52]) O.cono(sx,0.30,-2.40,0.055,0.30,0.055,8,[0.25,0.24,0.22],[0.8,0]);
-  for(const sx of [-1,1]) O.caja(sx*0.98,0.98,0.72,0.16,0.10,0.18,P,EXT);
-  O.caja(0,0.24,-2.20,1.5,0.10,0.24,[0.04,0.04,0.045],[0.4,0]);                  /* difusor */
-  /* 🪽 el alerón gigante */
-  for(const sx of [-0.55,0.55]) O.caja(sx,0.96,-1.98,0.06,0.42,0.22,[0.03,0.03,0.035],[0.6,0]);
-  O.caja(0,1.38,-2.02,2.02,0.05,0.42,P,EXT);
-  for(const sx of [-1.01,1.01]) O.caja(sx,1.22,-2.02,0.03,0.30,0.50,P,EXT);
+  const rojo=[1.0,0.05,0.04], L=MO.largo, W=MO.ancho, A=MO.alto, AL=MO.aleron;
+  O.caja(0,0.74*A,-2.27*L,1.62*W,0.07,0.04,rojo,[0.3,1.3]);
+  for(const sx of [-0.66,0.66]) O.caja(sx*W,0.70*A,-2.265*L,0.36*W,0.14,0.05,rojo,[0.3,1.6]);
+  for(const sx of [-0.68,0.68]) O.caja(sx*W,0.62*A,2.22*L,0.42*W,0.09,0.12,[0.95,0.97,1.0],[0.8,1.4]);
+  O.caja(0,0.36*A,2.24*L,1.1*W,0.28,0.06,[0.02,0.02,0.02],[0.3,0]);
+  for(const sx of [-0.52,-0.30,0.30,0.52]) O.cono(sx*W,0.30*A,-2.40*L,0.055,0.30*A,0.055,8,[0.25,0.24,0.22],[0.8,0]);
+  for(const sx of [-1,1]) O.caja(sx*0.98*W,0.98*A,0.72*L,0.16,0.10,0.18,P,EXT);
+  O.caja(0,0.24*A,-2.20*L,1.5*W,0.10,0.24,[0.04,0.04,0.045],[0.4,0]);            /* difusor */
+  /* 🪽 el alerón (el de la BESTIA es enorme; el del CHISPA, discreto) */
+  for(const sx of [-0.55,0.55]) O.caja(sx*W,0.96*A,-1.98*L,0.06,0.42*AL,0.22,[0.03,0.03,0.035],[0.6,0]);
+  O.caja(0,(1.38+0.42*(AL-1))*A,-2.02*L,2.02*W*Math.min(1.05,AL),0.05,0.42,P,EXT);
+  for(const sx of [-1.01,1.01]) O.caja(sx*W*Math.min(1.05,AL),(1.22+0.42*(AL-1))*A,-2.02*L,0.03,0.30,0.50,P,EXT);
   return O;
 }
 function obraRueda(){
@@ -1061,18 +1074,19 @@ function cocheCorre(C,E,dt){
   const fx=Math.sin(C.rumbo), fz=Math.cos(C.rumbo), rx=fz, rz=-fx;
   let vF=C.vx*fx+C.vz*fz, vR=C.vx*rx+C.vz*rz;
   const vel=Math.abs(vF);
+  const MO=(typeof MODELOS!=="undefined")?modeloActual():{vel:1,acel:1,agarre:1,largo:1};   /* 🚘 el coche elegido */
   const tierra=C.fueraCarretera || (C.sobre&&C.sobre.c&&C.sobre.c.tipo==="tierra");
   /* el volante: cuanto más rápido, menos gira (si no, sería imposible) */
   C.direccion=lerp(C.direccion,E.giro,1-Math.exp(-dt*(Math.abs(E.giro)>Math.abs(C.direccion)?7:11)));
-  const angulo=C.direccion*lerp(0.62,0.14,clamp(vel/62,0,1));
+  const angulo=C.direccion*lerp(0.62,0.14,clamp(vel/62,0,1))*(0.92+0.12*(MO.agarre||1));   /* el ágil mueve más el volante */
   if(C.enSuelo){
     /* 🔥 motor, nitro y freno */
     C.usandoNitro=E.nitro && C.nitro>0.01 && E.gas>0.1;
     const M=(typeof MEJ!=="undefined")?MEJ:{vmax:1,acel:1,agarre:1,freno:1,nitroGasto:1,nitroEmpuje:1};   /* 🔧 las mejoras del garaje */
     /* 🐛 las mejoras de motor y de nitro se multiplicaban entre ellas: con todo al máximo salían 462 km/h.
        Ahora hay un tope absoluto de 94 m/s (338 km/h), que ya es una barbaridad */
-    const vmax=Math.min(94,(C.usandoNitro?VMAX_NITRO*M.nitroEmpuje:VMAX)*M.vmax)*(C.fueraCarretera?0.62:1);
-    if(E.gas>0 && vF>-1){ const f=clamp(1-(vF/vmax)*(vF/vmax),0,1); vF+=E.gas*(10.5*M.acel*f+(C.usandoNitro?8.5*M.nitroEmpuje:0))*dt; }
+    const vmax=Math.min(94,(C.usandoNitro?VMAX_NITRO*M.nitroEmpuje:VMAX)*M.vmax*MO.vel)*(C.fueraCarretera?0.62:1);
+    if(E.gas>0 && vF>-1){ const f=clamp(1-(vF/vmax)*(vF/vmax),0,1); vF+=E.gas*(10.5*M.acel*MO.acel*f+(C.usandoNitro?8.5*M.nitroEmpuje:0))*dt; }
     if(C.usandoNitro) C.nitro=Math.max(0,C.nitro-dt*0.16*M.nitroGasto);
     if(E.freno>0){ if(vF>1) vF-=E.freno*24*M.freno*dt; else vF=Math.max(-15,vF-E.freno*7*dt); }
     const roce=0.22+0.00042*vF*vF+(C.fueraCarretera?1.6:0)+(E.gas<0.05&&E.freno<0.05?0.9:0);
@@ -1084,9 +1098,9 @@ function cocheCorre(C,E,dt){
     C.anguloDerrape=Math.atan2(vR,Math.max(1,Math.abs(vF)));
     if(C.derrapando && !E.mano && Math.abs(C.anguloDerrape)<0.10 && Math.abs(E.giro)<0.3) C.derrapando=false;
     if(vel<6) C.derrapando=false;
-    const yawObj=-vF*Math.tan(angulo)/BATALLA*(C.derrapando?1.30:1);   /* 🐛 el menos: con D el coche gira a la DERECHA de la pantalla */
+    const yawObj=-vF*Math.tan(angulo)/(BATALLA*(MO.largo||1))*(C.derrapando?1.30:1);   /* 🚘 un coche largo gira más abierto */   /* 🐛 el menos: con D el coche gira a la DERECHA de la pantalla */
     C.giroV+=(yawObj-C.giroV)*(1-Math.exp(-dt*(C.derrapando?3.2:11)));
-    const agarre=(C.derrapando?(tierra?1.1:1.5):(tierra?5.5:10))*M.agarre;
+    const agarre=(C.derrapando?(tierra?1.1:1.5):(tierra?5.5:10))*M.agarre*MO.agarre;
     const antes=vR; vR*=Math.exp(-agarre*dt);
     if(C.derrapando){ vF+=Math.abs(antes-vR)*0.62*Math.sign(vF||1); if(E.mano) vF-=vF*0.10*dt; }   /* el derrape guarda la velocidad: divierte más */
     /* se inclina con la curva y cabecea al acelerar o frenar */
@@ -1596,7 +1610,7 @@ function datosPinos(lista){
 }
 function subeCoche(){
   if(ESC.coche) gl.deleteVertexArray(ESC.coche.vao);
-  ESC.coche=subeMalla(obraCoche(PINTURAS[AJUSTES.pintura]||PINTURAS[0]).malla());
+  ESC.coche=subeMalla(obraCoche(PINTURAS[AJUSTES.pintura]||PINTURAS[0],modeloActual()).malla());
 }
 async function subeMundo(progreso){
   const p=progreso||(()=>{}), respira=()=>new Promise(r=>setTimeout(r,0));
@@ -1617,7 +1631,7 @@ async function subeMundo(progreso){
   ESC.rueda=subeMalla(obraRueda().malla());
   ESC.trafico=obraTraficoMallas().concat([obraPoliciaMalla()]).map(o=>subeMalla(o.malla()));   /* 🚗 el tráfico y 🚓 la patrulla (la 8) */
   subeCoche();
-  ESC.rivales=RIVAL_PINTURAS.map(k=>subeMalla(obraCoche(PINTURAS[k]).malla()));   /* 🏁 los rivales */
+  ESC.rivales=RIVAL_PINTURAS.map((k,i)=>subeMalla(obraCoche(PINTURAS[k],MODELOS[i%MODELOS.length]).malla()));   /* 🏁 cada rival, con su coche */
   /* ✨ las partículas: un cuadrado y hasta 2.000 copias */
   ESC.part={ vao:gl.createVertexArray(), buf:gl.createBuffer(), max:2000 };
   gl.bindVertexArray(ESC.part.vao);
@@ -1660,8 +1674,9 @@ function dibuja(M,modelo,modo,tex){
 const ID4=m4();
 function matricesRuedas(C,Mc){
   const out=[];
-  for(const z of RUEDAS_Z) for(const sx of [-1,1]){
-    let m=m4Mul(Mc,m4Trasl(sx*VIA,RUEDA_R+0.01,z));
+  const MO=modeloActual();
+  for(const z of ruedasZDe(MO)) for(const sx of [-1,1]){
+    let m=m4Mul(Mc,m4Trasl(sx*VIA*MO.ancho,RUEDA_R+0.01,z));
     if(z>0) m=m4Mul(m,m4RotY(-C.direccion*0.5));   /* las ruedas de delante miran hacia donde gira de verdad */
     m=m4Mul(m,m4RotX(C.vuelta)); out.push(m);
   }
@@ -1776,7 +1791,7 @@ function dibujaFotograma(C,K,t,efectos){
 
 /* ================= 🎮 AJUSTES, CONTROLES Y SONIDO ================= */
 const AJUSTES=(()=>{ let a={}; try{ a=JSON.parse(localStorage.getItem("edtu_turbo")||"{}"); }catch(e){}
-  return Object.assign({ pintura:0, neon:0, calidad:null, sombras:true, dinero:0, mejores:{}, mejoras:{}, volante:1, hora:"tarde" }, a); })();
+  return Object.assign({ pintura:0, neon:0, calidad:null, sombras:true, dinero:0, mejores:{}, mejoras:{}, volante:1, hora:"tarde", coche:0 }, a); })();
 function guardaAjustes(){ try{ localStorage.setItem("edtu_turbo",JSON.stringify(AJUSTES)); }catch(e){} }
 const G={ estado:"carga", t:0, coche:null, cam:null, trucos:[], mensajes:[], evento:null, pausa:false, flash:0, avisoCal:null };
 
@@ -2141,6 +2156,10 @@ function pintaMenu(){
     $("optMej").querySelectorAll("[data-mej]").forEach(b=>b.onclick=()=>{ if(compraMejora(b.dataset.mej)) pintaMenu(); });
     $("dineroTxt").innerHTML='💰 <b>$ '+Math.round(AJUSTES.dinero).toLocaleString("es-CL")+'</b> · punta <b>'+R.punta+' km/h</b> ('+R.nitro+' con nitro) · el nitro dura <b>'+R.segundosNitro+' s</b> · agarre '+R.agarre+'% · frenos '+R.freno+'%';
   }
+  $("optCoche").innerHTML=MODELOS.map((M,i)=>'<button class="op'+((AJUSTES.coche|0)===i?" sel":"")+'" data-coche="'+i+'">'+M.icono+' '+M.nom+'</button>').join("");
+  $("optCoche").querySelectorAll("[data-coche]").forEach(b=>b.onclick=()=>{ AJUSTES.coche=+b.dataset.coche; guardaAjustes(); subeCoche(); pintaMenu(); });
+  { const M=modeloActual(); const barra=v=>"▮".repeat(Math.max(1,Math.round((v-0.85)/0.06)))+"▯".repeat(Math.max(0,5-Math.max(1,Math.round((v-0.85)/0.06))));
+    $("cocheTxt").innerHTML="<b>"+M.icono+" "+M.nom+"</b>: "+M.dice+" · 🏁 velocidad "+barra(M.vel)+" · ⚡ aceleración "+barra(M.acel)+" · 🛞 agarre "+barra(M.agarre); }
   $("optHora").innerHTML=Object.keys(HORAS).map(k=>'<button class="op'+((AJUSTES.hora||"tarde")===k?" sel":"")+'" data-hora="'+k+'">'+HORAS[k].icono+' '+HORAS[k].nom+'</button>').join("");
   $("optHora").querySelectorAll("[data-hora]").forEach(b=>b.onclick=()=>{ AJUSTES.hora=b.dataset.hora; guardaAjustes(); ponHora(AJUSTES.hora); pintaMenu(); });
   $("optVolante").innerHTML=[[1,"NORMAL"],[-1,"INVERTIDO"]].map(v=>'<button class="op'+((AJUSTES.volante||1)===v[0]?' sel':'')+'" data-vol="'+v[0]+'">🕹️ '+v[1]+'</button>').join("");
@@ -2238,6 +2257,7 @@ function modoFoto(){
   const q=new URLSearchParams(String(location.hash).replace("#","").split("&").slice(1).join("&")), sitio=q.get("sitio")||"monte";
   if(CALIDADES[q.get("cal")]){ CALIDAD=q.get("cal"); aplicaCalidad(); }
   if(HORAS[q.get("hora")]){ AJUSTES.hora=q.get("hora"); ponHora(AJUSTES.hora); }
+  if(q.get("coche")!==null){ AJUSTES.coche=clamp(+q.get("coche")||0,0,MODELOS.length-1); subeCoche(); }   /* 📸 #foto&coche=1 */
   if(sitio==="menu"){ G.estado="menu"; $("menu").classList.remove("oculto"); return; }
   G.estado="juego"; G.foto=true;
   const porNombre=n=>CARRETERAS.find(c=>c.nombre===n), C=G.coche;
