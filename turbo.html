@@ -1317,7 +1317,7 @@ function vasAlReves(C){
    Patrullas que circulan como el tráfico. Si pasas volando a su lado (o te las llevas por delante) se
    lanzan a por ti: sirena, luces, embestidas y refuerzos por niveles. O los despistas (y cobras) o te
    pillan parado (y pagas) */
-const POLICIA={ nivel:0, calor:0, coches:[], escape:0, parado:0, aviso:0, t:0, despistados:0, pillado:0 };
+const POLICIA={ nivel:0, calor:0, coches:[], escape:0, parado:0, aviso:0, t:0, despistados:0, pillado:0, tregua:0 };
 const POLI_MALLA=8;                                  /* la malla 8 de la lista del tráfico */
 const POLI_VMAX=[0,54,60,64];                        /* m/s por nivel (195, 216 y 230 km/h): con nitro se les escapa */
 /* 🚓 el coche patrulla: blanco con las puertas negras, barra de luces y el rótulo */
@@ -1367,10 +1367,13 @@ function policiaCorre(dt,C){
   if(patrullas().length<2){ const lejos=TRAFICO.filter(v=>!v.poli&&Math.hypot(v.x-C.x,v.z-C.z)>150);
     if(lejos.length){ const v=lejos[(Math.random()*lejos.length)|0]; v.poli=true; v.malla=POLI_MALLA; } }
   /* 2) sin persecución: ¿te ven hacer algo? */
+  if(POLICIA.tregua>0) POLICIA.tregua-=dt;                       /* 🚓 te dejan en paz un rato */
   if(POLICIA.nivel===0){
-    for(const v of patrullas()){ const d=Math.hypot(v.x-C.x,v.z-C.z);
-      if(d<75 && kmh>120){ empiezaPersecucion(C,"exceso de velocidad"); break; }
-      if(d<3.6){ empiezaPersecucion(C,"has embestido a una patrulla"); break; } }
+    const enCarrera=(typeof CARRERA!=="undefined") && CARRERA.activa;
+    if(POLICIA.tregua<=0 && !enCarrera)
+      for(const v of patrullas()){ const d=Math.hypot(v.x-C.x,v.z-C.z);
+        if(d<55 && kmh>140){ empiezaPersecucion(C,"exceso de velocidad"); break; }
+        if(d<3.6){ empiezaPersecucion(C,"has embestido a una patrulla"); break; } }
     return ev;
   }
   /* 3) en persecución: refuerzos según el nivel, y el calor sube con el tiempo y los golpes */
@@ -1427,10 +1430,10 @@ function acabaPersecucion(escapaste){
   const n=POLICIA.nivel;
   if(escapaste){ const premio=800*n+Math.round(POLICIA.calor*2000); AJUSTES.dinero+=premio; POLICIA.despistados++;
     avisa("😎 LOS HAS DESPISTADO","#c8ff2e",3); avisa("+ $ "+premio.toLocaleString("es-CL"),"#c8ff2e",3); pitido(1318,0.3); setTimeout(()=>pitido(1760,0.35),150); }
-  else { const multa=Math.round(AJUSTES.dinero*0.15); AJUSTES.dinero-=multa; POLICIA.pillado++;
+  else { const multa=Math.min(4000,Math.round(AJUSTES.dinero*0.10)); AJUSTES.dinero-=multa; POLICIA.pillado++;
     avisa("🚔 ¡TE PILLARON!","#ff4a5a",3); avisa("− $ "+multa.toLocaleString("es-CL")+" de multa","#ff4a5a",3); pitido(220,0.5,"sawtooth"); }
   guardaAjustes();
-  POLICIA.nivel=0; POLICIA.calor=0; POLICIA.escape=0; POLICIA.parado=0; POLICIA.coches.length=0;
+  POLICIA.nivel=0; POLICIA.calor=0; POLICIA.escape=0; POLICIA.parado=0; POLICIA.coches.length=0; POLICIA.tregua=45;
 }
 /* 🚨 las luces: puntos de luz rojos y azules alternando sobre cada patrulla en persecución */
 function emitePolicia(dt){
@@ -1479,6 +1482,10 @@ function empiezaCarrera(def,C){
   const pot=((typeof MEJ!=="undefined")?MEJ.vmax:1)*((typeof modeloActual==="function")?(modeloActual().vel||1):1);
   const nivel=clamp(pot*0.99,0.96,1.28);
   CARRERA.activa={ def, t:-3.5, cuenta:4, acum:0, ultimoI:def.i0, maxAcum:0, alReves:0, fin:false, puesto:1, tiempo:0, nivel };
+  if(typeof POLICIA!=="undefined" && POLICIA.nivel>0){                 /* 🚓 fuera de la carrera */
+    POLICIA.coches.length=0; POLICIA.nivel=0; POLICIA.calor=0; POLICIA.tregua=30;
+    avisa("🚓 LA POLICÍA SE RETIRA","#c8ff2e",2.2);
+  }
   G.cam.rumbo=C.rumbo; avisa(def.nombre,"#b46bff",2.5);
   if(nivel>1.12) avisa("⚠️ RIVALES MEJORADOS","#ff9a3a",2.2);   /* si vas muy fuerte, ellos también */
 }

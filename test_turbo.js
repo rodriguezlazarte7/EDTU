@@ -218,6 +218,12 @@ const cuadros = (N, n) => { const err = []; for (let i = 0; i < n; i++) { const 
       out.perseguidores=POLICIA.coches.length; const d0=AJUSTES.dinero=5000; out.pilla=null;
       for(let f=0;f<60*40;f++){ cocheCorre(D,{gas:0,freno:1,giro:0,mano:false,nitro:false},1/60); traficoCorre(1/60,D); if(policiaCorre(1/60,D).pillado){ out.pilla=f/60; break; } }
       out.multa=d0-AJUSTES.dinero; out.nivelTras=POLICIA.nivel;
+      /* 🚓 recién multado hay TREGUA: aunque pases volando al lado de una patrulla, no te persiguen */
+      out.treguaBloquea=(()=>{ const T=nuevoCoche(au.x[i0],au.z[i0],dir); T.vx=Math.sin(dir)*45; T.vz=Math.cos(dir)*45;
+        TRAFICO.length=0; const p=ponTraficoEn(au,i0+10,1,false); p.poli=true; p.malla=POLI_MALLA;
+        for(let f=0;f<120;f++){ cocheCorre(T,{gas:1,freno:0,giro:piloto(T,26),mano:false,nitro:false},1/60); traficoCorre(1/60,T); policiaCorre(1/60,T); }
+        return POLICIA.nivel===0; })();
+      POLICIA.tregua=0;                     /* el jugador esperaría los 45 s: la prueba se los salta */
       /* 🚓 otra vez, y huyes con nitro con 300 m de ventaja: los despistas (premio) */
       TRAFICO.length=0; const pat2=ponTraficoEn(au,i0+10,1,false); pat2.poli=true; pat2.malla=POLI_MALLA;
       const E=nuevoCoche(au.x[i0],au.z[i0],dir); E.vx=Math.sin(dir)*42; E.vz=Math.cos(dir)*42;
@@ -231,6 +237,8 @@ const cuadros = (N, n) => { const err = []; for (let i = 0; i < n; i++) { const 
     console.log("  🚓 pasas a 150 km/h junto a una patrulla: persecución a los " + (r.vio === null ? "NUNCA" : r.vio.toFixed(2) + " s") + " con " + r.perseguidores + " perseguidores · parado te pillan a los " + (r.pilla === null ? "NUNCA" : r.pilla.toFixed(1) + " s") + " y pagas $ " + r.multa + " · huyendo con nitro los despistas a los " + (r.escapa === null ? "NUNCA" : r.escapa < 0 ? "¡te pillan!" : r.escapa.toFixed(1) + " s") + " y cobras $ " + r.premio);
     if (r.vio === null || r.vio > 2 || !r.perseguidores) MAL("la patrulla no te persigue");
     if (r.pilla === null || r.multa <= 0 || r.nivelTras !== 0) MAL("parado no te pillan (o no hay multa)");
+    console.log("  🚓 recién multado, la tregua te protege de otra persecución: " + (r.treguaBloquea ? "sí ✅" : "NO"));
+    if (!r.treguaBloquea) MAL("tras la multa te vuelven a perseguir enseguida (no hay tregua)");
     if (r.escapa === null || r.escapa < 0 || r.premio <= 0) MAL("no se puede despistar a la policía (o no paga)");
   }
   /* ---------- 7) 🏁 las carreras contra los rivales ---------- */
