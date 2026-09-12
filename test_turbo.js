@@ -270,7 +270,7 @@ const cuadros = (N, n) => { const err = []; for (let i = 0; i < n; i++) { const 
       return out; })()`);
     console.log("  🏁 " + r.carreras.map(c => c.nom + " (" + c.largo + " m): " + (c.fin === null ? "NO ACABA" : c.fin + " s, " + c.puesto + "º")).join(" · "));
     console.log("  en la cuenta atrás te mueves " + r.quieto.toFixed(1) + " m · rivales fuera de su ruta " + r.fuera + "/" + r.pasos + " · números rotos " + r.nan + " · marcha atrás: avisa tras " + r.alReves.toFixed(1) + " s");
-    if (r.carreras.length !== 3) MAL("tienen que ser 3 carreras");
+    if (r.carreras.length !== 4) MAL("tienen que ser 4 carreras");
     for (const c of r.carreras) if (c.fin === null) MAL("la carrera " + c.nom + " no acaba");
     if (r.quieto > 1.5) MAL("el coche se mueve durante la cuenta atrás");
     if (r.fuera > r.pasos * 0.01 || r.nan) MAL("los rivales se salen de su ruta o se rompen");

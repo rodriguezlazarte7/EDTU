@@ -418,6 +418,10 @@ function poneEventos(){
   EVENTOS.push({ tipo:"derrape", nombre:"ZONA DE DERRAPE", c:cant, i0:4, i1:Math.floor(cant.n*0.8), metas:[180,280,380], tiempo:60 });
   EVENTOS.push({ tipo:"radar", nombre:"RADAR DE VELOCIDAD", c:au, i:Math.floor(au.n*0.42), metas:[160,200,240] });
   EVENTOS.push({ tipo:"radar", nombre:"RADAR DE VELOCIDAD", c:lago, i:Math.floor(lago.n*0.62), metas:[130,160,190] });
+  EVENTOS.push({ tipo:"derrape", nombre:"ZONA DE DERRAPE", c:camino, i0:6, i1:camino.n-8, metas:[120,190,260], tiempo:50 });
+  EVENTOS.push({ tipo:"radar", nombre:"RADAR DE VELOCIDAD", c:paso, i:Math.floor(paso.n*0.80), metas:[90,120,150] });
+  { const av=CARRETERAS.find(x=>x.nombre==="Avenida 2");
+    if(av) EVENTOS.push({ tipo:"radar", nombre:"RADAR DE VELOCIDAD", c:av, i:Math.floor(av.n*0.5), metas:[120,150,180] }); }
   const s1=mejorBajada(paso,Math.floor(paso.n*0.35),paso.n-20);
   EVENTOS.push({ tipo:"salto", nombre:"SALTO", c:paso, i:s1.i, sentido:s1.sentido, baja:s1.baja, rampa:poneRampa(paso,s1.i,s1.sentido), metas:[25,45,70] });
   const s2=mejorBajada(camino,10,camino.n-20);
@@ -1425,6 +1429,8 @@ function defineCarreras(){
     { nombre:"VUELTA AL LAGO", c:lago, i0:Math.floor(lago.n*0.05), i1:null, s:1, vueltas:1 },
     { nombre:"SUBIDA A LA CUMBRE", c:paso, i0:4, i1:paso.n-6, s:1, vueltas:1 }
   ];
+  const av=CARRETERAS.find(c=>c.nombre==="Avenida 3");          /* 🏙️ un sprint por la ciudad */
+  if(av) lista.push({ nombre:"SPRINT DE LA CIUDAD", c:av, i0:3, i1:av.n-4, s:1, vueltas:1 });
   for(const r of lista){
     r.largo = r.c.cerrada ? r.c.n*MUESTRA*r.vueltas : Math.abs(r.i1-r.i0)*MUESTRA;
     EVENTOS.push({ tipo:"carrera", nombre:"CARRERA · "+r.nombre, c:r.c, i:r.i0, x:r.c.x[r.i0], z:r.c.z[r.i0], y:r.c.y[r.i0], metas:[1,2,3], mejor:0, carrera:r });
