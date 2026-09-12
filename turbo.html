@@ -1799,7 +1799,7 @@ function dibujaFotograma(C,K,t,efectos){
 const AJUSTES=(()=>{ let a={}; try{ a=JSON.parse(localStorage.getItem("edtu_turbo")||"{}"); }catch(e){}
   return Object.assign({ pintura:0, neon:0, calidad:null, sombras:true, dinero:0, mejores:{}, mejoras:{}, volante:1, hora:"tarde", coche:0 }, a); })();
 function guardaAjustes(){ try{ localStorage.setItem("edtu_turbo",JSON.stringify(AJUSTES)); }catch(e){} }
-const G={ estado:"carga", t:0, coche:null, cam:null, trucos:[], mensajes:[], evento:null, pausa:false, flash:0, avisoCal:null };
+const G={ estado:"carga", t:0, coche:null, cam:null, trucos:[], mensajes:[], evento:null, pausa:false, mapa:false, flash:0, avisoCal:null };
 
 const TECLAS={}, TACTIL={};
 addEventListener("keydown",e=>{
@@ -1807,7 +1807,8 @@ addEventListener("keydown",e=>{
   if(/^(Arrow|Space)/.test(e.code)) e.preventDefault();
   if(G.estado!=="juego") return;
   if(e.code==="KeyC"&&!e.repeat) G.cam.modo=(G.cam.modo+1)%3;
-  if((e.code==="KeyP"||e.code==="Escape")&&!e.repeat) G.pausa=!G.pausa;
+  if((e.code==="KeyP"||e.code==="Escape")&&!e.repeat){ if(G.mapa) G.mapa=false; else G.pausa=!G.pausa; }
+  if(e.code==="KeyM"&&!e.repeat) G.mapa=!G.mapa;                    /* 🗺️ el mapa grande */
   if(e.code==="KeyR"&&!e.repeat){ recolocaCoche(G.coche); avisa("DE VUELTA A LA CARRETERA","#c8ff2e"); }
 });
 addEventListener("keyup",e=>{ TECLAS[e.code]=false; });
@@ -1838,7 +1839,7 @@ function leeEntrada(){
     if(P.boton(0)>0.5||P.boton(5)>0.5) E.nitro=true;                                           /* A o RB: nitro */
     if(P.boton(2)>0.5||P.boton(1)>0.5) E.mano=true;                                            /* X o B: freno de mano */
     const pulsa=i=>P.boton(i)>0.5&&!PAD.antes[i];
-    if(G.estado==="juego"){ if(pulsa(3)) G.cam.modo=(G.cam.modo+1)%3; if(pulsa(9)) G.pausa=!G.pausa; if(pulsa(8)){ recolocaCoche(G.coche); avisa("DE VUELTA A LA CARRETERA","#c8ff2e"); } }
+    if(G.estado==="juego"){ if(pulsa(3)) G.cam.modo=(G.cam.modo+1)%3; if(pulsa(4)) G.mapa=!G.mapa; if(pulsa(9)) G.pausa=!G.pausa; if(pulsa(8)){ recolocaCoche(G.coche); avisa("DE VUELTA A LA CARRETERA","#c8ff2e"); } }
     else if(G.estado==="menu" && pulsa(0)) empieza();
     for(let i=0;i<16;i++) PAD.antes[i]=P.boton(i)>0.5;
   }
@@ -2036,8 +2037,40 @@ function pintaHud(C,dt){
     x.save(); x.globalAlpha=a; x.translate(W/2,H*0.30+k*58*u); x.scale(s,s); x.transform(1,0,-0.18,1,0,0);
     x.textAlign="center"; x.font=fuente("900 italic",46); x.lineWidth=8*u; x.strokeStyle="rgba(10,6,24,.85)"; x.strokeText(m.texto,0,0); x.fillStyle=m.color; x.fillText(m.texto,0,0); x.restore(); });
   if(G.avisoCal){ G.avisoCal.t-=dt; if(G.avisoCal.t>0){ x.textAlign="center"; x.font=fuente("700",16); x.fillStyle="rgba(255,255,255,.8)"; x.fillText(G.avisoCal.texto,W/2,H-30*u); } }
+  /* 🗺️ EL MAPA GRANDE: el mundo entero, tus eventos con sus estrellas y dónde estás */
+  if(G.mapa && MAPA){
+    x.fillStyle="rgba(4,3,10,.88)"; x.fillRect(0,0,W,H);
+    const lado=Math.min(W,H)*0.84, mx=(W-lado)/2, my=(H-lado)/2+10*u, e=lado/MUNDO;
+    const P=(wx,wz)=>[mx+(wx+MITAD)*e, my+(wz+MITAD)*e];
+    x.save(); x.beginPath(); x.rect(mx,my,lado,lado); x.clip();
+    x.drawImage(MAPA,mx,my,lado,lado);
+    /* los nombres de las zonas */
+    x.textAlign="center"; x.textBaseline="middle"; x.font=fuente("800",15); x.fillStyle="rgba(255,255,255,.72)";
+    for(const [nom,wx,wz] of [["CIUDAD EDTU",760,-220],["LAGO PLATEADO",LAGO.x,LAGO.z],["CANTERA ROJA",CANTERA.x,CANTERA.z],
+                              ["CUMBRE NEVADA",CUMBRE.x,CUMBRE.z],["VALLE DE LOS PINOS",-120,-120]]){
+      const [px,py]=P(wx,wz); x.fillText(nom,px,py); }
+    /* los eventos, con sus estrellas */
+    for(const ev of EVENTOS){ const [px,py]=P(ev.x,ev.z), tam=13*u;
+      iconoEvento(x,ev,px,py,tam);
+      if(ev.mejor){ x.font=fuente("900",13); x.fillStyle="#ffd23a"; x.fillText("★".repeat(ev.mejor),px,py+tam+11*u); } }
+    /* tú */
+    const [cx,cy]=P(C.x,C.z);
+    x.save(); x.translate(cx,cy); x.rotate(Math.atan2(Math.sin(C.rumbo),Math.cos(C.rumbo)));
+    x.fillStyle="#c8ff2e"; x.beginPath(); x.moveTo(0,-15*u); x.lineTo(10*u,11*u); x.lineTo(0,6*u); x.lineTo(-10*u,11*u); x.closePath(); x.fill();
+    x.strokeStyle="rgba(0,0,0,.7)"; x.lineWidth=2*u; x.stroke(); x.restore();
+    x.restore();
+    x.strokeStyle="rgba(200,255,46,.5)"; x.lineWidth=3*u; x.strokeRect(mx,my,lado,lado);
+    /* el título y la leyenda */
+    x.textAlign="center"; x.font=fuente("900 italic",34); x.fillStyle="#c8ff2e"; x.fillText("MAPA LIBRE",W/2,my-34*u);
+    const RG=(typeof rangoActual==="function")?rangoActual():null;
+    x.font=fuente("700",16); x.fillStyle="#d6b8ff";
+    x.fillText((RG?RG.icono+" "+RG.nombre+" · ⭐ "+RG.estrellas+"/"+RG.tope+"  ·  ":"")+"💰 $ "+Math.round(AJUSTES.dinero).toLocaleString("es-CL"),W/2,my-12*u);
+    x.font=fuente("700",15); x.fillStyle="rgba(255,255,255,.75)";
+    x.fillText("S derrape  ·  ⚡ radar  ·  ▲ salto  ·  🏁 carrera        M o ESC para cerrar",W/2,my+lado+24*u);
+    return;
+  }
   if(G.pausa){ x.fillStyle="rgba(4,3,10,.6)"; x.fillRect(0,0,W,H); x.textAlign="center"; x.fillStyle="#c8ff2e"; x.font=fuente("900 italic",90); x.fillText("PAUSA",W/2,H/2);
-    x.font=fuente("700",22); x.fillStyle="#fff"; x.fillText("P / ESC / START para seguir · R vuelve a la carretera · C cambia la cámara",W/2,H/2+70*u); }
+    x.font=fuente("700",22); x.fillStyle="#fff"; x.fillText("P / ESC / START para seguir · M el mapa · R vuelve a la carretera · C cambia la cámara",W/2,H/2+70*u); }
 }
 
 /* ================= 🏁 EL JUEGO: calidad, eventos, trucos, partículas, menú y bucle ================= */
@@ -2182,8 +2215,8 @@ function pintaMenu(){
   $("optCal").querySelectorAll("[data-c]").forEach(b=>b.onclick=()=>{ CALIDAD=b.dataset.c; AJUSTES.calidad=CALIDAD; guardaAjustes(); aplicaCalidad(); pintaMenu(); });
   $("ayuda").innerHTML = ES_TACTIL()
     ? "◀ ▶ girar · <b>GAS</b> y <b>FRENO</b> · <b>DERRAPE</b> suelta la parte de atrás · 🔥 nitro"
-    : "<kbd>W</kbd> gas · <kbd>S</kbd> freno · <kbd>A</kbd> <kbd>D</kbd> girar · <kbd>ESPACIO</kbd> derrape · <kbd>SHIFT</kbd> nitro · <kbd>C</kbd> cámara · <kbd>R</kbd> volver a la carretera · <kbd>P</kbd> pausa<br>"+
-      "🎮 mando: <kbd>RT</kbd> gas · <kbd>LT</kbd> freno · stick izquierdo gira · <kbd>X</kbd>/<kbd>B</kbd> derrape · <kbd>A</kbd>/<kbd>RB</kbd> nitro · <kbd>Y</kbd> cámara · <kbd>START</kbd> pausa<br>"+
+    : "<kbd>W</kbd> gas · <kbd>S</kbd> freno · <kbd>A</kbd> <kbd>D</kbd> girar · <kbd>ESPACIO</kbd> derrape · <kbd>SHIFT</kbd> nitro · <kbd>C</kbd> cámara · <kbd>M</kbd> mapa · <kbd>R</kbd> volver a la carretera · <kbd>P</kbd> pausa<br>"+
+      "🎮 mando: <kbd>RT</kbd> gas · <kbd>LT</kbd> freno · stick izquierdo gira · <kbd>X</kbd>/<kbd>B</kbd> derrape · <kbd>A</kbd>/<kbd>RB</kbd> nitro · <kbd>Y</kbd> cámara · <kbd>LB</kbd> mapa · <kbd>START</kbd> pausa<br>"+
       "💜 en el mapa: <b>zonas de derrape</b>, <b>radares</b>, <b>saltos</b> y 🏁 <b>carreras</b> contra NOVA, KIRO y LENA · cada uno da hasta 3 estrellas y dinero<br>"+
       "🚗 hay <b>tráfico</b>: adelantar en sentido contrario y pasar rozando llena el nitro · 🚓 si te ve la <b>policía</b> a más de 120 km/h te persigue: despístalos y cobras, te pillan parado y pagas<br>"+
       "🔧 con el dinero se compran <b>mejoras</b> en el garaje: motor, nitro, agarre y frenos";
@@ -2214,7 +2247,7 @@ function bucle(ahora){
   const ms=ultimoT?Math.max(0,ahora-ultimoT):16; ultimoT=ahora; const dt=Math.min(0.1,ms/1000);
   vigilaRendimiento(ms);
   const E=leeEntrada();
-  if(G.estado==="juego" && !G.pausa && !G.foto){
+  if(G.estado==="juego" && !G.pausa && !G.mapa && !G.foto){
     acumulado+=dt; const paso=1/120; let n=0, junto={};
     while(acumulado>=paso && n<24){ const ev=cocheCorre(G.coche,E,paso);
       if(ev.choque) junto.choque=Math.max(junto.choque||0,ev.choque); if(ev.despega) junto.despega=true; if(ev.aterriza) junto.aterriza=ev.aterriza; if(ev.agua) junto.agua=true;
@@ -2270,6 +2303,7 @@ function modoFoto(){
   if(CALIDADES[q.get("cal")]){ CALIDAD=q.get("cal"); aplicaCalidad(); }
   if(HORAS[q.get("hora")]){ AJUSTES.hora=q.get("hora"); ponHora(AJUSTES.hora); }
   if(q.get("coche")!==null){ AJUSTES.coche=clamp(+q.get("coche")||0,0,MODELOS.length-1); subeCoche(); }   /* 📸 #foto&coche=1 */
+  if(q.get("mapa")) G.mapa=true;
   if(sitio==="menu"){ G.estado="menu"; $("menu").classList.remove("oculto"); return; }
   G.estado="juego"; G.foto=true;
   const porNombre=n=>CARRETERAS.find(c=>c.nombre===n), C=G.coche;
