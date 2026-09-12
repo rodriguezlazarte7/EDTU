@@ -166,7 +166,7 @@ function alturaBase(x,z){
         Sin esto el terreno asoma por encima del asfalto (medido: hasta 1,3 m). */
   /* 🏟️ la meseta del centro de eventos, plana: el terreno JUSTO BAJO el asfalto lo fija luego el
         constructor del mundo (carretera menos 6 cm), así que aquí solo se allana el entorno */
-  const ep=Math.hypot((x-PISTA.x)/(PISTA.R1+90),(z-PISTA.z)/(PISTA.R2+90)), mp=1-suave(1.0,1.32,ep);   /* 🏟️ la explanada crece con la pista */
+  const ep=Math.hypot((x-PISTA.x)/(PISTA.R1+90),(z-PISTA.z)/(PISTA.R2+90)), mp=1-suave(1.0,1.7,ep);   /* 🏟️ el máximo que se puede ensanchar sin empezar a levantar la ciudad, que está a 840 m */   /* 🏟️ la explanada crece con la pista */
   return lerp(h,PISTA.y-0.35,mp);
 }
 
