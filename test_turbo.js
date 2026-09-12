@@ -1,4 +1,4 @@
-/* 🏎️ EDTU TURBO: pruebas
+/* 🏎️ EDTU NITRO: pruebas
    Ejecuta el juego ENTERO en un navegador de mentira (con una tarjeta gráfica WebGL2 de mentira que
    cuenta lo que se dibuja y avisa de números rotos), conduce con el teclado y comprueba la física
    contra el mundo de verdad */
@@ -324,6 +324,6 @@ const cuadros = (N, n) => { const err = []; for (let i = 0; i < n; i++) { const 
   }
   console.log("");
   if (malos) { console.log("❌ " + malos + " fallo(s)"); process.exit(1); }
-  console.log("✅ EDTU TURBO: arranca, se juega con teclado, física de arcade comprobada y enchufado en el cuartel");
+  console.log("✅ EDTU NITRO: arranca, se juega con teclado, física de arcade comprobada y enchufado en el cuartel");
   process.exit(0);
 })();

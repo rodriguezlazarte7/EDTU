@@ -1,7 +1,7 @@
 <!doctype html>
 <html lang="es"><head><meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
-<title>EDTU TURBO</title>
+<title>EDTU NITRO</title>
 <style>
 html,body{margin:0;height:100%;background:#05060a;overflow:hidden;font-family:"Segoe UI",system-ui,sans-serif;color:#fff;touch-action:none;user-select:none;-webkit-user-select:none}
 #gl,#hud{position:fixed;inset:0;width:100%;height:100%;display:block}
@@ -46,9 +46,9 @@ kbd{border:1px solid #5a5370;border-radius:3px;padding:1px 6px;background:#1c1a2
 }
 </style></head><body>
 <canvas id="gl"></canvas><canvas id="hud"></canvas>
-<div id="carga"><b>EDTU TURBO</b><div id="cargaTxt">levantando las montañas…</div><div id="barra"><i></i></div></div>
+<div id="carga"><b>EDTU NITRO</b><div id="cargaTxt">levantando las montañas…</div><div id="barra"><i></i></div></div>
 <div id="menu" class="oculto">
-  <div class="logo">EDTU<br>TURBO</div>
+  <div class="logo">EDTU<br>NITRO</div>
   <div class="sub">MAPA LIBRE · CARRERAS CALLEJERAS</div>
   <div class="titulo">COCHE</div><div class="fila" id="optCoche"></div>
   <div class="ayuda" id="cocheTxt" style="margin-top:2px"></div>
@@ -71,13 +71,14 @@ kbd{border:1px solid #5a5370;border-radius:3px;padding:1px 6px;background:#1c1a2
   <div class="tb" id="tNitro" style="right:6vw;bottom:26vh;width:13vmin;height:13vmin">🔥</div>
   <div class="tb" id="tMano" style="right:26vw;bottom:21vh;width:12vmin;height:12vmin">DERRAPE</div>
   <div class="tb" id="tEntrar" style="left:50%;transform:translateX(-50%);bottom:30vh;width:26vmin;height:13vmin;border-radius:8px;display:none">🏁 CORRER</div>
+  <div class="tb" id="tMirar" style="right:8vw;bottom:36vh;width:12vmin;height:12vmin">👀</div>
 </div>
 <div id="nogl">Este navegador no puede dibujar en 3D (WebGL2).<br>Prueba con Chrome o Edge actualizados.</div>
 <button id="salir">✕ Salir</button>
 <script>
 "use strict";
 /* =====================================================================================
-   🏎️ EDTU TURBO · mapa libre de carreras callejeras
+   🏎️ EDTU NITRO · mapa libre de carreras callejeras
    Todo está hecho con código: montañas, carreteras, árboles, ciudad, coche, luz y sonido.
    ===================================================================================== */
 
@@ -1039,7 +1040,7 @@ const RUEDA_R=0.34, BATALLA=2.72, VIA=0.83, RUEDAS_Z=[1.36,-1.36];
 /* 🚘 los tres coches del garaje. largo/ancho/alto estiran la MISMA carrocería, y vel/acel/agarre
       cambian cómo se conduce. Ninguno es el mejor en todo: el pesado corre más pero gira peor */
 const MODELOS=[
-  { nom:"TURBO GT", icono:"🏎️", largo:1.00, ancho:1.00, alto:1.00, aleron:1.00, vel:1.00, acel:1.00, agarre:1.00, voz:1.00, dice:"equilibrado: el de siempre" },
+  { nom:"NITRO GT", icono:"🏎️", largo:1.00, ancho:1.00, alto:1.00, aleron:1.00, vel:1.00, acel:1.00, agarre:1.00, voz:1.00, dice:"equilibrado: el de siempre" },
   { nom:"BESTIA",   icono:"🐂", largo:1.10, ancho:1.08, alto:1.06, aleron:1.25, vel:1.07, acel:0.94, agarre:0.90, voz:0.80, dice:"grande y bruto: más punta, gira peor · motor grave" },
   { nom:"CHISPA",   icono:"⚡", largo:0.90, ancho:0.94, alto:0.94, aleron:0.70, vel:0.95, acel:1.12, agarre:1.12, voz:1.22, dice:"pequeño y vivo: acelera y se agarra · motor agudo" }
 ];
@@ -1146,6 +1147,7 @@ function cocheCorre(C,E,dt){
        Ahora hay un tope absoluto de 94 m/s (338 km/h), que ya es una barbaridad */
     const vmax=Math.min(94,(C.usandoNitro?VMAX_NITRO*M.nitroEmpuje:VMAX)*M.vmax*MO.vel)*(C.fueraCarretera?0.62:1);
     if(E.gas>0 && vF>-1){ const f=clamp(1-(vF/vmax)*(vF/vmax),0,1); vF+=E.gas*(10.5*M.acel*MO.acel*f+(C.usandoNitro?8.5*M.nitroEmpuje:0))*dt; }
+    else if(E.gas>0) vF+=E.gas*26*dt;   /* 🔁 yendo hacia atrás, el acelerador FRENA fuerte: antes estaba muerto y tardabas siglos en volver a avanzar */
     if(C.usandoNitro) C.nitro=Math.max(0,C.nitro-dt*0.16*M.nitroGasto);
     if(E.freno>0){ if(vF>1) vF-=E.freno*24*M.freno*dt; else vF=Math.max(-15,vF-E.freno*7*dt); }
     const roce=0.22+0.00042*vF*vF+(C.fueraCarretera?1.6:0)+(E.gas<0.05&&E.freno<0.05?0.9:0);
@@ -1229,8 +1231,8 @@ function recolocaCoche(C){
 }
 
 /* ================= 🎥 LA CÁMARA DE PERSECUCIÓN ================= */
-function nuevaCamara(C){ return { x:C.x-Math.sin(C.rumbo)*7, y:C.y+2.4, z:C.z-Math.cos(C.rumbo)*7, rumbo:C.rumbo, fov:1.05, temblor:0, modo:0 }; }
-function camaraSigue(K,C,dt){
+function nuevaCamara(C){ return { x:C.x-Math.sin(C.rumbo)*7, y:C.y+2.4, z:C.z-Math.cos(C.rumbo)*7, rumbo:C.rumbo, fov:1.05, temblor:0, modo:0, mirada:0 }; }
+function camaraSigue(K,C,dt,mirar){
   const vel=Math.hypot(C.vx,C.vz);
   const estrecha=(typeof RENDER!=="undefined" && RENDER.h>RENDER.w);   /* 📱 pantalla de pie: la cámara sigue más rápido */
   /* en un derrape la cámara mira un poco hacia donde va el coche de verdad */
@@ -1238,7 +1240,10 @@ function camaraSigue(K,C,dt){
   const objetivo=C.rumbo+angDif(C.rumbo,rumboVel)*(C.derrapando?0.45:0.15);
   K.rumbo+=angDif(K.rumbo,objetivo)*(1-Math.exp(-dt*(C.enSuelo?4.5:1.5)*(estrecha?3.2:1)));   /* 📱 de pie, la cámara se pega más al coche: si no, en una pantalla estrecha se sale del encuadre */
   const lejos=([6.6,9.5,0][K.modo]+vel*0.018)*(estrecha?1.42:1), alto=[2.05,3.1,1.25][K.modo]*(estrecha?1.18:1);   /* 📱 de pie, la cámara se aleja y sube */
-  const cx=C.x-Math.sin(K.rumbo)*lejos, cz=C.z-Math.cos(K.rumbo)*lejos;
+  /* 👀 la mirada: el stick derecho gira la vista ALREDEDOR del coche (a tope son media vuelta: miras atrás) */
+  K.mirada=lerp(K.mirada||0,clamp(mirar||0,-1,1)*Math.PI,1-Math.exp(-dt*9));
+  const rum=K.rumbo+K.mirada;
+  const cx=C.x-Math.sin(rum)*lejos, cz=C.z-Math.cos(rum)*lejos;
   let cy=C.y+alto;
   if(K.modo===2){ K.x=C.x+Math.sin(C.rumbo)*0.2; K.z=C.z+Math.cos(C.rumbo)*0.2; K.y=C.y+1.25; }
   else {
@@ -1249,7 +1254,7 @@ function camaraSigue(K,C,dt){
   K.temblor=Math.max(K.temblor*Math.exp(-dt*5),C.golpe*0.5,C.usandoNitro?0.05:0,vel>60?0.02:0);
   const t=performance.now()/1000, tb=K.temblor;
   const ade=estrecha?2.0:3.2;                                          /* y mira menos lejos, para que el coche no se salga */
-  K.mira=v3(C.x+Math.sin(C.rumbo)*ade+Math.sin(t*37)*tb*0.10, C.y+(K.modo===2?1.15:1.05)+Math.sin(t*41)*tb*0.08, C.z+Math.cos(C.rumbo)*ade+Math.cos(t*33)*tb*0.10);
+  K.mira=v3(C.x+Math.sin(rum)*ade+Math.sin(t*37)*tb*0.10, C.y+(K.modo===2?1.15:1.05)+Math.sin(t*41)*tb*0.08, C.z+Math.cos(rum)*ade+Math.cos(t*33)*tb*0.10);
 }
 
 /* ================= 🚗 EL TRÁFICO =================
@@ -1901,7 +1906,7 @@ function padCrudo(){
 }
 /* lo que quiere hacer el jugador ahora mismo: gas, freno, giro, freno de mano y nitro */
 function leeEntrada(){
-  const E={ gas:0, freno:0, giro:0, mano:false, nitro:false, entrar:false };
+  const E={ gas:0, freno:0, giro:0, mano:false, nitro:false, entrar:false, mirar:0 };
   if(TECLAS.KeyW||TECLAS.ArrowUp||TACTIL.gas) E.gas=1;
   if(TECLAS.KeyS||TECLAS.ArrowDown||TACTIL.freno) E.freno=1;
   if(TECLAS.KeyA||TECLAS.ArrowLeft||TACTIL.izq) E.giro-=1;
@@ -1909,9 +1914,12 @@ function leeEntrada(){
   if(TECLAS.Space||TACTIL.mano) E.mano=true;
   if(TECLAS.ShiftLeft||TECLAS.ShiftRight||TECLAS.KeyN||TACTIL.nitro) E.nitro=true;
   if(TECLAS.KeyE||TECLAS.Enter||TACTIL.entrar) E.entrar=true;   /* 🏁 entrar en la carrera */
+  if(TECLAS.KeyQ||TACTIL.mirar) E.mirar=1;                       /* 👀 mirar atrás sin soltar el volante */
   const P=padCrudo();
   if(P){
     const x=P.axes[0]||0; if(Math.abs(x)>0.12) E.giro=clamp(E.giro+Math.sign(x)*((Math.abs(x)-0.12)/0.88),-1,1);
+    const mx=P.axes[2]||0;                                                                     /* 👀 STICK DERECHO: giras la vista, no el coche */
+    if(Math.abs(mx)>0.18) E.mirar=clamp(Math.sign(mx)*((Math.abs(mx)-0.18)/0.82),-1,1);
     E.gas=Math.max(E.gas,P.boton(7)); E.freno=Math.max(E.freno,P.boton(6));                  /* RT gas · LT freno */
     if(P.boton(0)>0.5||P.boton(5)>0.5) E.nitro=true;                                           /* A o RB: nitro */
     if(P.boton(2)>0.5||P.boton(1)>0.5) E.mano=true;                                            /* X o B: freno de mano */
@@ -1930,7 +1938,7 @@ function preparaTactil(){
   const une=(id,k)=>{ const el=document.getElementById(id); if(!el) return;
     const on=e=>{ e.preventDefault(); TACTIL[k]=true; el.classList.add("on"); }, off=e=>{ e.preventDefault(); TACTIL[k]=false; el.classList.remove("on"); };
     el.addEventListener("pointerdown",on); el.addEventListener("pointerup",off); el.addEventListener("pointercancel",off); el.addEventListener("pointerleave",off); };
-  une("tIzq","izq"); une("tDer","der"); une("tGas","gas"); une("tFreno","freno"); une("tNitro","nitro"); une("tMano","mano"); une("tEntrar","entrar");
+  une("tIzq","izq"); une("tDer","der"); une("tGas","gas"); une("tFreno","freno"); une("tNitro","nitro"); une("tMano","mano"); une("tEntrar","entrar"); une("tMirar","mirar");
   return tactil;
 }
 
@@ -2451,8 +2459,8 @@ function pintaMenu(){
     "Si va a tirones, el juego baja la calidad solo y te avisa. Los fps se ven en la esquina mientras juegas";
   $("ayuda").innerHTML = ES_TACTIL()
     ? "◀ ▶ girar · <b>GAS</b> y <b>FRENO</b> · <b>DERRAPE</b> suelta la parte de atrás · 🔥 nitro"
-    : "<kbd>W</kbd> gas · <kbd>S</kbd> freno · <kbd>A</kbd> <kbd>D</kbd> girar · <kbd>ESPACIO</kbd> derrape · <kbd>SHIFT</kbd> nitro · <kbd>E</kbd> entrar en una carrera · <kbd>C</kbd> cámara · <kbd>M</kbd> mapa · <kbd>R</kbd> volver · <kbd>P</kbd> pausa<br>"+
-      "🎮 mando: <kbd>RT</kbd> gas · <kbd>LT</kbd> freno · stick izquierdo gira · <kbd>X</kbd>/<kbd>B</kbd> derrape · <kbd>A</kbd>/<kbd>RB</kbd> nitro · <kbd>Y</kbd> cámara · <kbd>LB</kbd> mapa · <kbd>START</kbd> pausa<br>"+
+    : "<kbd>W</kbd> gas · <kbd>S</kbd> freno · <kbd>A</kbd> <kbd>D</kbd> girar · <kbd>ESPACIO</kbd> derrape · <kbd>SHIFT</kbd> nitro · <kbd>E</kbd> entrar en una carrera · <kbd>C</kbd> cámara · <kbd>M</kbd> mapa · <kbd>Q</kbd> mirar atrás · <kbd>R</kbd> volver · <kbd>P</kbd> pausa<br>"+
+      "🎮 mando: <kbd>RT</kbd> gas · <kbd>LT</kbd> freno · stick izquierdo gira · <b>stick derecho mira alrededor</b> · <kbd>X</kbd>/<kbd>B</kbd> derrape · <kbd>A</kbd>/<kbd>RB</kbd> nitro · <kbd>Y</kbd> cámara · <kbd>LB</kbd> mapa · <kbd>START</kbd> pausa<br>"+
       "💜 en el mapa: <b>zonas de derrape</b>, <b>radares</b>, <b>saltos</b> y 🏁 <b>carreras</b> contra NOVA, KIRO y LENA · cada uno da hasta 3 estrellas y dinero<br>"+
       "🚗 hay <b>tráfico</b>: adelantar en sentido contrario y pasar rozando llena el nitro · 🚓 si te ve la <b>policía</b> a más de 120 km/h te persigue: despístalos y cobras, te pillan parado y pagas<br>"+
       "🔧 con el dinero se compran <b>mejoras</b> en el garaje: motor, nitro, agarre y frenos";
@@ -2504,7 +2512,7 @@ function bucle(ahora){
     G.nitroAnt=G.coche.usandoNitro;
     junto.entrar=E.entrar;
     eventosCorren(dt,junto); trucosCorren(dt,junto); emite(dt,junto); particulasCorren(dt);
-    camaraSigue(G.cam,G.coche,dt); G.t+=dt;
+    camaraSigue(G.cam,G.coche,dt,E.mirar); G.t+=dt;
     if((zonaT-=dt)<=0){ zonaT=0.5; G.zona=zonaDe(G.coche.x,G.coche.z); }
     G.flash=Math.max(0,G.flash-dt*1.5);
   } else if(G.estado==="menu") { vistaMenu(dt); G.t+=dt; }
