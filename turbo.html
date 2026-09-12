@@ -1042,7 +1042,9 @@ const RUEDA_R=0.34, BATALLA=2.72, VIA=0.83, RUEDAS_Z=[1.36,-1.36];
 const MODELOS=[
   { nom:"NITRO GT", icono:"🏎️", largo:1.00, ancho:1.00, alto:1.00, aleron:1.00, vel:1.00, acel:1.00, agarre:1.00, voz:1.00, dice:"equilibrado: el de siempre" },
   { nom:"BESTIA",   icono:"🐂", largo:1.10, ancho:1.08, alto:1.06, aleron:1.25, vel:1.07, acel:0.94, agarre:0.90, voz:0.80, dice:"grande y bruto: más punta, gira peor · motor grave" },
-  { nom:"CHISPA",   icono:"⚡", largo:0.90, ancho:0.94, alto:0.94, aleron:0.70, vel:0.95, acel:1.12, agarre:1.12, voz:1.22, dice:"pequeño y vivo: acelera y se agarra · motor agudo" }
+  { nom:"CHISPA",   icono:"⚡", largo:0.90, ancho:0.94, alto:0.94, aleron:0.70, vel:0.95, acel:1.12, agarre:1.12, voz:1.22, dice:"pequeño y vivo: acelera y se agarra · motor agudo" },
+  { nom:"TERABYTE2015", icono:"👑", largo:1.04, ancho:1.12, alto:0.96, aleron:1.18, vel:1.10, acel:1.14, agarre:1.16, voz:1.10,
+    techoNegro:true, anchoExtra:true, dice:"el coche de DAVID: ancho, techo negro y el mejor en todo" }
 ];
 const modeloActual=()=>MODELOS[clamp((typeof AJUSTES!=="undefined"?AJUSTES.coche:0)|0,0,MODELOS.length-1)];
 const ruedasZDe=M=>[RUEDAS_Z[0]*M.largo, RUEDAS_Z[1]*M.largo];
@@ -1068,15 +1070,16 @@ function obraCoche(pintura,modelo){
   const anillo=z=>{ const f=perfilCoche(z/MO.largo), w=f.w*MO.ancho, cab=f.t>f.s+0.12;
     const A=MO.alto, b=f.b*A, s=f.s*A, t=f.t*A;                      /* la misma forma, estirada */
     return { cab, pts:[[0,b],[0.90*w,b],[w,b+0.18*A],[w,s-0.14*A],[0.97*w,s],[0.80*w,s+0.03*A],[0.66*w,lerp(s,t,0.78)],[0.50*w,t],[0,t+0.02*A]] }; };
-  const colTramo=(k,cab)=> k===0?bajos : (cab&&(k===5||k===6))?vidrio : P;
+  const colTramo=(k,cab)=> k===0?bajos : (cab&&(k===5||k===6))?vidrio : (MO.techoNegro&&k===7&&cab)?[0.035,0.035,0.045] : P;   /* 👑 techo negro */
   const extTramo=(k,cab)=> k===0?[0,0] : (cab&&(k===5||k===6))?EXTV : EXT;
   for(let s=0;s<ZS.length-1;s++){
     const z0=ZS[s], z1=ZS[s+1], A=anillo(z0), B=anillo(z1), cab=A.cab&&B.cab;
     for(const lado of [1,-1]) for(let k=0;k<8;k++){
       const a0=A.pts[k], a1=A.pts[k+1], b0=B.pts[k], b1=B.pts[k+1];
       const p=(q,z)=>v3(q[0]*lado,q[1],z);
-      if(lado>0) O.quad(p(a0,z0),p(b0,z1),p(b1,z1),p(a1,z0),colTramo(k,cab),extTramo(k,cab));
-      else O.quad(p(a1,z0),p(b1,z1),p(b0,z1),p(a0,z0),colTramo(k,cab),extTramo(k,cab));
+      /* 🚨 el giro, al derecho: antes toda la carrocería miraba hacia dentro y se veía por dentro */
+      if(lado>0) O.quad(p(a1,z0),p(b1,z1),p(b0,z1),p(a0,z0),colTramo(k,cab),extTramo(k,cab));
+      else O.quad(p(a0,z0),p(b0,z1),p(b1,z1),p(a1,z0),colTramo(k,cab),extTramo(k,cab));
     }
   }
   /* las tapas de delante y detrás */
@@ -1098,6 +1101,8 @@ function obraCoche(pintura,modelo){
   for(const sx of [-1,1]) O.caja(sx*0.98*W,0.98*A,0.72*L,0.16,0.10,0.18,P,EXT);
   O.caja(0,0.24*A,-2.20*L,1.5*W,0.10,0.24,[0.04,0.04,0.045],[0.4,0]);            /* difusor */
   for(const sx of [-1,1]) O.caja(sx*0.94*W,0.22*A,0,0.10,0.10,2.2*L,[0.05,0.05,0.06],[0.4,0]);   /* faldones laterales */
+  if(MO.anchoExtra) for(const sx of [-1,1]) for(const rz of [1.36*L,-1.36*L])                      /* 👑 pasos de rueda anchos */
+    O.caja(sx*0.99*W,0.28*A,rz,0.14,0.36,1.10,P,EXT);
   O.caja(0,0.20*A,2.30*L,1.7*W,0.06,0.30,[0.05,0.05,0.06],[0.5,0]);                              /* separador delantero */
   /* 🪽 el alerón (el de la BESTIA es enorme; el del CHISPA, discreto) */
   for(const sx of [-0.55,0.55]) O.caja(sx*W,0.96*A,-1.98*L,0.06,0.42*AL,0.22,[0.03,0.03,0.035],[0.6,0]);
@@ -1114,9 +1119,9 @@ function obraRueda(){
     O.quad(p(a0,-hw),p(a0,hw),p(a1,hw),p(a1,-hw),goma,[0.15,0]); }
   /* las dos caras con llanta de 5 radios (y la pinza roja por dentro) */
   for(const dir of [1,-1]){ const x=hw*dir, c=O.v(x,0,0,dir,0,0,llanta,[0.7,0]), k0=anillo(RUEDA_R*0.72,x,llanta,[0.7,0],dir);
-    for(let s=0;s<L;s++) dir>0?O.tri(c,k0+s,k0+s+1):O.tri(c,k0+s+1,k0+s);
+    for(let s=0;s<L;s++) dir>0?O.tri(c,k0+s+1,k0+s):O.tri(c,k0+s,k0+s+1);   /* 🛞 arreglado: antes la cara se tiraba entera */
     const g0=anillo(RUEDA_R*0.72,x,goma,[0.1,0],dir), g1=anillo(RUEDA_R,x,goma,[0.1,0],dir);
-    for(let s=0;s<L;s++){ if(dir>0){ O.tri(g0+s,g1+s,g1+s+1); O.tri(g0+s,g1+s+1,g0+s+1); } else { O.tri(g0+s,g1+s+1,g1+s); O.tri(g0+s,g0+s+1,g1+s+1); } } }
+    for(let s=0;s<L;s++){ if(dir>0){ O.tri(g0+s,g1+s+1,g1+s); O.tri(g0+s,g0+s+1,g1+s+1); } else { O.tri(g0+s,g1+s,g1+s+1); O.tri(g0+s,g1+s+1,g0+s+1); } } }   /* 🛞 igual: el giro iba al revés */
   O.caja(-0.02,0.05,0.10,0.08,0.16,0.10,freno,[0.5,0]);
   return O;
 }
