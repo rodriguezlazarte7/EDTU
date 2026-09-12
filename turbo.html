@@ -34,6 +34,16 @@ kbd{border:1px solid #5a5370;border-radius:3px;padding:1px 6px;background:#1c1a2
   font-weight:900;display:flex;align-items:center;justify-content:center;font-size:15px;touch-action:none}
 .tb.on{background:rgba(200,255,46,.45);border-color:#c8ff2e}
 #nogl{position:fixed;inset:0;z-index:20;display:none;align-items:center;justify-content:center;text-align:center;padding:24px;background:#05060a;color:#fff;font-size:18px;line-height:1.6}
+/* 📱 pantallas pequeñas: todo más junto y el botón de jugar SIEMPRE a la vista, pegado abajo */
+@media (max-width:620px), (max-height:820px){
+  #menu{gap:7px;padding:10px 10px 4px;justify-content:flex-start}
+  .logo{font-size:clamp(30px,9vw,56px)}
+  .sub{font-size:11px;letter-spacing:.22em}
+  .titulo{margin-top:2px;font-size:11px}
+  .op{padding:7px 10px;font-size:13px}
+  .ayuda{font-size:11.5px;line-height:1.6}
+  #jugar{position:sticky;bottom:6px;z-index:7;font-size:22px;padding:12px 34px;margin-top:8px}
+}
 </style></head><body>
 <canvas id="gl"></canvas><canvas id="hud"></canvas>
 <div id="carga"><b>EDTU TURBO</b><div id="cargaTxt">levantando las montañas…</div><div id="barra"><i></i></div></div>
@@ -55,10 +65,10 @@ kbd{border:1px solid #5a5370;border-radius:3px;padding:1px 6px;background:#1c1a2
 <div id="tactil">
   <div class="tb" id="tIzq" style="left:3vw;bottom:6vh;width:17vmin;height:17vmin">◀</div>
   <div class="tb" id="tDer" style="left:23vw;bottom:6vh;width:17vmin;height:17vmin">▶</div>
-  <div class="tb" id="tGas" style="right:3vw;bottom:6vh;width:20vmin;height:20vmin">GAS</div>
+  <div class="tb" id="tGas" style="right:3vw;bottom:5vh;width:19vmin;height:19vmin">GAS</div>
   <div class="tb" id="tFreno" style="right:26vw;bottom:5vh;width:14vmin;height:14vmin">FRENO</div>
-  <div class="tb" id="tNitro" style="right:5vw;bottom:32vh;width:14vmin;height:14vmin">🔥</div>
-  <div class="tb" id="tMano" style="right:24vw;bottom:26vh;width:13vmin;height:13vmin">DERRAPE</div>
+  <div class="tb" id="tNitro" style="right:6vw;bottom:26vh;width:13vmin;height:13vmin">🔥</div>
+  <div class="tb" id="tMano" style="right:26vw;bottom:21vh;width:12vmin;height:12vmin">DERRAPE</div>
 </div>
 <div id="nogl">Este navegador no puede dibujar en 3D (WebGL2).<br>Prueba con Chrome o Edge actualizados.</div>
 <button id="salir">✕ Salir</button>
@@ -1173,11 +1183,12 @@ function recolocaCoche(C){
 function nuevaCamara(C){ return { x:C.x-Math.sin(C.rumbo)*7, y:C.y+2.4, z:C.z-Math.cos(C.rumbo)*7, rumbo:C.rumbo, fov:1.05, temblor:0, modo:0 }; }
 function camaraSigue(K,C,dt){
   const vel=Math.hypot(C.vx,C.vz);
+  const estrecha=(typeof RENDER!=="undefined" && RENDER.h>RENDER.w);   /* 📱 pantalla de pie: la cámara sigue más rápido */
   /* en un derrape la cámara mira un poco hacia donde va el coche de verdad */
   const rumboVel=vel>4?Math.atan2(C.vx,C.vz):C.rumbo;
   const objetivo=C.rumbo+angDif(C.rumbo,rumboVel)*(C.derrapando?0.45:0.15);
-  K.rumbo+=angDif(K.rumbo,objetivo)*(1-Math.exp(-dt*(C.enSuelo?4.5:1.5)));
-  const lejos=[6.6,9.5,0][K.modo]+vel*0.018, alto=[2.05,3.1,1.25][K.modo];
+  K.rumbo+=angDif(K.rumbo,objetivo)*(1-Math.exp(-dt*(C.enSuelo?4.5:1.5)*(estrecha?3.2:1)));   /* 📱 de pie, la cámara se pega más al coche: si no, en una pantalla estrecha se sale del encuadre */
+  const lejos=([6.6,9.5,0][K.modo]+vel*0.018)*(estrecha?1.42:1), alto=[2.05,3.1,1.25][K.modo]*(estrecha?1.18:1);   /* 📱 de pie, la cámara se aleja y sube */
   const cx=C.x-Math.sin(K.rumbo)*lejos, cz=C.z-Math.cos(K.rumbo)*lejos;
   let cy=C.y+alto;
   if(K.modo===2){ K.x=C.x+Math.sin(C.rumbo)*0.2; K.z=C.z+Math.cos(C.rumbo)*0.2; K.y=C.y+1.25; }
@@ -1188,7 +1199,8 @@ function camaraSigue(K,C,dt){
   K.fov=lerp(K.fov,1.02+clamp(vel/80,0,1)*0.30+(C.usandoNitro?0.10:0),1-Math.exp(-dt*3));
   K.temblor=Math.max(K.temblor*Math.exp(-dt*5),C.golpe*0.5,C.usandoNitro?0.05:0,vel>60?0.02:0);
   const t=performance.now()/1000, tb=K.temblor;
-  K.mira=v3(C.x+Math.sin(C.rumbo)*3.2+Math.sin(t*37)*tb*0.10, C.y+(K.modo===2?1.15:1.05)+Math.sin(t*41)*tb*0.08, C.z+Math.cos(C.rumbo)*3.2+Math.cos(t*33)*tb*0.10);
+  const ade=estrecha?2.0:3.2;                                          /* y mira menos lejos, para que el coche no se salga */
+  K.mira=v3(C.x+Math.sin(C.rumbo)*ade+Math.sin(t*37)*tb*0.10, C.y+(K.modo===2?1.15:1.05)+Math.sin(t*41)*tb*0.08, C.z+Math.cos(C.rumbo)*ade+Math.cos(t*33)*tb*0.10);
 }
 
 /* ================= 🚗 EL TRÁFICO =================
@@ -1696,7 +1708,10 @@ let pinosCercaT=-1;
 function dibujaFotograma(C,K,t,efectos){
   const W=RENDER.w, H=RENDER.h;
   RENDER.cam=v3(K.x,K.y,K.z);
-  const P=m4Persp(K.fov,W/H,0.35,4600), V=m4Mirar(RENDER.cam,K.mira,v3(0,1,0));
+  /* 📱 en vertical se abre el objetivo: con una pantalla estrecha, el campo de visión a lo ancho se
+        quedaba en nada y el coche llenaba media pantalla */
+  const asp=W/H, fovV=K.fov*(asp<1.3?clamp(1.30/asp,1,1.18):1);   /* poco: más abierto deforma los bordes */
+  const P=m4Persp(fovV,asp,0.35,4600), V=m4Mirar(RENDER.cam,K.mira,v3(0,1,0));
   RENDER.vp=m4Mul(P,V);
   /* la inclinación del coche según el suelo que pisa (solo para dibujarlo) */
   if(C.enSuelo){ const fx=Math.sin(C.rumbo), fz=Math.cos(C.rumbo);
@@ -1733,7 +1748,7 @@ function dibujaFotograma(C,K,t,efectos){
   gl.clearColor(0,0,0,1); gl.clear(gl.COLOR_BUFFER_BIT|gl.DEPTH_BUFFER_BIT);
   gl.disable(gl.DEPTH_TEST); gl.depthMask(false);
   let p=PROGS.cielo; gl.useProgram(p); uniformesLuz(p,t);
-  const fw=vNorm(vRes(K.mira,RENDER.cam)), de=vNorm(vCruz(fw,v3(0,1,0))), ar=vCruz(de,fw), tanY=Math.tan(K.fov/2);
+  const fw=vNorm(vRes(K.mira,RENDER.cam)), de=vNorm(vCruz(fw,v3(0,1,0))), ar=vCruz(de,fw), tanY=Math.tan(fovV/2);
   gl.uniform3f(U(p,"uFw"),fw.x,fw.y,fw.z); gl.uniform3f(U(p,"uDer"),de.x,de.y,de.z); gl.uniform3f(U(p,"uArr"),ar.x,ar.y,ar.z); gl.uniform2f(U(p,"uTan"),tanY*W/H,tanY);
   gl.bindVertexArray(null); gl.drawArrays(gl.TRIANGLES,0,3);
   gl.enable(gl.DEPTH_TEST); gl.depthMask(true); gl.enable(gl.CULL_FACE); gl.cullFace(gl.BACK);
@@ -1901,7 +1916,9 @@ function pitido(nota,dur,tipo){
 /* ================= 🖥️ EL HUD (marcador en pantalla) ================= */
 const hud=document.getElementById("hud"), hx=hud.getContext("2d");
 let HW=1280, HH=720, HU=1;
-function tamHud(){ const d=Math.min(2,window.devicePixelRatio||1); HW=Math.round(innerWidth*d); HH=Math.round(innerHeight*d); hud.width=HW; hud.height=HH; HU=Math.min(HW/1920,HH/1080)*1.0; }
+function tamHud(){ const d=Math.min(2,window.devicePixelRatio||1); HW=Math.round(innerWidth*d); HH=Math.round(innerHeight*d); hud.width=HW; hud.height=HH;
+  /* 📱 de pie, el marcador se mide con el ANCHO: si no, sale diminuto en un teléfono */
+  HU = (HH>HW*1.05) ? Math.min(HW/900, HH/1900) : Math.min(HW/1920, HH/1080); }
 function avisa(texto,color,dur){ G.mensajes.push({ texto, color:color||"#fff", t:dur||2.2, max:dur||2.2 }); if(G.mensajes.length>3) G.mensajes.shift(); }
 function truco(nombre,valor){ const q=G.trucos.find(x=>x.nombre===nombre); if(q){ q.valor=valor; q.t=1.6; } else G.trucos.push({ nombre, valor, t:1.6 }); }
 
@@ -1936,8 +1953,9 @@ function pintaHud(C,dt){
   x.clearRect(0,0,W,H);
   if(G.estado!=="juego") return;
   const fuente=(peso,t)=>peso+" "+Math.round(t*u)+"px 'Segoe UI',system-ui,sans-serif";
+  const vert=HH>HW*1.05;                       /* 📱 pantalla de móvil, de pie */
   /* ⏱️ velocímetro, abajo a la derecha */
-  { const cx=W-205*u, cy=H-175*u, R=118*u, a0=Math.PI*0.75, barrido=Math.PI*1.5, f=clamp(C.kmh/320,0,1);
+  { const R=(vert?92:118)*u, cx=W-(vert?110:205)*u, cy=vert?H*0.62:H-175*u, a0=Math.PI*0.75, barrido=Math.PI*1.5, f=clamp(C.kmh/320,0,1);
     x.fillStyle="rgba(8,10,20,.62)"; x.beginPath(); x.arc(cx,cy,R+18*u,0,TAU); x.fill();
     x.lineCap="butt";
     x.strokeStyle="rgba(255,255,255,.18)"; x.lineWidth=12*u; x.beginPath(); x.arc(cx,cy,R,a0,a0+barrido); x.stroke();
@@ -1956,7 +1974,7 @@ function pintaHud(C,dt){
       if(lleno>0){ x.strokeStyle=C.usandoNitro?"#8fd0ff":"#2f8bff"; x.beginPath(); x.arc(cx-6*u,cy,R+34*u,b0,b0+(b1-b0)*lleno); x.stroke(); } }
   }
   /* 🗺️ minimapa redondo que gira con el coche, abajo a la izquierda */
-  if(MAPA){ const cx=150*u, cy=H-165*u, R=108*u, metros=420, e=MAPA_T/MUNDO, esc=R/(metros*e);
+  if(MAPA){ const R=(vert?86:108)*u, cx=(vert?100:150)*u, cy=vert?H*0.63:H-165*u, metros=420, e=MAPA_T/MUNDO, esc=R/(metros*e);
     x.save(); x.beginPath(); x.arc(cx,cy,R,0,TAU); x.fillStyle="#1b2a22"; x.fill(); x.clip();
     const th=-Math.PI/2-Math.atan2(Math.cos(C.rumbo),Math.sin(C.rumbo));
     x.translate(cx,cy); x.rotate(th); x.scale(esc,esc); x.drawImage(MAPA,-(C.x+MITAD)*e,-(C.z+MITAD)*e);
@@ -1971,10 +1989,12 @@ function pintaHud(C,dt){
   }
   /* 💰 dinero, arriba a la derecha */
   x.textAlign="right"; x.textBaseline="middle"; x.font=fuente("800",24);
-  x.fillStyle="rgba(8,10,20,.6)"; x.fillRect(W-330*u,64*u,300*u,44*u); x.fillStyle="#c8ff2e"; x.fillText("$ "+Math.round(AJUSTES.dinero).toLocaleString("es-CL"),W-46*u,86*u);   /* debajo del botón Salir */
+  const anchoCaja=Math.min(300*u,W*0.60), x0Caja=W-anchoCaja-26*u, yCaja=vert?150*u:64*u;
+  x.fillStyle="rgba(8,10,20,.6)"; x.fillRect(x0Caja,yCaja,anchoCaja,44*u);
+  x.font=fuente("800",vert?20:24); x.fillStyle="#c8ff2e"; x.fillText("$ "+Math.round(AJUSTES.dinero).toLocaleString("es-CL"),W-42*u,yCaja+22*u);
   if(typeof rangoActual==="function"){ const RG=rangoActual();
-    x.fillStyle="rgba(8,10,20,.6)"; x.fillRect(W-330*u,112*u,300*u,34*u);
-    x.font=fuente("800",16); x.fillStyle="#d6b8ff"; x.fillText(RG.icono+" "+RG.nombre+"  ⭐ "+RG.estrellas,W-46*u,129*u); x.font=fuente("800",24); }
+    x.fillStyle="rgba(8,10,20,.6)"; x.fillRect(x0Caja,yCaja+48*u,anchoCaja,34*u);
+    x.font=fuente("800",vert?14:16); x.fillStyle="#d6b8ff"; x.fillText(RG.icono+" "+RG.nombre+"  ⭐ "+RG.estrellas,W-42*u,yCaja+65*u); x.font=fuente("800",24); }
   /* 💜 iconos de los eventos flotando en el mundo, con la distancia */
   for(const ev of EVENTOS){ const d=Math.hypot(ev.x-C.x,ev.z-C.z); if(d>700||d<14) continue;
     const q=m4Proyecta(RENDER.vp,v3(ev.x,ev.y+9,ev.z)); if(!q||q.x<0||q.x>1||q.y<0||q.y>1) continue;
@@ -1986,7 +2006,7 @@ function pintaHud(C,dt){
     x.shadowBlur=0; }
   /* 🏁 el panel del evento en marcha, arriba a la izquierda */
   const EV=G.evento;
-  if(EV){ const x0=60*u, y0=150*u, w=300*u;
+  if(EV){ const w=Math.min(300*u,W*0.62), x0=vert?(W-w)/2:60*u, y0=vert?260*u:150*u;
     x.fillStyle="rgba(8,10,20,.62)"; x.fillRect(x0,y0,w,150*u);
     x.fillStyle="#9b3dff"; x.fillRect(x0,y0,w,32*u); x.fillStyle="#fff"; x.font=fuente("900",17); x.textAlign="center"; x.fillText(EV.def.nombre,x0+w/2,y0+17*u);
     x.font=fuente("900 italic",40); x.fillText(EV.texto(),x0+w/2,y0+62*u);
@@ -2033,7 +2053,7 @@ function pintaHud(C,dt){
   G.trucos=G.trucos.filter(q=>(q.t-=dt)>0);
   x.textAlign="right"; x.font=fuente("900 italic",19);
   G.trucos.forEach((q,k)=>{ x.globalAlpha=clamp(q.t*2,0,1); x.fillStyle="#ffd23a"; x.shadowColor="rgba(0,0,0,.9)"; x.shadowBlur=6*u;
-    x.fillText(q.nombre+(q.valor!==undefined?": "+q.valor:""),W-70*u,H-350*u-k*28*u); });
+    x.fillText(q.nombre+(q.valor!==undefined?": "+q.valor:""),W-70*u,(vert?H*0.62-130*u:H-350*u)-k*28*u); });
   x.globalAlpha=1; x.shadowBlur=0;
   /* 📣 los mensajes grandes del centro */
   G.mensajes=G.mensajes.filter(m=>(m.t-=dt)>0);
