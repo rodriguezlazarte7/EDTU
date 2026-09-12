@@ -1103,15 +1103,15 @@ function obraCoche(pintura,modelo){
   for(const sx of [-1,1]) O.caja(sx*0.94*W,0.22*A,0,0.10,0.10,2.2*L,[0.05,0.05,0.06],[0.4,0]);   /* faldones laterales */
   if(MO.anchoExtra) for(const sx of [-1,1]) for(const rz of [1.36*L,-1.36*L])                      /* 👑 pasos de rueda anchos */
     O.caja(sx*0.99*W,0.28*A,rz,0.14,0.36,1.10,P,EXT);
-  O.caja(0,0.20*A,2.30*L,1.7*W,0.06,0.30,[0.05,0.05,0.06],[0.5,0]);                              /* separador delantero */
+  O.caja(0,0.19*A,2.14*L,1.30*W,0.06,0.34,[0.05,0.05,0.06],[0.5,0]);                             /* separador delantero, ya pegado al morro */
   /* 🪽 el alerón (el de la BESTIA es enorme; el del CHISPA, discreto) */
-  for(const sx of [-0.55,0.55]) O.caja(sx*W,0.96*A,-1.98*L,0.06,0.42*AL,0.22,[0.03,0.03,0.035],[0.6,0]);
-  O.caja(0,(1.38+0.42*(AL-1))*A,-2.02*L,2.02*W*Math.min(1.05,AL),0.05,0.42,P,EXT);
-  for(const sx of [-1.01,1.01]) O.caja(sx*W*Math.min(1.05,AL),(1.22+0.42*(AL-1))*A,-2.02*L,0.03,0.30,0.50,P,EXT);
+  for(const sx of [-0.55,0.55]) O.caja(sx*W,0.76*A,-1.98*L,0.06,(0.40+0.30*(AL-1))*A,0.22,[0.03,0.03,0.035],[0.6,0]);
+  O.caja(0,(1.16+0.30*(AL-1))*A,-2.02*L,1.94*W*Math.min(1.05,AL),0.05,0.40,P,EXT);
+  for(const sx of [-0.97,0.97]) O.caja(sx*W*Math.min(1.05,AL),(0.98+0.30*(AL-1))*A,-2.02*L,0.03,0.26,0.46,P,EXT);
   return O;
 }
 function obraRueda(){
-  const O=new Obra(), goma=[0.035,0.035,0.04], llanta=[0.08,0.08,0.09], freno=[0.8,0.05,0.04], L=20, hw=0.13;
+  const O=new Obra(), goma=[0.035,0.035,0.04], llanta=[0.38,0.40,0.45], freno=[0.8,0.05,0.04], L=20, hw=0.13;
   const anillo=(r,x,col,ext,dir)=>{ const k0=O.nv; for(let s=0;s<=L;s++){ const a=s/L*TAU; O.v(x,Math.sin(a)*r,Math.cos(a)*r,dir,0,0,col,ext); } return k0; };
   /* la cubierta */
   for(let s=0;s<L;s++){ const a0=s/L*TAU, a1=(s+1)/L*TAU;
@@ -2409,7 +2409,8 @@ function montaPestanas(){
     ".tarjeta b{display:block;margin:8px 0 2px;font-size:17px}.tarjeta small{color:#a99fc4;display:block;min-height:32px}"+
     ".datos{display:flex;flex-direction:column;gap:3px;margin-top:8px;font-size:13px;text-align:left}"+
     ".datos .bar{color:#c8ff2e;font-style:normal;letter-spacing:1px}.datos em{color:#8f86b0;font-style:normal}"+
-    "#cerrarCoches{margin-top:14px;background:#c8ff2e;color:#111;border:0;padding:12px 34px;font-weight:900;font-style:italic;font-size:20px;cursor:pointer;transform:skewX(-9deg);font-family:inherit}";
+    "#cerrarCoches{position:sticky;bottom:8px;margin-top:14px;background:#c8ff2e;color:#111;border:0;padding:12px 34px;font-weight:900;font-style:italic;font-size:20px;cursor:pointer;transform:skewX(-9deg);font-family:inherit;box-shadow:0 0 0 8px rgba(3,3,9,.93)}"+
+    "@media (max-width:620px){ .tarjeta{width:100%;max-width:340px} .tarjeta canvas{max-height:110px;object-fit:contain} .cajaCoches h3{font-size:21px;margin:2px 0 8px} }";
   document.head.appendChild(est);
   const barra=document.createElement("div"); barra.className="pest"; barra.id="pestanas";
   menu.insertBefore(barra,jugar);
