@@ -1891,7 +1891,14 @@ function iniciaSonido(){
     const vientoF=A.createBiquadFilter(); vientoF.type="lowpass"; vientoF.frequency.value=500; const gV=A.createGain(); gV.gain.value=0; fuente.connect(vientoF); vientoF.connect(gV); gV.connect(M);
     fuente.start();
     const sir=A.createOscillator(), gS=A.createGain(); sir.type="triangle"; sir.frequency.value=700; gS.gain.value=0; sir.connect(gS); gS.connect(M); sir.start();
-    Object.assign(SON,{ ctx:A, o1, o2, motor, filtro, gCh, gV, chirrido, sir, gS });
+    /* 🌀 el turbo: silbido que sube con las vueltas */
+    const tur=A.createOscillator(), gT=A.createGain(), fT=A.createBiquadFilter();
+    tur.type="sine"; tur.frequency.value=1200; fT.type="bandpass"; fT.frequency.value=2200; fT.Q.value=2;
+    gT.gain.value=0; tur.connect(fT); fT.connect(gT); gT.connect(M); tur.start();
+    /* 💥 el petardeo y el whoosh del nitro: ruido con su propio filtro */
+    const fP=A.createBiquadFilter(); fP.type="bandpass"; fP.frequency.value=320; fP.Q.value=1.2;
+    const gP=A.createGain(); gP.gain.value=0; fuente.connect(fP); fP.connect(gP); gP.connect(M);
+    Object.assign(SON,{ ctx:A, o1, o2, motor, filtro, gCh, gV, chirrido, sir, gS, tur, gT, fP, gP });
   }catch(e){}
 }
 function sonidoCorre(C,E){
@@ -1903,11 +1910,30 @@ function sonidoCorre(C,E){
   SON.filtro.frequency.setTargetAtTime(500+E.gas*1500+C.rpm*800,t,k);
   SON.gCh.gain.setTargetAtTime(!G.pausa&&C.enSuelo&&(C.derrapando||Math.abs(C.vR)>4)?clamp(Math.abs(C.vR)/14,0.05,0.22):0,t,0.05);
   SON.gV.gain.setTargetAtTime(G.pausa?0:clamp(Math.hypot(C.vx,C.vz)/80,0,1)*0.30,t,k);
+  if(SON.tur){ const carga=(!G.pausa && E.gas>0.45 && C.kmh>45) ? 0.020+0.045*clamp(C.rpm,0,1)+(C.usandoNitro?0.03:0) : 0;
+    SON.tur.frequency.setTargetAtTime(950+C.rpm*1700+(C.marcha-1)*60,t,0.09);
+    SON.gT.gain.setTargetAtTime(carga,t,0.12); }
   /* 🚨 la sirena: sube y baja, y se oye más cuanto más cerca está la patrulla más cercana */
   if(SON.sir){ let cerca=1e9; for(const P of POLICIA.coches) cerca=Math.min(cerca,Math.hypot(P.x-C.x,P.z-C.z));
     const hay=!G.pausa&&POLICIA.nivel>0&&POLICIA.coches.length>0;
     SON.sir.frequency.setTargetAtTime(hay?(Math.floor(POLICIA.t*2.2)%2?960:700):700,t,0.04);
     SON.gS.gain.setTargetAtTime(hay?0.10*clamp(1-cerca/260,0.12,1):0,t,0.1); }
+}
+/* 💥 un petardeo del escape: un golpe de ruido grave que se apaga enseguida */
+function petardeo(fuerza){
+  if(!SON.ctx||!SON.gP) return; const A=SON.ctx, t=A.currentTime;
+  SON.fP.frequency.setTargetAtTime(260+Math.random()*180,t,0.01);
+  SON.gP.gain.cancelScheduledValues(t);
+  SON.gP.gain.setValueAtTime(0.16*clamp(fuerza||1,0.3,1.6),t);
+  SON.gP.gain.exponentialRampToValueAtTime(0.0005,t+0.16);
+}
+/* 🔥 el whoosh al meter nitro: ruido que sube y se abre */
+function whoosh(){
+  if(!SON.ctx||!SON.gP) return; const A=SON.ctx, t=A.currentTime;
+  SON.fP.frequency.cancelScheduledValues(t);
+  SON.fP.frequency.setValueAtTime(300,t); SON.fP.frequency.exponentialRampToValueAtTime(2600,t+0.45);
+  SON.gP.gain.cancelScheduledValues(t);
+  SON.gP.gain.setValueAtTime(0.001,t); SON.gP.gain.exponentialRampToValueAtTime(0.10,t+0.12); SON.gP.gain.exponentialRampToValueAtTime(0.0005,t+0.5);
 }
 function pitido(nota,dur,tipo){
   if(!SON.ctx) return; try{ const A=SON.ctx, o=A.createOscillator(), g=A.createGain(); o.type=tipo||"triangle"; o.frequency.value=nota;
@@ -2284,6 +2310,7 @@ function bucle(ahora){
     acumulado+=dt; const paso=1/120; let n=0, junto={};
     while(acumulado>=paso && n<24){ const ev=cocheCorre(G.coche,E,paso);
       if(ev.choque) junto.choque=Math.max(junto.choque||0,ev.choque); if(ev.despega) junto.despega=true; if(ev.aterriza) junto.aterriza=ev.aterriza; if(ev.agua) junto.agua=true;
+      if(ev.cambio) junto.cambio=ev.cambio;
       acumulado-=paso; n++; }
     const evT=traficoCorre(dt,G.coche);                                   /* 🚗 el tráfico */
     if(evT.choque) junto.choque=Math.max(junto.choque||0,evT.choque);
@@ -2293,6 +2320,11 @@ function bucle(ahora){
     const evP=policiaCorre(dt,G.coche);                                   /* 🚓 la policía */
     if(evP.choque) junto.choque=Math.max(junto.choque||0,evP.choque);
     if(POLICIA.nivel>0) emitePolicia(dt);
+    /* 🔊 petardeo al subir de marcha con el motor arriba, y whoosh al empezar el nitro */
+    if(junto.cambio && junto.cambio>(G.marchaAnt||1) && G.coche.rpm>0.55) petardeo(0.6+G.coche.rpm);
+    G.marchaAnt=G.coche.marcha;
+    if(G.coche.usandoNitro && !G.nitroAnt) whoosh();
+    G.nitroAnt=G.coche.usandoNitro;
     eventosCorren(dt,junto); trucosCorren(dt,junto); emite(dt,junto); particulasCorren(dt);
     camaraSigue(G.cam,G.coche,dt); G.t+=dt;
     if((zonaT-=dt)<=0){ zonaT=0.5; G.zona=zonaDe(G.coche.x,G.coche.z); }
