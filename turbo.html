@@ -145,6 +145,7 @@ function m4Proyecta(vp,p){
 const MUNDO=3200, MITAD=MUNDO/2, PASO=4, NV=MUNDO/PASO+1;   /* 🗺️ 3,2 km × 3,2 km */
 const AGUA_Y=0;
 const LAGO={x:-520,z:-430,r:300}, CUMBRE={x:-300,z:820}, CANTERA={x:430,z:-830};
+ const PISTA={x:1180,z:1180,y:236};   /* 🏟️ el centro de eventos y su pista */
 const CIUDAD={x0:490,x1:1030,z0:-610,z1:170,y:12};
 
 function alturaBase(x,z){
@@ -160,7 +161,13 @@ function alturaBase(x,z){
   h=lerp(h,-14,suave(LAGO.r+70,LAGO.r-80,dl));
   const fx=Math.max(CIUDAD.x0-x,0,x-CIUDAD.x1), fz=Math.max(CIUDAD.z0-z,0,z-CIUDAD.z1);   /* 🏙️ la ciudad: plana ENTERA */
   const mc=1-suave(0,90,Math.hypot(fx,fz));                                              /* y el degradado, solo por fuera */
-  return lerp(h,CIUDAD.y,mc);
+  h=lerp(h,CIUDAD.y,mc);
+  /* 🏟️ LA MESETA DEL CENTRO DE EVENTOS: una plataforma elíptica plana donde va la pista futurista.
+        Sin esto el terreno asoma por encima del asfalto (medido: hasta 1,3 m). */
+  /* 🏟️ la meseta del centro de eventos, plana: el terreno JUSTO BAJO el asfalto lo fija luego el
+        constructor del mundo (carretera menos 6 cm), así que aquí solo se allana el entorno */
+  const ep=Math.hypot((x-PISTA.x)/390,(z-PISTA.z)/270), mp=1-suave(1.0,1.45,ep);
+  return lerp(h,PISTA.y-0.35,mp);
 }
 
 /* ================= 🛣️ LAS CARRETERAS ================= */
@@ -220,6 +227,16 @@ function trazaCarreteras(){
   /* 🏙️ las calles de la ciudad (la autopista hace de calle en z=-100) */
   for(const x of [520,640,760,880,1000]) nuevaCarretera("Avenida "+((x-400)/120),"ciudad",14,[[x,-600],[x,-340],[x,-100],[x,160]],false);
   for(const z of [-580,-460,-340,-220,20,140]) nuevaCarretera("Calle "+((z+700)/120),"ciudad",14,[[505,z],[760,z],[1015,z]],false);
+  /* 🛸 LA PISTA FUTURISTA de NO SPEED LIMIT: un óvalo aislado en la meseta vacía del noreste
+        (medido: a más de 660 m de cualquier otra carretera, así que no se mezcla con el mapa libre) */
+  {
+    const P=[], R1=330, R2=210;
+    for(let i=0;i<20;i++){ const a=i/20*TAU;
+      P.push([PISTA.x+Math.cos(a)*R1, PISTA.z+Math.sin(a)*R2]); }
+    const p=nuevaCarretera("Pista Orbital","pista",22,P,true,PISTA.y);
+    p.y.fill(PISTA.y);                                  /* llana del todo: es una pista, no una carretera */
+    p.futurista=true;
+  }
   for(const c of CARRETERAS) if(c.tipo==="ciudad") c.y.fill(CIUDAD.y);
 }
 
@@ -464,6 +481,16 @@ function poneEventos(){
   const s2=mejorBajada(camino,10,camino.n-20);
   EVENTOS.push({ tipo:"salto", nombre:"SALTO", c:camino, i:s2.i, sentido:s2.sentido, baja:s2.baja, rampa:poneRampa(camino,s2.i,s2.sentido), metas:[25,45,70] });
   for(const e of EVENTOS){ const i=e.i!==undefined?e.i:e.i0; e.x=e.c.x[i]; e.z=e.c.z[i]; e.y=e.c.y[i]; e.mejor=0; }
+  /* 🏟️ EL CENTRO DE EVENTOS: junto a la ciudad, en la Avenida 5. Aquí se entra a NO SPEED LIMIT */
+  {
+    const av=CARRETERAS.find(x=>x.nombre==="Avenida 5"), pista=CARRETERAS.find(x=>x.futurista);
+    if(av && pista){
+      const i=Math.floor(av.n*0.5);
+      EVENTOS.push({ tipo:"centro", nombre:"CENTRO DE EVENTOS", c:av, i, x:av.x[i]+28, z:av.z[i], y:av.y[i], mejor:0,
+                     metas:[1,2,3], carrera:{ nombre:"NO SPEED LIMIT", c:pista, i0:0, i1:pista.n-1, s:1, vueltas:3,
+                                              largo:pista.n*MUESTRA*3, corredores:50, premio:100000, gran:true } });
+    }
+  }
 }
 
 /* ================= 🏗️ CONSTRUIR TODO (con barra de progreso) ================= */
@@ -747,7 +774,7 @@ function texDetalle(){
 function texCarretera(tipo,ancho){
   const W=512, H=1024, c=lienzo(W,H), x=c.getContext("2d"), r=azarCon(tipo.length*977+ancho);
   const pxm=W/ancho;                                            /* píxeles por metro, a lo ancho */
-  x.fillStyle = tipo==="tierra" ? "#8c6c4c" : (tipo==="ciudad" ? "#454548" : "#38383b"); x.fillRect(0,0,W,H);
+  x.fillStyle = tipo==="tierra" ? "#8c6c4c" : (tipo==="ciudad" ? "#454548" : (tipo==="pista" ? "#16162a" : "#38383b")); x.fillRect(0,0,W,H);   /* 🛸 la pista, casi negra */
   for(let i=0;i<26000;i++){ const v=r();
     x.fillStyle = tipo==="tierra" ? "rgba("+((70+v*90)|0)+","+((48+v*60)|0)+","+((30+v*40)|0)+",0.45)" : "rgba("+((30+v*70)|0)+","+((30+v*70)|0)+","+((32+v*72)|0)+",0.40)";
     x.fillRect(r()*W,r()*H,1+r()*2.5,1+r()*2.5); }
@@ -901,12 +928,13 @@ function obraCarreteras(){
         extra.v(x+nx*h,y,z+nz*h,0,1,0,g,[0,0]); extra.v(x+nx*(h+1.6),Math.min(y-0.05,altura(x+nx*(h+1.6),z+nz*(h+1.6))+0.05),z+nz*(h+1.6),0,1,0,g,[0,0]);
         if(i>0){ const a=base+(i-1)*2; extra.tri(a,a+2,a+1); extra.tri(a+1,a+2,a+3); }
       }
-      if(c.tipo==="monte"||c.tipo==="lago"||c.tipo==="autopista"){
-        const madera=c.tipo==="lago", colR=madera?[0.42,0.32,0.22]:[0.62,0.64,0.66], extR=madera?[0.05,0]:[0.55,0];
+      if(c.tipo==="monte"||c.tipo==="lago"||c.tipo==="autopista"||c.tipo==="pista"){
+        const madera=c.tipo==="lago", neon=c.tipo==="pista";
+        const colR=neon?[0.10,0.80,1.0]:(madera?[0.42,0.32,0.22]:[0.62,0.64,0.66]), extR=neon?[0.2,1.5]:(madera?[0.05,0]:[0.55,0]);   /* 🛸 neón */
         for(let i=0;i<tope;i+=1){
           const k=i%c.n, k2=(i+1)%c.n, off=h+0.9;
           const cae=Math.abs(altura(c.x[k]+(-c.tz[k]*lado)*(h+7),c.z[k]+(c.tx[k]*lado)*(h+7))-c.y[k]);
-          if(c.tipo!=="autopista" && cae<2.2){ continue; }
+          if(c.tipo!=="autopista" && c.tipo!=="pista" && cae<2.2){ continue; }   /* 🛸 la pista siempre lleva muro */
           const A=v3(c.x[k]-c.tz[k]*lado*off, c.y[k]+sube, c.z[k]+c.tx[k]*lado*off), B=v3(c.x[k2]-c.tz[k2]*lado*off, c.y[k2]+sube, c.z[k2]+c.tx[k2]*lado*off);
           const alto=madera?0.95:0.82, banda=madera?0.14:0.32;
           const q1=lado>0?[A,B]:[B,A];
@@ -1521,6 +1549,11 @@ function emitePolicia(dt){
    Tres carreras en el mapa contra tres rivales con nombre. Entras en la bandera, cuenta atrás en la
    parrilla, y a correr: posiciones, cronómetro, sentido equivocado y premio según el puesto */
 const RIVAL_NOMBRES=["NOVA","KIRO","LENA"], RIVAL_PINTURAS=[2,3,4];    /* rojo, azul y lima */
+/* 🏁 para las carreras grandes hacen falta muchos nombres: los tres de siempre y luego dorsales */
+const RIVAL_EXTRA=["ZARA","OMEN","RIX","VELA","TORO","NYX","BRUNO","AKIRA","LUPE","DRACO","MILA","KENZO",
+                   "SASHA","ORION","PACO","IVY","TANK","LUNA","REY","CIRO","NOA","BLAZE","EMA","VIPER"];
+function nombreRival(k){ return k<RIVAL_NOMBRES.length ? RIVAL_NOMBRES[k]
+  : (RIVAL_EXTRA[(k-RIVAL_NOMBRES.length)%RIVAL_EXTRA.length] + (k>=RIVAL_NOMBRES.length+RIVAL_EXTRA.length ? " "+k : "")); }
 const RIVALES=[];
 const CARRERA={ activa:null };
 
@@ -1655,17 +1688,25 @@ function derechaDe(c,i,s){ return { x:-c.tz[i]*s, z:c.tx[i]*s }; }
 function idxRuta(c,k){ const n=c.n; return c.cerrada?((k%n)+n)%n:clamp(k,0,n-1); }
 function empiezaCarrera(def,C){
   const c=def.c, s=def.s, d=derechaDe(c,def.i0,s), carril=Math.min(c.ancho/4,3.2);
+  const vueltaX=C.x, vueltaZ=C.z, vueltaR=C.rumbo;   /* 🏟️ dónde estabas antes de la gran carrera */
   /* la parrilla: tú delante a la derecha, los rivales escalonados detrás */
   C.x=c.x[def.i0]+d.x*carril; C.z=c.z[def.i0]+d.z*carril; C.y=sueloEn(C.x,C.z).y; C.rumbo=Math.atan2(c.tx[def.i0]*s,c.tz[def.i0]*s);
   C.vx=C.vz=C.vy=0; C.giroV=0; C.derrapando=false; C.enSuelo=true;
   RIVALES.length=0;
-  RIVAL_NOMBRES.forEach((nom,k)=>{ const i=idxRuta(c,def.i0-s*(2+k*2)), lado=(k%2?1:-1), dd=derechaDe(c,i,s);
-    RIVALES.push({ nom, malla:k, c, i, s, t:0, lat:lado*carril*0.8, latObj:lado*carril*0.8, vel:0, acum:-(2+k*2)*MUESTRA, skill:[0.55,0.85,0.7][k], nitroT:0, vuelta:0,
-      x:c.x[i]+dd.x*lado*carril*0.8, z:c.z[i]+dd.z*lado*carril*0.8, y:c.y[i], rumbo:Math.atan2(c.tx[i]*s,c.tz[i]*s) }); });
+  const cuantos=Math.max(3,(def.corredores||4)-1);           /* 🏁 NO SPEED LIMIT pide 50 corredores */
+  const anchoFila=Math.min(c.ancho/3,4.4);
+  for(let k=0;k<cuantos;k++){
+    const fila=Math.floor(k/3)+1, col=(k%3)-1;               /* de 3 en fondo, fila tras fila */
+    const i=idxRuta(c,def.i0-s*(1+fila*2)), dd=derechaDe(c,i,s), lat=col*anchoFila;
+    RIVALES.push({ nom:nombreRival(k), malla:k%3, c, i, s, t:0, lat, latObj:lat, vel:0, acum:-(1+fila*2)*MUESTRA,
+      skill:(k<3?[0.55,0.85,0.7][k]:0.5+((k*37)%45)/100), nitroT:0, vuelta:0,
+      x:c.x[i]+dd.x*lat, z:c.z[i]+dd.z*lat, y:c.y[i], rumbo:Math.atan2(c.tx[i]*s,c.tz[i]*s) });
+  }
   /* 🏁 cuánto corre tu coche AHORA (modelo + mejoras): los rivales se ponen a esa altura, con un tope */
   const pot=((typeof MEJ!=="undefined")?MEJ.vmax:1)*((typeof modeloActual==="function")?(modeloActual().vel||1):1);
   const nivel=clamp(pot*0.99,0.96,1.28);
-  CARRERA.activa={ def, t:-3.5, cuenta:4, acum:0, ultimoI:def.i0, maxAcum:0, alReves:0, fin:false, puesto:1, tiempo:0, nivel };
+  CARRERA.activa={ def, t:-3.5, cuenta:4, acum:0, ultimoI:def.i0, maxAcum:0, alReves:0, fin:false, puesto:1, tiempo:0, nivel,
+                   volver:def.gran?{ x:vueltaX, z:vueltaZ, rumbo:vueltaR }:null };   /* 🏟️ de dónde saliste */
   if(typeof POLICIA!=="undefined" && POLICIA.nivel>0){                 /* 🚓 fuera de la carrera */
     POLICIA.coches.length=0; POLICIA.nivel=0; POLICIA.calor=0; POLICIA.tregua=30;
     avisa("🚓 LA POLICÍA SE RETIRA","#c8ff2e",2.2);
@@ -1723,14 +1764,23 @@ function carreraCorre(dt,C){
   /* ¿alguien ha llegado? */
   const llegados=RIVALES.filter(R=>R.acum>=def.largo).length;
   if(A.acum>=def.largo){ ev.fin=true; acabaCarrera(1+llegados); }
-  else if(A.tiempo>240){ ev.fin=true; acabaCarrera(4); }
+  else if(A.tiempo>240){ ev.fin=true; acabaCarrera(RIVALES.length+1); }   /* 🏁 el último, sea entre 4 o entre 50 */
   return ev;
 }
 function acabaCarrera(puesto){
   const A=CARRERA.activa; if(!A) return;
   if(typeof quitaRuta==="function") quitaRuta(); NAV.recalc=0;   /* 🏁 se borra la línea de la carrera */
   const def=A.def, evento=EVENTOS.find(e=>e.carrera===def);
-  premio(evento, 4-puesto, (puesto===1?"🏆 ¡GANASTE! ":puesto+"º · ")+def.nombre+" · "+A.tiempo.toFixed(1)+" s");
+  const valor=Math.max(0,4-puesto);   /* 🏁 con 50 corredores, 4-puesto se volvía negativo y no daba estrellas */
+  premio(evento, valor, (puesto===1?"🏆 ¡GANASTE! ":puesto+"º de "+(RIVALES.length+1)+" · ")+def.nombre+" · "+A.tiempo.toFixed(1)+" s",
+         (puesto===1 && def.premio)?def.premio:0);
+  /* 🏟️ de la pista de vuelta al centro de eventos */
+  if(A.volver && G.coche){ const C2=G.coche;
+    C2.x=A.volver.x; C2.z=A.volver.z; C2.rumbo=A.volver.rumbo;
+    C2.y=sueloEn(C2.x,C2.z).y; C2.vx=C2.vz=C2.vy=0; C2.giroV=0; C2.derrapando=false;
+    if(typeof G!=="undefined") G.cam=nuevaCamara(C2);
+    avisa("🏟️ DE VUELTA AL CENTRO DE EVENTOS","#8fd0ff",2.4);
+  }
   RECUERDA[idEvento(evento)]=12;
   CARRERA.activa=null; RIVALES.length=0;
 }
@@ -2196,7 +2246,7 @@ function iconoEvento(x,e,px,py,tam){
   x.fillStyle="#9b3dff"; x.strokeStyle="#fff"; x.lineWidth=tam*0.12;
   x.beginPath(); x.moveTo(0,-tam); x.lineTo(tam,0); x.lineTo(0,tam); x.lineTo(-tam,0); x.closePath(); x.fill(); x.stroke();
   x.fillStyle="#fff"; x.font="900 "+(tam*0.9)+"px 'Segoe UI',sans-serif"; x.textAlign="center"; x.textBaseline="middle";
-  x.fillText(e.tipo==="derrape"?"S":e.tipo==="radar"?"⚡":e.tipo==="carrera"?"🏁":"▲",0,tam*0.05); x.restore();
+  x.fillText(e.tipo==="derrape"?"S":e.tipo==="radar"?"⚡":e.tipo==="carrera"?"🏁":e.tipo==="centro"?"🏟️":"▲",0,tam*0.05); x.restore();
 }
 function pintaHud(C,dt){
   const x=hx, u=HU, W=HW, H=HH;
@@ -2351,8 +2401,10 @@ function pintaHud(C,dt){
                               ["CUMBRE NEVADA",CUMBRE.x,CUMBRE.z],["VALLE DE LOS PINOS",-120,-120]]){
       const [px,py]=P(wx,wz); x.fillText(nom,px,py); }
     /* los eventos, con sus estrellas */
-    for(const ev of EVENTOS){ const [px,py]=P(ev.x,ev.z), tam=13*u;
+    for(const ev of EVENTOS){ const [px,py]=P(ev.x,ev.z), tam=(ev.tipo==="centro"?20:13)*u;
       iconoEvento(x,ev,px,py,tam);
+      if(ev.tipo==="centro"){ x.font=fuente("900",15); x.fillStyle="#8fd0ff"; x.fillText("CENTRO DE EVENTOS",px,py-tam-12*u);
+        x.font=fuente("800",13); x.fillStyle="#c8ff2e"; x.fillText("🏁 NO SPEED LIMIT · 50 corredores",px,py+tam+14*u); }
       if(ev.mejor){ x.font=fuente("900",13); x.fillStyle="#ffd23a"; x.fillText("★".repeat(ev.mejor),px,py+tam+11*u); } }
     /* 🧭 la ruta hasta tu destino, y el destino */
     if(NAV.puntos && NAV.puntos.length>1){
@@ -2413,9 +2465,10 @@ function vigilaRendimiento(ms){
 /* ================= 🏆 LOS EVENTOS DEL MAPA ================= */
 const RECUERDA={};                                          /* para no repetir un evento nada más acabarlo */
 function idEvento(e){ return e.tipo+"@"+Math.round(e.x)+","+Math.round(e.z); }
-function premio(def,valor,texto){
+function premio(def,valor,texto,gordo){
   const estrellas=def.metas.filter(m=>valor>=m).length, id=idEvento(def);
-  const dinero=estrellas?1500*estrellas+(estrellas===3?3000:0):250;
+  /* 💰 las grandes carreras traen su propio premio (NO SPEED LIMIT: 100.000 al ganar) */
+  const dinero=(gordo!==undefined&&gordo>0) ? gordo : (estrellas?1500*estrellas+(estrellas===3?3000:0):250);
   AJUSTES.dinero+=dinero;
   const antes=AJUSTES.mejores[id]||0; if(valor>antes) AJUSTES.mejores[id]=valor;
   def.mejor=Math.max(def.mejor||0,estrellas); guardaAjustes();
@@ -2444,7 +2497,7 @@ function eventosCorren(dt,ev){
         valor(){ return this.metros; }, texto(){ return Math.round(this.metros)+" m"; }, metaTxt:m=>m+" m" };
       G.evento=Z; avisa("ZONA DE DERRAPE","#b46bff"); pitido(660,0.2);
     }
-    if(e.tipo==="carrera" && !CARRERA.activa && d<26){ cerca=e; }   /* 🏁 solo se ofrece: entras tú */
+    if((e.tipo==="carrera"||e.tipo==="centro") && !CARRERA.activa && d<26){ cerca=e; }   /* 🏁 solo se ofrece: entras tú */
     if(e.tipo==="radar" && d<11){ RECUERDA[id]=6; premio(e,Math.round(C.kmh),"RADAR · "+Math.round(C.kmh)+" km/h"); }
   }
   /* 🏁 si hay una carrera al lado, se ofrece; y si pulsas E (o ▲), empieza */
