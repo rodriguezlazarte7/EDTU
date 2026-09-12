@@ -59,6 +59,7 @@ kbd{border:1px solid #5a5370;border-radius:3px;padding:1px 6px;background:#1c1a2
   <div class="titulo">HORA</div><div class="fila" id="optHora"></div>
   <div class="titulo">VOLANTE</div><div class="fila" id="optVolante"></div>
   <div class="titulo">CALIDAD</div><div class="fila" id="optCal"></div>
+  <div class="ayuda" id="calTxt" style="margin-top:2px"></div>
   <button id="jugar">▶ A LA CALLE</button>
   <div class="ayuda" id="ayuda"></div>
 </div>
@@ -1995,6 +1996,12 @@ function pintaHud(C,dt){
   if(typeof rangoActual==="function"){ const RG=rangoActual();
     x.fillStyle="rgba(8,10,20,.6)"; x.fillRect(x0Caja,yCaja+48*u,anchoCaja,34*u);
     x.font=fuente("800",vert?14:16); x.fillStyle="#d6b8ff"; x.fillText(RG.icono+" "+RG.nombre+"  ⭐ "+RG.estrellas,W-42*u,yCaja+65*u); x.font=fuente("800",24); }
+  /* 🖥️ los fotogramas por segundo: suavizados, y en rojo si bajan de 40 */
+  if(dt>0){ G.fps = G.fps ? G.fps*0.93+(1/dt)*0.07 : 1/dt;
+    const f=Math.round(G.fps);
+    x.fillStyle="rgba(8,10,20,.55)"; x.fillRect(x0Caja+anchoCaja-118*u,yCaja+86*u,118*u,26*u);
+    x.font=fuente("800",vert?13:14); x.fillStyle=f>=50?"#c8ff2e":f>=35?"#ffd23a":"#ff6a6a";
+    x.fillText(f+" fps · "+CALIDADES[CALIDAD].nom,W-42*u,yCaja+99*u); x.font=fuente("800",24); }
   /* 💜 iconos de los eventos flotando en el mundo, con la distancia */
   for(const ev of EVENTOS){ const d=Math.hypot(ev.x-C.x,ev.z-C.z); if(d>700||d<14) continue;
     const q=m4Proyecta(RENDER.vp,v3(ev.x,ev.y+9,ev.z)); if(!q||q.x<0||q.x>1||q.y<0||q.y>1) continue;
@@ -2237,6 +2244,8 @@ function pintaMenu(){
   $("optPintura").querySelectorAll("[data-p]").forEach(b=>b.onclick=()=>{ AJUSTES.pintura=+b.dataset.p; guardaAjustes(); subeCoche(); pintaMenu(); });
   $("optNeon").querySelectorAll("[data-n]").forEach(b=>b.onclick=()=>{ AJUSTES.neon=+b.dataset.n; guardaAjustes(); pintaMenu(); });
   $("optCal").querySelectorAll("[data-c]").forEach(b=>b.onclick=()=>{ CALIDAD=b.dataset.c; AJUSTES.calidad=CALIDAD; guardaAjustes(); aplicaCalidad(); pintaMenu(); });
+  if($("calTxt")) $("calTxt").innerHTML="🖥️ medido en este portátil (Intel Arc 140V): <b>HD y 2K van a 60 fps</b> clavados · <b>4K da unos 43</b> y da tirones. "+
+    "Si va a tirones, el juego baja la calidad solo y te avisa. Los fps se ven en la esquina mientras juegas";
   $("ayuda").innerHTML = ES_TACTIL()
     ? "◀ ▶ girar · <b>GAS</b> y <b>FRENO</b> · <b>DERRAPE</b> suelta la parte de atrás · 🔥 nitro"
     : "<kbd>W</kbd> gas · <kbd>S</kbd> freno · <kbd>A</kbd> <kbd>D</kbd> girar · <kbd>ESPACIO</kbd> derrape · <kbd>SHIFT</kbd> nitro · <kbd>C</kbd> cámara · <kbd>M</kbd> mapa · <kbd>R</kbd> volver a la carretera · <kbd>P</kbd> pausa<br>"+
