@@ -948,11 +948,11 @@ function obraEdificios(){
 /* 🧭 una CINTA LUMINOSA por el suelo (la ruta): un cuadrilátero por tramo, un pelín por encima del asfalto */
 function obraLinea(pts,col,ancho,emi){
   const O=new Obra(); if(!pts||pts.length<2) return O;
-  const w=(ancho||1.5)/2, ext=[0.1, emi===undefined?0.85:emi];   /* fina y con brillo suave */
+  const w=(ancho||1.2)/2, ext=[0.08, emi===undefined?0.6:emi];   /* fina y con brillo suave: guía, no foco */
   for(let i=0;i<pts.length-1;i++){
     const a=pts[i], b=pts[i+1], dx=b.x-a.x, dz=b.z-a.z, l=Math.hypot(dx,dz);
     if(l<0.01) continue;
-    const nx=-dz/l*w, nz=dx/l*w, y0=a.y+0.05, y1=b.y+0.05;   /* pegada al asfalto */
+    const nx=-dz/l*w, nz=dx/l*w, y0=a.y+0.12, y1=b.y+0.12;   /* 12 cm: por encima del polygonOffset del asfalto */
     O.quad(v3(a.x+nx,y0,a.z+nz), v3(b.x+nx,y1,b.z+nz), v3(b.x-nx,y1,b.z-nz), v3(a.x-nx,y0,a.z-nz), col, ext);
   }
   return O;
@@ -1599,6 +1599,19 @@ function rutaDeCarrera(def){
   }
   return pts;
 }
+/* 🏁 la ruta de la carrera DESDE DONDE VAS, con unos metros por delante (así avanza contigo) */
+function rutaDeCarreraDesde(def,i0,metros){
+  const c=def.c, s=def.s, pts=[], tope=metros||700;
+  const carril=Math.min(c.ancho/4,3.2);          /* 🏁 el mismo carril en el que sales en la parrilla */
+  let i=(i0===undefined||i0===null)?def.i0:i0, largo=0;
+  for(let k=0;k<20000 && largo<=tope;k++){
+    const d=derechaDe(c,i,s);
+    pts.push({ x:c.x[i]+d.x*carril, y:c.y[i], z:c.z[i]+d.z*carril });
+    const j=idxRuta(c,i+s); if(j===i) break;
+    largo+=Math.hypot(c.x[j]-c.x[i],c.z[j]-c.z[i]); i=j;
+  }
+  return pts;
+}
 /* 📍 poner (o quitar) el destino que elegiste en el mapa */
 function ponDestino(wx,wz){
   if(wx===null||wx===undefined){ NAV.destino=null; NAV.puntos=null; NAV.metros=0;
@@ -1686,7 +1699,8 @@ function rivalCorre(R,dt,C){
 function carreraCorre(dt,C){
   const A=CARRERA.activa; if(!A) return {};
   const ev={}, def=A.def, c=def.c, s=def.s, n=c.n;
-  if(!A.rutaPuesta){ A.rutaPuesta=true; if(typeof ponRuta==="function") ponRuta(rutaDeCarrera(def),[0.45,0.12,0.85]); }   /* 🏁 la línea de la ruta */
+  A.rutaT=(A.rutaT||0)-dt;                                                     /* 🏁 la línea avanza contigo */
+  if(A.rutaT<=0){ A.rutaT=1.5; if(typeof ponRuta==="function") ponRuta(rutaDeCarreraDesde(def,A.ultimoI,700),[0.45,0.12,0.85]); }
   A.t+=dt;
   /* la cuenta atrás: el coche no se mueve */
   if(A.t<0){ const q=Math.ceil(-A.t); if(q<A.cuenta&&q>=1){ A.cuenta=q; avisa(String(q),"#fff",0.9); pitido(660,0.15); }
@@ -1873,7 +1887,11 @@ function uniformesLuz(p,t){
 function ponRuta(pts,col){
   quitaRuta();
   if(!pts||pts.length<2) return;
-  ESC.ruta=subeMalla(obraLinea(pts,col,1.5,0.85).malla());
+  /* 🧭 se quitan los puntos que caen encima del coche: si no, el primer tramo pasa por debajo de la
+        cámara y se ve como una losa que tapa media carretera */
+  const C=(typeof G!=="undefined")?G.coche:null;
+  if(C){ const lejos=pts.filter(p=>Math.hypot(p.x-C.x,p.z-C.z)>12); if(lejos.length>1) pts=lejos; }
+  ESC.ruta=subeMalla(obraLinea(pts,col,1.2,0.6).malla());
 }
 function quitaRuta(){ if(ESC.ruta){ gl.deleteVertexArray(ESC.ruta.vao); ESC.ruta=null; } }
 function dibuja(M,modelo,modo,tex){
@@ -2207,7 +2225,7 @@ function pintaHud(C,dt){
   }
   /* 🧭 el cartel del navegador: cuánto queda hasta el destino */
   if(NAV.destino && !CARRERA.activa){
-    const bw=Math.min(300*u,W*0.5), bx=(vert?26:150)*u-bw/2+bw/2, by=(vert?H*0.50:H-300*u);
+    const bw=Math.min(300*u,W*0.52), bx=(vert?16:28)*u, by=(vert?H*0.46:H-372*u);   /* por encima del minimapa */
     x.fillStyle="rgba(8,12,26,.82)"; x.fillRect(bx,by,bw,44*u);
     x.fillStyle="#2f8bff"; x.fillRect(bx,by,6*u,44*u);
     x.textAlign="left"; x.textBaseline="middle";
