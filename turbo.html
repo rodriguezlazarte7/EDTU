@@ -1272,8 +1272,11 @@ function cocheCorre(C,E,dt){
         let nx=C.x-px, nz=C.z-pz; const d=Math.hypot(nx,nz)||1; nx/=d; nz/=d;
         C.x=px+nx*tope; C.z=pz+nz*tope;                  /* de vuelta dentro */
         const hacia=C.vx*nx+C.vz*nz;                     /* velocidad HACIA el muro */
-        if(hacia>0){ C.vx-=nx*hacia*1.7; C.vz-=nz*hacia*1.7; C.golpe=Math.min(1,hacia/16); }
-        C.vx*=0.97; C.vz*=0.97;                          /* rozar cuesta un poco */
+        if(hacia>0){
+          C.vx-=nx*hacia; C.vz-=nz*hacia;                /* 🧱 se anula SOLO lo que empuja hacia fuera… */
+          if(hacia>9) C.golpe=Math.min(1,(hacia-9)/14);  /* …y solo se nota el golpe si la embistes de frente */
+        }
+        /* 🧱 NADA de rozamiento: la velocidad de avance se conserva entera y te deslizas pegado al muro */
       }
     }
   }
