@@ -1158,6 +1158,115 @@ function camaraSigue(K,C,dt){
   K.mira=v3(C.x+Math.sin(C.rumbo)*3.2+Math.sin(t*37)*tb*0.10, C.y+(K.modo===2?1.15:1.05)+Math.sin(t*41)*tb*0.08, C.z+Math.cos(C.rumbo)*3.2+Math.cos(t*33)*tb*0.10);
 }
 
+/* ================= 🚗 EL TRÁFICO =================
+   Coches normales que van por su carril. Nacen cerca de ti (nunca a la vista de golpe), siguen la
+   carretera, frenan si tienen a otro delante y desaparecen cuando te alejas */
+const TRAFICO=[], TRAF_MAX=14;
+const COLORES_TRAF=[[0.52,0.06,0.05],[0.05,0.16,0.48],[0.78,0.78,0.80],[0.10,0.10,0.12],[0.62,0.50,0.10],[0.16,0.38,0.24]];
+/* 🚙 un coche normal (o una furgoneta): carrocería, techo, lunas, luces y ruedas, todo en una malla */
+function obraTraficoCoche(col,furgo){
+  const O=new Obra(), EXT=[0.55,0], vidrio=[0.05,0.07,0.09], EXTV=[0.9,0], negro=[0.05,0.05,0.06];
+  const L=furgo?5.4:4.4, W=furgo?2.0:1.82, H=furgo?1.3:0.78, techo=furgo?1.15:0.72;
+  O.caja(0,0.34,0,W,H,L,col,EXT);                                            /* la carrocería */
+  O.caja(0,0.34+H,furgo?-0.2:-0.25,W*0.92,techo,furgo?L*0.62:L*0.46,furgo?col:vidrio,furgo?EXT:EXTV);
+  if(!furgo) O.caja(0,0.34+H+techo-0.03,-0.25,W*0.86,0.06,L*0.42,col,EXT);   /* el techo pintado */
+  for(const sx of [-0.62,0.62]){
+    O.caja(sx*W/2*1.05,0.62,L/2-0.02,0.34,0.14,0.06,[1,0.96,0.85],[0.8,1.1]);      /* faros */
+    O.caja(sx*W/2*1.05,0.62,-L/2+0.02,0.34,0.14,0.06,[1,0.08,0.06],[0.4,1.0]);     /* pilotos */
+  }
+  O.caja(0,0.28,L/2-0.1,W*0.9,0.12,0.2,negro,[0.2,0]); O.caja(0,0.28,-L/2+0.1,W*0.9,0.12,0.2,negro,[0.2,0]);
+  for(const z of [L*0.30,-L*0.30]) for(const sx of [-1,1]){                        /* las ruedas */
+    const x=sx*(W/2-0.16);
+    for(let s=0;s<10;s++){ const a0=s/10*TAU, a1=(s+1)/10*TAU, r=0.33;
+      const p=(a,xx)=>v3(x+xx,0.33+Math.sin(a)*r,z+Math.cos(a)*r);
+      O.quad(p(a0,-0.12),p(a0,0.12),p(a1,0.12),p(a1,-0.12),negro,[0.15,0]); }
+  }
+  return O;
+}
+function obraTraficoMallas(){
+  const lista=[];
+  for(const c of COLORES_TRAF) lista.push(obraTraficoCoche(c,false));
+  lista.push(obraTraficoCoche([0.80,0.80,0.82],true)); lista.push(obraTraficoCoche([0.35,0.42,0.55],true));
+  return lista;
+}
+/* el carril: los coches van por la derecha DE LA PANTALLA (que es como se ve desde detrás) */
+function carrilDe(c,i,s){ const lx=-c.tz[i]*s, lz=c.tx[i]*s, off=Math.min(c.ancho/4,3.2); return { x:-lx*off, z:-lz*off }; }
+function ponTraficoEn(c,i,s,lejos){
+  const car=carrilDe(c,i,s), v={ c, i, s, x:c.x[i]+car.x, z:c.z[i]+car.z, y:c.y[i], rumbo:Math.atan2(c.tx[i]*s,c.tz[i]*s),
+    vel:(c.tipo==="autopista"?24:c.tipo==="ciudad"?13:16)*(0.8+Math.random()*0.4),
+    velObj:0, malla:(Math.random()*8)|0, golpe:0, girado:0 };
+  v.velObj=v.vel; TRAFICO.push(v); return v;
+}
+function traficoCorre(dt,C){
+  const ev={};
+  /* 1) los que se quedan lejos (o se salieron de su carretera) se van */
+  for(let k=TRAFICO.length-1;k>=0;k--){ const v=TRAFICO[k];
+    if(Math.hypot(v.x-C.x,v.z-C.z)>460) TRAFICO.splice(k,1);
+  }
+  /* 2) nacen nuevos entre 120 y 300 m, en carreteras cercanas y nunca encima de otro */
+  let intentos=0;
+  while(TRAFICO.length<TRAF_MAX && intentos++<12){
+    const ang=Math.random()*TAU, d=120+Math.random()*180;
+    const q=carreteraCerca(C.x+Math.cos(ang)*d, C.z+Math.sin(ang)*d, 40);
+    if(!q || q.d>q.c.ancho/2+6 || q.c.tipo==="tierra") continue;
+    const s=Math.random()<0.5?1:-1, car=carrilDe(q.c,q.i,s), px=q.c.x[q.i]+car.x, pz=q.c.z[q.i]+car.z;
+    if(Math.hypot(px-C.x,pz-C.z)<90) continue;
+    if(TRAFICO.some(o=>Math.hypot(o.x-px,o.z-pz)<28)) continue;
+    ponTraficoEn(q.c,q.i,s,true);
+  }
+  /* 3) se mueven por su carretera, frenando si tienen a alguien delante */
+  for(const v of TRAFICO){
+    const n=v.c.n, idx=k=>v.c.cerrada?((k%n)+n)%n:k;
+    let frena=1;
+    for(const o of TRAFICO){ if(o===v) continue;
+      const dx=o.x-v.x, dz=o.z-v.z, delante=dx*Math.sin(v.rumbo)+dz*Math.cos(v.rumbo), lado=Math.abs(dx*Math.cos(v.rumbo)-dz*Math.sin(v.rumbo));
+      if(delante>0 && delante<22 && lado<2.6) frena=Math.min(frena,clamp((delante-6)/16,0,1)); }
+    /* y también frena si TÚ estás delante parado en su carril */
+    { const dx=C.x-v.x, dz=C.z-v.z, delante=dx*Math.sin(v.rumbo)+dz*Math.cos(v.rumbo), lado=Math.abs(dx*Math.cos(v.rumbo)-dz*Math.sin(v.rumbo));
+      if(delante>0 && delante<20 && lado<2.8) frena=Math.min(frena,clamp((delante-5)/15,0,1)); }
+    v.vel+=((v.velObj*frena)-v.vel)*(1-Math.exp(-dt*2.5));
+    /* avanza por las muestras de la carretera */
+    let queda=v.vel*dt;
+    while(queda>0){
+      const sig=idx(v.i+v.s);
+      if(!v.c.cerrada && (sig<0||sig>=n)){ v.s*=-1; v.rumbo+=Math.PI; break; }   /* al final, da la vuelta */
+      const paso=Math.hypot(v.c.x[sig]-v.c.x[v.i], v.c.z[sig]-v.c.z[v.i]) || MUESTRA;
+      if(queda<paso) break;
+      v.i=sig; queda-=paso;
+    }
+    const car=carrilDe(v.c,v.i,v.s);
+    v.x=v.c.x[v.i]+car.x; v.z=v.c.z[v.i]+car.z; v.y=sueloEn(v.x,v.z).y;
+    v.rumbo=Math.atan2(v.c.tx[v.i]*v.s, v.c.tz[v.i]*v.s)+v.girado;
+    v.girado*=Math.exp(-dt*1.5); v.golpe=Math.max(0,v.golpe-dt);
+  }
+  /* 4) chocarte con uno, o pasar rozando */
+  const vel=Math.hypot(C.vx,C.vz);
+  for(const v of TRAFICO){
+    const dx=C.x-v.x, dz=C.z-v.z, d=Math.hypot(dx,dz);
+    if(d<3.3){
+      const nx=dx/(d||1), nz=dz/(d||1), vn=C.vx*nx+C.vz*nz-(Math.sin(v.rumbo)*v.vel*nx+Math.cos(v.rumbo)*v.vel*nz);
+      if(vn<0){
+        C.x=v.x+nx*3.4; C.z=v.z+nz*3.4;
+        C.vx-=nx*vn*1.25; C.vz-=nz*vn*1.25; C.vx*=0.80; C.vz*=0.80;
+        v.vel*=0.55; v.girado+=(Math.random()-0.5)*0.5; v.golpe=1;
+        ev.choque=Math.max(ev.choque||0,-vn); C.golpe=Math.min(1,-vn/22); C.derrapando=false;
+      }
+    } else if(d<5.2 && vel>22) ev.cerca=true;
+  }
+  return ev;
+}
+/* 🚦 ¿vas por el carril contrario? (el truco SENTIDO CONTRARIO del video) */
+function vasAlReves(C){
+  const q=C.sobre; if(!q || !q.c || q.c.tipo==="tierra" || q.c.ancho<9) return false;
+  /* se compara con el EJE de la carretera (no con el centro del carril): al abrirte en una curva no
+     parpadea. Y en el juego además tiene que durar más de un tercio de segundo */
+  const j=(q.i+1)%q.c.n;                                      /* el punto EXACTO que tienes al lado */
+  const bx=lerp(q.c.x[q.i],q.c.x[j],q.t)-C.x, bz=lerp(q.c.z[q.i],q.c.z[j],q.t)-C.z;
+  const derecha=-Math.cos(C.rumbo)*bx+Math.sin(C.rumbo)*bz;   /* >0: el eje te queda a la derecha */
+  return derecha>Math.max(2.0,q.c.ancho*0.22);         /* metido de verdad en el carril de los que vienen,
+                                                          no solo rozando el eje al recortar una curva */
+}
+
 /* ================= 🎬 LA ESCENA: subir el mundo a la tarjeta y dibujarlo cada fotograma ================= */
 const ESC={}, TEX={};
 const SOL=vNorm(v3(-0.50,0.30,0.81));            /* ☀️ un sol bajo de tarde, como el del video */
@@ -1211,6 +1320,7 @@ async function subeMundo(progreso){
   ESC.pinos=subePinos(ARBOLES.length); gl.bindBuffer(gl.ARRAY_BUFFER,ESC.pinos.buf); gl.bufferSubData(gl.ARRAY_BUFFER,0,datosPinos(ARBOLES)); ESC.pinos.cuantos=ARBOLES.length;
   ESC.pinosCerca=subePinos(ARBOLES.length);
   ESC.rueda=subeMalla(obraRueda().malla());
+  ESC.trafico=obraTraficoMallas().map(o=>subeMalla(o.malla()));   /* 🚗 los coches del tráfico */
   subeCoche();
   /* ✨ las partículas: un cuadrado y hasta 2.000 copias */
   ESC.part={ vao:gl.createVertexArray(), buf:gl.createBuffer(), max:2000 };
@@ -1287,6 +1397,7 @@ function dibujaFotograma(C,K,t,efectos){
     let p=PROGS.sombra; gl.useProgram(p); gl.uniformMatrix4fv(U(p,"uLuzVP"),false,RENDER.luzVP);
     const sm=(M,m)=>{ gl.uniformMatrix4fv(U(p,"uM"),false,m||ID4); gl.bindVertexArray(M.vao); gl.drawElements(gl.TRIANGLES,M.n,M.tipo,0); };
     sm(ESC.coche,Mc); for(const m of MR) sm(ESC.rueda,m);
+    for(const v of TRAFICO) if(Math.abs(v.x-C.x)<120&&Math.abs(v.z-C.z)<120) sm(ESC.trafico[v.malla],m4Coche(v.x,v.y,v.z,v.rumbo,0,0));
     sm(ESC.fachadas); sm(ESC.azoteas); sm(ESC.detalles); sm(ESC.arcenes);
     p=PROGS.sombraArbol; gl.useProgram(p); gl.uniformMatrix4fv(U(p,"uLuzVP"),false,RENDER.luzVP);
     gl.bindVertexArray(ESC.pinosCerca.vao); gl.drawElementsInstanced(gl.TRIANGLES,ESC.pinosCerca.n,ESC.pinosCerca.tipo,0,ESC.pinosCerca.cuantos);
@@ -1315,6 +1426,7 @@ function dibujaFotograma(C,K,t,efectos){
   dibuja(ESC.flechas,null,2,TEX.flecha); dibuja(ESC.carteles,null,2,TEX.carteles);
   gl.enable(gl.CULL_FACE);
   dibuja(ESC.coche,Mc,0); for(const m of MR) dibuja(ESC.rueda,m,0);
+  for(const v of TRAFICO) dibuja(ESC.trafico[v.malla],m4Coche(v.x,v.y,v.z,v.rumbo,0,0),0);
   gl.disable(gl.CULL_FACE);
   p=PROGS.arbol; gl.useProgram(p); uniformesLuz(p,t); gl.uniformMatrix4fv(U(p,"uVP"),false,RENDER.vp); gl.uniform1f(U(p,"uModo"),0);
   gl.bindVertexArray(ESC.pinos.vao); gl.drawElementsInstanced(gl.TRIANGLES,ESC.pinos.n,ESC.pinos.tipo,0,ESC.pinos.cuantos);
@@ -1632,7 +1744,7 @@ function eventosCorren(dt,ev){
     else if(dist>20) avisa("SALTO · "+Math.round(dist)+" m","#fff",2); }
 }
 /* ✨ los trucos llenan el nitro (y dan un poco de dinero) */
-const TRUCO={ derrape:0, casi:0 };
+const TRUCO={ derrape:0, casi:0, reves:0, revesT:0 };
 function trucosCorren(dt,ev){
   const C=G.coche, vel=Math.hypot(C.vx,C.vz);
   if(C.derrapando&&C.enSuelo&&Math.abs(C.anguloDerrape)>0.18){ TRUCO.derrape+=dt; truco("DERRAPE",TRUCO.derrape.toFixed(2)); C.nitro=Math.min(1,C.nitro+dt*0.09); AJUSTES.dinero+=dt*40; }
@@ -1641,7 +1753,10 @@ function trucosCorren(dt,ev){
   if(C.kmh>200&&C.enSuelo){ truco("A TOPE"); C.nitro=Math.min(1,C.nitro+dt*0.02); }
   TRUCO.casi-=dt;
   if(vel>28 && TRUCO.casi<=0 && !ev.choque){ const fx=Math.sin(C.rumbo), fz=Math.cos(C.rumbo);
-    if(choqueEn(C.x+fx*4,C.z+fz*4,2.6)||choqueEn(C.x,C.z,2.4)){ TRUCO.casi=1.5; truco("CASI TE CHOCAS"); C.nitro=Math.min(1,C.nitro+0.06); AJUSTES.dinero+=150; } }
+    if(ev.cerca||choqueEn(C.x+fx*4,C.z+fz*4,2.6)||choqueEn(C.x,C.z,2.4)){ TRUCO.casi=1.5; truco("CASI TE CHOCAS"); C.nitro=Math.min(1,C.nitro+(ev.cerca?0.10:0.06)); AJUSTES.dinero+=ev.cerca?300:150; } }
+  /* 🚦 adelantar por el carril contrario, como en el video */
+  if(C.enSuelo && vel>18 && vasAlReves(C)) TRUCO.revesT+=dt; else { TRUCO.revesT=0; TRUCO.reves=0; }
+  if(TRUCO.revesT>0.9){   /* casi un segundo entero: un recorte de curva no cuenta */ TRUCO.reves+=dt; truco("SENTIDO CONTRARIO",TRUCO.reves.toFixed(2)); C.nitro=Math.min(1,C.nitro+dt*0.10); AJUSTES.dinero+=dt*60; }
   if(ev.choque>6){ G.flash=Math.max(G.flash,clamp(ev.choque/60,0,0.25)); pitido(90,0.25,"sawtooth"); if(ev.choque>16) truco("¡PUM!"); }
   if(ev.aterriza&&ev.aterriza.tiempo>0.6) truco("ATERRIZAJE",ev.aterriza.tiempo.toFixed(2));
   if(ev.agua){ avisa("¡AL AGUA! DE VUELTA A LA CARRETERA","#7fd0ff"); recolocaCoche(C); }
@@ -1713,6 +1828,9 @@ function bucle(ahora){
     while(acumulado>=paso && n<24){ const ev=cocheCorre(G.coche,E,paso);
       if(ev.choque) junto.choque=Math.max(junto.choque||0,ev.choque); if(ev.despega) junto.despega=true; if(ev.aterriza) junto.aterriza=ev.aterriza; if(ev.agua) junto.agua=true;
       acumulado-=paso; n++; }
+    const evT=traficoCorre(dt,G.coche);                                   /* 🚗 el tráfico */
+    if(evT.choque) junto.choque=Math.max(junto.choque||0,evT.choque);
+    if(evT.cerca) junto.cerca=true;
     eventosCorren(dt,junto); trucosCorren(dt,junto); emite(dt,junto); particulasCorren(dt);
     camaraSigue(G.cam,G.coche,dt); G.t+=dt;
     if((zonaT-=dt)<=0){ zonaT=0.5; G.zona=zonaDe(G.coche.x,G.coche.z); }
@@ -1758,13 +1876,18 @@ function modoFoto(){
   const pon=(c,i,sentido,kmh)=>{ C.x=c.x[i]; C.z=c.z[i]; C.rumbo=Math.atan2(c.tx[i]*sentido,c.tz[i]*sentido); C.y=sueloEn(C.x,C.z).y; const v=kmh/3.6; C.vx=Math.sin(C.rumbo)*v; C.vz=Math.cos(C.rumbo)*v; C.kmh=kmh; C.vF=v; C.vR=0; };
   if(sitio==="salto"){ const e=EVENTOS.find(x=>x.tipo==="salto"); pon(e.c,clamp(e.i+e.sentido*4,0,e.c.n-1),e.sentido,168); C.y+=6; C.enSuelo=false; C.aire=0.9; C.cabeceo=0.05; }
   else if(sitio==="ciudad"){ const c=CARRETERAS.find(x=>x.nombre==="Avenida 3"); pon(c,40,1,187); C.usandoNitro=true; C.nitro=0.7; }
+  else if(sitio==="trafico"){ const c=porNombre("Autopista 7"), i0=Math.floor(c.n*0.55); pon(c,i0,1,168);
+    TRAFICO.length=0;                                            /* 🚗 coches justo delante, para la foto */
+    for(const d of [26,44,62]) ponTraficoEn(c,Math.min(c.n-1,i0+Math.round(d/4)),1,false);
+    for(const d of [34,56]) ponTraficoEn(c,Math.min(c.n-1,i0+Math.round(d/4)),-1,false);
+  }
   else if(sitio==="lago"){ const c=porNombre("Vuelta al Lago Plateado"); pon(c,Math.floor(c.n*0.30),1,142); }
   else { const e=EVENTOS.find(x=>x.tipo==="derrape"); pon(e.c,e.i0+12,1,96); C.derrapando=true; C.anguloDerrape=0.42; C.vR=9; C.rumbo+=0.40; C.direccion=-0.6;
     G.evento={ def:e, tiempo:41, metros:187, fuera:0, i:e.i0+12, largo:1, recorrido(){ return 0; }, valor(){ return this.metros; }, texto(){ return Math.round(this.metros)+" m"; }, metaTxt:m=>m+" m" };
     truco("DERRAPE","1.76"); }
   C.marcha=C.kmh>160?5:C.kmh>120?4:3; C.rpm=0.7; C.nitro=Math.max(C.nitro,0.55); G.zona=zonaDe(C.x,C.z);
   G.cam=nuevaCamara(C); G.cam.rumbo=C.rumbo-(C.derrapando?0.25:0);
-  for(let k=0;k<90;k++){ emite(1/60,{}); particulasCorren(1/60); camaraSigue(G.cam,C,1/60); }
+  for(let k=0;k<90;k++){ traficoCorre(1/60,C); emite(1/60,{}); particulasCorren(1/60); camaraSigue(G.cam,C,1/60); }   /* que en la foto haya tráfico */
   for(const t of G.trucos) t.t=99;
 }
 arranca();
