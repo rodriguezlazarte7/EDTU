@@ -1,0 +1,2651 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>La cocina de Canela</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Andika:wght@400;700&family=Sniglet:wght@400;800&display=swap">
+<style>
+  :root {
+    --pared: #CDEFE3; --azulejo: #B6E2D2; --choco: #4B2C20; --choco-suave: #7A5646;
+    --fresa: #FF5E8E; --fresa-osc: #D93A6C; --fresa-clara: #FFD3E1; --crema: #FFF8EE;
+    --madera: #E0A46E; --madera-osc: #B97A45; --metal: #DDE4E9; --metal-osc: #A9B7C1;
+    --ok: #2FA968; --mal: #E0454D; --linea-azul: #BFD9F2;
+    --display: "Sniglet", "Comic Sans MS", system-ui, sans-serif;
+    --texto: "Andika", "Trebuchet MS", system-ui, sans-serif;
+    --emoji: "Segoe UI Emoji", "Apple Color Emoji", "Noto Color Emoji", sans-serif;
+    color-scheme: light;
+  }
+  * { box-sizing: border-box; }
+  [hidden] { display: none !important; }
+  html, body { height: 100%; }
+  body {
+    margin: 0; background-color: var(--pared);
+    background-image: linear-gradient(var(--azulejo) 2px, transparent 2px), linear-gradient(90deg, var(--azulejo) 2px, transparent 2px);
+    background-size: 52px 52px;
+    color: var(--choco); font-family: var(--texto); font-size: 18px; line-height: 1.4;
+  }
+  button, input { font: inherit; color: inherit; }
+  :focus-visible { outline: 4px solid var(--fresa); outline-offset: 3px; }
+  .sr { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); }
+  .ico-i { display: inline-grid; place-items: center; flex: none; }
+  .emo { font-family: var(--emoji); line-height: 1; font-style: normal; }
+
+  .cocina { max-width: 1180px; margin: 0 auto; padding-block: 14px 28px; padding-inline: 16px;
+            display: grid; grid-template-columns: minmax(290px, 370px) 1fr; gap: 18px 22px; }
+  .barra { grid-column: 1 / -1; display: flex; align-items: center; gap: 12px 18px; flex-wrap: wrap; }
+  h1 { font-family: var(--display); font-weight: 800; margin: 0; font-size: clamp(30px, 4.4vw, 46px); line-height: 1; text-wrap: balance; }
+  h1 span { color: var(--fresa-osc); }
+  .pasos { list-style: none; margin: 0; padding: 0; display: flex; gap: 6px; flex-wrap: wrap; flex: 1 1 300px; }
+  .pasos li { font-family: var(--display); font-size: 15px; padding: 5px 12px 5px 6px; border-radius: 999px;
+              background: rgba(255,255,255,.55); color: var(--choco-suave); display: flex; align-items: center; gap: 6px; }
+  .pasos b { width: 24px; height: 24px; border-radius: 50%; display: grid; place-items: center; background: var(--crema); font-size: 14px; border: 2px solid currentColor; }
+  .pasos .activo { background: var(--choco); color: var(--crema); }
+  .pasos .activo b { background: var(--fresa); border-color: var(--fresa); color: #fff; }
+  .pasos .hecho { background: rgba(47,169,104,.16); color: var(--choco); }
+  .pasos .hecho b { background: var(--ok); border-color: var(--ok); color: #fff; }
+  .botones-barra { display: flex; gap: 10px; flex-wrap: wrap; align-items: center; }
+  .pildora { display: flex; align-items: center; gap: 8px; cursor: pointer; background: var(--crema);
+             border: 3px solid var(--choco); border-radius: 999px; padding: 6px 14px; font-family: var(--display); font-size: 16px; box-shadow: 0 4px 0 var(--choco); }
+  .pildora:active { transform: translateY(3px); box-shadow: 0 1px 0 var(--choco); }
+  .pildora svg { width: 24px; height: 24px; }
+  .voz[aria-pressed="false"] .ondas { display: none; }
+
+  .izq, .der { display: flex; flex-direction: column; gap: 18px; min-width: 0; }
+  .fase { display: flex; flex-direction: column; gap: 18px; }
+  .fase.entra { animation: entra .3s ease-out; }
+  @keyframes entra { from { opacity: 0; transform: translateY(10px); } }
+
+  .chef { display: flex; align-items: flex-end; gap: 6px; }
+  .osito { width: 150px; flex: none; cursor: pointer; background: none; border: 0; padding: 0; border-radius: 20px; }
+  .osito svg { width: 100%; height: auto; display: block; overflow: visible; }
+  .globo { position: relative; margin: 0 0 70px; padding: 12px 16px; flex: 1; background: #fff;
+           border: 3px solid var(--choco); border-radius: 22px; font-size: 19px; font-weight: 700; min-height: 84px; text-wrap: pretty; }
+  .globo::before, .globo::after { content: ""; position: absolute; left: -17px; bottom: 18px; border-style: solid;
+           border-width: 10px 18px 10px 0; border-color: transparent var(--choco) transparent transparent; }
+  .globo::after { left: -11px; border-width: 7px 13px 7px 0; bottom: 21px; border-color: transparent #fff transparent transparent; }
+  #cuerpo { transform-origin: 100px 240px; transform-box: view-box; animation: respira 3s ease-in-out infinite; }
+  @keyframes respira { 50% { transform: scale(1.02, .985); } }
+  .brazo { transform-box: view-box; transition: transform .35s cubic-bezier(.3,1.6,.5,1); }
+  #brazoI { transform-origin: 56px 162px; } #brazoD { transform-origin: 144px 162px; }
+  .cara-feliz, .boca-o { display: none; }
+  .osito.fiesta .cara-normal { display: none; } .osito.fiesta .cara-feliz { display: inline; }
+  .osito.fiesta #brazoI { transform: rotate(125deg); } .osito.fiesta #brazoD { transform: rotate(-125deg); }
+  .osito.fiesta #cuerpo { animation: salta .5s ease-in-out infinite; }
+  @keyframes salta { 50% { transform: translateY(-12px); } }
+  .osito.uy .boca-normal { display: none; } .osito.uy .boca-o { display: inline; }
+  .osito.uy #cabeza { animation: noNo .5s ease-in-out 2; transform-box: view-box; transform-origin: 100px 150px; }
+  @keyframes noNo { 25% { transform: rotate(-8deg); } 75% { transform: rotate(8deg); } }
+
+  .bienvenida { position: fixed; inset: 0; z-index: 45; overflow: auto; display: grid; place-items: center; padding: 24px 16px;
+    background-color: var(--pared);
+    background-image: linear-gradient(var(--azulejo) 2px, transparent 2px), linear-gradient(90deg, var(--azulejo) 2px, transparent 2px);
+    background-size: 52px 52px; }
+  .tarjeta-nombre { max-width: 540px; width: 100%; text-align: center; padding: 26px 22px 24px; }
+  .canela-grande { width: 170px; height: auto; display: block; margin: 0 auto 4px; animation: saluda 2.4s ease-in-out infinite; }
+  @keyframes saluda { 50% { transform: translateY(-6px) rotate(-2deg); } }
+  .tarjeta-nombre p { margin: 0 0 4px; font-size: 20px; font-weight: 700; }
+  .form-nombre { display: flex; gap: 10px; flex-wrap: wrap; justify-content: center; margin-top: 14px; }
+  .form-nombre input { font: 700 24px var(--texto); padding: 10px 18px; border: 3px solid var(--choco);
+    border-radius: 999px; min-width: 0; flex: 1 1 220px; background: #fff; color: var(--choco); }
+  .aviso-nombre { min-height: 1.5em; color: var(--mal); font-size: 16px; font-weight: 700; margin: 8px 0 0; }
+  .nombres-viejos small { display: block; color: var(--choco-suave); margin: 6px 0; font-size: 15px; }
+
+  .ficha { background-color: var(--crema); border-radius: 6px; padding: 14px 18px 16px; position: relative;
+           box-shadow: 0 10px 22px rgba(75,44,32,.18); border-top: 3px solid #F28B9A; }
+  .ficha::before { content: ""; position: absolute; top: -14px; left: 50%; width: 92px; height: 26px; margin-left: -46px;
+                   background: rgba(255,94,142,.45); transform: rotate(3deg); }
+  .ficha h2 { font-family: var(--display); font-weight: 800; font-size: 24px; margin: 0; line-height: 1.1; text-wrap: balance; }
+  .ficha h3 { font-family: var(--display); font-weight: 800; font-size: 18px; margin: 14px 0 8px; }
+  .ficha .sub { margin: 4px 0 8px; font-size: 15px; color: var(--choco-suave); display: flex; align-items: center; gap: 8px; }
+  .receta { background-image: repeating-linear-gradient(transparent 0 55px, var(--linea-azul) 55px 57px); background-position: 0 70px; transform: rotate(-1deg); }
+  .lista { list-style: none; margin: 0; padding: 0; }
+  .lista li { display: grid; grid-template-columns: 46px 40px 1fr; align-items: center; gap: 4px 8px; height: 57px; }
+  .lista .ico-i { width: 44px; height: 44px; font-size: 36px; }
+  .lista .num { font-family: var(--display); font-weight: 800; font-size: 34px; text-align: center; line-height: 1; font-variant-numeric: tabular-nums; color: var(--fresa-osc); }
+  .lista .nom { font-weight: 700; font-size: 17px; line-height: 1.1; display: flex; flex-direction: column; gap: 4px; }
+  .puntos { display: flex; gap: 4px; flex-wrap: wrap; align-items: center; }
+  .puntos i { width: 15px; height: 15px; border-radius: 50%; border: 2.5px solid var(--choco-suave); }
+  .puntos i.lleno { background: var(--ok); border-color: var(--ok); }
+  .puntos i.demas { background: var(--mal); border-color: var(--mal); }
+  .lista li.exacto .puntos::after { content: "¡listo!"; font-family: var(--display); font-size: 14px; color: var(--ok); margin-left: 4px; }
+  .dato { margin: 10px 0 0; font-size: 15px; background: #fff; border-radius: 12px; padding: 8px 12px; border: 2px dashed var(--choco-suave); }
+
+  .chips { display: flex; flex-wrap: wrap; gap: 8px; }
+  .chips.centro { justify-content: center; }
+  .chip { font-family: var(--display); font-size: 16px; padding: 5px 13px; border-radius: 999px; border: 3px solid var(--choco);
+          background: #fff; cursor: pointer; display: inline-flex; align-items: center; gap: 7px; box-shadow: 0 3px 0 var(--choco); }
+  .chip[aria-pressed="true"] { background: var(--choco); color: var(--crema); }
+  .chip:active { transform: translateY(2px); box-shadow: 0 1px 0 var(--choco); }
+  .bandera { display: block; width: 40px; height: 27px; border-radius: 4px; border: 2px solid var(--choco); background-color: #fff; flex: none; }
+  .bandera.mini { width: 26px; height: 18px; border-radius: 3px; }
+
+  .opciones { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+  .opcion { display: flex; align-items: center; gap: 10px; cursor: pointer; text-align: left; background: #fff;
+            border: 3px solid var(--choco); border-radius: 16px; box-shadow: 0 4px 0 var(--choco); padding: 8px 10px; font-family: var(--display); font-size: 18px; }
+  .opcion .ico-i { width: 40px; height: 40px; font-size: 32px; }
+  .opcion i { width: 34px; height: 34px; border-radius: 50%; border: 3px solid var(--choco); background: var(--c); flex: none; }
+  .opcion[aria-pressed="true"] { background: var(--fresa-clara); outline: 4px solid var(--fresa); outline-offset: 2px; }
+  .campo { width: 100%; font: 700 19px var(--texto); padding: 8px 14px; border: 3px solid var(--choco); border-radius: 14px; background: #fff; }
+  .resumen { list-style: none; margin: 0; padding: 0; display: flex; flex-wrap: wrap; gap: 6px; min-height: 40px; }
+  .resumen li { display: flex; align-items: center; gap: 2px; background: #fff; border-radius: 999px; padding: 2px 10px 2px 4px; border: 2px solid var(--choco-suave); font-family: var(--display); }
+  .resumen .ico-i { width: 30px; height: 30px; font-size: 24px; }
+  .resumen .vacio { border: 0; background: none; color: var(--choco-suave); font-family: var(--texto); }
+
+  .echar { display: grid; gap: 10px; }
+  .fila-echar { display: grid; grid-template-columns: 54px 1fr auto; align-items: center; gap: 10px; text-align: left; cursor: pointer;
+                background: #fff; border: 3px solid var(--choco); border-radius: 18px; box-shadow: 0 5px 0 var(--choco); padding: 6px 12px 6px 8px; }
+  .fila-echar .ico-i { width: 52px; height: 52px; font-size: 42px; }
+  .fila-echar .n { font-family: var(--display); font-size: 19px; }
+  .fila-echar .cuenta { min-width: 40px; height: 40px; padding: 0 8px; border-radius: 999px; display: grid; place-items: center;
+                        background: var(--fresa); color: #fff; font-family: var(--display); font-weight: 800; font-size: 22px; }
+  .fila-echar:active { transform: translateY(4px); box-shadow: 0 1px 0 var(--choco); }
+  .fila-echar.vacio { background: #F1EAE2; box-shadow: 0 5px 0 #C9B8AA; border-color: #C9B8AA; cursor: default; }
+  .fila-echar.vacio .ico-i { opacity: .45; }
+  .fila-echar.vacio .cuenta { background: var(--ok); }
+  .fila-echar.en-mano { background: var(--fresa-clara); outline: 4px solid var(--fresa); outline-offset: 2px; }
+  .guardado { display: flex; align-items: center; gap: 8px; margin: 12px 0 0; font-size: 15px; color: var(--choco-suave); }
+  .guardado .ico-i { width: 34px; height: 34px; }
+  .medidor-caja { margin-top: 14px; }
+  .medidor-caja .fila { display: flex; justify-content: space-between; font-family: var(--display); font-size: 17px; }
+  .medidor { height: 24px; border-radius: 999px; border: 3px solid var(--choco); background: #fff; overflow: hidden; margin-top: 4px; }
+  .medidor i { display: block; height: 100%; width: 0; background: repeating-linear-gradient(-45deg, #F3CF86 0 12px, #EBBE6A 12px 24px); transition: width .15s linear; }
+  .acciones { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 14px; }
+
+  .colores { display: grid; grid-template-columns: repeat(6, 1fr); gap: 9px; }
+  .color { aspect-ratio: 1; max-width: 100%; border-radius: 50%; border: 3px solid var(--choco); cursor: pointer; padding: 0;
+           background: radial-gradient(circle at 35% 30%, rgba(255,255,255,.7) 0 14%, transparent 15%), var(--c); box-shadow: 0 4px 0 var(--choco); }
+  .color.arco { background: radial-gradient(circle at 35% 30%, rgba(255,255,255,.7) 0 14%, transparent 15%),
+                conic-gradient(#FF5A5F, #FFB067, #FFE066, #8EE08A, #7FD3F5, #9B8CF2, #FF8FB8, #FF5A5F); }
+  .color[aria-pressed="true"] { outline: 4px solid var(--fresa); outline-offset: 3px; transform: translateY(-3px); }
+  .herrs { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; }
+  .herr { cursor: pointer; background: #fff; border: 3px solid var(--choco); border-radius: 16px; box-shadow: 0 4px 0 var(--choco);
+          padding: 6px 4px; display: flex; flex-direction: column; align-items: center; }
+  .herr .ico-i { width: 44px; height: 44px; font-size: 36px; }
+  .herr span:last-child { font-family: var(--display); font-size: 15px; }
+  .herr[aria-pressed="true"] { background: var(--fresa-clara); outline: 4px solid var(--fresa); outline-offset: 2px; }
+  .herr:active, .color:active { transform: translateY(3px); box-shadow: 0 1px 0 var(--choco); }
+
+  .mesada { background: linear-gradient(var(--madera) 0 88%, var(--madera-osc) 88%); border-radius: 18px; padding: 18px 18px 30px;
+            position: relative; box-shadow: inset 0 3px 0 rgba(255,255,255,.35); }
+  .mesada h2, .despensa h2 { font-family: var(--display); font-weight: 800; font-size: 20px; margin: 0 0 10px; letter-spacing: .02em; }
+  .bandeja { position: relative; border-radius: 26px; padding: 16px;
+             background: radial-gradient(120% 90% at 30% 20%, #F4F7F9, var(--metal) 55%, #C7D2DA);
+             border: 8px solid var(--metal-osc); box-shadow: inset 0 4px 12px rgba(40,60,75,.25), 0 8px 0 #8C9BA6; min-height: 330px; }
+  .rejilla { display: grid; grid-template-columns: repeat(6, 1fr); gap: 6px; }
+  .item { aspect-ratio: 1; border: 0; background: none; padding: 4px; cursor: pointer; border-radius: 16px; max-width: 100%; container-type: size; }
+  .item .ico-i { width: 100%; height: 100%; font-size: 70cqmin; filter: drop-shadow(0 4px 0 rgba(40,60,75,.18)); }
+  .item.oculto { visibility: hidden; }
+  .item.nuevo { animation: plop .35s cubic-bezier(.3,1.8,.5,1); }
+  @keyframes plop { from { transform: scale(.6); } }
+  .vacia { position: absolute; inset: 0; display: grid; place-items: center; text-align: center; padding: 24px;
+           font-family: var(--display); font-size: 22px; color: #7E8E99; pointer-events: none; }
+  .ayuda { margin: 12px 2px 0; font-size: 15px; }
+  .listo { position: absolute; inset: 0; border-radius: 18px; display: grid; place-items: center; text-align: center;
+           background: rgba(255,248,238,.92); padding: 20px; }
+  .listo h3, .aviso h3 { font-family: var(--display); font-weight: 800; font-size: clamp(28px, 5vw, 44px); margin: 0; color: var(--fresa-osc); line-height: 1.05; text-wrap: balance; }
+  .listo p, .aviso p { margin: 8px 0 16px; font-size: 19px; }
+  .botones { display: flex; gap: 12px; flex-wrap: wrap; justify-content: center; }
+  .gordo { font-family: var(--display); font-size: 20px; font-weight: 800; cursor: pointer; padding: 12px 22px; border-radius: 999px;
+           border: 3px solid var(--choco); background: var(--fresa); color: #fff; box-shadow: 0 5px 0 var(--choco); }
+  .gordo:active { transform: translateY(4px); box-shadow: 0 1px 0 var(--choco); }
+  .gordo.claro { background: var(--crema); color: var(--choco); }
+  .gordo.chico { font-size: 17px; padding: 9px 16px; }
+  .gordo.fuego { background: #FF7A3D; }
+  .gordo.fuego[aria-pressed="true"] { background: #4A90D9; }
+  .lienzo { position: relative; }
+  .lienzo canvas { display: block; width: 100%; height: auto; touch-action: none; border-radius: 14px; cursor: pointer; }
+  .horno { position: absolute; inset: 0; display: grid; place-items: center; border-radius: 14px; background: rgba(75,44,32,.28); }
+  .horno svg { width: min(78%, 400px); height: auto; filter: drop-shadow(0 10px 0 rgba(75,44,32,.25)); }
+  .brillo-horno { animation: brasa .9s ease-in-out infinite alternate; }
+  @keyframes brasa { to { opacity: .65; } }
+  .crece { transform-box: fill-box; transform-origin: 50% 100%; animation: crece 3.2s ease-out forwards; }
+  @keyframes crece { from { transform: scaleY(.35); } }
+  .aviso { position: absolute; left: 12px; right: 12px; bottom: 12px; text-align: center; background: var(--crema);
+           border: 3px solid var(--choco); border-radius: 22px; padding: 14px 16px 16px; box-shadow: 0 6px 0 var(--choco); }
+  .barra-pastel { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 14px; justify-content: flex-end; }
+
+  .despensa { background: linear-gradient(transparent 0 calc(100% - 16px), var(--madera-osc) calc(100% - 16px)); padding-bottom: 22px; }
+  .estante { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; }
+  .estante.grande { grid-template-columns: repeat(auto-fill, minmax(96px, 1fr)); max-height: 560px; overflow-y: auto; padding: 4px 4px 10px; }
+  .frasco { cursor: pointer; background: var(--crema); border: 3px solid var(--choco); border-radius: 20px; box-shadow: 0 5px 0 var(--choco);
+            padding: 8px 6px 6px; display: flex; flex-direction: column; align-items: center; gap: 2px; }
+  .frasco .ico-i { width: 64px; height: 64px; font-size: 52px; }
+  .estante.grande .frasco .ico-i { width: 50px; height: 50px; font-size: 40px; }
+  .frasco span:last-child { font-family: var(--display); font-size: 16px; text-align: center; line-height: 1.1; }
+  .frasco:hover { background: #fff; }
+  .frasco:active { transform: translateY(4px); box-shadow: 0 1px 0 var(--choco); }
+  .frasco.sacude { animation: sacude .4s; }
+  @keyframes sacude { 20%, 60% { transform: translateX(-7px) rotate(-4deg); } 40%, 80% { transform: translateX(7px) rotate(4deg); } }
+
+  .cabeza-recetario { display: flex; align-items: baseline; justify-content: space-between; gap: 6px 12px; flex-wrap: wrap; margin-bottom: 12px; }
+  .cabeza-recetario h2 { margin: 0; } .cabeza-recetario span { font-weight: 700; }
+  .tarjetas { display: grid; grid-template-columns: repeat(auto-fill, minmax(160px, 1fr)); gap: 14px; }
+  .tarjeta { cursor: pointer; text-align: left; background: var(--crema); border: 3px solid var(--choco); border-radius: 20px;
+             box-shadow: 0 5px 0 var(--choco); padding: 10px 12px 12px; display: flex; flex-direction: column; gap: 4px; transition: transform .15s; }
+  .tarjeta:hover { transform: translateY(-3px) rotate(-.6deg); }
+  .tarjeta:active { transform: translateY(3px); box-shadow: 0 2px 0 var(--choco); }
+  .fila-pais { display: flex; align-items: center; gap: 8px; font-size: 14px; font-weight: 700; color: var(--choco-suave); }
+  .tarjeta > .ico-i { width: 72px; height: 72px; font-size: 58px; margin: 4px auto 0; }
+  .tarjeta .nom { font-family: var(--display); font-size: 19px; line-height: 1.1; text-align: center; text-wrap: balance; flex: 1; }
+  .tags { display: flex; gap: 6px; justify-content: center; flex-wrap: wrap; }
+  .tag { font-size: 13px; font-weight: 700; padding: 1px 9px; border-radius: 999px; background: #fff; border: 2px solid var(--choco-suave); }
+  .tag.t-horno { background: #FFE1C7; } .tag.t-sarten { background: #DCEBF5; }
+  .tarjeta.especial { background: var(--fresa-clara); border-style: dashed; }
+
+  .volando { position: fixed; z-index: 50; pointer-events: none; container-type: size; }
+  .volando .ico-i, .volando svg { width: 100%; height: 100%; font-size: 70cqmin; }
+  #confeti { position: fixed; inset: 0; width: 100%; height: 100%; pointer-events: none; z-index: 60; }
+
+  @media (max-width: 860px) {
+    .cocina { grid-template-columns: 1fr; }
+    .izq, .der { display: contents; }
+    .chef { order: 1; } .antes { order: 2; } .receta { transform: none; } .fase { order: 3; } .panel-fase { order: 4; }
+    .lista { display: grid; grid-template-columns: repeat(2, 1fr); column-gap: 10px; }
+    .osito { width: 120px; } .globo { margin-bottom: 50px; font-size: 17px; }
+  }
+  @media (max-width: 460px) {
+    .lista { grid-template-columns: 1fr; }
+    .rejilla { gap: 3px; grid-template-columns: repeat(5, 1fr); }
+    .bandeja { padding: 10px; min-height: 250px; border-width: 6px; }
+    .estante { grid-template-columns: repeat(3, 1fr); gap: 8px; }
+    .frasco .ico-i { width: 48px; height: 48px; font-size: 38px; }
+    .frasco span:last-child { font-size: 14px; }
+    .mesada { padding: 12px 10px 24px; }
+    .tarjetas { grid-template-columns: repeat(2, 1fr); gap: 10px; }
+    .tarjeta .nom { font-size: 16px; }
+    .aviso h3 { font-size: 24px; } .aviso p { font-size: 16px; margin-bottom: 10px; }
+  }
+  @media (prefers-reduced-motion: reduce) { *, *::before, *::after { animation: none !important; transition: none !important; } }
+</style>
+</head>
+<body>
+
+<svg width="0" height="0" style="position:absolute" aria-hidden="true">
+  <defs>
+    <symbol id="s-huevo" viewBox="0 0 100 100">
+      <ellipse cx="50" cy="54" rx="29" ry="37" fill="#FFF1D9" stroke="#4B2C20" stroke-width="4"/>
+      <ellipse cx="39" cy="38" rx="7" ry="11" fill="#FFFFFF" transform="rotate(20 39 38)"/>
+    </symbol>
+    <symbol id="s-harina" viewBox="0 0 100 100">
+      <path d="M24 32 L76 32 L82 88 Q50 95 18 88 Z" fill="#F3E8D6" stroke="#4B2C20" stroke-width="4" stroke-linejoin="round"/>
+      <path d="M24 32 L31 15 L69 15 L76 32" fill="#E3D2B6" stroke="#4B2C20" stroke-width="4" stroke-linejoin="round"/>
+      <circle cx="42" cy="13" r="6" fill="#FFFFFF"/><circle cx="54" cy="10" r="7" fill="#FFFFFF"/>
+      <path d="M50 82 V50" stroke="#C98A2E" stroke-width="4" stroke-linecap="round"/>
+      <ellipse cx="43" cy="56" rx="5" ry="8" fill="#E8B04A" transform="rotate(-25 43 56)"/>
+      <ellipse cx="57" cy="56" rx="5" ry="8" fill="#E8B04A" transform="rotate(25 57 56)"/>
+      <ellipse cx="43" cy="68" rx="5" ry="8" fill="#E8B04A" transform="rotate(-25 43 68)"/>
+      <ellipse cx="57" cy="68" rx="5" ry="8" fill="#E8B04A" transform="rotate(25 57 68)"/>
+      <ellipse cx="50" cy="46" rx="4.5" ry="7" fill="#E8B04A"/>
+    </symbol>
+    <symbol id="s-mantequilla" viewBox="0 0 100 100">
+      <path d="M10 66 L50 86 L92 64 L52 46 Z" fill="#9CCBF2" stroke="#4B2C20" stroke-width="4" stroke-linejoin="round"/>
+      <path d="M22 50 L52 62 L52 78 L22 66 Z" fill="#F6C94A" stroke="#4B2C20" stroke-width="4" stroke-linejoin="round"/>
+      <path d="M52 62 L82 49 L82 65 L52 78 Z" fill="#E9B232" stroke="#4B2C20" stroke-width="4" stroke-linejoin="round"/>
+      <path d="M22 50 L52 37 L82 49 L52 62 Z" fill="#FFE58A" stroke="#4B2C20" stroke-width="4" stroke-linejoin="round"/>
+    </symbol>
+    <symbol id="s-azucar" viewBox="0 0 100 100">
+      <rect x="18" y="52" width="30" height="30" rx="5" fill="#FFFFFF" stroke="#4B2C20" stroke-width="4"/>
+      <rect x="52" y="52" width="30" height="30" rx="5" fill="#FFFFFF" stroke="#4B2C20" stroke-width="4"/>
+      <rect x="35" y="20" width="30" height="30" rx="5" fill="#FFFFFF" stroke="#4B2C20" stroke-width="4"/>
+      <circle cx="26" cy="60" r="2.5" fill="#CFE3F5"/><circle cx="72" cy="72" r="2.5" fill="#CFE3F5"/><circle cx="44" cy="30" r="2.5" fill="#CFE3F5"/>
+      <path d="M82 18 l3 8 l8 3 l-8 3 l-3 8 l-3 -8 l-8 -3 l8 -3 Z" fill="#FFC94D"/>
+    </symbol>
+    <symbol id="s-glaseado" viewBox="0 0 100 100">
+      <path d="M20 58 Q24 34 40 40 Q48 18 62 36 Q78 32 80 58 Z" fill="#FF9EC2" stroke="#4B2C20" stroke-width="4" stroke-linejoin="round"/>
+      <path d="M14 58 H86 Q82 90 50 90 Q18 90 14 58 Z" fill="#7FC9E8" stroke="#4B2C20" stroke-width="4" stroke-linejoin="round"/>
+      <path d="M26 66 H74" stroke="#FFFFFF" stroke-width="4" stroke-linecap="round" opacity="0.6"/>
+      <circle cx="52" cy="30" r="5" fill="#FFFFFF" opacity="0.7"/>
+    </symbol>
+    <symbol id="s-chispitas" viewBox="0 0 100 100">
+      <rect x="25" y="30" width="50" height="60" rx="11" fill="#EDF7FF" stroke="#4B2C20" stroke-width="4"/>
+      <rect x="21" y="16" width="58" height="16" rx="6" fill="#FF5E8E" stroke="#4B2C20" stroke-width="4"/>
+      <rect x="36" y="44" width="5" height="12" rx="2.5" fill="#FF5E8E" transform="rotate(30 38 50)"/>
+      <rect x="54" y="42" width="5" height="12" rx="2.5" fill="#3DB7F0" transform="rotate(-40 56 48)"/>
+      <rect x="44" y="58" width="5" height="12" rx="2.5" fill="#FFC21A" transform="rotate(70 46 64)"/>
+      <rect x="60" y="62" width="5" height="12" rx="2.5" fill="#39C07A" transform="rotate(15 62 68)"/>
+      <rect x="34" y="70" width="5" height="12" rx="2.5" fill="#9B6BF2" transform="rotate(-20 36 76)"/>
+      <rect x="52" y="76" width="5" height="10" rx="2.5" fill="#FF8A3D" transform="rotate(50 54 81)"/>
+    </symbol>
+    <symbol id="s-miel" viewBox="0 0 100 100">
+      <path d="M24 38 Q20 92 50 92 Q80 92 76 38 Z" fill="#FFB627" stroke="#4B2C20" stroke-width="4" stroke-linejoin="round"/>
+      <rect x="19" y="22" width="62" height="18" rx="6" fill="#C98A4B" stroke="#4B2C20" stroke-width="4"/>
+      <path d="M30 40 Q31 54 36 54 Q40 54 40 40 Z" fill="#FFB627"/>
+      <rect x="34" y="56" width="32" height="22" rx="5" fill="#FFF3C4" stroke="#4B2C20" stroke-width="3"/>
+      <path d="M50 60 l6 4 v7 l-6 4 l-6 -4 v-7 Z" fill="#FFB627" stroke="#4B2C20" stroke-width="2"/>
+    </symbol>
+    <symbol id="s-leche" viewBox="0 0 100 100">
+      <path d="M28 34 L50 12 L72 34 V92 H28 Z" fill="#FFFFFF" stroke="#4B2C20" stroke-width="4" stroke-linejoin="round"/>
+      <rect x="28" y="50" width="44" height="24" fill="#7FC9E8"/>
+      <path d="M50 54 Q58 64 50 70 Q42 64 50 54 Z" fill="#FFFFFF"/>
+      <path d="M28 34 H72 M28 50 H72 M28 74 H72" stroke="#4B2C20" stroke-width="4"/>
+      <path d="M28 34 L50 12 L72 34 V92 H28 Z" fill="none" stroke="#4B2C20" stroke-width="4" stroke-linejoin="round"/>
+    </symbol>
+    <symbol id="s-chocolate" viewBox="0 0 100 100">
+      <rect x="18" y="14" width="64" height="72" rx="7" fill="#6B3A22" stroke="#4B2C20" stroke-width="4"/>
+      <path d="M18 36 H82 M18 58 H82 M50 14 V58" stroke="#4A2716" stroke-width="3"/>
+      <rect x="24" y="19" width="20" height="12" rx="3" fill="#8A5234"/><rect x="56" y="19" width="20" height="12" rx="3" fill="#8A5234"/>
+      <path d="M14 56 H86 V84 Q86 92 78 92 H22 Q14 92 14 84 Z" fill="#E8434F" stroke="#4B2C20" stroke-width="4" stroke-linejoin="round"/>
+      <path d="M14 62 H86" stroke="#FFD23F" stroke-width="4"/>
+    </symbol>
+    <symbol id="s-aceite" viewBox="0 0 100 100">
+      <path d="M42 6 H58 V22 Q76 30 76 50 V88 Q76 94 70 94 H30 Q24 94 24 88 V50 Q24 30 42 22 Z" fill="#F4C542" stroke="#4B2C20" stroke-width="4" stroke-linejoin="round"/>
+      <rect x="40" y="2" width="20" height="10" rx="3" fill="#46B35A" stroke="#4B2C20" stroke-width="4"/>
+      <rect x="32" y="52" width="36" height="26" rx="5" fill="#FFF8EE" stroke="#4B2C20" stroke-width="3"/>
+      <ellipse cx="50" cy="65" rx="7" ry="9" fill="#8DBA4E"/>
+      <path d="M32 36 Q30 48 30 60" stroke="#FFFFFF" stroke-width="4" stroke-linecap="round" opacity="0.6"/>
+    </symbol>
+    <symbol id="s-soya" viewBox="0 0 100 100">
+      <path d="M40 8 H60 V26 Q74 34 74 52 V88 Q74 94 68 94 H32 Q26 94 26 88 V52 Q26 34 40 26 Z" fill="#3A2014" stroke="#4B2C20" stroke-width="4" stroke-linejoin="round"/>
+      <rect x="38" y="4" width="24" height="12" rx="4" fill="#E8434F" stroke="#4B2C20" stroke-width="4"/>
+      <rect x="32" y="54" width="36" height="24" rx="5" fill="#FFF8EE" stroke="#4B2C20" stroke-width="3"/>
+      <path d="M50 58 Q58 66 50 74 Q42 66 50 58 Z" fill="#3A2014"/>
+    </symbol>
+    <symbol id="s-manga" viewBox="0 0 100 100">
+      <path d="M14 26 Q38 6 64 24 L84 84 Z" fill="#FFFFFF" stroke="#4B2C20" stroke-width="4" stroke-linejoin="round"/>
+      <path d="M14 26 Q38 6 64 24 Q40 36 14 26 Z" fill="#FF8FB8" stroke="#4B2C20" stroke-width="4" stroke-linejoin="round"/>
+      <path d="M78 76 L94 96 L72 88 Z" fill="#B9C6CF" stroke="#4B2C20" stroke-width="4" stroke-linejoin="round"/>
+    </symbol>
+    <symbol id="s-frutilla" viewBox="0 0 100 100">
+      <path d="M50 30 Q84 28 80 56 Q76 84 50 94 Q24 84 20 56 Q16 28 50 30 Z" fill="#FF4D5E" stroke="#4B2C20" stroke-width="4" stroke-linejoin="round"/>
+      <path d="M28 32 L40 18 L50 28 L60 16 L72 32 Q50 42 28 32 Z" fill="#46B35A" stroke="#4B2C20" stroke-width="4" stroke-linejoin="round"/>
+      <ellipse cx="38" cy="54" rx="2.5" ry="3.5" fill="#FFE3A0"/><ellipse cx="54" cy="50" rx="2.5" ry="3.5" fill="#FFE3A0"/>
+      <ellipse cx="66" cy="60" rx="2.5" ry="3.5" fill="#FFE3A0"/><ellipse cx="46" cy="68" rx="2.5" ry="3.5" fill="#FFE3A0"/>
+      <ellipse cx="58" cy="78" rx="2.5" ry="3.5" fill="#FFE3A0"/><ellipse cx="34" cy="72" rx="2.5" ry="3.5" fill="#FFE3A0"/>
+    </symbol>
+    <symbol id="s-vela" viewBox="0 0 100 100">
+      <path d="M50 4 Q64 20 50 32 Q36 20 50 4 Z" fill="#FFB020" stroke="#E06A00" stroke-width="3" stroke-linejoin="round"/>
+      <path d="M50 16 Q56 24 50 30 Q44 24 50 16 Z" fill="#FFF3A0"/>
+      <path d="M50 32 V40" stroke="#4B2C20" stroke-width="3" stroke-linecap="round"/>
+      <rect x="39" y="40" width="22" height="56" rx="5" fill="#7FD3F5" stroke="#4B2C20" stroke-width="4"/>
+      <path d="M41 58 L59 50 M41 74 L59 66 M41 90 L59 82" stroke="#FFFFFF" stroke-width="5"/>
+    </symbol>
+    <symbol id="s-estrella" viewBox="0 0 100 100">
+      <path d="M50 8 L61 36 L92 38 L68 58 L76 90 L50 72 L24 90 L32 58 L8 38 L39 36 Z" fill="#FFD23F" stroke="#4B2C20" stroke-width="4" stroke-linejoin="round"/>
+      <circle cx="42" cy="44" r="4" fill="#FFFFFF" opacity="0.7"/>
+    </symbol>
+    <symbol id="s-puntos" viewBox="0 0 100 100">
+      <ellipse cx="30" cy="34" rx="7" ry="11" fill="#F3E3B5" stroke="#4B2C20" stroke-width="3" transform="rotate(-30 30 34)"/>
+      <ellipse cx="62" cy="26" rx="7" ry="11" fill="#F3E3B5" stroke="#4B2C20" stroke-width="3" transform="rotate(20 62 26)"/>
+      <ellipse cx="48" cy="58" rx="7" ry="11" fill="#F3E3B5" stroke="#4B2C20" stroke-width="3" transform="rotate(60 48 58)"/>
+      <ellipse cx="74" cy="66" rx="7" ry="11" fill="#F3E3B5" stroke="#4B2C20" stroke-width="3" transform="rotate(-10 74 66)"/>
+      <ellipse cx="24" cy="74" rx="7" ry="11" fill="#F3E3B5" stroke="#4B2C20" stroke-width="3" transform="rotate(40 24 74)"/>
+    </symbol>
+    <symbol id="s-calcetin" viewBox="0 0 100 100">
+      <path d="M38 10 H66 V54 L76 64 Q88 80 72 90 H40 Q22 90 24 74 Q26 62 38 56 Z" fill="#A78BE0" stroke="#4B2C20" stroke-width="4" stroke-linejoin="round"/>
+      <rect x="40" y="20" width="24" height="8" fill="#FFD44D"/><rect x="40" y="36" width="24" height="8" fill="#FFD44D"/>
+      <path d="M38 10 H66 V16 H38 Z" fill="#FFFFFF" stroke="#4B2C20" stroke-width="4" stroke-linejoin="round"/>
+    </symbol>
+    <symbol id="s-zapatilla" viewBox="0 0 100 100">
+      <path d="M10 70 Q10 40 34 40 L48 52 Q68 56 86 62 Q94 66 92 76 H10 Z" fill="#FF7A59" stroke="#4B2C20" stroke-width="4" stroke-linejoin="round"/>
+      <path d="M8 76 H94 V86 H8 Z" fill="#FFFFFF" stroke="#4B2C20" stroke-width="4" stroke-linejoin="round"/>
+      <path d="M40 50 L50 44 M46 56 L56 50 M52 60 L62 54" stroke="#FFFFFF" stroke-width="4" stroke-linecap="round"/>
+    </symbol>
+    <symbol id="s-canela" viewBox="0 0 200 250">
+      <ellipse cx="72" cy="236" rx="22" ry="13" fill="#A8632F"/><ellipse cx="128" cy="236" rx="22" ry="13" fill="#A8632F"/>
+      <ellipse cx="46" cy="190" rx="17" ry="32" fill="#B8703A" transform="rotate(18 46 190)"/>
+      <ellipse cx="160" cy="150" rx="17" ry="32" fill="#B8703A" transform="rotate(-150 160 150)"/><circle cx="170" cy="120" r="11" fill="#F0C9A0"/>
+      <ellipse cx="100" cy="196" rx="56" ry="46" fill="#B8703A"/>
+      <path d="M66 166 H134 V214 Q100 232 66 214 Z" fill="#FF8FB1"/>
+      <path d="M100 206 c-6 -8 -16 -2 -9 6 l9 8 l9 -8 c7 -8 -3 -14 -9 -6z" fill="#FFFFFF"/>
+      <circle cx="50" cy="78" r="21" fill="#B8703A"/><circle cx="50" cy="78" r="11" fill="#E8B48A"/>
+      <circle cx="150" cy="78" r="21" fill="#B8703A"/><circle cx="150" cy="78" r="11" fill="#E8B48A"/>
+      <circle cx="100" cy="108" r="58" fill="#C27C45"/>
+      <rect x="62" y="44" width="76" height="22" rx="6" fill="#FFFFFF" stroke="#E9DED3" stroke-width="2"/>
+      <circle cx="72" cy="36" r="20" fill="#FFFFFF"/><circle cx="128" cy="36" r="20" fill="#FFFFFF"/><circle cx="100" cy="24" r="27" fill="#FFFFFF"/>
+      <circle cx="68" cy="122" r="9" fill="#FF8FB1" opacity="0.55"/><circle cx="132" cy="122" r="9" fill="#FF8FB1" opacity="0.55"/>
+      <ellipse cx="100" cy="128" rx="27" ry="21" fill="#F2D2AE"/>
+      <ellipse cx="100" cy="117" rx="10" ry="7" fill="#4B2C20"/>
+      <circle cx="78" cy="100" r="6.5" fill="#4B2C20"/><circle cx="122" cy="100" r="6.5" fill="#4B2C20"/>
+      <circle cx="80" cy="98" r="2" fill="#FFFFFF"/><circle cx="124" cy="98" r="2" fill="#FFFFFF"/>
+      <path d="M88 130 Q100 144 112 130" fill="none" stroke="#4B2C20" stroke-width="4" stroke-linecap="round"/>
+    </symbol>
+  </defs>
+</svg>
+
+<div class="bienvenida" id="bienvenida">
+  <div class="ficha tarjeta-nombre">
+    <svg class="canela-grande" viewBox="0 0 200 250" aria-hidden="true"><use href="#s-canela"/></svg>
+    <h1>La cocina de <span>Canela</span></h1>
+    <p>¡Hola! Soy Canela, una osita chef. ¿Cómo te llamas?</p>
+    <form class="form-nombre" id="formNombre">
+      <label for="campoNombre" class="sr">Tu nombre</label>
+      <input id="campoNombre" maxlength="20" autocomplete="off" placeholder="Escribe tu nombre">
+      <button class="gordo" type="submit">¡A cocinar!</button>
+    </form>
+    <p class="aviso-nombre" id="avisoNombre" aria-live="polite"></p>
+    <div class="nombres-viejos" id="nombresViejos" hidden>
+      <small>¿Ya jugaste antes? Toca tu nombre:</small>
+      <div class="chips centro" id="listaNombres"></div>
+    </div>
+  </div>
+</div>
+
+<main class="cocina">
+  <header class="barra">
+    <h1>La cocina de <span>Canela</span></h1>
+    <ol class="pasos" id="pasos" aria-label="Pasos de la receta"></ol>
+    <div class="botones-barra">
+      <button class="pildora" id="irRecetario" type="button" hidden>Recetario</button>
+      <button class="pildora" id="cambiaJugador" type="button" aria-label="Cambiar de cocinero">Cocina: <b id="nombreJugador"></b></button>
+      <button class="pildora voz" id="voz" type="button" aria-pressed="true">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 9h4l5-4v14l-5-4H4z" fill="#4B2C20"/><g class="ondas" fill="none" stroke="#FF5E8E" stroke-width="2.4" stroke-linecap="round"><path d="M16 9a4 4 0 0 1 0 6"/><path d="M18.5 6.5a7.5 7.5 0 0 1 0 11"/></g></svg>
+        <span id="vozTexto">Canela habla</span>
+      </button>
+    </div>
+  </header>
+
+  <div class="izq">
+    <section class="chef">
+      <button class="osito" id="osito" type="button" aria-label="Canela, la osita chef. Tócala para escuchar otra vez">
+        <svg viewBox="0 0 200 250" aria-hidden="true">
+          <g id="cuerpo">
+            <ellipse cx="72" cy="236" rx="22" ry="13" fill="#A8632F"/><ellipse cx="128" cy="236" rx="22" ry="13" fill="#A8632F"/>
+            <ellipse cx="72" cy="238" rx="10" ry="6" fill="#F0C9A0"/><ellipse cx="128" cy="238" rx="10" ry="6" fill="#F0C9A0"/>
+            <g id="brazoI" class="brazo"><ellipse cx="46" cy="190" rx="17" ry="32" fill="#B8703A" transform="rotate(18 46 190)"/><circle cx="40" cy="216" r="11" fill="#F0C9A0"/></g>
+            <g id="brazoD" class="brazo"><ellipse cx="154" cy="190" rx="17" ry="32" fill="#B8703A" transform="rotate(-18 154 190)"/><circle cx="160" cy="216" r="11" fill="#F0C9A0"/></g>
+            <ellipse cx="100" cy="196" rx="56" ry="46" fill="#B8703A"/>
+            <path d="M66 166 H134 V214 Q100 232 66 214 Z" fill="#FF8FB1"/>
+            <path d="M66 166 H134" stroke="#FFFFFF" stroke-width="5"/>
+            <path d="M100 206 c-6 -8 -16 -2 -9 6 l9 8 l9 -8 c7 -8 -3 -14 -9 -6z" fill="#FFFFFF"/>
+            <path d="M100 172 V200" stroke="#FFD3E1" stroke-width="2.5" stroke-dasharray="4 4"/>
+            <g id="cabeza">
+              <circle cx="50" cy="78" r="21" fill="#B8703A"/><circle cx="50" cy="78" r="11" fill="#E8B48A"/>
+              <circle cx="150" cy="78" r="21" fill="#B8703A"/><circle cx="150" cy="78" r="11" fill="#E8B48A"/>
+              <circle cx="100" cy="108" r="58" fill="#C27C45"/>
+              <path d="M100 52 V70" stroke="#A8632F" stroke-width="2.5" stroke-dasharray="4 4"/>
+              <rect x="62" y="44" width="76" height="22" rx="6" fill="#FFFFFF" stroke="#E9DED3" stroke-width="2"/>
+              <circle cx="72" cy="36" r="20" fill="#FFFFFF"/><circle cx="128" cy="36" r="20" fill="#FFFFFF"/><circle cx="100" cy="24" r="27" fill="#FFFFFF"/>
+              <circle cx="68" cy="122" r="9" fill="#FF8FB1" opacity="0.55"/><circle cx="132" cy="122" r="9" fill="#FF8FB1" opacity="0.55"/>
+              <ellipse cx="100" cy="128" rx="27" ry="21" fill="#F2D2AE"/>
+              <ellipse cx="100" cy="117" rx="10" ry="7" fill="#4B2C20"/>
+              <g class="cara-normal">
+                <circle cx="78" cy="100" r="6.5" fill="#4B2C20"/><circle cx="122" cy="100" r="6.5" fill="#4B2C20"/>
+                <circle cx="80" cy="98" r="2" fill="#FFFFFF"/><circle cx="124" cy="98" r="2" fill="#FFFFFF"/>
+              </g>
+              <g class="cara-feliz" fill="none" stroke="#4B2C20" stroke-width="4.5" stroke-linecap="round">
+                <path d="M70 102 Q78 92 86 102"/><path d="M114 102 Q122 92 130 102"/>
+              </g>
+              <path class="boca-normal" d="M89 131 Q100 142 111 131" fill="none" stroke="#4B2C20" stroke-width="4" stroke-linecap="round"/>
+              <ellipse class="boca-o" cx="100" cy="136" rx="6" ry="7" fill="#4B2C20"/>
+            </g>
+          </g>
+        </svg>
+      </button>
+      <p class="globo" id="globo" aria-live="polite">¡Hola! Soy Canela.</p>
+    </section>
+
+    <section class="ficha antes" id="panelMundo" hidden>
+      <h2>Viaje por el mundo</h2>
+      <p class="sub">¿De dónde es la comida que quieres cocinar?</p>
+      <div class="chips" id="continentes" role="group" aria-label="Continentes"></div>
+      <h3 id="tituloPaises" hidden>Países</h3>
+      <div class="chips" id="paises" role="group" aria-label="Países"></div>
+      <h3>¿Dulce o salado?</h3>
+      <div class="chips" id="tipos" role="group" aria-label="Dulce o salado"></div>
+    </section>
+
+    <section class="ficha receta antes" id="panelJuntar" hidden aria-labelledby="tituloReceta">
+      <h2 id="tituloReceta">Receta</h2>
+      <p class="sub" id="subReceta"></p>
+      <ul class="lista" id="lista"></ul>
+      <p class="dato" id="datoReceta"></p>
+    </section>
+
+    <section class="ficha antes" id="panelEspecial" hidden>
+      <h2>Mi plato especial</h2>
+      <p class="sub">Pon en la bandeja lo que tú quieras.</p>
+      <label for="nombrePlato"><h3>¿Cómo se llama tu plato?</h3></label>
+      <input class="campo" id="nombrePlato" maxlength="40" autocomplete="off">
+      <h3>¿Cómo lo cocinamos?</h3>
+      <div class="opciones" id="modos">
+        <button class="opcion" type="button" data-modo="sarten"><span class="ico-i emo" aria-hidden="true">🍳</span>En sartén</button>
+        <button class="opcion" type="button" data-modo="horno"><span class="ico-i emo" aria-hidden="true">🎂</span>Pastel al horno</button>
+      </div>
+      <h3>En la bandeja</h3>
+      <ul class="resumen" id="resumenEspecial"></ul>
+      <div class="acciones"><button class="gordo" id="cocinarEspecial" type="button">¡A cocinar!</button></div>
+    </section>
+
+    <section class="ficha panel-fase" id="panelMezclar" hidden>
+      <h2 id="tituloPanelBol">Al bol</h2>
+      <p class="sub" id="subPanelBol"></p>
+      <div class="acciones" style="margin:0 0 12px" id="cajaFuego"><button class="gordo fuego" id="fuego" type="button" aria-pressed="false">Encender el fuego</button></div>
+      <div class="echar" id="echar"></div>
+      <p class="guardado" id="guardado">
+        <svg class="ico-i" viewBox="0 0 100 100" aria-hidden="true"><use href="#s-glaseado"/></svg>
+        <svg class="ico-i" viewBox="0 0 100 100" aria-hidden="true"><use href="#s-chispitas"/></svg>
+        El glaseado y las chispitas se guardan para decorar.
+      </p>
+      <div class="medidor-caja">
+        <div class="fila"><span id="etiquetaMedidor">Mezcla</span><span id="pctMezcla">0 %</span></div>
+        <div class="medidor" role="progressbar" aria-labelledby="etiquetaMedidor" aria-valuemin="0" aria-valuemax="100"><i id="medidor"></i></div>
+      </div>
+      <div class="acciones">
+        <button class="gordo claro" id="revolver" type="button" hidden>Revolver</button>
+        <button class="gordo" id="alHorno" type="button" hidden>¡Al horno!</button>
+      </div>
+    </section>
+
+    <section class="ficha panel-fase" id="panelRellenar" hidden>
+      <h2>Relleno</h2>
+      <p class="sub">Elige un relleno y pásalo con el dedo por el bizcocho.</p>
+      <div class="opciones" id="rellenos"></div>
+      <div class="medidor-caja">
+        <div class="fila"><span id="etiquetaRelleno">Relleno puesto</span><span id="pctRelleno">0 %</span></div>
+        <div class="medidor" role="progressbar" aria-labelledby="etiquetaRelleno" aria-valuemin="0" aria-valuemax="100"><i id="medRelleno"></i></div>
+      </div>
+      <div class="acciones">
+        <button class="gordo claro" id="untar" type="button">Untar con la espátula</button>
+        <button class="gordo" id="ponTapa" type="button" hidden>Poner la otra capa</button>
+      </div>
+    </section>
+
+    <section class="ficha panel-fase" id="panelDecorar" hidden>
+      <h2>Decorar</h2>
+      <p class="sub" id="colorElegido"></p>
+      <div class="colores" id="colores"></div>
+      <h3>¿Qué le pongo?</h3>
+      <div class="herrs" id="herrs"></div>
+    </section>
+
+    <section class="ficha panel-fase" id="panelServir" hidden>
+      <h2>Servir</h2>
+      <p class="sub" id="salsaElegida"></p>
+      <div class="colores" id="salsas"></div>
+      <h3>¿Qué le pongo?</h3>
+      <div class="herrs" id="herrPlato"></div>
+    </section>
+  </div>
+
+  <div class="der">
+    <div class="fase" id="faseRecetario" hidden>
+      <section class="mesada">
+        <div class="cabeza-recetario"><h2 id="saludo">Recetario</h2><span id="cuentaRecetas"></span></div>
+        <div class="tarjetas" id="tarjetas"></div>
+      </section>
+    </div>
+
+    <div class="fase" id="faseJuntar" hidden>
+      <section class="mesada">
+        <h2>La bandeja</h2>
+        <div class="bandeja" id="bandeja">
+          <div class="rejilla" id="rejilla"></div>
+          <div class="vacia" id="vacia">Toca un ingrediente de la despensa para ponerlo aquí</div>
+          <div class="listo" id="listo" hidden>
+            <div>
+              <h3>¡Ingredientes listos!</h3>
+              <p id="listoTexto">Juntaste todo.</p>
+              <div class="botones"><button class="gordo" id="aCocinar" type="button">¡A cocinar!</button></div>
+            </div>
+          </div>
+        </div>
+        <p class="ayuda">¿Pusiste uno de más? Tócalo en la bandeja y vuelve a la despensa.</p>
+      </section>
+      <section class="despensa">
+        <h2>La despensa</h2>
+        <div class="estante" id="estante"></div>
+      </section>
+    </div>
+
+    <div class="fase" id="faseMezclar" hidden>
+      <section class="mesada">
+        <h2 id="tituloBol">El bol</h2>
+        <div class="lienzo">
+          <canvas id="bol" width="1280" height="960" aria-label="Pasa el dedo para revolver"></canvas>
+          <div class="horno" id="horno" hidden>
+            <svg viewBox="0 0 400 330" aria-label="El horno">
+              <defs><radialGradient id="fuegoHorno" cx="50%" cy="80%" r="80%"><stop offset="0" stop-color="#FFE08A"/><stop offset="0.6" stop-color="#FF9A3C"/><stop offset="1" stop-color="#D9502E"/></radialGradient></defs>
+              <rect x="10" y="10" width="380" height="310" rx="28" fill="#F4F6F8" stroke="#4B2C20" stroke-width="7"/>
+              <rect x="10" y="10" width="380" height="64" rx="28" fill="#FF8FB1" stroke="#4B2C20" stroke-width="7"/>
+              <circle cx="60" cy="42" r="15" fill="#FFF8EE" stroke="#4B2C20" stroke-width="5"/><path d="M60 42 L60 31" stroke="#4B2C20" stroke-width="5" stroke-linecap="round"/>
+              <circle cx="110" cy="42" r="15" fill="#FFF8EE" stroke="#4B2C20" stroke-width="5"/><path d="M110 42 L119 35" stroke="#4B2C20" stroke-width="5" stroke-linecap="round"/>
+              <rect x="220" y="24" width="140" height="38" rx="10" fill="#4B2C20"/>
+              <text id="hornoCuenta" x="290" y="53" text-anchor="middle" font-family="Sniglet, sans-serif" font-weight="800" font-size="28" fill="#FFE066">3</text>
+              <rect x="50" y="100" width="300" height="190" rx="18" fill="url(#fuegoHorno)" stroke="#4B2C20" stroke-width="7"/>
+              <rect class="brillo-horno" x="57" y="107" width="286" height="176" rx="14" fill="#FFF3B0" opacity="0.35"/>
+              <path d="M70 258 H330" stroke="#4B2C20" stroke-width="5" stroke-linecap="round"/>
+              <g class="crece" id="pastelHorno"><path id="masaHorno" d="M140 256 V200 Q200 176 260 200 V256 Z" fill="#F2C27B" stroke="#4B2C20" stroke-width="5" stroke-linejoin="round"/></g>
+              <path d="M110 300 H290" stroke="#4B2C20" stroke-width="10" stroke-linecap="round"/>
+            </svg>
+          </div>
+        </div>
+      </section>
+    </div>
+
+    <div class="fase" id="faseDecorar" hidden>
+      <section class="mesada">
+        <h2 id="tituloPastel">Tu pastel</h2>
+        <div class="lienzo">
+          <canvas id="pastel" width="1280" height="1040" aria-label="Tócalo para decorar"></canvas>
+          <div class="aviso" id="pastelListo" hidden>
+            <h3 id="avisoTitulo">¡Qué lindo!</h3>
+            <p id="avisoTexto"></p>
+            <div class="botones">
+              <button class="gordo" id="guardarPDF" type="button">Guardar receta en PDF</button>
+              <button class="gordo claro" id="alRecetario" type="button">Volver al recetario</button>
+              <button class="gordo claro" id="seguir" type="button">Seguir decorando</button>
+            </div>
+          </div>
+        </div>
+        <div class="barra-pastel" id="barraDecorar">
+          <button class="gordo claro chico" id="deshacer" type="button">Deshacer</button>
+          <button class="gordo claro chico" id="borrar" type="button">Borrar todo</button>
+          <button class="gordo chico" id="termine" type="button">¡Terminé!</button>
+        </div>
+      </section>
+    </div>
+  </div>
+</main>
+<canvas id="confeti" aria-hidden="true"></canvas>
+<script>
+(function () {
+  const TAU = Math.PI * 2;
+  const quieto = matchMedia("(prefers-reduced-motion: reduce)").matches;
+  const $ = (id) => document.getElementById(id);
+  const azar = (a, b) => a + Math.random() * (b - a);
+  const mayus = (s) => s.charAt(0).toUpperCase() + s.slice(1);
+  const FUENTE_EMO = '"Segoe UI Emoji","Apple Color Emoji","Noto Color Emoji",sans-serif';
+
+  // ════════════ INGREDIENTES ════════════
+  // id, nombre, uno, varios, femenino, dibujo ("s:" propio, si no emoji), color, cómo cae
+  const ING = [
+    ["huevo", "Huevos", "huevo", "huevos", 0, "s:huevo", "#FFF1D9", "huevo"],
+    ["harina", "Harina", "taza de harina", "tazas de harina", 1, "s:harina", "#F3E3C3", "polvo"],
+    ["mantequilla", "Mantequilla", "barra de mantequilla", "barras de mantequilla", 1, "s:mantequilla", "#FFE27A", "derrite"],
+    ["azucar", "Azúcar", "cucharada de azúcar", "cucharadas de azúcar", 1, "s:azucar", "#FFFFFF", "granos"],
+    ["miel", "Miel", "cucharada de miel", "cucharadas de miel", 1, "s:miel", "#FFB627", "liquido"],
+    ["leche", "Leche", "taza de leche", "tazas de leche", 1, "s:leche", "#FFFFFF", "liquido"],
+    ["aceite", "Aceite", "chorrito de aceite", "chorritos de aceite", 0, "s:aceite", "#F4C542", "liquido"],
+    ["soya", "Salsa de soya", "chorrito de soya", "chorritos de soya", 0, "s:soya", "#3A2014", "liquido"],
+    ["chocolate", "Chocolate", "trozo de chocolate", "trozos de chocolate", 0, "s:chocolate", "#6B3A22", "solido"],
+    ["glaseado", "Glaseado", "glaseado", "glaseados", 0, "s:glaseado", "#FF9EC2", "decor"],
+    ["chispitas", "Chispitas", "frasco de chispitas", "frascos de chispitas", 0, "s:chispitas", "#FF5E8E", "decor"],
+    ["arroz", "Arroz", "taza de arroz", "tazas de arroz", 1, "🍚", "#FFFFFF", "solido"],
+    ["fideos", "Fideos", "porción de fideos", "porciones de fideos", 1, "🍜", "#F2D38A", "solido"],
+    ["espagueti", "Espaguetis", "porción de espaguetis", "porciones de espaguetis", 1, "🍝", "#F2D38A", "solido"],
+    ["tomate", "Tomate", "tomate", "tomates", 0, "🍅", "#E0342B", "solido"],
+    ["cebolla", "Cebolla", "cebolla", "cebollas", 1, "🧅", "#E9C9A8", "solido"],
+    ["ajo", "Ajo", "diente de ajo", "dientes de ajo", 0, "🧄", "#F3EBDD", "solido"],
+    ["zanahoria", "Zanahoria", "zanahoria", "zanahorias", 1, "🥕", "#F28C28", "solido"],
+    ["papa", "Papa", "papa", "papas", 1, "🥔", "#D9A966", "solido"],
+    ["choclo", "Choclo", "choclo", "choclos", 0, "🌽", "#F5D142", "solido"],
+    ["aji", "Ají", "ají", "ajíes", 0, "🌶️", "#D62D20", "solido"],
+    ["pimenton", "Pimentón", "pimentón", "pimentones", 0, "🫑", "#4CAF50", "solido"],
+    ["brocoli", "Brócoli", "brócoli", "brócolis", 0, "🥦", "#4C9A3A", "solido"],
+    ["champinon", "Champiñón", "champiñón", "champiñones", 0, "🍄", "#C9A27E", "solido"],
+    ["pollo", "Pollo", "presa de pollo", "presas de pollo", 1, "🍗", "#D9914A", "solido"],
+    ["carne", "Carne", "trozo de carne", "trozos de carne", 0, "🥩", "#B5483F", "solido"],
+    ["tocino", "Tocino", "lámina de tocino", "láminas de tocino", 1, "🥓", "#C8574A", "solido"],
+    ["salchicha", "Salchicha", "salchicha", "salchichas", 1, "🌭", "#C8674A", "solido"],
+    ["camaron", "Camarón", "camarón", "camarones", 0, "🍤", "#F08A4B", "solido"],
+    ["queso", "Queso", "trozo de queso", "trozos de queso", 0, "🧀", "#F6C744", "solido"],
+    ["pan", "Pan", "rebanada de pan", "rebanadas de pan", 1, "🍞", "#D9A45A", "solido"],
+    ["tortilla", "Tortilla", "tortilla", "tortillas", 1, "🫓", "#E8C88A", "solido"],
+    ["palta", "Palta", "palta", "paltas", 1, "🥑", "#8DBA4E", "solido"],
+    ["limon", "Limón", "limón", "limones", 0, "🍋", "#F7DC4A", "solido"],
+    ["pina", "Piña", "trozo de piña", "trozos de piña", 0, "🍍", "#F5C542", "solido"],
+    ["manzana", "Manzana", "manzana", "manzanas", 1, "🍎", "#E0342B", "solido"],
+    ["platano", "Plátano", "plátano", "plátanos", 0, "🍌", "#F5D142", "solido"],
+    ["frutilla", "Frutilla", "frutilla", "frutillas", 1, "🍓", "#E8364A", "solido"],
+    ["cereza", "Cereza", "cereza", "cerezas", 1, "🍒", "#B8132B", "solido"],
+    ["arandano", "Arándanos", "puñado de arándanos", "puñados de arándanos", 0, "🫐", "#4A5BB5", "solido"],
+    ["coco", "Coco", "taza de coco", "tazas de coco", 1, "🥥", "#FFFFFF", "polvo"],
+    ["mani", "Maní", "puñado de maní", "puñados de maní", 0, "🥜", "#D19A55", "solido"],
+    ["porotos", "Porotos", "taza de porotos", "tazas de porotos", 1, "🫘", "#8A3B2E", "solido"],
+    ["lechuga", "Lechuga", "hoja de lechuga", "hojas de lechuga", 1, "🥬", "#6CBF4A", "solido"],
+    ["pepino", "Pepino", "pepino", "pepinos", 0, "🥒", "#5DA84A", "solido"],
+    ["berenjena", "Berenjena", "berenjena", "berenjenas", 1, "🍆", "#6A3F8C", "solido"],
+    ["aceituna", "Aceituna", "aceituna", "aceitunas", 1, "🫒", "#6B7B2E", "solido"],
+    ["camote", "Camote", "camote", "camotes", 0, "🍠", "#C8603A", "solido"],
+    ["curry", "Curry", "cucharada de curry", "cucharadas de curry", 1, "🍛", "#E0A33A", "polvo"],
+    ["sal", "Sal", "pizca de sal", "pizcas de sal", 1, "🧂", "#FFFFFF", "granos"],
+  ].map(([id, nombre, uno, varios, f, ico, c, clase]) => ({ id, nombre, uno, varios, f: !!f, ico, c, clase }));
+
+  const RAROS = [
+    { id: "calcetin", nombre: "Calcetín", ico: "s:calcetin", frase: "¡Jiji! Un calcetín no va en la comida." },
+    { id: "zapatilla", nombre: "Zapatilla", ico: "s:zapatilla", frase: "¡Jaja! Una zapatilla no se come." },
+    { id: "pelota", nombre: "Pelota", ico: "⚽", frase: "¡Una pelota! Mejor la usamos para jugar después." },
+    { id: "osito", nombre: "Osito", ico: "🧸", frase: "¡Ese es mi primo! Él no va en la comida." },
+    { id: "lapiz", nombre: "Lápiz", ico: "✏️", frase: "Un lápiz sirve para escribir recetas, no para comerlas." },
+  ];
+  const buscaIng = (id) => ING.find((i) => i.id === id);
+  const buscaCosa = (id) => buscaIng(id) || RAROS.find((r) => r.id === id);
+
+  // ════════════ PAÍSES (banderas dibujadas con CSS) ════════════
+  const T3 = (dir, a, b, c) => `linear-gradient(${dir},${a} 33.4%,${b} 33.4% 66.6%,${c} 66.6%)`;
+  const PAISES = {
+    "Chile": { cont: "América", f: "linear-gradient(transparent 50%,#D52B1E 50%),linear-gradient(to right,#0039A6 36%,#fff 36%)" },
+    "México": { cont: "América", f: "radial-gradient(circle,#8C5A2B 13%,transparent 14%)," + T3("to right", "#006847", "#fff", "#CE1126") },
+    "Perú": { cont: "América", f: T3("to right", "#D91023", "#fff", "#D91023") },
+    "Argentina": { cont: "América", f: "radial-gradient(circle,#F6B40E 12%,transparent 13%)," + T3("to bottom", "#74ACDF", "#fff", "#74ACDF") },
+    "Brasil": { cont: "América", f: "radial-gradient(circle,#002776 22%,transparent 23%),radial-gradient(44% 40% at 50% 50%,#FEDF00 97%,transparent 100%),#009C3B" },
+    "Colombia": { cont: "América", f: "linear-gradient(#FCD116 50%,#003893 50% 75%,#CE1126 75%)" },
+    "Venezuela": { cont: "América", f: T3("to bottom", "#FCE300", "#00247D", "#CF142B") },
+    "Cuba": { cont: "América", f: "linear-gradient(to bottom right,#CF142B 50%,transparent 50%) 0 0/42% 50% no-repeat,linear-gradient(to top right,#CF142B 50%,transparent 50%) 0 100%/42% 50% no-repeat,linear-gradient(#002A8F 20%,#fff 20% 40%,#002A8F 40% 60%,#fff 60% 80%,#002A8F 80%)" },
+    "Jamaica": { cont: "América", f: "linear-gradient(to bottom right,transparent 43%,#FED100 43% 57%,transparent 57%),linear-gradient(to top right,transparent 43%,#FED100 43% 57%,transparent 57%),linear-gradient(to right,#000 30%,#009B3A 30% 70%,#000 70%)" },
+    "Estados Unidos": { cont: "América", f: "linear-gradient(#3C3B6E,#3C3B6E) 0 0/42% 54% no-repeat,repeating-linear-gradient(#B22234 0 7.7%,#fff 7.7% 15.4%)" },
+    "Canadá": { cont: "América", f: "radial-gradient(circle,#D52B1E 17%,transparent 18%),linear-gradient(to right,#D52B1E 26%,#fff 26% 74%,#D52B1E 74%)" },
+    "España": { cont: "Europa", f: "linear-gradient(#AA151B 25%,#F1BF00 25% 75%,#AA151B 75%)" },
+    "Francia": { cont: "Europa", f: T3("to right", "#0055A4", "#fff", "#EF4135") },
+    "Italia": { cont: "Europa", f: T3("to right", "#009246", "#fff", "#CE2B37") },
+    "Alemania": { cont: "Europa", f: T3("to bottom", "#000", "#DD0000", "#FFCE00") },
+    "Austria": { cont: "Europa", f: T3("to bottom", "#ED2939", "#fff", "#ED2939") },
+    "Reino Unido": { cont: "Europa", f: "linear-gradient(#C8102E,#C8102E) 50% 0/14% 100% no-repeat,linear-gradient(#C8102E,#C8102E) 0 50%/100% 20% no-repeat,linear-gradient(#fff,#fff) 50% 0/26% 100% no-repeat,linear-gradient(#fff,#fff) 0 50%/100% 34% no-repeat,#012169" },
+    "Grecia": { cont: "Europa", f: "linear-gradient(#0D5EAF,#0D5EAF) 0 0/40% 56% no-repeat,repeating-linear-gradient(#0D5EAF 0 11.1%,#fff 11.1% 22.2%)" },
+    "Rusia": { cont: "Europa", f: T3("to bottom", "#fff", "#0039A6", "#D52B1E") },
+    "Turquía": { cont: "Asia", f: "radial-gradient(circle at 47% 50%,#E30A17 19%,transparent 20%),radial-gradient(circle at 40% 50%,#fff 25%,transparent 26%),#E30A17" },
+    "Líbano": { cont: "Asia", f: "radial-gradient(circle,#00A651 15%,transparent 16%),linear-gradient(#ED1C24 25%,#fff 25% 75%,#ED1C24 75%)" },
+    "India": { cont: "Asia", f: "radial-gradient(circle,#000080 11%,transparent 13%)," + T3("to bottom", "#FF9933", "#fff", "#138808") },
+    "China": { cont: "Asia", f: "radial-gradient(circle at 22% 30%,#FFDE00 12%,transparent 13%),#DE2910" },
+    "Japón": { cont: "Asia", f: "radial-gradient(circle,#BC002D 28%,transparent 29%),#fff" },
+    "Corea": { cont: "Asia", f: "radial-gradient(circle,transparent 26%,#fff 27%),linear-gradient(#CD2E3A 50%,#0047A0 50%)" },
+    "Tailandia": { cont: "Asia", f: "linear-gradient(#A51931 16.6%,#F4F5F8 16.6% 33.3%,#2D2A4A 33.3% 66.6%,#F4F5F8 66.6% 83.3%,#A51931 83.3%)" },
+    "Vietnam": { cont: "Asia", f: "radial-gradient(circle,#FFFF00 18%,transparent 19%),#DA251D" },
+    "Indonesia": { cont: "Asia", f: "linear-gradient(#FF0000 50%,#fff 50%)" },
+    "Filipinas": { cont: "Asia", f: "linear-gradient(to bottom right,#fff 50%,transparent 50%) 0 0/42% 50% no-repeat,linear-gradient(to top right,#fff 50%,transparent 50%) 0 100%/42% 50% no-repeat,linear-gradient(#0038A8 50%,#CE1126 50%)" },
+    "Marruecos": { cont: "África", f: "radial-gradient(circle,#006233 16%,transparent 17%),#C1272D" },
+    "Egipto": { cont: "África", f: "radial-gradient(circle,#C09300 10%,transparent 11%)," + T3("to bottom", "#CE1126", "#fff", "#000") },
+    "Nigeria": { cont: "África", f: T3("to right", "#008751", "#fff", "#008751") },
+    "Australia": { cont: "Oceanía", f: "radial-gradient(circle at 72% 62%,#fff 6%,transparent 7%),radial-gradient(circle at 25% 72%,#fff 8%,transparent 9%),linear-gradient(#C8102E,#C8102E) 22% 0/6% 50% no-repeat,#012169" },
+  };
+  const CONTINENTES = ["América", "Europa", "Asia", "África", "Oceanía"];
+
+  // ════════════ SABORES DE BIZCOCHO ════════════
+  const SABORES = {
+    vainilla: { masa: ["#EFE2C8", "#F3CF86"], veta: "205,150,70", lado: ["#DDA15A", "#F2C27B", "#D6964E"], tapa: "#F8D9A0", miga: "#E9BD7C" },
+    chocolate: { masa: ["#E6CBA8", "#6E3F24"], veta: "70,35,18", lado: ["#4E2A18", "#76452A", "#472514"], tapa: "#7A4A2E", miga: "#5A331E" },
+    zanahoria: { masa: ["#F2D2A2", "#D98E4A"], veta: "180,100,40", lado: ["#B8662E", "#D98E4A", "#A85A26"], tapa: "#E3A366", miga: "#C47A3E" },
+    coco: { masa: ["#F5EEDF", "#F6EBD0"], veta: "200,180,140", lado: ["#E4C38E", "#F4DDB0", "#D9B47C"], tapa: "#FAEBCB", miga: "#E3CBA0" },
+    frutilla: { masa: ["#F6D9D9", "#F4B6C2"], veta: "220,120,140", lado: ["#E7A0AE", "#F6C3CC", "#DB8E9E"], tapa: "#FAD6DC", miga: "#E8A9B5" },
+    limon: { masa: ["#F6EDC0", "#F2DC7A"], veta: "200,170,60", lado: ["#E0BE5A", "#F2D98A", "#D4AE4A"], tapa: "#F8E7A6", miga: "#E2C872" },
+    platano: { masa: ["#F1E3B8", "#D9B36A"], veta: "170,120,50", lado: ["#B98A48", "#D9B36A", "#A97A3C"], tapa: "#E6C88A", miga: "#C9A060" },
+  };
+
+  // ════════════ RECETAS DEL MUNDO ════════════
+  const R = (id, nom, pais, tipo, modo, ing, dato, ico, sabor) => ({
+    id, nom, pais, tipo, modo, dato, ico, sabor: sabor || "vainilla",
+    ing: Object.fromEntries(ing.split(",").map((s) => { const [k, v] = s.split(":"); return [k, Number(v)]; })),
+  });
+  const RECETAS = [
+    R("choco-victoria", "Pastel de chocolate", "Chile", "dulce", "horno", "huevo:1,azucar:4,miel:5,leche:2,chocolate:5", "Esta receta la inventó Victoria, una pastelera de 7 años.", "chocolate", "chocolate"),
+    R("chispitas-victoria", "Pastel de chispitas", "Chile", "dulce", "horno", "huevo:3,harina:2,mantequilla:1,azucar:2,glaseado:1,chispitas:1", "Otra receta inventada por Victoria.", "chispitas"),
+    R("pino", "Pino para empanadas", "Chile", "salado", "sarten", "carne:2,cebolla:2,aceituna:1,huevo:1", "En Chile se comen muchas empanadas en las Fiestas Patrias de septiembre.", "carne"),
+    R("panqueques", "Panqueques con manjar", "Chile", "dulce", "sarten", "huevo:2,harina:2,leche:2,azucar:1", "En Chile al dulce de leche le dicen manjar.", "leche"),
+    R("tacos", "Tacos de pollo", "México", "salado", "sarten", "pollo:2,tortilla:3,tomate:1,palta:1", "En México se comen tortillas de maíz desde hace miles de años.", "tortilla"),
+    R("quesadillas", "Quesadillas", "México", "salado", "sarten", "tortilla:2,queso:2", "Quesadilla viene de queso: es una tortilla doblada con queso derretido.", "queso"),
+    R("rancheros", "Huevos rancheros", "México", "salado", "sarten", "huevo:2,tomate:2,aji:1,tortilla:2", "Es un desayuno que nació en los ranchos, las granjas de México.", "huevo"),
+    R("tres-leches", "Pastel tres leches", "México", "dulce", "horno", "leche:3,huevo:2,harina:2,azucar:1", "Se llama así porque se moja con tres tipos de leche.", "leche"),
+    R("lomo", "Lomo saltado", "Perú", "salado", "sarten", "carne:3,papa:2,tomate:2,cebolla:1,soya:1", "Mezcla la cocina de Perú con la de China: por eso lleva salsa de soya.", "carne"),
+    R("chaufa", "Arroz chaufa", "Perú", "salado", "sarten", "arroz:3,huevo:2,soya:1,cebolla:1", "Lo trajeron a Perú familias que llegaron desde China.", "arroz"),
+    R("picarones", "Picarones", "Perú", "dulce", "sarten", "camote:2,harina:2,miel:2,aceite:1", "Son anillos fritos de camote que se comen con miel.", "camote"),
+    R("milanesa", "Milanesa", "Argentina", "salado", "sarten", "carne:2,huevo:1,pan:2,aceite:1", "Llegó con familias italianas y hoy es una comida favorita en Argentina.", "carne"),
+    R("torta-ddl", "Torta de dulce de leche", "Argentina", "dulce", "horno", "leche:2,azucar:2,huevo:2,harina:2", "En Argentina el dulce de leche está en muchísimos postres.", "leche"),
+    R("revuelto", "Revuelto gramajo", "Argentina", "salado", "sarten", "papa:2,huevo:2,tocino:1,cebolla:1", "Es un revuelto de papas y huevo típico de Buenos Aires.", "papa"),
+    R("bolo-coco", "Bolo de coco", "Brasil", "dulce", "horno", "coco:2,huevo:2,harina:2,leche:1", "En portugués, el idioma de Brasil, pastel se dice bolo.", "coco", "coco"),
+    R("banana-frita", "Plátano frito con azúcar", "Brasil", "dulce", "sarten", "platano:3,azucar:1,mantequilla:1", "En Brasil crecen muchísimos plátanos.", "platano"),
+    R("farofa", "Farofa", "Brasil", "salado", "sarten", "mantequilla:1,cebolla:1,harina:2,tocino:1", "Es harina de mandioca tostada que acompaña la comida en Brasil.", "harina"),
+    R("patacones", "Patacones", "Colombia", "salado", "sarten", "platano:3,aceite:1,sal:1", "Son rodajas de plátano verde aplastadas y fritas.", "platano"),
+    R("arepas", "Arepas con queso", "Venezuela", "salado", "sarten", "harina:2,queso:2,mantequilla:1", "Las arepas son panes redondos de harina de maíz.", "queso"),
+    R("arroz-cubana", "Arroz a la cubana", "Cuba", "salado", "sarten", "arroz:2,huevo:1,platano:1,tomate:1", "Lleva arroz blanco, huevo frito, plátano y salsa de tomate.", "arroz"),
+    R("pan-platano", "Pan de plátano", "Jamaica", "dulce", "horno", "platano:3,harina:2,huevo:1,azucar:1", "En Jamaica se cultivan plátanos desde hace mucho tiempo.", "platano", "platano"),
+    R("pancakes", "Pancakes con arándanos", "Estados Unidos", "dulce", "sarten", "huevo:1,harina:2,leche:2,arandano:2", "Son panqueques gruesos que se comen al desayuno.", "arandano"),
+    R("hamburguesa", "Hamburguesa", "Estados Unidos", "salado", "sarten", "carne:2,pan:2,queso:1,lechuga:1,tomate:1", "Se hizo famosa en Estados Unidos y hoy se come en todo el mundo.", "carne"),
+    R("pastel-zanahoria", "Pastel de zanahoria", "Estados Unidos", "dulce", "horno", "zanahoria:3,harina:2,huevo:2,azucar:2", "La zanahoria deja el pastel suave y dulce.", "zanahoria", "zanahoria"),
+    R("pan-arce", "Pan con miel de arce", "Canadá", "dulce", "sarten", "pan:2,huevo:2,leche:1,miel:2", "En Canadá sacan un jarabe dulce de los árboles de arce.", "pan"),
+    R("tortilla-papas", "Tortilla de papas", "España", "salado", "sarten", "papa:3,huevo:3,cebolla:1,aceite:1", "En España se come en trocitos, como tapa.", "papa"),
+    R("gambas", "Camarones al ajillo", "España", "salado", "sarten", "camaron:3,ajo:2,aceite:1,aji:1", "En España a los camarones les dicen gambas.", "camaron"),
+    R("paella", "Paella", "España", "salado", "sarten", "arroz:3,camaron:2,pimenton:1,pollo:1,tomate:1", "Se cocina en una sartén gigante que también se llama paella.", "arroz"),
+    R("crepes", "Crepes", "Francia", "dulce", "sarten", "huevo:2,harina:2,leche:2,mantequilla:1", "En Francia se comen crepes el 2 de febrero, el día de la Candelaria.", "harina"),
+    R("omelette", "Omelette de queso", "Francia", "salado", "sarten", "huevo:3,queso:1,mantequilla:1", "Omelette es la palabra francesa para tortilla de huevo.", "huevo"),
+    R("ratatouille", "Ratatouille", "Francia", "salado", "sarten", "berenjena:1,tomate:2,pimenton:1,cebolla:1,pepino:1", "Es un plato de verduras del sur de Francia.", "berenjena"),
+    R("tarta-manzana", "Pastel de manzana", "Francia", "dulce", "horno", "manzana:3,harina:2,mantequilla:1,azucar:1", "En Francia hay una tarta de manzana famosa que se hornea al revés.", "manzana"),
+    R("espaguetis", "Espaguetis con tomate", "Italia", "salado", "sarten", "espagueti:2,tomate:3,ajo:1,queso:1", "En Italia hay cientos de formas distintas de pasta.", "espagueti"),
+    R("risotto", "Risotto de champiñones", "Italia", "salado", "sarten", "arroz:2,champinon:3,queso:1,cebolla:1,mantequilla:1", "Es un arroz cremoso del norte de Italia.", "champinon"),
+    R("frittata", "Frittata", "Italia", "salado", "sarten", "huevo:3,brocoli:1,queso:1,cebolla:1", "Es una tortilla de huevo con verduras y queso.", "huevo"),
+    R("torta-limon", "Torta de limón", "Italia", "dulce", "horno", "limon:2,harina:2,huevo:2,azucar:2", "En el sur de Italia crecen limones enormes.", "limon", "limon"),
+    R("papas-salteadas", "Papas salteadas", "Alemania", "salado", "sarten", "papa:3,tocino:1,cebolla:1", "En Alemania las papas salteadas acompañan muchas comidas.", "papa"),
+    R("salchichas", "Salchichas con manzana", "Alemania", "salado", "sarten", "salchicha:2,manzana:1,cebolla:1", "En Alemania hay más de mil tipos de salchichas.", "salchicha"),
+    R("selva-negra", "Torta Selva Negra", "Alemania", "dulce", "horno", "huevo:3,harina:2,chocolate:3,cereza:2", "Su nombre viene de un bosque de Alemania llamado Selva Negra.", "cereza", "chocolate"),
+    R("sacher", "Torta Sacher", "Austria", "dulce", "horno", "chocolate:4,huevo:2,harina:1,mantequilla:1", "Se inventó en Viena, la capital de Austria.", "chocolate", "chocolate"),
+    R("bizcocho-victoria", "Bizcocho Victoria", "Reino Unido", "dulce", "horno", "frutilla:2,huevo:2,harina:2,mantequilla:1,azucar:2", "Se llama así por la reina Victoria, que lo comía con té.", "frutilla"),
+    R("desayuno-ingles", "Desayuno inglés", "Reino Unido", "salado", "sarten", "huevo:2,tocino:2,champinon:1,tomate:1,porotos:1", "Es un desayuno grande con huevos, tocino y porotos.", "tocino"),
+    R("strapatsada", "Huevos con tomate y queso", "Grecia", "salado", "sarten", "huevo:2,tomate:2,queso:1,aceituna:1", "En Grecia se usa mucho aceite de oliva y queso.", "aceituna"),
+    R("syrniki", "Syrniki", "Rusia", "dulce", "sarten", "queso:2,huevo:1,harina:1,azucar:1", "Son panqueques pequeños hechos con queso fresco.", "queso"),
+    R("menemen", "Menemen", "Turquía", "salado", "sarten", "huevo:2,tomate:2,pimenton:1,cebolla:1", "Es un desayuno de huevos con tomate y pimentón.", "pimenton"),
+    R("shakshuka", "Shakshuka", "Marruecos", "salado", "sarten", "huevo:3,tomate:3,pimenton:1,ajo:1,aji:1", "Son huevos cocinados en salsa de tomate, del norte de África.", "tomate"),
+    R("ful", "Ful medames", "Egipto", "salado", "sarten", "porotos:3,ajo:1,limon:1,aceite:1", "En Egipto se come al desayuno desde hace muchísimo tiempo.", "porotos"),
+    R("jollof", "Arroz jollof", "Nigeria", "salado", "sarten", "arroz:3,tomate:3,pimenton:1,cebolla:1,aji:1", "Es un arroz rojo que se come en las fiestas de África occidental.", "arroz"),
+    R("falafel", "Falafel", "Líbano", "salado", "sarten", "porotos:3,ajo:1,cebolla:1,harina:1,aceite:1", "Son bolitas fritas de garbanzos que se comen en muchos países de Medio Oriente.", "porotos"),
+    R("curry-garbanzos", "Curry de garbanzos", "India", "salado", "sarten", "porotos:2,tomate:2,cebolla:1,curry:1", "En India se cocina con muchas especias de colores.", "curry"),
+    R("pulao", "Arroz con verduras", "India", "salado", "sarten", "arroz:2,zanahoria:1,choclo:1,cebolla:1", "En India este arroz se llama pulao y se perfuma con especias.", "zanahoria"),
+    R("arroz-frito", "Arroz frito", "China", "salado", "sarten", "arroz:3,huevo:2,choclo:1,zanahoria:1,soya:1", "En China se saltea en una sartén honda llamada wok.", "arroz"),
+    R("agridulce", "Pollo agridulce", "China", "salado", "sarten", "pollo:3,pimenton:1,pina:1,soya:1", "Agridulce quiere decir dulce y ácido a la vez.", "pollo"),
+    R("brocoli-ajo", "Brócoli con ajo", "China", "salado", "sarten", "brocoli:3,ajo:1,soya:1", "En China las verduras se saltean rápido para que queden crujientes.", "brocoli"),
+    R("yakisoba", "Yakisoba", "Japón", "salado", "sarten", "fideos:2,lechuga:1,zanahoria:1,carne:1,soya:1", "Yakisoba quiere decir fideos a la plancha.", "fideos"),
+    R("tamagoyaki", "Tamagoyaki", "Japón", "dulce", "sarten", "huevo:3,azucar:1,soya:1", "Es una tortilla de huevo enrollada que se lleva en la lonchera japonesa, el bento.", "huevo"),
+    R("shortcake", "Pastel de frutillas", "Japón", "dulce", "horno", "frutilla:3,huevo:2,harina:2,leche:1", "En Japón es el pastel típico de Navidad.", "frutilla", "frutilla"),
+    R("bibimbap", "Bibimbap", "Corea", "salado", "sarten", "arroz:2,huevo:1,zanahoria:1,lechuga:1,carne:1", "Bibimbap quiere decir arroz mezclado.", "arroz"),
+    R("pad-thai", "Pad thai", "Tailandia", "salado", "sarten", "fideos:2,camaron:2,huevo:1,mani:1,limon:1", "Es uno de los platos más famosos de Tailandia.", "fideos"),
+    R("arroz-pina", "Arroz frito con piña", "Tailandia", "salado", "sarten", "arroz:2,pina:1,camaron:1,mani:1", "A veces se sirve dentro de una piña.", "pina"),
+    R("fideos-verduras", "Fideos con verduras", "Vietnam", "salado", "sarten", "fideos:2,brocoli:1,zanahoria:1,soya:1", "En Vietnam los fideos se comen con palitos.", "fideos"),
+    R("nasi-goreng", "Nasi goreng", "Indonesia", "salado", "sarten", "arroz:3,huevo:1,aji:1,soya:1,pepino:1", "Nasi goreng quiere decir arroz frito.", "arroz"),
+    R("turon", "Turón", "Filipinas", "dulce", "sarten", "platano:2,azucar:2,tortilla:2,aceite:1", "Son plátanos enrollados en masa fina y fritos con azúcar.", "platano"),
+    R("tostada-palta", "Tostada con palta y huevo", "Australia", "salado", "sarten", "pan:2,palta:1,huevo:2,limon:1", "En Australia es un desayuno muy popular.", "palta"),
+  ];
+
+  // ════════════ HERRAMIENTAS COMUNES ════════════
+  let estado;
+  const PALABRAS = ["cero", "uno", "dos", "tres", "cuatro", "cinco", "seis", "siete", "ocho", "nueve", "diez"];
+  const cuantoDelante = (n, f) => (n === 1 ? (f ? "una" : "un") : PALABRAS[n] || String(n));
+  const cuantoSolo = (n, f) => (n === 1 ? (f ? "una" : "uno") : PALABRAS[n] || String(n));
+  const conNombre = (ing, n) => cuantoDelante(n, ing.f) + " " + (n === 1 ? ing.uno : ing.varios);
+  const hexRgb = (h) => [1, 3, 5].map((i) => parseInt(h.slice(i, i + 2), 16));
+  const esEspecial = () => estado.rid === "especial";
+
+  function rec() {
+    if (esEspecial()) return { id: "especial", nom: estado.nombre, modo: estado.modo, sabor: estado.receta.chocolate ? "chocolate" : "vainilla", ing: estado.receta };
+    return RECETAS.find((r) => r.id === estado.rid) || RECETAS[0];
+  }
+  const pal = () => SABORES[rec().sabor] || SABORES.vainilla;
+  const ingsReceta = () => Object.keys(estado.receta).map(buscaIng).filter(Boolean);
+  const alBol = () => Object.keys(estado.receta).filter((id) => buscaIng(id) && buscaIng(id).clase !== "decor");
+
+  // números al azar que salen siempre iguales para lo mismo
+  function semilla(texto) {
+    let h = 1779033703;
+    for (const ch of texto) h = Math.imul(h ^ ch.charCodeAt(0), 3432918353);
+    return () => { h = Math.imul(h ^ (h >>> 16), 2246822507); h = Math.imul(h ^ (h >>> 13), 3266489909); return ((h ^= h >>> 16) >>> 0) / 4294967296; };
+  }
+
+  // ── dibujos: símbolo propio o emoji ──
+  function iconoDe(ico) {
+    if (ico.startsWith("s:")) return `<svg class="ico-i" viewBox="0 0 100 100" aria-hidden="true"><use href="#s-${ico.slice(2)}"/></svg>`;
+    return `<span class="ico-i emo" aria-hidden="true">${ico}</span>`;
+  }
+  const iconoIng = (id) => iconoDe(buscaCosa(id).ico);
+
+  const IMG = {};
+  const cacheEmo = {};
+  function preparaDibujos() {
+    const ids = new Set(["frutilla", "vela", "estrella", "manga", "puntos"]);
+    ING.concat(RAROS).forEach((i) => { if (i.ico.startsWith("s:")) ids.add(i.ico.slice(2)); });
+    ids.forEach((id) => {
+      const s = document.getElementById("s-" + id);
+      if (!s) return;
+      const im = new Image();
+      im.onload = () => { if (estado && estado.pantalla === "cocina") redibuja(); };
+      im.src = "data:image/svg+xml;charset=utf-8," + encodeURIComponent(`<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100">${s.innerHTML}</svg>`);
+      IMG[id] = im;
+    });
+  }
+  function lienzoEmo(ico) {
+    if (!cacheEmo[ico]) {
+      const cv = document.createElement("canvas");
+      cv.width = cv.height = 128;
+      const x = cv.getContext("2d");
+      x.font = `100px ${FUENTE_EMO}`; x.textAlign = "center"; x.textBaseline = "middle";
+      x.fillText(ico, 64, 72);
+      cacheEmo[ico] = cv;
+    }
+    return cacheEmo[ico];
+  }
+  function dibujaIco(c, ico, x, y, tam, giro, alfa) {
+    let fuente;
+    if (ico.startsWith("s:")) { fuente = IMG[ico.slice(2)]; if (!fuente || !fuente.complete || !fuente.naturalWidth) return; }
+    else fuente = lienzoEmo(ico);
+    c.save(); c.translate(x, y); c.rotate(giro || 0); c.globalAlpha = alfa == null ? 1 : alfa;
+    c.drawImage(fuente, -tam / 2, -tam / 2, tam, tam);
+    c.restore();
+  }
+
+  // ── la voz de Canela: busca la voz más natural en español ──
+  let vozEs = null;
+  function eligeVoz() {
+    try {
+      const puntos = (v) => (/natural|online|neural/i.test(v.name) ? 8 : 0) + (/google/i.test(v.name) ? 5 : 0)
+        + (/paulina|m[oó]nica|sabina|dalia|elvira|helena|camila|catalina|lupe|francisca|paloma|salom[eé]/i.test(v.name) ? 3 : 0)
+        + (/es-(CL|419|MX|US|AR|CO)/i.test(v.lang) ? 2 : 0);
+      const v = speechSynthesis.getVoices().filter((x) => /^es/i.test(x.lang)).sort((a, b) => puntos(b) - puntos(a));
+      vozEs = v[0] || null;
+    } catch (e) {}
+  }
+  try { eligeVoz(); speechSynthesis.onvoiceschanged = eligeVoz; } catch (e) {}
+  function habla(texto) {
+    if (!estado || !estado.voz) return;
+    try {
+      speechSynthesis.cancel();
+      const u = new SpeechSynthesisUtterance(texto);
+      u.lang = vozEs ? vozEs.lang : "es-419";
+      if (vozEs) u.voice = vozEs;
+      u.rate = 0.93; u.pitch = 1.12;
+      speechSynthesis.speak(u);
+    } catch (e) {}
+  }
+  function dice(texto, cara) {
+    $("globo").textContent = texto;
+    const o = $("osito");
+    o.classList.remove("uy");
+    if (cara === "uy") { void o.offsetWidth; o.classList.add("uy"); }
+    habla(texto);
+  }
+
+  // ── sonidos hechos a mano ──
+  let audio = null;
+  function ctxAudio() { audio = audio || new (window.AudioContext || window.webkitAudioContext)(); if (audio.state === "suspended") audio.resume(); return audio; }
+  function tono(frec, dur, tipo, vol, hasta, espera) {
+    try {
+      const a = ctxAudio(), t = a.currentTime + (espera || 0);
+      const o = a.createOscillator(), g = a.createGain();
+      o.type = tipo; o.frequency.setValueAtTime(frec, t);
+      if (hasta) o.frequency.exponentialRampToValueAtTime(hasta, t + dur);
+      g.gain.setValueAtTime(vol, t); g.gain.exponentialRampToValueAtTime(0.001, t + dur);
+      o.connect(g).connect(a.destination); o.start(t); o.stop(t + dur + 0.02);
+    } catch (e) {}
+  }
+  function ruido(dur, vol, frec, tipoFiltro) {
+    try {
+      const a = ctxAudio(), n = Math.floor(a.sampleRate * dur);
+      const buf = a.createBuffer(1, n, a.sampleRate), d = buf.getChannelData(0);
+      for (let i = 0; i < n; i++) d[i] = (Math.random() * 2 - 1) * (1 - i / n);
+      const s = a.createBufferSource(), f = a.createBiquadFilter(), g = a.createGain();
+      s.buffer = buf; f.type = tipoFiltro; f.frequency.value = frec; g.gain.value = vol;
+      s.connect(f).connect(g).connect(a.destination); s.start();
+    } catch (e) {}
+  }
+  const suenaPon = () => tono(520, 0.14, "sine", 0.22, 900);
+  const suenaSaca = () => tono(640, 0.14, "sine", 0.18, 300);
+  const suenaNo = () => { tono(200, 0.18, "square", 0.07, 110); tono(160, 0.2, "square", 0.07, 90, 0.16); };
+  const suenaFiesta = () => [523, 659, 784, 1047].forEach((f, i) => tono(f, 0.22, "triangle", 0.18, null, i * 0.13));
+  const suenaCrac = () => { ruido(0.09, 0.9, 2500, "highpass"); tono(1200, 0.05, "square", 0.05, 500); };
+  const suenaPlaf = () => tono(240, 0.2, "sine", 0.35, 80);
+  const suenaPolvo = () => ruido(0.8, 0.5, 700, "lowpass");
+  const suenaTin = () => tono(1700 + Math.random() * 900, 0.09, "sine", 0.07);
+  const suenaSwish = () => ruido(0.2, 0.25, 1300, "bandpass");
+  const suenaChss = () => ruido(0.7, 0.35, 4200, "bandpass");
+  const suenaDing = () => { tono(1320, 1, "sine", 0.25); tono(1760, 1, "sine", 0.12, null, 0.03); };
+  let chisporroteo = null;
+  function sizzle(encendido) {
+    try {
+      if (encendido && !chisporroteo) {
+        const a = ctxAudio(), n = a.sampleRate * 2;
+        const buf = a.createBuffer(1, n, a.sampleRate), d = buf.getChannelData(0);
+        for (let i = 0; i < n; i++) d[i] = Math.random() < 0.003 ? Math.random() * 2 - 1 : (Math.random() * 2 - 1) * 0.22;
+        const s = a.createBufferSource(), f = a.createBiquadFilter(), g = a.createGain();
+        s.buffer = buf; s.loop = true; f.type = "bandpass"; f.frequency.value = 3400; f.Q.value = 0.6; g.gain.value = 0.0001;
+        g.gain.setTargetAtTime(0.09, a.currentTime, 0.2);
+        s.connect(f).connect(g).connect(a.destination); s.start();
+        chisporroteo = { s, g, a };
+      } else if (!encendido && chisporroteo) {
+        const { s, g, a } = chisporroteo;
+        g.gain.setTargetAtTime(0.0001, a.currentTime, 0.1); s.stop(a.currentTime + 0.5);
+        chisporroteo = null;
+      }
+    } catch (e) {}
+  }
+
+  function confeti() {
+    if (quieto) return;
+    const cv = $("confeti"), cx = cv.getContext("2d");
+    const W = (cv.width = innerWidth), H = (cv.height = innerHeight);
+    const colores = ["#FF5E8E", "#3DB7F0", "#FFC21A", "#39C07A", "#9B6BF2", "#FF8A3D"];
+    const p = Array.from({ length: 150 }, () => ({
+      x: W / 2 + (Math.random() - 0.5) * W * 0.4, y: H * 0.45, vx: (Math.random() - 0.5) * 16, vy: -8 - Math.random() * 12,
+      g: Math.random() * Math.PI, vg: (Math.random() - 0.5) * 0.4, c: colores[Math.floor(Math.random() * colores.length)],
+    }));
+    const t0 = performance.now();
+    (function cuadro(t) {
+      cx.clearRect(0, 0, W, H);
+      for (const q of p) {
+        q.vy += 0.35; q.vx *= 0.99; q.x += q.vx; q.y += q.vy; q.g += q.vg;
+        cx.save(); cx.translate(q.x, q.y); cx.rotate(q.g); cx.fillStyle = q.c; cx.fillRect(-3, -8, 6, 16); cx.restore();
+      }
+      if (t - t0 < 3200) requestAnimationFrame(cuadro); else cx.clearRect(0, 0, W, H);
+    })(t0);
+  }
+
+  function subeArriba() {
+    try { document.querySelector(".cocina").scrollIntoView({ behavior: quieto ? "auto" : "smooth", block: "start" }); } catch (e) {}
+  }
+
+  // ════════════ ESTADO Y PANTALLAS ════════════
+  const MAX = 24;
+  const PASOS = {
+    horno: [["juntar", "Juntar"], ["mezclar", "Mezclar"], ["horno", "Hornear"], ["rellenar", "Rellenar"], ["decorar", "Decorar"]],
+    sarten: [["juntar", "Juntar"], ["saltear", "Saltear"], ["servir", "Servir"]],
+  };
+
+  function limpio() {
+    return { fase: "juntar", bandeja: [], ganado: false, echado: {}, blobs: [], mezcla: 0, giro: 0, dijoMitad: false, dijoTodo: false,
+      piezas: [], charcos: [], coccion: 0, fuego: false, plato: null, ops: [], grupo: 0, terminado: false,
+      rOps: [], rCeldas: [], rListo: false };
+  }
+  function estadoInicial() {
+    return Object.assign({ jugador: "", voz: true, pantalla: "nombre", cont: "todos", pais: null, tipoFiltro: "todos",
+      rid: null, modo: "horno", nombre: "", receta: {}, contador: 0,
+      color: "chocoOscuro", herr: "cubrir", relleno: "manjar", salsa: "tomate", herrPlato: "salsa" }, limpio());
+  }
+
+  let ultimaVista = "";
+  function pintaTodo() {
+    $("bienvenida").hidden = estado.pantalla !== "nombre";
+    $("nombreJugador").textContent = estado.jugador;
+    $("voz").setAttribute("aria-pressed", String(estado.voz));
+    $("vozTexto").textContent = estado.voz ? "Canela habla" : "Canela callada";
+    const enCocina = estado.pantalla === "cocina";
+    $("irRecetario").hidden = !enCocina;
+    $("pasos").hidden = !enCocina;
+    pintaFase();
+  }
+
+  function pintaFase() {
+    const P = estado.pantalla, f = estado.fase, esp = estado.rid === "especial";
+    const ver = (id, si) => { $(id).hidden = !si; };
+    const rece = P === "recetario", coc = P === "cocina";
+    const bol = coc && ["mezclar", "horno", "saltear"].includes(f);
+    const lienzo = coc && ["rellenar", "decorar", "servir"].includes(f);
+    ver("panelMundo", rece); ver("faseRecetario", rece);
+    ver("panelJuntar", coc && f === "juntar" && !esp); ver("panelEspecial", coc && f === "juntar" && esp); ver("faseJuntar", coc && f === "juntar");
+    ver("panelMezclar", bol); ver("faseMezclar", bol);
+    ver("faseDecorar", lienzo); ver("panelRellenar", coc && f === "rellenar"); ver("panelDecorar", coc && f === "decorar"); ver("panelServir", coc && f === "servir");
+    ver("barraDecorar", coc && (f === "decorar" || f === "servir"));
+    ver("horno", coc && f === "horno");
+
+    const vista = P + f;
+    if (vista !== ultimaVista) {
+      ultimaVista = vista;
+      document.querySelectorAll(".fase:not([hidden])").forEach((el) => { el.classList.remove("entra"); void el.offsetWidth; el.classList.add("entra"); });
+    }
+    $("osito").classList.toggle("fiesta", coc && ((f === "juntar" && estado.ganado && !esp) || ((f === "decorar" || f === "servir") && estado.terminado)));
+
+    if (rece) pintaRecetario();
+    if (!coc) return;
+    const lista = PASOS[estado.modo];
+    const i = lista.findIndex((p) => p[0] === f);
+    $("pasos").innerHTML = lista.map(([, n], j) => `<li class="${j < i ? "hecho" : j === i ? "activo" : ""}"${j === i ? ' aria-current="step"' : ""}><b>${j + 1}</b>${n}</li>`).join("");
+
+    if (f === "juntar") {
+      if (esp) pintaEspecial(); else pintaReceta();
+      pintaEstante(); pintaBandeja();
+      $("listo").hidden = !estado.ganado || esp;
+    }
+    if (bol) {
+      const sarten = f === "saltear";
+      $("tituloBol").textContent = sarten ? "La sartén" : "El bol";
+      $("tituloPanelBol").textContent = sarten ? "A la sartén" : "Al bol";
+      $("subPanelBol").textContent = sarten ? "Enciende el fuego. Toca un ingrediente para tomarlo con la mano y échalo a la sartén."
+        : "Toca un ingrediente para tomarlo con la mano y muévelo con el mouse. El número dice cuántos quedan.";
+      $("etiquetaMedidor").textContent = sarten ? "Cocción" : "Mezcla";
+      $("cajaFuego").hidden = !sarten;
+      $("revolver").textContent = sarten ? "Saltear" : "Revolver con la cuchara";
+      $("alHorno").textContent = sarten ? "Servir en el plato" : "¡Al horno!";
+      $("guardado").hidden = sarten || !("glaseado" in estado.receta || "chispitas" in estado.receta);
+      $("masaHorno").setAttribute("fill", pal().lado[1]);
+      pintaEchar();
+    }
+    if (lienzo) {
+      $("tituloPastel").textContent = f === "rellenar" ? "El bizcocho" : f === "servir" ? "Tu plato" : "Tu pastel";
+      $("pastelListo").hidden = !estado.terminado || f === "rellenar";
+      if (f === "rellenar") pintaRellenos();
+      if (f === "decorar") pintaHerramientas();
+      if (f === "servir") pintaHerrPlato();
+      redibuja();
+    }
+  }
+
+  // ════════════ BIENVENIDA ════════════
+  function nombresGuardados() {
+    try { return JSON.parse(localStorage.getItem("canela_nombres") || "[]").filter((x) => typeof x === "string").slice(0, 5); } catch (e) { return []; }
+  }
+  function pintaBienvenida() {
+    const viejos = nombresGuardados();
+    $("nombresViejos").hidden = !viejos.length;
+    $("listaNombres").innerHTML = viejos.map((n) => `<button class="chip" type="button" data-n="${n.replace(/"/g, "&quot;")}">${n.replace(/</g, "&lt;")}</button>`).join("");
+  }
+  function entra(nombre) {
+    nombre = nombre.trim().replace(/\s+/g, " ").slice(0, 20);
+    if (!nombre) { $("avisoNombre").textContent = "Escribe tu nombre para empezar."; $("campoNombre").focus(); return; }
+    nombre = mayus(nombre);
+    $("avisoNombre").textContent = "";
+    try { localStorage.setItem("canela_nombres", JSON.stringify([nombre].concat(nombresGuardados().filter((n) => n !== nombre)).slice(0, 5))); } catch (e) {}
+    estado.jugador = nombre;
+    estado.pantalla = "recetario";
+    tono(660, 0.12, "sine", 0.15);
+    pintaTodo();
+    dice(`¡Hola, ${nombre}! Qué bueno cocinar contigo. Elige una comida del mundo o inventa tu plato especial.`);
+  }
+
+  // ════════════ RECETARIO ════════════
+  function pintaRecetario() {
+    $("saludo").textContent = `Recetario de ${estado.jugador}`;
+    $("continentes").innerHTML = [["todos", "Todo el mundo"]].concat(CONTINENTES.map((c) => [c, c]))
+      .map(([id, n]) => `<button class="chip" type="button" data-cont="${id}" aria-pressed="${estado.cont === id}">${n}</button>`).join("");
+    const paises = estado.cont === "todos" ? [] : Object.keys(PAISES).filter((p) => PAISES[p].cont === estado.cont && RECETAS.some((r) => r.pais === p));
+    $("tituloPaises").hidden = !paises.length;
+    $("paises").innerHTML = paises.map((p) => `<button class="chip" type="button" data-pais="${p}" aria-pressed="${estado.pais === p}"><span class="bandera mini" style="background:${PAISES[p].f}"></span>${p}</button>`).join("");
+    $("tipos").innerHTML = [["todos", "Todas"], ["dulce", "Dulces"], ["salado", "Saladas"]]
+      .map(([id, n]) => `<button class="chip" type="button" data-tipo="${id}" aria-pressed="${estado.tipoFiltro === id}">${n}</button>`).join("");
+
+    const lista = RECETAS.filter((r) => (estado.cont === "todos" || PAISES[r.pais].cont === estado.cont)
+      && (!estado.pais || r.pais === estado.pais) && (estado.tipoFiltro === "todos" || r.tipo === estado.tipoFiltro));
+    $("cuentaRecetas").textContent = `${lista.length} ${lista.length === 1 ? "receta" : "recetas"}`;
+    $("tarjetas").innerHTML = `<button class="tarjeta especial" type="button" data-rid="especial">
+        <span class="fila-pais">Tu invento</span>${iconoDe("s:estrella")}
+        <span class="nom">Mi plato especial</span><span class="tags"><span class="tag">Con lo que tú quieras</span></span></button>`
+      + lista.map((r) => `<button class="tarjeta" type="button" data-rid="${r.id}">
+        <span class="fila-pais"><span class="bandera mini" style="background:${PAISES[r.pais].f}"></span>${r.pais}</span>
+        ${iconoIng(r.ico)}<span class="nom">${r.nom}</span>
+        <span class="tags"><span class="tag t-${r.modo}">${r.modo === "horno" ? "Horno" : "Sartén"}</span><span class="tag">${r.tipo === "dulce" ? "Dulce" : "Salado"}</span></span></button>`).join("");
+  }
+
+  function empiezaReceta(rid) {
+    const esp = rid === "especial";
+    const r = esp ? null : RECETAS.find((x) => x.id === rid);
+    if (!esp && !r) return;
+    Object.assign(estado, limpio(), {
+      pantalla: "cocina", rid,
+      receta: esp ? {} : { ...r.ing },
+      nombre: esp ? `Plato especial de ${estado.jugador}` : r.nom,
+      modo: esp ? "sarten" : r.modo,
+    });
+    anim = null; parts = [];
+    pintaTodo();
+    subeArriba();
+    tono(620, 0.1, "sine", 0.12);
+    if (esp) {
+      $("nombrePlato").value = estado.nombre;
+      dice("¡Vamos a inventar! Pon en la bandeja todo lo que quieras y elige cómo cocinarlo.");
+    } else {
+      const lista = ingsReceta().map((ing) => conNombre(ing, estado.receta[ing.id]));
+      dice(`${r.nom}, de ${r.pais}. ${r.dato} Necesitamos ${lista.length > 1 ? lista.slice(0, -1).join(", ") + " y " : ""}${lista[lista.length - 1]}.`);
+    }
+  }
+
+  // ════════════ 1 · JUNTAR ════════════
+  const cuantos = (tipo) => estado.bandeja.filter((x) => x.t === tipo).length;
+
+  function pintaReceta() {
+    const r = rec();
+    $("tituloReceta").textContent = r.nom;
+    $("subReceta").innerHTML = `<span class="bandera mini" style="background:${PAISES[r.pais].f}"></span>Receta de ${r.pais}`;
+    $("datoReceta").textContent = r.dato;
+    $("lista").innerHTML = ingsReceta().map((ing) => {
+      const pide = estado.receta[ing.id], hay = cuantos(ing.id);
+      let pts = "";
+      for (let i = 0; i < Math.max(pide, hay); i++) pts += `<i class="${i >= pide ? "demas" : i < hay ? "lleno" : ""}"></i>`;
+      return `<li class="${hay === pide ? "exacto" : ""}" aria-label="${conNombre(ing, pide)}, tienes ${hay}">
+        ${iconoIng(ing.id)}<span class="num">${pide}</span><span class="nom">${ing.nombre}<span class="puntos">${pts}</span></span></li>`;
+    }).join("");
+  }
+
+  function pintaEspecial() {
+    const cuentas = {};
+    estado.bandeja.forEach((x) => { cuentas[x.t] = (cuentas[x.t] || 0) + 1; });
+    const ids = Object.keys(cuentas);
+    $("resumenEspecial").innerHTML = ids.length ? ids.map((id) => `<li>${iconoIng(id)}×${cuentas[id]}</li>`).join("") : `<li class="vacio">Todavía no hay nada.</li>`;
+    document.querySelectorAll("#modos .opcion").forEach((b) => b.setAttribute("aria-pressed", String(b.dataset.modo === estado.modo)));
+  }
+
+  function despensa() {
+    if (esEspecial()) return ING.map((i) => i.id);
+    const r = rec(), azarR = semilla(r.id), ids = Object.keys(r.ing);
+    const otros = ING.filter((i) => !ids.includes(i.id) && (i.clase !== "decor" || r.modo === "horno")).map((i) => i.id);
+    const extra = [];
+    while (extra.length < 3 && otros.length) extra.push(otros.splice(Math.floor(azarR() * otros.length), 1)[0]);
+    const todo = ids.concat(extra, RAROS[Math.floor(azarR() * RAROS.length)].id);
+    for (let i = todo.length - 1; i > 0; i--) { const j = Math.floor(azarR() * (i + 1)); [todo[i], todo[j]] = [todo[j], todo[i]]; }
+    return todo;
+  }
+  function pintaEstante() {
+    const e = $("estante");
+    e.classList.toggle("grande", esEspecial());
+    e.innerHTML = despensa().map((id) => `<button class="frasco" type="button" data-t="${id}">${iconoIng(id)}<span>${buscaCosa(id).nombre}</span></button>`).join("");
+  }
+  function pintaBandeja(nuevoK) {
+    $("rejilla").innerHTML = estado.bandeja.map((x) => {
+      const giro = ((x.k * 37) % 23) - 11;
+      return `<button class="item${x.k === nuevoK ? " oculto" : ""}" type="button" data-k="${x.k}" style="transform: rotate(${giro}deg)" aria-label="Sacar ${buscaIng(x.t).uno}">${iconoIng(x.t)}</button>`;
+    }).join("");
+    $("vacia").hidden = estado.bandeja.length > 0;
+  }
+
+  function vuela(desde, hacia, id) {
+    if (quieto || !desde || !hacia || !desde.animate) return Promise.resolve();
+    const a = desde.getBoundingClientRect(), b = hacia.getBoundingClientRect();
+    const c = document.createElement("div");
+    c.className = "volando";
+    c.innerHTML = iconoIng(id);
+    Object.assign(c.style, { left: a.left + "px", top: a.top + "px", width: a.width + "px", height: a.height + "px" });
+    document.body.appendChild(c);
+    const dx = b.left + b.width / 2 - (a.left + a.width / 2), dy = b.top + b.height / 2 - (a.top + a.height / 2);
+    const s = b.width / a.width;
+    const an = c.animate([
+      { transform: "translate(0,0) scale(1) rotate(0deg)" },
+      { transform: `translate(${dx * 0.5}px, ${dy * 0.5 - 90}px) scale(${(1 + s) * 0.62}) rotate(-14deg)`, offset: 0.5 },
+      { transform: `translate(${dx}px, ${dy}px) scale(${s}) rotate(0deg)` },
+    ], { duration: 520, easing: "cubic-bezier(.3,.6,.4,1)" });
+    return an.finished.then(() => c.remove(), () => c.remove());
+  }
+
+  function todoListo() {
+    const ids = Object.keys(estado.receta);
+    const total = ids.reduce((s, id) => s + estado.receta[id], 0);
+    return estado.bandeja.length === total && ids.every((id) => cuantos(id) === estado.receta[id]);
+  }
+
+  function pon(tipo, boton) {
+    if (estado.ganado) return;
+    const raro = RAROS.find((x) => x.id === tipo);
+    if (raro) {
+      boton.classList.remove("sacude"); void boton.offsetWidth; boton.classList.add("sacude");
+      suenaNo(); dice(raro.frase, "uy");
+      return;
+    }
+    if (estado.bandeja.length >= MAX) { suenaNo(); dice("¡La bandeja está llena! Toca algo en la bandeja para sacarlo.", "uy"); return; }
+    const ing = buscaIng(tipo), k = ++estado.contador;
+    estado.bandeja.push({ k, t: tipo });
+    pintaBandeja(k);
+    const destino = $("rejilla").querySelector(`[data-k="${k}"]`);
+    suenaPon();
+    if (esEspecial()) {
+      pintaEspecial();
+      dice(`¡${mayus(cuantoDelante(1, ing.f))} ${ing.uno}! ¿Qué más le pones?`);
+    } else {
+      const hay = cuantos(tipo), pide = estado.receta[tipo];
+      if (!pide) dice(`¡Uy! Esta receta no lleva ${ing.nombre.toLowerCase()}. ${ing.f ? "Tócala" : "Tócalo"} en la bandeja para sacar${ing.f ? "la" : "lo"}.`, "uy");
+      else if (hay < pide) { const falta = pide - hay; dice(`¡${mayus(cuantoDelante(1, ing.f))} ${ing.uno}! ${falta === 1 ? "Falta" : "Faltan"} ${cuantoSolo(falta, ing.f)}.`); }
+      else if (hay === pide) dice(`¡Muy bien! Ya tienes ${conNombre(ing, pide)}.`);
+      else dice(`¡Uy! Son solo ${conNombre(ing, pide)}. Toca ${ing.f ? "una" : "uno"} en la bandeja para sacarlo.`, "uy");
+      pintaReceta();
+    }
+    vuela(boton.querySelector(".ico-i"), destino, tipo).then(() => {
+      const el = $("rejilla").querySelector(`[data-k="${k}"]`);
+      if (el) { el.classList.remove("oculto"); el.classList.add("nuevo"); }
+      if (!esEspecial() && todoListo()) gana();
+    });
+  }
+
+  function saca(k) {
+    if (estado.ganado) return;
+    const i = estado.bandeja.findIndex((x) => x.k === k);
+    if (i < 0) return;
+    const ing = buscaIng(estado.bandeja[i].t);
+    estado.bandeja.splice(i, 1);
+    suenaSaca();
+    pintaBandeja();
+    if (esEspecial()) { pintaEspecial(); dice(`Sacaste ${cuantoDelante(1, ing.f)} ${ing.uno}.`); return; }
+    pintaReceta();
+    const hay = cuantos(ing.id), pide = estado.receta[ing.id] || 0;
+    dice(hay === pide ? `Sacaste ${cuantoDelante(1, ing.f)} ${ing.uno}. ¡Ahora sí está bien!` : `Sacaste ${cuantoDelante(1, ing.f)} ${ing.uno}.`);
+    if (todoListo()) gana();
+  }
+
+  function gana() {
+    if (estado.ganado) return;
+    estado.ganado = true;
+    $("osito").classList.remove("uy");
+    $("osito").classList.add("fiesta");
+    $("listo").hidden = false;
+    $("listoTexto").textContent = `Juntaste todo para: ${estado.nombre}.`;
+    suenaFiesta(); confeti();
+    dice(`¡Lo lograste, ${estado.jugador}! Tenemos todo. ¡A cocinar!`);
+    $("aCocinar").focus({ preventScroll: true });
+  }
+
+  function cocinarEspecial() {
+    if (estado.bandeja.length < 2) { suenaNo(); dice("Pon por lo menos dos ingredientes en la bandeja.", "uy"); return; }
+    const cuentas = {};
+    estado.bandeja.forEach((x) => { cuentas[x.t] = (cuentas[x.t] || 0) + 1; });
+    estado.receta = cuentas;
+    if (!alBol().length) { estado.receta = {}; suenaNo(); dice("El glaseado y las chispitas son para decorar. Pon algo más para cocinar.", "uy"); return; }
+    estado.nombre = $("nombrePlato").value.trim().slice(0, 40) || `Plato especial de ${estado.jugador}`;
+    vamosACocinar();
+  }
+
+  function vamosACocinar() {
+    estado.fase = estado.modo === "horno" ? "mezclar" : "saltear";
+    $("osito").classList.remove("fiesta");
+    pintaFase();
+    subeArriba();
+    if (estado.modo === "horno") dice("¡A mezclar! Toca cada ingrediente para tomarlo con la mano y échalo al bol.");
+    else dice("¡A la sartén! Enciende el fuego y después echa los ingredientes.");
+  }
+
+  // ════════════ 2 · BOL Y SARTÉN ════════════
+  const cB = $("bol").getContext("2d");
+  cB.setTransform(2, 0, 0, 2, 0, 0);
+  let anim = null, parts = [], autoHasta = 0, dedo = null, abajo = false, angPrev = null, acumSwish = 0, calor = 0;
+  let dijoFuego = false, dijoEchar = false;
+  const enSarten = () => estado.fase === "saltear";
+  const SX = 300, SY = 232, SRX = 198, SRY = 84;   // la sartén
+
+  const echado = (id) => estado.echado[id] || 0;
+  const totalBol = () => alBol().reduce((s, id) => s + estado.receta[id], 0);
+  const todosEchados = () => alBol().every((id) => echado(id) >= estado.receta[id]) && !anim;
+  const progreso = () => (enSarten() ? estado.coccion : estado.mezcla);
+
+  function pintaEchar() {
+    $("echar").innerHTML = alBol().map((id) => {
+      const ing = buscaIng(id), quedan = estado.receta[id] - echado(id);
+      return `<button class="fila-echar${quedan <= 0 ? " vacio" : ""}${enMano === id ? " en-mano" : ""}" type="button" data-t="${id}" aria-label="Echar ${ing.uno}. Quedan ${Math.max(0, quedan)}">
+        ${iconoIng(id)}<span class="n">${ing.nombre}</span><span class="cuenta">${quedan <= 0 ? "✓" : quedan}</span></button>`;
+    }).join("");
+    const listos = todosEchados(), p = progreso();
+    $("revolver").hidden = enSarten() ? !(estado.piezas.length || estado.charcos.length) || p >= 1 : !listos || p >= 1;
+    $("alHorno").hidden = p < 1 || estado.fase === "horno";
+    $("fuego").setAttribute("aria-pressed", String(estado.fuego));
+    $("fuego").textContent = estado.fuego ? "Apagar el fuego" : "Encender el fuego";
+    pintaMedidor();
+  }
+  function pintaMedidor() {
+    const p = Math.round(progreso() * 100);
+    $("medidor").style.width = p + "%";
+    $("pctMezcla").textContent = p + " %";
+  }
+
+  const DUR = { huevo: 1400, polvo: 1700, liquido: 1600, granos: 1400, solido: 1000, derrite: 1000 };
+
+  // ── 🐾 LAS MANOS DE CANELA: el ingrediente pasa a la pata y tú la mueves con el mouse ──
+  let enMano = null, golpes = 0, vertiendo = false, vertido = 0, avisoFuera = false;
+  const deDonde = () => (enSarten() ? "de la sartén" : "del bol");
+  function tomaEnMano(id) {
+    if (!["mezclar", "saltear"].includes(estado.fase) || anim) return;
+    const ing = buscaIng(id), pide = estado.receta[id];
+    if (echado(id) >= pide) { dice(`Ya echaste ${conNombre(ing, pide)}.`); return; }
+    if (enMano === id) { enMano = null; vertiendo = false; echa(id); return; }   // segundo toque: lo hace Canela
+    enMano = id; golpes = 0; vertido = 0; vertiendo = false; avisoFuera = false;
+    pintaEchar();
+    tono(500, 0.08, "sine", 0.1);
+    const cl = ing.clase;
+    const como = cl === "huevo" ? `Golpéalo dos veces en el borde ${deDonde()} para romperlo.`
+      : ["polvo", "liquido", "granos"].includes(cl) ? `Pon la mano encima ${deDonde()} y mantén apretado para echarlo.`
+      : `Pon la mano encima ${deDonde()} y haz clic para soltarlo.`;
+    dice(`¡${mayus(cuantoDelante(1, ing.f))} ${ing.uno} en tu mano! ${como} Si quieres que lo haga yo, tócalo otra vez.`);
+  }
+  function encimaDe(p) {
+    if (enSarten()) return Math.abs(p.x - SX) < SRX + 20 && p.y < SY + SRY;
+    return Math.abs(p.x - 320) < 240 && p.y < 240;
+  }
+  const manoEn = () => dedo || { x: 520, y: 80 };
+
+  function pata(c, x, y, giro) {
+    c.save(); c.translate(x, y); c.rotate(giro || 0);
+    c.lineCap = "round";
+    c.beginPath(); c.moveTo(0, 10); c.lineTo(70, 150); c.strokeStyle = "#4B2C20"; c.lineWidth = 46; c.stroke();
+    c.strokeStyle = "#B8703A"; c.lineWidth = 38; c.stroke();
+    c.beginPath(); c.ellipse(0, 12, 30, 25, 0, 0, TAU); c.fillStyle = "#B8703A"; c.fill(); c.lineWidth = 4; c.strokeStyle = "#4B2C20"; c.stroke();
+    c.beginPath(); c.ellipse(2, 18, 13, 10, 0, 0, TAU); c.fillStyle = "#F0C9A0"; c.fill();
+    c.fillStyle = "#F0C9A0";
+    [[-16, 2], [-5, -6], [8, -6], [18, 3]].forEach((q) => { c.beginPath(); c.arc(q[0], q[1], 4.5, 0, TAU); c.fill(); });
+    c.restore();
+  }
+
+  function dibujaMano(c, t) {
+    if (!enMano) return;
+    const ing = buscaIng(enMano), cl = ing.clase, m = manoEn();
+    if (cl === "huevo") {
+      huevoEntero(c, m.x, m.y - 14);
+      if (golpes > 0) { c.save(); c.translate(m.x, m.y - 14); c.beginPath(); ZIG.forEach((q, i) => (i ? c.lineTo(q[0], q[1]) : c.moveTo(q[0], q[1]))); c.lineWidth = 3.5; c.strokeStyle = "#4B2C20"; c.stroke(); c.restore(); }
+      pata(c, m.x, m.y + 8);
+    } else if (["polvo", "liquido", "granos"].includes(cl)) {
+      const giro = vertiendo ? -1.8 : -0.25;
+      const bx = m.x - 30 * Math.sin(-giro), by = m.y - 30;
+      if (vertiendo) {
+        const mx = bx - 40, my = by + 14, suelo = contenido().cy;
+        c.lineCap = "round";
+        c.beginPath(); c.moveTo(mx, my); c.quadraticCurveTo(mx - 6 + Math.sin(t * 0.03) * 5, (my + suelo) / 2, mx - 8, suelo);
+        if (cl === "liquido") { c.strokeStyle = "rgba(75,44,32,.35)"; c.lineWidth = 15; c.stroke(); c.strokeStyle = ing.c; c.lineWidth = 10; c.stroke(); }
+        else if (cl === "polvo") { c.strokeStyle = enMano === "curry" ? ing.c : "rgba(255,253,245,.92)"; c.lineWidth = 15; c.stroke(); }
+        else { for (let i = 0; i < 3; i++) parts.push({ k: "grano", x: mx + azar(-6, 6), y: my, vx: azar(-20, 20), vy: azar(40, 120), vida: 0, max: 3, suelo: suelo + azar(-10, 10), c: "#FFFFFF" }); }
+      }
+      dibujaIco(c, ing.ico, bx, by, 104, giro, 1);
+      pata(c, m.x + 18, m.y + 10, 0.2);
+    } else {
+      dibujaIco(c, ing.ico, m.x, m.y - 22, 84, 0, 1);
+      pata(c, m.x, m.y + 10);
+    }
+  }
+
+  // verter mientras se mantiene apretado
+  function pasoMano(dt, t) {
+    if (!enMano || !vertiendo) return;
+    const ing = buscaIng(enMano), m = manoEn(), suelo = contenido().cy;
+    const mx = m.x - 30 * Math.sin(1.8) - 40, cae = { x: mx - 8, y: suelo };
+    if (!encimaDe(m)) {
+      if (!avisoFuera) { avisoFuera = true; dice(`¡Uy, se cae afuera! Pon la mano encima ${deDonde()}.`, "uy"); }
+      return;
+    }
+    vertido += dt / (ing.clase === "liquido" ? 1.1 : 1.3);
+    if (ing.clase === "polvo" && Math.random() < 0.7) polvo(cae.x, cae.y, 2, 1, enMano === "curry" ? hexRgb(ing.c).join(",") : null);
+    if (ing.clase === "liquido" && Math.random() < 0.35) gotas(cae.x, cae.y, 2, [ing.c]);
+    if (ing.clase === "granos" && Math.random() < dt * 8) suenaTin();
+    if (vertido >= 1) {
+      if (ing.clase === "polvo") { suenaPolvo(); polvo(cae.x, cae.y, 45, 2.2, enMano === "curry" ? hexRgb(ing.c).join(",") : null); }
+      else if (ing.clase === "liquido") tono(300, 0.3, "sine", 0.2, 150);
+      terminaMano();
+    }
+  }
+  function terminaMano() {
+    const id = enMano;
+    enMano = null; vertiendo = false;
+    estado.echado[id] = echado(id) + 1;
+    aterriza(id);
+    const ing = buscaIng(id), quedan = estado.receta[id] - echado(id);
+    pintaEchar();
+    if (todosEchados() && !estado.dijoTodo) {
+      estado.dijoTodo = true;
+      dice(enSarten() ? (estado.fuego ? "¡Todo en la sartén! Muévelo con la espátula." : "¡Todo en la sartén! Ahora enciende el fuego.") : "¡Todo adentro! Ahora revuelve: pasa el mouse en círculos dentro del bol.");
+    } else dice(`¡Muy bien! ${quedan > 0 ? `${quedan === 1 ? "Queda" : "Quedan"} ${cuantoSolo(quedan, ing.f)}.` : `Listo ${ing.nombre.toLowerCase()}.`}`);
+  }
+
+  function clicConMano(p) {
+    const ing = buscaIng(enMano), cl = ing.clase;
+    if (["polvo", "liquido", "granos"].includes(cl)) { vertiendo = true; avisoFuera = false; if (cl === "polvo") ruido(0.4, 0.3, 700, "lowpass"); return; }
+    if (!encimaDe(p)) { dice(`Primero pon la mano encima ${deDonde()}.`, "uy"); return; }
+    const dur = quieto ? 300 : DUR[cl] || 1000;
+    if (cl === "huevo") {
+      golpes++;
+      if (golpes === 1) { suenaCrac(); gotas(p.x, p.y - 14, 4, ["#FFF1D9"]); dice("¡Crac! Se trizó. ¡Golpéalo otra vez!"); return; }
+      const id = enMano;
+      enMano = null;
+      estado.echado[id] = echado(id) + 1;
+      anim = { tipo: id, t0: performance.now() - dur * 0.42, dur, hecho: {}, X: p.x, Y: p.y - 14 };
+      pintaEchar();
+      dice(`¡Crac! ¡Rompiste el huevo, ${estado.jugador}!`);
+      return;
+    }
+    const id = enMano;
+    enMano = null;
+    estado.echado[id] = echado(id) + 1;
+    anim = { tipo: id, t0: performance.now(), dur, hecho: {}, X: p.x, Y0: p.y - 22 };
+    pintaEchar();
+    dice(enSarten() && estado.fuego ? "¡Chsss! A la sartén." : "¡Plop! Adentro.");
+  }
+
+  function echa(id) {
+    if (!["mezclar", "saltear"].includes(estado.fase) || anim) return;
+    const ing = buscaIng(id), pide = estado.receta[id];
+    if (echado(id) >= pide) { dice(`Ya echaste ${conNombre(ing, pide)}.`); return; }
+    estado.echado[id] = echado(id) + 1;
+    anim = { tipo: id, t0: performance.now(), dur: quieto ? 300 : DUR[ing.clase] || 1000, hecho: {} };
+    pintaEchar();
+    const quedan = pide - echado(id);
+    const resto = quedan > 0 ? ` ${quedan === 1 ? "Queda" : "Quedan"} ${cuantoSolo(quedan, ing.f)}.` : "";
+    const FRASES = {
+      huevo: "¡Crac! Se quiebra el huevo.", harina: "¡Puf! Mira cómo vuela la harina.", coco: "¡Puf! Coco rallado.",
+      curry: "¡Achís! El curry hace cosquillas en la nariz.", azucar: "Tin, tin, tin. El azúcar brilla.", sal: "Una pizca de sal.",
+      miel: "Mmm, un hilo de miel dorada.", leche: "¡Glu, glu! Cae la leche.", aceite: "Un chorrito de aceite.",
+      soya: "Un chorrito de salsa de soya.", mantequilla: "¡Plaf! La mantequilla.",
+    };
+    let frase = FRASES[id] || `¡Plop! ${mayus(cuantoDelante(1, ing.f))} ${ing.uno}.`;
+    if (enSarten() && estado.fuego && !FRASES[id]) frase = `¡Chsss! ${mayus(cuantoDelante(1, ing.f))} ${ing.uno} a la sartén.`;
+    dice(frase + resto);
+  }
+
+  // lo que cae se queda en el bol (manchas) o en la sartén (trozos)
+  function aterriza(tipo) {
+    if (!enSarten()) { estado.blobs.push({ t: tipo, a: Math.random() * TAU, rr: 0.2 + Math.random() * 0.6, s: Math.random() * TAU }); return; }
+    const ing = buscaIng(tipo);
+    const a = Math.random() * TAU, r = Math.sqrt(Math.random()) * 0.6;
+    const x = SX + Math.cos(a) * SRX * r, y = SY + Math.sin(a) * SRY * r;
+    if (estado.fuego) suenaChss();
+    if (ing.clase === "liquido" || ing.clase === "derrite" || ing.clase === "polvo") {
+      const color = tipo === "harina" ? "#F1E0BD" : ing.c;
+      const alfa = tipo === "aceite" ? 0.45 : tipo === "soya" ? 0.7 : 0.88;
+      estado.charcos.push({ c: color, x, y, rx: azar(60, 90), ry: azar(24, 34), a: alfa });
+    } else if (ing.clase === "huevo") {
+      estado.piezas.push({ ico: "huevo", x, y, z: 0, vz: 0, vx: 0, vy: 0, rot: azar(0, TAU), tam: 64 });
+    } else if (ing.clase === "solido") {
+      for (let i = 0; i < 4; i++) estado.piezas.push({ ico: ing.ico, x: x + azar(-40, 40), y: y + azar(-14, 14), z: azar(20, 60), vz: azar(50, 150), vx: azar(-60, 60), vy: azar(-20, 20), rot: azar(-0.6, 0.6), tam: 40 });
+    }
+  }
+
+  function contenido() {
+    if (enSarten()) return { L: 1, cy: SY, rx: SRX, ry: SRY };
+    const L = Math.min(1, estado.blobs.length / Math.max(1, totalBol()));
+    return { L, cy: 150 + 34 * (1 - L), rx: 120 + 118 * L, ry: 26 + 28 * L };
+  }
+  function mezclaColor() {
+    const a = hexRgb(pal().masa[0]), b = hexRgb(pal().masa[1]), m = estado.mezcla;
+    return `rgb(${a.map((v, i) => Math.round(v + (b[i] - v) * m)).join(",")})`;
+  }
+
+  // ── partículas ──
+  function polvo(x, y, n, fuerza, color) {
+    for (let i = 0; i < n; i++) parts.push({ k: "polvo", x: x + azar(-24, 24), y: y + azar(-10, 6), vx: azar(-70, 70) * fuerza, vy: azar(-150, -20) * fuerza, r: azar(8, 20), vida: 0, max: azar(1.1, 2.1), c: color || (Math.random() < 0.7 ? "255,255,255" : "246,236,214") });
+  }
+  function gotas(x, y, n, colores) {
+    for (let i = 0; i < n; i++) parts.push({ k: "gota", x, y, vx: azar(-170, 170), vy: azar(-280, -90), r: azar(3.5, 8), vida: 0, max: 0.7, c: colores[i % colores.length] });
+  }
+  function actualizaParticulas(dt) {
+    for (const p of parts) {
+      p.vida += dt;
+      if (p.k === "polvo" || p.k === "vapor") { p.vx *= 1 - 1.6 * dt; p.vy = p.vy * (1 - (p.k === "vapor" ? 0.3 : 1.6) * dt) - 8 * dt; p.r += 22 * dt; }
+      else if (p.k === "gota") p.vy += 900 * dt;
+      else if (p.k === "grano") { p.vy += 500 * dt; if (p.y > p.suelo) p.vida = p.max; }
+      p.x += p.vx * dt; p.y += p.vy * dt;
+    }
+    parts = parts.filter((p) => p.vida < p.max);
+  }
+  function dibujaParticulas(c) {
+    for (const p of parts) {
+      const t = p.vida / p.max;
+      if (p.k === "polvo" || p.k === "vapor") { c.fillStyle = `rgba(${p.c},${(p.k === "vapor" ? 0.3 : 0.85) * (1 - t)})`; c.beginPath(); c.arc(p.x, p.y, p.r, 0, TAU); c.fill(); }
+      else if (p.k === "gota") { c.fillStyle = p.c; c.globalAlpha = 1 - t * 0.6; c.beginPath(); c.arc(p.x, p.y, p.r, 0, TAU); c.fill(); c.globalAlpha = 1; }
+      else if (p.k === "grano") { c.fillStyle = p.c; c.strokeStyle = "rgba(75,44,32,.35)"; c.lineWidth = 1; c.fillRect(p.x, p.y, 4, 4); c.strokeRect(p.x, p.y, 4, 4); }
+    }
+  }
+
+  // ── el huevo que se quiebra ──
+  function huevoEntero(c, x, y) {
+    c.save(); c.translate(x, y);
+    c.beginPath(); c.ellipse(0, 0, 26, 34, 0, 0, TAU); c.fillStyle = "#FFF1D9"; c.fill();
+    c.lineWidth = 3.5; c.strokeStyle = "#4B2C20"; c.stroke();
+    c.beginPath(); c.ellipse(-8, -12, 5, 9, 0.3, 0, TAU); c.fillStyle = "#FFFFFF"; c.fill();
+    c.restore();
+  }
+  const ZIG = [[-32, 0], [-21, -7], [-11, 5], [0, -7], [11, 5], [21, -7], [32, 0]];
+  function mitadHuevo(c, x, y, giro, alfa, arriba) {
+    c.save(); c.translate(x, y); c.rotate(giro); c.globalAlpha = alfa;
+    c.beginPath();
+    c.moveTo(-40, arriba ? -50 : 50); c.lineTo(40, arriba ? -50 : 50); c.lineTo(40, 0);
+    for (let i = ZIG.length - 1; i >= 0; i--) c.lineTo(ZIG[i][0], ZIG[i][1]);
+    c.lineTo(-40, 0); c.closePath(); c.clip();
+    c.beginPath(); c.ellipse(0, 0, 26, 34, 0, 0, TAU); c.fillStyle = "#FFF1D9"; c.fill();
+    c.lineWidth = 3.5; c.strokeStyle = "#4B2C20"; c.stroke();
+    c.beginPath(); ZIG.forEach((p, i) => (i ? c.lineTo(p[0], p[1]) : c.moveTo(p[0], p[1]))); c.stroke();
+    c.restore();
+  }
+  function huevoFrito(c, x, y, escala, cocido) {
+    c.save(); c.translate(x, y); c.scale(escala, escala * 0.7);
+    c.fillStyle = "#FFFFFF";
+    [[0, 0, 24], [-14, 6, 17], [13, 8, 16], [4, -10, 16]].forEach((q) => { c.beginPath(); c.arc(q[0], q[1], q[2], 0, TAU); c.fill(); });
+    c.strokeStyle = `rgba(190,130,60,${0.25 + cocido * 0.6})`; c.lineWidth = 3;
+    [[0, 0, 24], [-14, 6, 17], [13, 8, 16], [4, -10, 16]].forEach((q) => { c.beginPath(); c.arc(q[0], q[1], q[2], 0, TAU); c.stroke(); });
+    c.fillStyle = "#FFFFFF"; c.beginPath(); c.arc(0, 0, 22, 0, TAU); c.fill();
+    c.beginPath(); c.arc(0, 0, 11, 0, TAU); c.fillStyle = "#FFB81A"; c.fill();
+    c.beginPath(); c.arc(-3, -4, 3.5, 0, TAU); c.fillStyle = "#FFF3C0"; c.fill();
+    c.restore();
+  }
+
+  function dibujaAnim(c, t, k) {
+    const p = Math.min(1, (t - anim.t0) / anim.dur);
+    const vez = (clave, fn) => { if (!anim.hecho[clave]) { anim.hecho[clave] = 1; fn(); } };
+    const ing = buscaIng(anim.tipo), cl = ing.clase;
+    const X = anim.X != null ? anim.X : enSarten() ? SX : 320, Y = anim.Y != null ? anim.Y : 80, suelo = k.cy;
+    const easeOut = (q) => 1 - (1 - q) * (1 - q);
+    const rgb = hexRgb(ing.c).join(",");
+
+    if (cl === "huevo") {
+      if (p < 0.42) {
+        const ey = p < 0.25 ? -50 + (Y + 50) * easeOut(p / 0.25) : Y;
+        const tiembla = p > 0.25 ? Math.sin(t * 0.09) * 3 : 0;
+        huevoEntero(c, X + tiembla, ey);
+        if (p > 0.3) {
+          const n = Math.ceil(((p - 0.3) / 0.12) * (ZIG.length - 1));
+          c.save(); c.translate(X + tiembla, Y); c.beginPath();
+          for (let i = 0; i <= Math.min(n, ZIG.length - 1); i++) (i ? c.lineTo : c.moveTo).call(c, ZIG[i][0], ZIG[i][1]);
+          c.lineWidth = 3.5; c.strokeStyle = "#4B2C20"; c.stroke(); c.restore();
+        }
+      } else {
+        vez("crac", () => { suenaCrac(); gotas(X, Y, 6, ["#FFF1D9"]); });
+        const s = (p - 0.42) / 0.58;
+        mitadHuevo(c, X - 80 * s, Y - 36 * s + 50 * s * s, -1.2 * s, 1 - s, true);
+        mitadHuevo(c, X + 80 * s, Y + 8 * s + 50 * s * s, 1.2 * s, 1 - s, false);
+        if (p < 0.78) {
+          const q = (p - 0.42) / 0.36, y = Y + 4 + (suelo - Y - 4) * q * q;
+          c.beginPath(); c.ellipse(X, y - 4, 15, 18 + 12 * q, 0, 0, TAU); c.fillStyle = "rgba(255,255,255,.9)"; c.fill();
+          c.beginPath(); c.arc(X, y, 11, 0, TAU); c.fillStyle = "#FFC21A"; c.fill();
+        } else vez("cae", () => { aterriza("huevo"); gotas(X, suelo, 14, ["#FFC21A", "#FFFFFF"]); suenaPlaf(); });
+      }
+    } else if (cl === "polvo") {
+      const giro = -1.9 * easeOut(Math.min(1, p / 0.2));
+      const alfa = p > 0.85 ? 1 - (p - 0.85) / 0.15 : 1;
+      const mx = 400 + 38 * Math.sin(giro), my = 85 - 38 * Math.cos(giro);
+      const fino = anim.tipo === "harina" || anim.tipo === "coco" ? "255,255,255" : rgb;
+      if (p > 0.2 && p < 0.72) {
+        c.lineCap = "round";
+        c.beginPath(); c.moveTo(mx, my); c.quadraticCurveTo(340 + Math.sin(t * 0.03) * 6, (my + suelo) / 2, X + 10, suelo);
+        c.strokeStyle = `rgba(${fino},.9)`; c.lineWidth = 16; c.stroke();
+        if (!quieto) { polvo(X + 10, suelo, 2, 1, fino); if (Math.random() < 0.5) polvo(mx, my, 1, 0.4, fino); }
+      }
+      if (p > 0.3) vez("puf", () => { suenaPolvo(); polvo(X + 10, suelo, quieto ? 10 : 55, 2.4, fino); });
+      if (p > 0.5) vez("cae", () => aterriza(anim.tipo));
+      dibujaIco(c, ing.ico, 400, 55, 120, giro, alfa);
+    } else if (cl === "liquido") {
+      const giro = -1.75 * easeOut(Math.min(1, p / 0.2));
+      const alfa = p > 0.85 ? 1 - (p - 0.85) / 0.15 : 1;
+      const mx = 410 + 40 * Math.sin(giro), my = 86 - 40 * Math.cos(giro);
+      if (p > 0.2 && p < 0.75) {
+        c.lineCap = "round";
+        c.beginPath(); c.moveTo(mx, my); c.quadraticCurveTo(345 + Math.sin(t * 0.02) * 5, (my + suelo) / 2, X + 10, suelo);
+        c.strokeStyle = "rgba(75,44,32,.35)"; c.lineWidth = 16; c.stroke();
+        c.strokeStyle = ing.c; c.lineWidth = 11; c.stroke();
+        c.strokeStyle = "rgba(255,255,255,.45)"; c.lineWidth = 3; c.stroke();
+        if (Math.random() < 0.3) gotas(X + 10, suelo, 2, [ing.c]);
+      }
+      if (p > 0.3) vez("glu", () => (anim.tipo === "miel" ? tono(300, 0.35, "sine", 0.2, 150) : ruido(0.5, 0.3, 900, "bandpass")));
+      if (p > 0.5) vez("cae", () => aterriza(anim.tipo));
+      dibujaIco(c, ing.ico, 410, 58, 112, giro, alfa);
+    } else if (cl === "granos") {
+      const giro = -0.7 * easeOut(Math.min(1, p / 0.15));
+      const alfa = p > 0.85 ? 1 - (p - 0.85) / 0.15 : 1;
+      dibujaIco(c, ing.ico, 410, 60, 104, giro, alfa);
+      if (p > 0.15 && p < 0.75) {
+        for (let i = 0; i < 3; i++) parts.push({ k: "grano", x: 372 + azar(-10, 10), y: 86, vx: azar(-70, -15), vy: azar(20, 90), vida: 0, max: 3, suelo: suelo + azar(-10, 10), c: Math.random() < 0.8 ? "#FFFFFF" : "#DDEFFF" });
+        vez("tin" + Math.floor(p * 12), suenaTin);
+      }
+      if (p > 0.5) vez("cae", () => aterriza(anim.tipo));
+    } else {
+      if (p < 0.6) {
+        const y0 = anim.Y0 != null ? anim.Y0 : -60, q = p / 0.6, y = y0 + (suelo - 10 - y0) * q * q;
+        dibujaIco(c, ing.ico, X, y, 96, q * 1.6, 1);
+      } else vez("plaf", () => { aterriza(anim.tipo); gotas(X, suelo, 12, [ing.c, "#FFFFFF"]); suenaPlaf(); });
+    }
+
+    if (p >= 1) {
+      anim = null;
+      pintaEchar();
+      if (todosEchados() && !estado.dijoTodo) {
+        estado.dijoTodo = true;
+        dice(enSarten() ? (estado.fuego ? "¡Todo en la sartén! Muévelo con la espátula o toca Saltear." : "¡Todo en la sartén! Ahora enciende el fuego.")
+          : "¡Todo adentro! Ahora revuelve: pasa el mouse en círculos dentro del bol.");
+      }
+    }
+  }
+
+  function dibujaBlob(c, b, k, alfa) {
+    const x = 320 + Math.cos(b.a) * b.rr * k.rx, y = k.cy + Math.sin(b.a) * b.rr * k.ry;
+    const ing = buscaIng(b.t);
+    c.globalAlpha = alfa;
+    if (b.t === "huevo") {
+      c.beginPath(); c.ellipse(x, y, 32, 16, b.s, 0, TAU); c.fillStyle = "rgba(255,255,255,.9)"; c.fill();
+      c.beginPath(); c.ellipse(x, y - 2, 14, 9, 0, 0, TAU); c.fillStyle = "#FFC21A"; c.fill();
+    } else if (ing.clase === "polvo") {
+      c.fillStyle = b.t === "curry" ? ing.c : "#FFFDF7"; c.strokeStyle = "rgba(200,178,140,.6)"; c.lineWidth = 1.5;
+      [[-12, 2, 24, 12], [11, 3, 22, 11], [0, -6, 22, 13]].forEach((e) => { c.beginPath(); c.ellipse(x + e[0], y + e[1], e[2], e[3], 0, 0, TAU); c.fill(); c.stroke(); });
+    } else if (ing.clase === "derrite") {
+      c.save(); c.translate(x, y); c.rotate(b.s); c.scale(1, 0.6);
+      c.beginPath(); c.roundRect(-22, -16, 44, 32, 7); c.fillStyle = "#FFE27A"; c.fill();
+      c.strokeStyle = "#E0B23A"; c.lineWidth = 3; c.stroke(); c.restore();
+    } else if (ing.clase === "granos") {
+      for (let j = 0; j < 24; j++) { c.fillStyle = j % 5 ? "#FFFFFF" : "#DDEFFF"; c.fillRect(x + Math.sin(b.s * 13 + j * 7.1) * 28, y + Math.cos(b.s * 7 + j * 3.3) * 12, 3.5, 3.5); }
+    } else if (ing.clase === "liquido") {
+      c.beginPath(); c.ellipse(x, y, 38, 15, b.s * 0.2, 0, TAU); c.fillStyle = ing.c; c.fill();
+      c.beginPath(); c.ellipse(x - 10, y - 4, 10, 3, 0, 0, TAU); c.fillStyle = "rgba(255,255,255,.5)"; c.fill();
+    } else {
+      dibujaIco(c, ing.ico, x - 12, y, 40, b.s, alfa);
+      dibujaIco(c, ing.ico, x + 14, y + 4, 34, -b.s, alfa);
+    }
+    c.globalAlpha = 1;
+  }
+
+  function cuchara(c, x, y) {
+    c.lineCap = "round";
+    c.beginPath(); c.moveTo(x, y); c.lineTo(x + 70, y - 130); c.strokeStyle = "#4B2C20"; c.lineWidth = 17; c.stroke();
+    c.strokeStyle = "#D9995A"; c.lineWidth = 10; c.stroke();
+    c.beginPath(); c.ellipse(x, y, 22, 14, -0.5, 0, TAU); c.fillStyle = "#E3A465"; c.fill();
+    c.lineWidth = 3.5; c.strokeStyle = "#4B2C20"; c.stroke();
+    pata(c, x + 58, y - 108, -0.4);
+  }
+
+  function dibujaBol(t) {
+    const c = cB;
+    c.clearRect(0, 0, 640, 480);
+    c.fillStyle = "rgba(75,44,32,.22)"; c.beginPath(); c.ellipse(320, 452, 210, 22, 0, 0, TAU); c.fill();
+    c.beginPath(); c.moveTo(70, 150); c.bezierCurveTo(78, 340, 200, 440, 320, 440); c.bezierCurveTo(440, 440, 562, 340, 570, 150); c.closePath();
+    const g = c.createLinearGradient(70, 0, 570, 0);
+    g.addColorStop(0, "#5BAED6"); g.addColorStop(0.38, "#A3DDF3"); g.addColorStop(1, "#4FA3CE");
+    c.fillStyle = g; c.fill(); c.lineWidth = 6; c.strokeStyle = "#4B2C20"; c.stroke();
+    c.fillStyle = "rgba(255,255,255,.6)";
+    [[170, 250], [245, 300], [320, 322], [395, 300], [470, 250], [215, 372], [425, 372]].forEach((d) => { c.beginPath(); c.arc(d[0], d[1], 10, 0, TAU); c.fill(); });
+    c.beginPath(); c.ellipse(320, 150, 250, 62, 0, 0, TAU); c.fillStyle = "#3E8DB8"; c.fill();
+    const k = contenido();
+    if (k.L > 0) {
+      c.save();
+      c.beginPath(); c.ellipse(320, 150, 244, 57, 0, 0, TAU); c.clip();
+      c.beginPath(); c.ellipse(320, k.cy, k.rx, k.ry, 0, 0, TAU); c.fillStyle = mezclaColor(); c.fill();
+      const alfa = 1 - estado.mezcla;
+      if (alfa > 0.02) estado.blobs.forEach((b) => dibujaBlob(c, b, k, alfa));
+      if (estado.mezcla > 0 && estado.mezcla < 1) {
+        c.strokeStyle = `rgba(${pal().veta},${0.6 * Math.sin(Math.PI * estado.mezcla)})`; c.lineWidth = 4; c.lineCap = "round";
+        [0.35, 0.6, 0.85].forEach((j) => { const a0 = estado.giro * (1.3 - j * 0.6) + j * 4; c.beginPath(); c.ellipse(320, k.cy, k.rx * j, k.ry * j, 0, a0, a0 + 2.3); c.stroke(); });
+      }
+      if (estado.mezcla >= 1) { c.beginPath(); c.ellipse(270, k.cy - k.ry * 0.35, k.rx * 0.3, k.ry * 0.18, -0.1, 0, TAU); c.fillStyle = "rgba(255,255,255,.35)"; c.fill(); }
+      c.restore();
+    }
+    c.beginPath(); c.ellipse(320, 150, 250, 62, 0, 0, TAU); c.lineWidth = 6; c.strokeStyle = "#4B2C20"; c.stroke();
+    c.beginPath(); c.ellipse(320, 150, 238, 54, 0, Math.PI * 0.12, Math.PI * 0.88); c.strokeStyle = "rgba(255,255,255,.55)"; c.lineWidth = 4; c.stroke();
+    if (anim) dibujaAnim(c, t, k);
+    dibujaParticulas(c);
+    dibujaMano(c, t);
+    const auto = autoHasta > t;
+    if (!enMano && estado.fase === "mezclar" && todosEchados() && estado.mezcla < 1 && (dedo || auto)) {
+      if (auto && !abajo) cuchara(c, 320 + Math.cos(estado.giro) * k.rx * 0.55, k.cy + Math.sin(estado.giro) * k.ry * 0.55);
+      else cuchara(c, dedo.x, dedo.y);
+    }
+  }
+
+  function revuelve(dAng) {
+    if (estado.fase !== "mezclar" || !todosEchados() || estado.mezcla >= 1) return;
+    estado.giro += dAng;
+    estado.blobs.forEach((b) => { b.a += dAng * (1.3 - b.rr * 0.6); b.rr += (0.5 - b.rr) * 0.004; });
+    estado.mezcla = Math.min(1, estado.mezcla + Math.abs(dAng) / (TAU * 4));
+    acumSwish += Math.abs(dAng);
+    if (acumSwish > 1.8) { acumSwish = 0; suenaSwish(); }
+    pintaMedidor();
+    if (!estado.dijoMitad && estado.mezcla >= 0.5) { estado.dijoMitad = true; dice("¡Así, así! Ya va por la mitad."); }
+    if (estado.mezcla >= 1) terminaProgreso("¡Qué masa tan rica! Ahora vamos al horno.");
+  }
+
+  function terminaProgreso(frase) {
+    autoHasta = 0;
+    $("osito").classList.add("fiesta");
+    suenaFiesta();
+    dice(frase);
+    pintaEchar();
+    $("alHorno").focus({ preventScroll: true });
+  }
+
+  // ── la sartén ──
+  function cocina(cuanto) {
+    if (!todosEchados()) { if (!dijoEchar && !anim) { dijoEchar = true; dice("Primero echa todos los ingredientes a la sartén."); } return; }
+    if (!estado.fuego) { if (!dijoFuego) { dijoFuego = true; dice("¡Enciende el fuego para cocinar!", "uy"); } return; }
+    if (estado.coccion >= 1) return;
+    estado.coccion = Math.min(1, estado.coccion + cuanto);
+    pintaMedidor();
+    if (!estado.dijoMitad && estado.coccion >= 0.5) { estado.dijoMitad = true; dice("¡Qué rico huele! Sigue salteando."); }
+    if (estado.coccion >= 1) terminaProgreso("¡Listo! Huele delicioso. Ahora sírvelo en el plato.");
+  }
+
+  function salta() {
+    if (!(estado.piezas.length || estado.charcos.length)) return;
+    estado.piezas.forEach((p) => { p.vz = azar(260, 430); p.vx += azar(-90, 90); p.vy += azar(-40, 40); });
+    ruido(0.35, 0.3, 900, "bandpass");
+    if (estado.fuego) suenaChss();
+    cocina(0.1);
+  }
+
+  function pasoSarten(dt) {
+    calor += ((estado.fuego ? 1 : 0) - calor) * Math.min(1, dt * 1.5);
+    for (const p of estado.piezas) {
+      p.vz -= 1000 * dt; p.z = Math.min(160, p.z + p.vz * dt);
+      if (p.z <= 0) { p.z = 0; p.vz = p.vz < -60 ? -p.vz * 0.35 : 0; }
+      const frena = Math.exp((p.z > 0 ? -0.6 : -4) * dt);
+      p.vx *= frena; p.vy *= frena;
+      p.x += p.vx * dt; p.y += p.vy * dt; p.rot += p.vx * dt * 0.01;
+      const nx = (p.x - SX) / (SRX - 20), ny = (p.y - SY) / (SRY - 12), r = Math.hypot(nx, ny);
+      if (r > 1) { p.x = SX + (nx / r) * (SRX - 20); p.y = SY + (ny / r) * (SRY - 12); p.vx *= -0.4; p.vy *= -0.4; }
+      if (calor > 0.6 && p.z === 0 && Math.random() < dt * 0.7) p.vz = azar(40, 90);
+    }
+    if (calor > 0.5 && (estado.piezas.length || estado.charcos.length)) {
+      if (todosEchados()) cocina(dt * 0.02);
+      if (Math.random() < dt * 7) parts.push({ k: "vapor", x: SX + azar(-150, 150), y: SY + azar(-40, 40), vx: azar(-10, 10), vy: azar(-80, -45), r: azar(10, 20), vida: 0, max: azar(1.2, 2), c: "255,255,255" });
+    }
+  }
+
+  function dibujaPieza(c, p, cocido) {
+    c.fillStyle = "rgba(0,0,0,.28)";
+    c.beginPath(); c.ellipse(p.x, p.y + 6, p.tam * 0.36, p.tam * 0.12, 0, 0, TAU); c.fill();
+    if (p.ico === "huevo") { huevoFrito(c, p.x, p.y - p.z, p.tam / 50, cocido); return; }
+    dibujaIco(c, p.ico, p.x, p.y - p.z - p.tam * 0.25, p.tam, p.rot, 1);
+    if (cocido > 0.25) {
+      c.fillStyle = `rgba(110,55,20,${(cocido - 0.25) * 0.5})`;
+      c.beginPath(); c.ellipse(p.x - 5, p.y - p.z - p.tam * 0.22, p.tam * 0.14, p.tam * 0.05, p.rot, 0, TAU); c.fill();
+      c.beginPath(); c.ellipse(p.x + 7, p.y - p.z - p.tam * 0.34, p.tam * 0.12, p.tam * 0.045, p.rot, 0, TAU); c.fill();
+    }
+  }
+  function tintaCharco(ch, cocido) {
+    const a = hexRgb(ch.c), b = [150, 95, 45], m = cocido * 0.35;
+    return `rgba(${a.map((v, i) => Math.round(v + (b[i] - v) * m)).join(",")},${ch.a})`;
+  }
+
+  function dibujaSarten(t) {
+    const c = cB;
+    const fondo = c.createLinearGradient(0, 0, 0, 480);
+    fondo.addColorStop(0, "#3E434C"); fondo.addColorStop(1, "#23262C");
+    c.fillStyle = fondo; c.fillRect(0, 0, 640, 480);
+    c.strokeStyle = "rgba(255,255,255,.05)"; c.lineWidth = 2;
+    for (let x = 40; x < 640; x += 80) { c.beginPath(); c.moveTo(x, 0); c.lineTo(x, 480); c.stroke(); }
+    c.lineWidth = 10; c.strokeStyle = "#50555E";
+    c.beginPath(); c.ellipse(SX, 330, 196, 80, 0, 0, TAU); c.stroke();
+    c.lineWidth = 8; c.beginPath(); c.ellipse(SX, 330, 130, 52, 0, 0, TAU); c.stroke();
+    if (calor > 0.02) {
+      const brillo = c.createRadialGradient(SX, 330, 10, SX, 330, 240);
+      brillo.addColorStop(0, `rgba(255,140,40,${0.4 * calor})`); brillo.addColorStop(1, "rgba(255,140,40,0)");
+      c.fillStyle = brillo; c.fillRect(0, 100, 640, 380);
+      for (let i = 0; i < 24; i++) {
+        const an = (i / 24) * TAU, fx = SX + Math.cos(an) * 160, fy = 330 + Math.sin(an) * 64;
+        const h = (16 + Math.sin(t * 0.02 + i * 1.7) * 6) * calor;
+        c.beginPath(); c.moveTo(fx - 7, fy); c.quadraticCurveTo(fx - 8, fy - h * 0.6, fx, fy - h); c.quadraticCurveTo(fx + 8, fy - h * 0.6, fx + 7, fy); c.closePath();
+        c.fillStyle = "#FF9A2E"; c.fill();
+        c.beginPath(); c.moveTo(fx - 3, fy); c.quadraticCurveTo(fx - 4, fy - h * 0.4, fx, fy - h * 0.6); c.quadraticCurveTo(fx + 4, fy - h * 0.4, fx + 3, fy); c.closePath();
+        c.fillStyle = "#FFE07A"; c.fill();
+      }
+    }
+    c.lineCap = "round";
+    c.beginPath(); c.moveTo(500, 236); c.lineTo(630, 192); c.strokeStyle = "#16171A"; c.lineWidth = 30; c.stroke();
+    c.beginPath(); c.moveTo(566, 214); c.lineTo(628, 193); c.strokeStyle = "#8A5A3A"; c.lineWidth = 24; c.stroke();
+    c.fillStyle = "rgba(0,0,0,.35)"; c.beginPath(); c.ellipse(SX, 262, 230, 96, 0, 0, TAU); c.fill();
+    c.beginPath(); c.ellipse(SX, 248, 222, 100, 0, 0, TAU); c.fillStyle = "#1B1D21"; c.fill();
+    c.beginPath(); c.ellipse(SX, 230, 222, 100, 0, 0, TAU); c.fillStyle = "#5E636C"; c.fill();
+    const fondoS = c.createRadialGradient(SX - 40, SY - 20, 20, SX, SY, 220);
+    fondoS.addColorStop(0, "#50555E"); fondoS.addColorStop(1, "#2A2D33");
+    c.beginPath(); c.ellipse(SX, SY, SRX, SRY, 0, 0, TAU); c.fillStyle = fondoS; c.fill();
+    if (calor > 0.02) { c.fillStyle = `rgba(255,110,40,${calor * 0.1})`; c.fill(); }
+    c.beginPath(); c.ellipse(SX, 230, 222, 100, 0, Math.PI * 1.05, Math.PI * 1.95); c.strokeStyle = "rgba(255,255,255,.25)"; c.lineWidth = 3; c.stroke();
+
+    c.save(); c.beginPath(); c.ellipse(SX, SY, SRX, SRY, 0, 0, TAU); c.clip();
+    estado.charcos.forEach((ch) => { c.beginPath(); c.ellipse(ch.x, ch.y, ch.rx, ch.ry, 0, 0, TAU); c.fillStyle = tintaCharco(ch, estado.coccion); c.fill(); });
+    if (calor > 0.5) {
+      c.fillStyle = "rgba(255,255,255,.35)";
+      for (let i = 0; i < 14; i++) { const bx = SX + Math.sin(i * 12.9 + t * 0.004) * 150, by = SY + Math.cos(i * 7.7 + t * 0.005) * 60; c.beginPath(); c.arc(bx, by, 2 + ((t * 0.01 + i) % 3), 0, TAU); c.fill(); }
+    }
+    c.restore();
+
+    estado.piezas.slice().sort((a, b) => a.y - b.y).forEach((p) => dibujaPieza(c, p, estado.coccion));
+    if (anim) dibujaAnim(c, t, contenido());
+    dibujaParticulas(c);
+    dibujaMano(c, t);
+    if (!enMano && dedo && (estado.piezas.length || estado.charcos.length) && estado.coccion < 1) {
+      const x = dedo.x, y = dedo.y;
+      c.lineCap = "round";
+      c.beginPath(); c.moveTo(x + 10, y - 10); c.lineTo(x + 90, y - 130); c.strokeStyle = "#4B2C20"; c.lineWidth = 15; c.stroke();
+      c.strokeStyle = "#D9995A"; c.lineWidth = 9; c.stroke();
+      c.save(); c.translate(x, y); c.rotate(-0.55);
+      c.beginPath(); c.roundRect(-24, -16, 48, 32, 8); c.fillStyle = "#E3A465"; c.fill(); c.lineWidth = 3.5; c.strokeStyle = "#4B2C20"; c.stroke();
+      c.restore();
+      pata(c, x + 72, y - 112, -0.45);
+    }
+  }
+
+  function posLienzo(e, lienzo, ancho, alto) {
+    const r = lienzo.getBoundingClientRect();
+    return { x: ((e.clientX - r.left) * ancho) / r.width, y: ((e.clientY - r.top) * alto) / r.height };
+  }
+  function angDe(p) {
+    const k = contenido(), ax = (p.x - 320) / k.rx, ay = (p.y - k.cy) / k.ry;
+    return { a: Math.atan2(ay, ax), cerca: Math.hypot(ax, ay) < 0.15 };
+  }
+
+  function preparaBol() {
+    const bol = $("bol");
+    let ultimoDedo = null;
+    bol.addEventListener("pointerdown", (e) => {
+      if (!["mezclar", "saltear"].includes(estado.fase)) return;
+      try { bol.setPointerCapture(e.pointerId); } catch (x) {}
+      abajo = true; dedo = posLienzo(e, bol, 640, 480); ultimoDedo = dedo; angPrev = null;
+      if (enMano) { clicConMano(dedo); return; }
+      if (estado.fase === "mezclar" && !todosEchados() && !anim) dice("Primero echa todos los ingredientes al bol. Toca cada uno.", "uy");
+      if (estado.fase === "saltear" && !(estado.piezas.length || estado.charcos.length)) dice("La sartén está vacía. Toca los ingredientes para echarlos.", "uy");
+    });
+    bol.addEventListener("pointermove", (e) => {
+      dedo = posLienzo(e, bol, 640, 480);
+      if (!abajo || enMano) return;
+      if (estado.fase === "saltear") {
+        const dx = dedo.x - ultimoDedo.x, dy = dedo.y - ultimoDedo.y, d = Math.hypot(dx, dy);
+        estado.piezas.forEach((p) => {
+          if (Math.hypot(p.x - dedo.x, p.y - dedo.y) < 75) { p.vx += dx * 9; p.vy += dy * 9; if (p.z === 0 && d > 3) p.vz = azar(40, 120); }
+        });
+        if (d > 2 && (estado.piezas.length || estado.charcos.length)) {
+          cocina(d / 2600);
+          acumSwish += d;
+          if (acumSwish > 260) { acumSwish = 0; suenaSwish(); }
+        }
+        ultimoDedo = dedo;
+        return;
+      }
+      const r = angDe(dedo);
+      if (r.cerca) { angPrev = null; return; }
+      if (angPrev !== null) {
+        let d = r.a - angPrev;
+        while (d > Math.PI) d -= TAU;
+        while (d < -Math.PI) d += TAU;
+        revuelve(d);
+      }
+      angPrev = r.a;
+    });
+    const suelta = () => { abajo = false; angPrev = null; vertiendo = false; };
+    bol.addEventListener("pointerup", suelta);
+    bol.addEventListener("pointercancel", suelta);
+    bol.addEventListener("pointerleave", () => { if (!abajo) dedo = null; });
+  }
+
+  // ════════════ 3 · HORNEAR ════════════
+  let relojHorno = null;
+  function hornea() {
+    estado.fase = "horno";
+    pintaFase();
+    $("osito").classList.remove("fiesta");
+    dice("¡Al horno! Horneando. No abras la puerta.");
+    const pH = $("pastelHorno");
+    pH.classList.remove("crece"); void pH.getBoundingClientRect(); pH.classList.add("crece");
+    let n = 3;
+    $("hornoCuenta").textContent = n;
+    clearInterval(relojHorno);
+    relojHorno = setInterval(() => {
+      n--;
+      if (n > 0) { $("hornoCuenta").textContent = n; tono(880, 0.08, "sine", 0.1); return; }
+      clearInterval(relojHorno);
+      $("hornoCuenta").textContent = "¡Ding!";
+      suenaDing();
+      setTimeout(() => {
+        if (estado.fase !== "horno") return;
+        estado.fase = "rellenar";
+        pintaFase();
+        subeArriba();
+        dice("¡El bizcocho salió del horno! Lo corté en dos. Elige un relleno y pásalo con el dedo.");
+      }, 900);
+    }, 1000);
+  }
+
+  // ════════════ 4 · RELLENAR, DECORAR Y SERVIR ════════════
+  const cP = $("pastel").getContext("2d");
+  cP.setTransform(2, 0, 0, 2, 0, 0);
+  const lado = new Path2D();
+  lado.moveTo(110, 220); lado.lineTo(110, 370); lado.ellipse(320, 370, 210, 70, 0, Math.PI, 0, true); lado.lineTo(530, 220); lado.closePath();
+  const tapa = new Path2D(); tapa.ellipse(320, 220, 210, 70, 0, 0, TAU);
+  // ⚠️ un solo contorno (si se suman dos formas se anulan y no deja decorar la mitad de delante)
+  const silueta = new Path2D();
+  silueta.moveTo(110, 220); silueta.ellipse(320, 220, 210, 70, 0, Math.PI, TAU, false);
+  silueta.lineTo(530, 370); silueta.ellipse(320, 370, 210, 70, 0, 0, Math.PI, false); silueta.closePath();
+  const zonaPlato = new Path2D(); zonaPlato.ellipse(320, 270, 236, 186, 0, 0, TAU);
+
+  const RELLENOS = [
+    { id: "manjar", nom: "Manjar", c: "#C98A4B" }, { id: "crema", nom: "Crema", c: "#FFF3D6" },
+    { id: "chocolate", nom: "Chocolate", c: "#4E2716" }, { id: "frutilla", nom: "Frutilla", c: "#FF5A7A" },
+  ];
+  const COLORES = [
+    { id: "rosa", nom: "rosado", pl: "rosadas", c: "#FF8FB8" }, { id: "rojo", nom: "rojo", pl: "rojas", c: "#FF5A5F" },
+    { id: "naranja", nom: "naranjo", pl: "naranjas", c: "#FFB067" }, { id: "amarillo", nom: "amarillo", pl: "amarillas", c: "#FFE066" },
+    { id: "verde", nom: "verde", pl: "verdes", c: "#8EE08A" }, { id: "celeste", nom: "celeste", pl: "celestes", c: "#7FD3F5" },
+    { id: "lila", nom: "lila", pl: "lilas", c: "#C3A2F5" }, { id: "chocoClaro", nom: "de chocolate claro", pl: "de chocolate claro", c: "#B07A52" },
+    { id: "chocoOscuro", nom: "de chocolate oscuro", pl: "de chocolate oscuro", c: "#4A2716" }, { id: "blanco", nom: "blanco", pl: "blancas", c: "#FFFFFF" },
+    { id: "negro", nom: "negro", pl: "negras", c: "#2A2A2E" }, { id: "arcoiris", nom: "arcoíris", pl: "de colores", c: "arcoiris" },
+  ];
+  const HERRS = [
+    { id: "cubrir", nom: "Cubrir", ico: "s:glaseado", frase: "Toca el pastel y lo cubro de glaseado." },
+    { id: "manga", nom: "Manga", ico: "s:manga", frase: "Pasa el dedo por el pastel para hacer bolitas de glaseado." },
+    { id: "chispitas", nom: "Chispitas", ico: "s:chispitas", frase: "¡Chispitas! Elige su color arriba y pasa el dedo por el pastel." },
+    { id: "frutilla", nom: "Frutilla", ico: "s:frutilla", frase: "Toca el pastel donde quieras una frutilla." },
+    { id: "vela", nom: "Vela", ico: "s:vela", frase: "Toca el pastel donde quieras una vela." },
+    { id: "estrella", nom: "Estrella", ico: "s:estrella", frase: "Toca el pastel donde quieras una estrella." },
+  ];
+  const SALSAS = [
+    { id: "tomate", nom: "de tomate", c: "#D8322A" }, { id: "crema", nom: "de crema", c: "#FFF6E6" },
+    { id: "soya", nom: "de soya", c: "#4A2716" }, { id: "pesto", nom: "verde", c: "#5CAB3C" },
+    { id: "mostaza", nom: "de mostaza", c: "#F2C230" }, { id: "picante", nom: "picante", c: "#FF6A1A" },
+    { id: "miel", nom: "de miel", c: "#F5A623" }, { id: "chocolate", nom: "de chocolate", c: "#5A2E17" },
+    { id: "frutilla", nom: "de frutilla", c: "#FF5A7A" }, { id: "manjar", nom: "de manjar", c: "#C98A4B" },
+    { id: "yogur", nom: "de yogur", c: "#F4F1FF" }, { id: "palta", nom: "de palta", c: "#9CCB5A" },
+  ];
+  const HERR_PLATO = [
+    { id: "salsa", nom: "Salsa", ico: "s:manga", frase: "Elige una salsa y pasa el dedo por el plato." },
+    { id: "queso", nom: "Queso", ico: "🧀", frase: "Queso rallado: pasa el dedo por la comida." },
+    { id: "sesamo", nom: "Sésamo", ico: "s:puntos", frase: "Semillitas de sésamo: pasa el dedo por la comida." },
+    { id: "azucarFlor", nom: "Azúcar flor", ico: "s:azucar", frase: "Azúcar flor, como nieve: pasa el dedo." },
+    { id: "hojita", nom: "Hojita", ico: "🌿", frase: "Toca el plato donde quieras una hojita." },
+    { id: "limon", nom: "Limón", ico: "🍋", frase: "Toca el plato donde quieras un limón." },
+    { id: "aji", nom: "Ají", ico: "🌶️", frase: "Toca el plato donde quieras un ají. ¡Cuidado, pica!" },
+    { id: "frutillaP", nom: "Frutilla", ico: "🍓", frase: "Toca el plato donde quieras una frutilla." },
+    { id: "arandano", nom: "Arándano", ico: "🫐", frase: "Toca el plato donde quieras arándanos." },
+  ];
+  const CHISPAS = ["#FF5E8E", "#3DB7F0", "#FFC21A", "#39C07A", "#9B6BF2", "#FF8A3D"];
+  const ARCO = ["#FF5A5F", "#FFB067", "#FFE066", "#8EE08A", "#7FD3F5", "#9B8CF2", "#FF8FB8"];
+
+  const rellenoActual = () => RELLENOS.find((r) => r.id === estado.relleno) || RELLENOS[0];
+  const colorActual = () => COLORES.find((k) => k.id === estado.color) || COLORES[0];
+  const salsaActual = () => SALSAS.find((k) => k.id === estado.salsa) || SALSAS[0];
+
+  // ── relleno ──
+  const CELDAS = [];
+  for (let gx = 120; gx <= 520; gx += 20) for (let gy = 230; gy <= 350; gy += 20)
+    if (((gx - 320) / 200) ** 2 + ((gy - 290) / 62) ** 2 <= 1) CELDAS.push(gx + "," + gy);
+  let tapaDesde = 0, autoUntar = 0;
+
+  function pintaRellenos() {
+    $("rellenos").innerHTML = RELLENOS.map((r) => `<button class="opcion" type="button" data-r="${r.id}" aria-pressed="${estado.relleno === r.id}"><i style="--c:${r.c}"></i>${r.nom}</button>`).join("");
+    const p = Math.min(100, Math.round((estado.rCeldas.length / CELDAS.length / 0.8) * 100));
+    $("medRelleno").style.width = p + "%";
+    $("pctRelleno").textContent = p + " %";
+    $("ponTapa").hidden = !estado.rListo || !!tapaDesde;
+    $("untar").hidden = estado.rListo;
+  }
+  function plato(c) {
+    c.fillStyle = "rgba(75,44,32,.18)"; c.beginPath(); c.ellipse(320, 438, 285, 48, 0, 0, TAU); c.fill();
+    c.beginPath(); c.ellipse(320, 400, 278, 76, 0, 0, TAU); c.fillStyle = "#FFFFFF"; c.fill();
+    c.lineWidth = 5; c.strokeStyle = "#4B2C20"; c.stroke();
+    c.beginPath(); c.ellipse(320, 396, 236, 58, 0, 0, TAU); c.lineWidth = 4; c.strokeStyle = "#D7E6EE"; c.stroke();
+  }
+  function capa(c, arriba, abajo, oy) {
+    const s = pal(), p = new Path2D();
+    p.moveTo(110, arriba + oy); p.lineTo(110, abajo + oy); p.ellipse(320, abajo + oy, 210, 70, 0, Math.PI, 0, true); p.lineTo(530, arriba + oy); p.closePath();
+    const g = c.createLinearGradient(110, 0, 530, 0);
+    g.addColorStop(0, s.lado[0]); g.addColorStop(0.4, s.lado[1]); g.addColorStop(1, s.lado[2]);
+    c.fillStyle = g; c.fill(p); c.lineWidth = 5; c.strokeStyle = "#4B2C20"; c.stroke(p);
+    c.beginPath(); c.ellipse(320, arriba + oy, 210, 70, 0, 0, TAU); c.fillStyle = s.tapa; c.fill(); c.stroke();
+    c.fillStyle = s.miga;
+    [[240, -20], [300, 20], [380, -10], [420, 25], [200, 15], [340, -40], [460, -8]].forEach((d) => { c.beginPath(); c.arc(d[0], arriba + oy + d[1], 3, 0, TAU); c.fill(); });
+  }
+  function dibujaRelleno(t) {
+    const c = cP;
+    c.clearRect(0, 0, 640, 520);
+    plato(c);
+    capa(c, 290, 370, 0);
+    c.save(); c.beginPath(); c.ellipse(320, 290, 212, 72, 0, 0, TAU); c.clip();
+    estado.rOps.forEach((o) => {
+      c.beginPath(); c.arc(o.x, o.y, 26, 0, TAU); c.fillStyle = o.c; c.fill();
+      c.lineWidth = 2; c.strokeStyle = "rgba(75,44,32,.25)"; c.stroke();
+      c.beginPath(); c.arc(o.x - 8, o.y - 9, 7, 0, TAU); c.fillStyle = "rgba(255,255,255,.35)"; c.fill();
+    });
+    c.restore();
+    if (tapaDesde) {
+      const q = Math.min(1, (t - tapaDesde) / 800);
+      capa(c, 220, 280, -330 * (1 - (1 - Math.pow(1 - q, 3))));
+      if (q >= 1) {
+        tapaDesde = 0;
+        suenaPlaf();
+        setTimeout(() => {
+          if (estado.fase !== "rellenar") return;
+          estado.fase = "decorar";
+          pintaFase();
+          dice(`¡Pastel de dos pisos con relleno de ${rellenoActual().nom.toLowerCase()}! Ahora decóralo como tú quieras.`);
+        }, 450);
+      }
+    }
+  }
+  function unta(p) {
+    if (((p.x - 320) / 212) ** 2 + ((p.y - 290) / 72) ** 2 > 1) return false;
+    estado.rOps.push({ x: p.x, y: p.y, c: rellenoActual().c });
+    const tiene = new Set(estado.rCeldas);
+    CELDAS.forEach((k) => {
+      const [gx, gy] = k.split(",").map(Number);
+      if (!tiene.has(k) && Math.hypot(gx - p.x, (gy - p.y) * 1.6) < 36) estado.rCeldas.push(k);
+    });
+    if (!estado.rListo && estado.rCeldas.length >= CELDAS.length * 0.8) {
+      estado.rListo = true;
+      suenaFiesta();
+      dice("¡Qué rico relleno! Ahora pon la otra capa del bizcocho encima.");
+    }
+    return true;
+  }
+  function untaYPinta(p) { if (unta(p)) { dibujaRelleno(0); pintaRellenos(); } }
+
+  // ── decorar y servir ──
+  function pintaHerramientas() {
+    $("colores").innerHTML = COLORES.map((k) => `<button class="color${k.c === "arcoiris" ? " arco" : ""}" type="button" data-c="${k.id}" aria-label="${mayus(k.nom)}" title="${mayus(k.nom)}" aria-pressed="${estado.color === k.id}" style="--c:${k.c === "arcoiris" ? "#fff" : k.c}"></button>`).join("");
+    $("herrs").innerHTML = HERRS.map((h) => `<button class="herr" type="button" data-h="${h.id}" aria-pressed="${estado.herr === h.id}">${iconoDe(h.ico)}<span>${h.nom}</span></button>`).join("");
+    $("colorElegido").textContent = estado.herr === "chispitas" ? "Chispitas " + colorActual().pl : "Glaseado " + colorActual().nom;
+  }
+  function pintaHerrPlato() {
+    $("salsas").innerHTML = SALSAS.map((k) => `<button class="color" type="button" data-s="${k.id}" aria-label="Salsa ${k.nom}" title="Salsa ${k.nom}" aria-pressed="${estado.salsa === k.id}" style="--c:${k.c}"></button>`).join("");
+    $("herrPlato").innerHTML = HERR_PLATO.map((h) => `<button class="herr" type="button" data-h="${h.id}" aria-pressed="${estado.herrPlato === h.id}">${iconoDe(h.ico)}<span>${h.nom}</span></button>`).join("");
+    $("salsaElegida").textContent = "Salsa " + salsaActual().nom;
+  }
+
+  function basePastel(c) {
+    const s = pal();
+    plato(c);
+    const g = c.createLinearGradient(110, 0, 530, 0);
+    g.addColorStop(0, s.lado[0]); g.addColorStop(0.4, s.lado[1]); g.addColorStop(1, s.lado[2]);
+    c.fillStyle = g; c.fill(lado);
+    c.save(); c.clip(lado);
+    c.beginPath(); c.ellipse(320, 288, 214, 70, 0, 0, Math.PI); c.lineWidth = 18; c.strokeStyle = rellenoActual().c; c.stroke();
+    c.lineWidth = 2; c.strokeStyle = "rgba(75,44,32,.3)";
+    c.beginPath(); c.ellipse(320, 279, 214, 70, 0, 0.05, Math.PI - 0.05); c.stroke();
+    c.beginPath(); c.ellipse(320, 297, 214, 70, 0, 0.05, Math.PI - 0.05); c.stroke();
+    c.restore();
+    c.lineWidth = 5; c.strokeStyle = "#4B2C20"; c.stroke(lado);
+    c.fillStyle = s.tapa; c.fill(tapa); c.stroke(tapa);
+    c.fillStyle = s.miga;
+    [[240, 200], [300, 240], [380, 210], [420, 245], [200, 235], [340, 180], [460, 212]].forEach((d) => { c.beginPath(); c.arc(d[0], d[1], 3, 0, TAU); c.fill(); });
+  }
+
+  function basePlato(c) {
+    c.fillStyle = "rgba(75,44,32,.2)"; c.beginPath(); c.ellipse(326, 290, 262, 210, 0, 0, TAU); c.fill();
+    c.beginPath(); c.ellipse(320, 270, 258, 206, 0, 0, TAU); c.fillStyle = "#FFFFFF"; c.fill(); c.lineWidth = 5; c.strokeStyle = "#4B2C20"; c.stroke();
+    c.beginPath(); c.ellipse(320, 270, 206, 162, 0, 0, TAU); c.lineWidth = 6; c.strokeStyle = "#E3EEF3"; c.stroke();
+    c.fillStyle = "#7FC9E8";
+    for (let i = 0; i < 28; i++) { const a = (i / 28) * TAU; c.beginPath(); c.arc(320 + Math.cos(a) * 232, 270 + Math.sin(a) * 184, 5, 0, TAU); c.fill(); }
+    const pl = estado.plato;
+    if (!pl) return;
+    c.save(); c.clip(zonaPlato);
+    pl.charcos.forEach((ch) => { c.beginPath(); c.ellipse(ch.x, ch.y, ch.rx, ch.ry, 0, 0, TAU); c.fillStyle = tintaCharco({ c: ch.c, a: Math.max(0.7, ch.a) }, pl.cocido); c.fill(); });
+    c.restore();
+    pl.piezas.forEach((p) => dibujaPieza(c, p, pl.cocido));
+  }
+
+  function dibujaOp(c, op) {
+    const zona = op.zona === "plato" ? zonaPlato : silueta;
+    if (op.t === "cubre") {
+      const colorEn = (i) => (op.c === "arcoiris" ? ARCO[i % ARCO.length] : op.c);
+      c.save(); c.clip(silueta);
+      for (let i = 0; i < 14; i++) {
+        const x = 122 + i * 30.5, e = 1 - ((x - 320) / 212) ** 2;
+        if (e <= 0) continue;
+        const yE = 220 + 70 * Math.sqrt(e), largo = 16 + ((i * 53 + op.g * 17) % 46);
+        c.beginPath(); c.roundRect(x - 13, yE - 22, 26, largo + 22, 13);
+        c.fillStyle = colorEn(i); c.fill(); c.lineWidth = 2; c.strokeStyle = "rgba(75,44,32,.3)"; c.stroke();
+      }
+      c.restore();
+      c.save(); c.beginPath(); c.ellipse(320, 220, 214, 73, 0, 0, TAU); c.clip();
+      if (op.c === "arcoiris") ARCO.forEach((col, j) => { c.fillStyle = col; c.fillRect(100, 146 + j * 21.5, 440, 23); });
+      else { c.fillStyle = op.c; c.fillRect(100, 140, 440, 160); }
+      c.restore();
+      c.beginPath(); c.ellipse(320, 220, 213, 72, 0, 0, TAU); c.lineWidth = 3; c.strokeStyle = "rgba(75,44,32,.35)"; c.stroke();
+      c.beginPath(); c.ellipse(255, 194, 78, 18, -0.12, 0, TAU); c.fillStyle = "rgba(255,255,255,.32)"; c.fill();
+    } else if (op.t === "punto") {
+      c.save(); c.clip(zona);
+      c.beginPath(); c.arc(op.x, op.y, op.r, 0, TAU);
+      c.fillStyle = op.c === "arcoiris" ? `hsl(${op.h % 360} 90% 70%)` : op.c; c.fill();
+      c.lineWidth = 2; c.strokeStyle = "rgba(75,44,32,.3)"; c.stroke();
+      c.beginPath(); c.arc(op.x - op.r * 0.3, op.y - op.r * 0.35, op.r * 0.35, 0, TAU); c.fillStyle = "rgba(255,255,255,.45)"; c.fill();
+      c.restore();
+    } else if (op.t === "chispa") {
+      c.save(); c.clip(zona);
+      c.translate(op.x, op.y); c.rotate(op.a);
+      const w = op.w || 5, h = op.h || 14;
+      c.beginPath(); c.roundRect(-w / 2, -h / 2, w, h, w / 2); c.fillStyle = op.c; c.fill();
+      if (op.borde) { c.lineWidth = 1; c.strokeStyle = "rgba(75,44,32,.4)"; c.stroke(); }
+      c.restore();
+    } else if (op.t === "polvito") {
+      c.save(); c.clip(zona); c.fillStyle = "rgba(255,255,255,.95)";
+      for (let j = 0; j < 14; j++) { c.beginPath(); c.arc(op.x + Math.sin(op.s * 13 + j * 7.1) * 18, op.y + Math.cos(op.s * 7 + j * 3.3) * 14, 1.9, 0, TAU); c.fill(); }
+      c.restore();
+    } else if (op.t === "sello") {
+      c.fillStyle = "rgba(75,44,32,.18)"; c.beginPath(); c.ellipse(op.x, op.y + 26, 22, 7, 0, 0, TAU); c.fill();
+      if (op.ico === "s:vela") dibujaIco(c, op.ico, op.x, op.y - 18, 92, 0, 1);
+      else dibujaIco(c, op.ico, op.x, op.y, op.tam || 66, op.a || 0, 1);
+    }
+  }
+
+  function redibuja() {
+    const f = estado.fase;
+    if (f === "rellenar") { dibujaRelleno(0); return; }
+    if (f !== "decorar" && f !== "servir") return;
+    cP.clearRect(0, 0, 640, 520);
+    if (f === "decorar") basePastel(cP); else basePlato(cP);
+    estado.ops.forEach((op) => dibujaOp(cP, op));
+  }
+  function agrega(op) { estado.ops.push(op); dibujaOp(cP, op); }
+
+  function servir() {
+    estado.fuego = false;
+    const piezas = estado.piezas.slice(), N = Math.max(1, piezas.length);
+    estado.plato = {
+      cocido: estado.coccion,
+      charcos: estado.charcos.map((ch) => ({ c: ch.c, a: ch.a, x: 320 + azar(-50, 50), y: 270 + azar(-36, 36), rx: azar(100, 150), ry: azar(70, 105) })),
+      piezas: piezas.map((p, i) => {
+        const a = i * 2.39996, r = Math.sqrt((i + 0.5) / N);
+        return { ico: p.ico, x: 320 + Math.cos(a) * 150 * r, y: 280 + Math.sin(a) * 110 * r, z: 0, rot: p.rot, tam: p.ico === "huevo" ? 80 : 48 };
+      }).sort((a, b) => a.y - b.y),
+    };
+    Object.assign(estado, { fase: "servir", ops: [], grupo: 0, terminado: false, dijoMitad: false });
+    $("osito").classList.remove("fiesta");
+    pintaFase();
+    subeArriba();
+    dice("¡A servir! Decora tu plato con salsas y cosas ricas.");
+  }
+
+  let trazo = false, ultimo = null, tono360 = 0, borrarArmado = null;
+  const dentroPastel = (p) => cP.isPointInPath(silueta, p.x * 2, p.y * 2);
+  const dentroPlato = (p) => ((p.x - 320) / 250) ** 2 + ((p.y - 270) / 198) ** 2 <= 1;
+
+  function ponPunto(p, r, color) {
+    tono360 += 16;
+    agrega({ t: "punto", zona: estado.fase === "servir" ? "plato" : "pastel", x: p.x, y: p.y, r, c: color, h: tono360, g: estado.grupo });
+    if (estado.ops.length % 4 === 0) tono(700 + Math.random() * 200, 0.05, "sine", 0.05);
+  }
+  function lluvia(p, tipo) {
+    const zona = estado.fase === "servir" ? "plato" : "pastel";
+    if (tipo === "azucarFlor") { agrega({ t: "polvito", zona, x: p.x, y: p.y, s: Math.random() * 100, g: estado.grupo }); return; }
+    for (let i = 0; i < 4; i++) {
+      const op = { t: "chispa", zona, x: p.x + azar(-18, 18), y: p.y + azar(-14, 14), a: azar(0, TAU), g: estado.grupo };
+      if (tipo === "queso") Object.assign(op, { w: 3.5, h: 11, c: "#F6D365" });
+      else if (tipo === "sesamo") Object.assign(op, { w: 4, h: 7, c: "#F3E3B5", borde: true });
+      else { const sel = colorActual().c; op.c = sel === "arcoiris" ? CHISPAS[Math.floor(Math.random() * CHISPAS.length)] : sel; op.borde = sel === "#FFFFFF"; }
+      agrega(op);
+    }
+    suenaTin();
+  }
+
+  function preparaPastel() {
+    const pastel = $("pastel");
+    pastel.addEventListener("pointerdown", (e) => {
+      const p = posLienzo(e, pastel, 640, 520), f = estado.fase;
+      if (f === "rellenar") {
+        if (estado.rListo || tapaDesde) return;
+        try { pastel.setPointerCapture(e.pointerId); } catch (x) {}
+        trazo = true; ultimo = p;
+        if (unta(p)) { dibujaRelleno(0); pintaRellenos(); tono(420, 0.08, "sine", 0.08); }
+        else { trazo = false; dice("Pasa el dedo encima del bizcocho.", "uy"); }
+        return;
+      }
+      if ((f !== "decorar" && f !== "servir") || estado.terminado) return;
+      const sirve = f === "servir";
+      if (!(sirve ? dentroPlato(p) : dentroPastel(p))) { dice(sirve ? "Toca encima del plato." : "Toca encima del pastel.", "uy"); return; }
+      estado.grupo++;
+      const h = sirve ? estado.herrPlato : estado.herr;
+      if (h === "cubrir") {
+        agrega({ t: "cubre", c: colorActual().c, g: estado.grupo });
+        redibuja(); suenaPlaf();
+        dice(`¡Glaseado ${colorActual().nom} por todo el pastel!`);
+      } else if (["manga", "chispitas", "salsa", "queso", "sesamo", "azucarFlor"].includes(h)) {
+        try { pastel.setPointerCapture(e.pointerId); } catch (x) {}
+        trazo = true; ultimo = p;
+        if (h === "manga") ponPunto(p, 15, colorActual().c);
+        else if (h === "salsa") ponPunto(p, 9, salsaActual().c);
+        else lluvia(p, h);
+      } else {
+        const herr = (sirve ? HERR_PLATO : HERRS).find((x) => x.id === h);
+        agrega({ t: "sello", ico: herr.ico, x: p.x, y: p.y, tam: sirve ? 58 : 66, a: h === "estrella" ? azar(-0.3, 0.3) : azar(-0.2, 0.2), g: estado.grupo });
+        suenaPon();
+      }
+    });
+    pastel.addEventListener("pointermove", (e) => {
+      if (!trazo) return;
+      const p = posLienzo(e, pastel, 640, 520), f = estado.fase;
+      const d = Math.hypot(p.x - ultimo.x, p.y - ultimo.y);
+      if (f === "rellenar") { if (!estado.rListo && d >= 12) { untaYPinta(p); ultimo = p; } return; }
+      const sirve = f === "servir";
+      if (!(sirve ? dentroPlato(p) : dentroPastel(p))) return;
+      const h = sirve ? estado.herrPlato : estado.herr;
+      if (h === "manga" && d >= 9) { ponPunto(p, 15, colorActual().c); ultimo = p; }
+      else if (h === "salsa" && d >= 6) { ponPunto(p, 9, salsaActual().c); ultimo = p; }
+      else if (["chispitas", "queso", "sesamo", "azucarFlor"].includes(h) && d >= 14) { lluvia(p, h); ultimo = p; }
+    });
+    const suelta = () => { trazo = false; };
+    pastel.addEventListener("pointerup", suelta);
+    pastel.addEventListener("pointercancel", suelta);
+  }
+
+  // ════════════ GUARDAR LA RECETA EN PDF ════════════
+  const PROTEINAS = ["carne", "pollo", "camaron", "tocino", "salchicha"];
+  const NOMBRES_SELLO = { "s:frutilla": "frutillas", "s:vela": "velas", "s:estrella": "estrellas", "🌿": "hojitas", "🍋": "limón", "🌶️": "ají", "🍓": "frutillas", "🫐": "arándanos" };
+
+  function tiempos() {
+    const ids = Object.keys(estado.receta);
+    const total = ids.reduce((s, id) => s + estado.receta[id], 0);
+    if (estado.modo === "horno") {
+      const horno = 35 + ((estado.receta.chocolate || 0) >= 3 || total >= 12 ? 10 : 0);
+      return { prep: 20, coccion: horno, extra: 30, textoCoccion: "Horneado", textoExtra: "Enfriar" };
+    }
+    let coc = 8;
+    PROTEINAS.forEach((p) => { if (ids.includes(p)) coc += 4; });
+    if (ids.includes("papa") || ids.includes("camote")) coc += 6;
+    if (ids.includes("arroz") || ids.includes("fideos") || ids.includes("espagueti")) coc += 3;
+    const cortar = ids.filter((id) => buscaIng(id).clase === "solido").length;
+    return { prep: Math.min(25, 5 + cortar * 3), coccion: Math.min(30, coc), extra: 0, textoCoccion: "En la sartén", textoExtra: "" };
+  }
+  function listaIngredientes() {
+    return ingsReceta().map((ing) => { const n = estado.receta[ing.id]; return `${n} ${n === 1 ? ing.uno : ing.varios}`; });
+  }
+  const juntaLista = (l) => (l.length > 1 ? l.slice(0, -1).join(", ") + " y " + l[l.length - 1] : l[0] || "");
+
+  function resumenDecoracion() {
+    const partes = [];
+    const nombreColor = (c) => (COLORES.find((k) => k.c === c) || {}).nom;
+    const nombreSalsa = (c) => (SALSAS.find((k) => k.c === c) || {}).nom;
+    const cubres = [...new Set(estado.ops.filter((o) => o.t === "cubre").map((o) => nombreColor(o.c)).filter(Boolean))];
+    if (cubres.length) partes.push("glaseado " + juntaLista(cubres) + " por encima");
+    const puntos = estado.ops.filter((o) => o.t === "punto");
+    if (estado.fase === "decorar" && puntos.length) partes.push("bolitas de glaseado " + juntaLista([...new Set(puntos.map((o) => nombreColor(o.c)).filter(Boolean))]));
+    if (estado.fase === "servir" && puntos.length) partes.push("salsa " + juntaLista([...new Set(puntos.map((o) => nombreSalsa(o.c)).filter(Boolean))]));
+    if (estado.ops.some((o) => o.t === "chispa" && o.c === "#F6D365")) partes.push("queso rallado");
+    if (estado.ops.some((o) => o.t === "chispa" && o.c === "#F3E3B5")) partes.push("semillas de sésamo");
+    if (estado.ops.some((o) => o.t === "chispa" && !["#F6D365", "#F3E3B5"].includes(o.c))) partes.push("chispitas de colores");
+    if (estado.ops.some((o) => o.t === "polvito")) partes.push("azúcar flor");
+    const sellos = {};
+    estado.ops.filter((o) => o.t === "sello").forEach((o) => { const n = NOMBRES_SELLO[o.ico]; if (n) sellos[n] = (sellos[n] || 0) + 1; });
+    Object.keys(sellos).forEach((n) => partes.push(`${sellos[n]} ${sellos[n] === 1 ? n.replace(/s$/, "") : n}`));
+    return partes;
+  }
+
+  function pasos() {
+    const t = tiempos(), ids = Object.keys(estado.receta);
+    const nombresDe = (lista) => juntaLista(lista.map((id) => buscaIng(id).nombre.toLowerCase()));
+    const p = [];
+    if (estado.modo === "horno") {
+      const bol = alBol();
+      p.push("Pide ayuda a una persona adulta y enciende el horno a 180 °C para que se caliente.");
+      p.push("Unta un molde redondo con un poquito de mantequilla y harina, para que el pastel no se pegue.");
+      if (ids.includes("huevo")) p.push("Quiebra los huevos en un bol, con cuidado de que no caigan cáscaras.");
+      p.push(`Echa al bol: ${nombresDe(bol.filter((id) => id !== "huevo"))}. Usa las cantidades de la lista de ingredientes.`);
+      p.push("Revuelve con una cuchara o un batidor unos 5 minutos, hasta que la masa quede suave y sin grumos.");
+      p.push(`Vierte la masa en el molde y hornéala ${t.coccion} minutos. Para saber si está lista, pincha el centro con un palito: si sale limpio, ¡está lista!`);
+      p.push(`Con ayuda de un adulto, saca el pastel del horno y déjalo enfriar ${t.extra} minutos.`);
+      p.push(`Córtalo por la mitad en dos capas. Unta la capa de abajo con relleno de ${rellenoActual().nom.toLowerCase()} y pon la otra capa encima.`);
+      const deco = resumenDecoracion();
+      p.push(deco.length ? `Decóralo con ${juntaLista(deco)}.` : "Decóralo como más te guste.");
+    } else {
+      const solidos = ids.filter((id) => buscaIng(id).clase === "solido");
+      const primero = solidos.filter((id) => PROTEINAS.includes(id) || ["papa", "camote"].includes(id));
+      const despues = solidos.filter((id) => !primero.includes(id));
+      p.push("Lávate las manos y lava bien las verduras y las frutas.");
+      if (solidos.length) p.push(`Pide a una persona adulta que corte en trocitos: ${nombresDe(solidos)}.`);
+      p.push(`Pon la sartén a fuego medio con ${ids.includes("aceite") ? "el aceite" : ids.includes("mantequilla") ? "la mantequilla" : "un chorrito de aceite"} y espera 1 minuto a que se caliente.`);
+      if (primero.length) p.push(`Echa primero ${nombresDe(primero)}, porque se demora más. Cocina unos ${Math.max(4, t.coccion - 6)} minutos moviendo de vez en cuando.`);
+      if (despues.length) p.push(`Agrega ${nombresDe(despues)} y saltea 3 o 4 minutos más.`);
+      if (ids.includes("huevo")) p.push("Quiebra los huevos en la sartén y revuelve hasta que estén cocidos.");
+      const otros = ids.filter((id) => ["liquido", "polvo", "granos"].includes(buscaIng(id).clase) && id !== "aceite");
+      if (otros.length) p.push(`Añade ${nombresDe(otros)} y mezcla bien.`);
+      p.push(`En total, cocina unos ${t.coccion} minutos moviendo con la espátula, hasta que todo esté dorado y bien cocido.`);
+      const deco = resumenDecoracion();
+      p.push(deco.length ? `Sírvelo en un plato y decóralo con ${juntaLista(deco)}.` : "Sírvelo en un plato. ¡A comer!");
+    }
+    return p;
+  }
+
+  let jsPDFcargando = null;
+  function cargaJsPDF() {
+    if (window.jspdf) return Promise.resolve(window.jspdf.jsPDF);
+    if (!jsPDFcargando) jsPDFcargando = new Promise((ok, mal) => {
+      const s = document.createElement("script");
+      s.src = "https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js";
+      s.onload = () => (window.jspdf ? ok(window.jspdf.jsPDF) : mal(new Error("sin jsPDF")));
+      s.onerror = () => { jsPDFcargando = null; mal(new Error("no cargó")); };
+      document.head.appendChild(s);
+    });
+    return jsPDFcargando;
+  }
+
+  async function creaPDF() {
+    const JsPDF = await cargaJsPDF();
+    const doc = new JsPDF({ unit: "mm", format: "a4" });
+    const W = 210, M = 16;
+    const choco = [75, 44, 32], fresa = [217, 58, 108], crema = [255, 248, 238], suave = [122, 86, 70];
+    const t = tiempos();
+
+    doc.setFillColor(205, 239, 227); doc.rect(0, 0, W, 297, "F");
+    doc.setFillColor(...crema); doc.roundedRect(8, 8, W - 16, 281, 6, 6, "F");
+    doc.setFillColor(255, 211, 225); doc.roundedRect(8, 8, W - 16, 46, 6, 6, "F");
+    doc.rect(8, 40, W - 16, 14, "F");
+
+    doc.setTextColor(...suave); doc.setFont("helvetica", "bold"); doc.setFontSize(11);
+    doc.text("LA COCINA DE CANELA · RECETA", M, 20);
+    doc.setTextColor(...choco); doc.setFontSize(26);
+    const titulo = doc.splitTextToSize(estado.nombre, W - 2 * M - 8);
+    doc.text(titulo.slice(0, 2), M, 32);
+    doc.setFont("helvetica", "normal"); doc.setFontSize(12); doc.setTextColor(...suave);
+    const origen = esEspecial() ? "Plato especial inventado" : `Receta de ${rec().pais}`;
+    const fecha = new Date().toLocaleDateString("es-CL", { day: "numeric", month: "long", year: "numeric" });
+    doc.text(`${origen} por ${estado.jugador} · ${fecha}`, M, titulo.length > 1 ? 50 : 44);
+
+    let y = 64;
+    const cajas = [["Preparación", t.prep + " min"], [t.textoCoccion, t.coccion + " min"]];
+    if (t.extra) cajas.push([t.textoExtra, t.extra + " min"]);
+    cajas.push(["Total", (t.prep + t.coccion + t.extra) + " min"]);
+    const anchoCaja = 26;
+    cajas.forEach(([n, v], i) => {
+      const x = M + i * (anchoCaja + 3);
+      doc.setFillColor(...(i === cajas.length - 1 ? fresa : [255, 255, 255])); doc.setDrawColor(...choco); doc.setLineWidth(0.6);
+      doc.roundedRect(x, y, anchoCaja, 18, 3, 3, "FD");
+      doc.setTextColor(...(i === cajas.length - 1 ? [255, 255, 255] : suave)); doc.setFont("helvetica", "normal"); doc.setFontSize(8);
+      doc.text(n, x + anchoCaja / 2, y + 6, { align: "center" });
+      doc.setTextColor(...(i === cajas.length - 1 ? [255, 255, 255] : choco)); doc.setFont("helvetica", "bold"); doc.setFontSize(13);
+      doc.text(v, x + anchoCaja / 2, y + 14, { align: "center" });
+    });
+
+    const fotoX = 128, fotoY = 60, fotoW = 66, fotoH = 66 * (520 / 640);
+    doc.setFillColor(224, 164, 110); doc.roundedRect(fotoX - 2, fotoY - 2, fotoW + 4, fotoH + 4, 4, 4, "F");
+    try {
+      const foto = document.createElement("canvas"); foto.width = 800; foto.height = 650;
+      const fx = foto.getContext("2d"); fx.fillStyle = "#E0A46E"; fx.fillRect(0, 0, 800, 650); fx.drawImage($("pastel"), 0, 0, 800, 650);
+      doc.addImage(foto.toDataURL("image/jpeg", 0.88), "JPEG", fotoX, fotoY, fotoW, fotoH);
+    } catch (e) {}
+
+    y = 94;
+    doc.setTextColor(...fresa); doc.setFont("helvetica", "bold"); doc.setFontSize(16);
+    doc.text("Ingredientes", M, y);
+    doc.setTextColor(...choco); doc.setFont("helvetica", "normal"); doc.setFontSize(12);
+    y += 8;
+    listaIngredientes().forEach((linea) => {
+      doc.setFillColor(...fresa); doc.circle(M + 1.6, y - 1.3, 1.2, "F");
+      doc.text(doc.splitTextToSize(linea, 100), M + 6, y);
+      y += 6.5;
+    });
+    y = Math.max(y + 4, fotoY + fotoH + 10);
+
+    doc.setTextColor(...fresa); doc.setFont("helvetica", "bold"); doc.setFontSize(16);
+    doc.text("Paso a paso", M, y);
+    y += 8;
+    doc.setFontSize(12);
+    pasos().forEach((texto, i) => {
+      const lineas = doc.splitTextToSize(texto, W - 2 * M - 12);
+      if (y + lineas.length * 5.6 > 270) { doc.addPage(); doc.setFillColor(...crema); doc.rect(0, 0, W, 297, "F"); y = 22; }
+      doc.setFillColor(...choco); doc.circle(M + 3.5, y - 1.5, 3.6, "F");
+      doc.setTextColor(255, 255, 255); doc.setFont("helvetica", "bold"); doc.setFontSize(10);
+      doc.text(String(i + 1), M + 3.5, y + 0.1, { align: "center" });
+      doc.setTextColor(...choco); doc.setFont("helvetica", "normal"); doc.setFontSize(12);
+      doc.text(lineas, M + 11, y);
+      y += lineas.length * 5.6 + 3;
+    });
+
+    doc.setPage(doc.getNumberOfPages());
+    doc.setFillColor(255, 243, 196); doc.setDrawColor(...choco); doc.setLineWidth(0.4);
+    doc.roundedRect(M, 272, W - 2 * M, 12, 3, 3, "FD");
+    doc.setTextColor(...choco); doc.setFont("helvetica", "bold"); doc.setFontSize(10);
+    doc.text("Pide siempre ayuda a una persona adulta para usar cuchillos, la cocina y el horno.", W / 2, 279.5, { align: "center" });
+    return doc.output("blob");
+  }
+
+  async function guardaPDF() {
+    const boton = $("guardarPDF");
+    const antes = boton.textContent;
+    boton.disabled = true; boton.textContent = "Preparando…";
+    const nombreArchivo = `Receta - ${estado.nombre}`.replace(/[\\/:*?"<>|]/g, "").slice(0, 80) + ".pdf";
+    try {
+      const blob = await creaPDF();
+      let hecho = false;
+      try {
+        const descargas = window.claude && window.claude.use ? await window.claude.use("downloads") : null;
+        if (descargas) {
+          try { await descargas.save({ filename: nombreArchivo, data: blob }); dice("¡Listo! Tu receta quedó guardada en PDF."); }
+          catch (e) { dice(e && e.code === "declined" ? "No se guardó la receta. Puedes intentarlo cuando quieras." : "No pude guardar el PDF aquí."); }
+          hecho = true;
+        }
+      } catch (e) {}
+      if (!hecho) {
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement("a");
+        a.href = url; a.download = nombreArchivo;
+        document.body.appendChild(a); a.click(); a.remove();
+        setTimeout(() => URL.revokeObjectURL(url), 4000);
+        dice("¡Listo! Tu receta se guardó en PDF, con los ingredientes, los pasos y los minutos.");
+      }
+      suenaFiesta();
+    } catch (e) {
+      dice("No pude preparar el PDF. Revisa que haya internet y vuelve a intentarlo.", "uy");
+    } finally {
+      boton.disabled = false; boton.textContent = antes;
+    }
+  }
+
+  // ════════════ BUCLE Y ARRANQUE ════════════
+  let antes = performance.now();
+  function bucle(t) {
+    const dt = Math.min(0.05, (t - antes) / 1000);
+    antes = t;
+    const coc = estado && estado.pantalla === "cocina";
+    if (coc) {
+      const f = estado.fase;
+      if (f === "mezclar" || f === "horno") {
+        if (autoHasta > t) revuelve(dt * 9);
+        pasoMano(dt, t);
+        actualizaParticulas(dt);
+        dibujaBol(t);
+      } else if (f === "saltear") {
+        pasoSarten(dt);
+        pasoMano(dt, t);
+        actualizaParticulas(dt);
+        dibujaSarten(t);
+      } else if (f === "rellenar") {
+        if (tapaDesde) dibujaRelleno(t);
+        else if (autoUntar > t && !estado.rListo) {
+          const n = estado.rOps.length, a = n * 0.55, rr = (n % 40) / 40;
+          untaYPinta({ x: 320 + Math.cos(a) * 190 * rr, y: 290 + Math.sin(a) * 60 * rr });
+        }
+      }
+    }
+    const bolC = $("bol");
+    const sinFlecha = coc && (enMano || (dedo && (estado.fase === "mezclar" || estado.fase === "saltear")));
+    if (bolC.style.cursor !== (sinFlecha ? "none" : "pointer")) bolC.style.cursor = sinFlecha ? "none" : "pointer";
+    sizzle(!!(coc && estado.fase === "saltear" && estado.fuego && (estado.piezas.length || estado.charcos.length)));
+    requestAnimationFrame(bucle);
+  }
+
+  function empieza(datos) {
+    estado = Object.assign(estadoInicial(), datos && datos.jugador && datos.pantalla ? datos : {});
+    if (estado.fase === "horno") estado.fase = "mezclar";
+    if (estado.pantalla === "cocina" && estado.rid !== "especial" && !RECETAS.some((r) => r.id === estado.rid)) estado.pantalla = "recetario";
+    try { window.claude && window.claude.hot && window.claude.hot.snapshot && window.claude.hot.snapshot(() => estado); } catch (e) {}
+
+    preparaDibujos();
+    preparaBol();
+    preparaPastel();
+    pintaBienvenida();
+    pintaTodo();
+    if (estado.pantalla === "nombre") setTimeout(() => { try { $("campoNombre").focus(); } catch (e) {} }, 100);
+    requestAnimationFrame(bucle);
+
+    $("formNombre").addEventListener("submit", (e) => { e.preventDefault(); entra($("campoNombre").value); });
+    $("listaNombres").addEventListener("click", (e) => { const b = e.target.closest(".chip"); if (b) entra(b.dataset.n); });
+    $("cambiaJugador").addEventListener("click", () => {
+      estado.pantalla = "nombre"; estado.fuego = false;
+      $("campoNombre").value = ""; $("avisoNombre").textContent = "";
+      pintaBienvenida(); pintaTodo();
+      $("campoNombre").focus();
+    });
+    $("irRecetario").addEventListener("click", () => {
+      estado.pantalla = "recetario"; estado.fuego = false; clearInterval(relojHorno);
+      pintaTodo(); subeArriba();
+      dice(`¿Qué cocinamos ahora, ${estado.jugador}?`);
+    });
+
+    $("continentes").addEventListener("click", (e) => {
+      const b = e.target.closest(".chip"); if (!b) return;
+      estado.cont = b.dataset.cont; estado.pais = null;
+      pintaRecetario(); tono(600, 0.06, "sine", 0.08);
+      if (estado.cont !== "todos") dice(`¡Vamos a ${estado.cont}! Elige un país o una receta.`);
+    });
+    $("paises").addEventListener("click", (e) => {
+      const b = e.target.closest(".chip"); if (!b) return;
+      estado.pais = estado.pais === b.dataset.pais ? null : b.dataset.pais;
+      pintaRecetario(); tono(650, 0.06, "sine", 0.08);
+    });
+    $("tipos").addEventListener("click", (e) => { const b = e.target.closest(".chip"); if (!b) return; estado.tipoFiltro = b.dataset.tipo; pintaRecetario(); tono(560, 0.06, "sine", 0.08); });
+    $("tarjetas").addEventListener("click", (e) => { const b = e.target.closest(".tarjeta"); if (b) empiezaReceta(b.dataset.rid); });
+
+    $("estante").addEventListener("click", (e) => { const b = e.target.closest(".frasco"); if (b) pon(b.dataset.t, b); });
+    $("rejilla").addEventListener("click", (e) => { const b = e.target.closest(".item"); if (b) saca(Number(b.dataset.k)); });
+    $("aCocinar").addEventListener("click", vamosACocinar);
+    $("modos").addEventListener("click", (e) => {
+      const b = e.target.closest(".opcion"); if (!b) return;
+      estado.modo = b.dataset.modo; pintaEspecial(); tono(600, 0.08, "sine", 0.1);
+      dice(estado.modo === "horno" ? "¡Un pastel inventado! Lo mezclamos, lo horneamos y lo decoras." : "¡A la sartén! Lo salteamos y lo sirves en un plato.");
+    });
+    $("cocinarEspecial").addEventListener("click", cocinarEspecial);
+
+    $("echar").addEventListener("click", (e) => { const b = e.target.closest(".fila-echar"); if (b) tomaEnMano(b.dataset.t); });
+    $("fuego").addEventListener("click", () => {
+      estado.fuego = !estado.fuego;
+      pintaEchar();
+      if (estado.fuego) { ruido(0.4, 0.4, 600, "lowpass"); dice("¡Fuego encendido! La sartén se está calentando."); }
+      else dice("Fuego apagado.");
+    });
+    $("revolver").addEventListener("click", () => { if (estado.fase === "saltear") salta(); else autoHasta = performance.now() + 700; });
+    $("alHorno").addEventListener("click", () => { if (estado.fase === "saltear") servir(); else hornea(); });
+
+    $("rellenos").addEventListener("click", (e) => {
+      const b = e.target.closest(".opcion"); if (!b) return;
+      estado.relleno = b.dataset.r; pintaRellenos(); tono(560, 0.08, "sine", 0.1);
+      dice(`Relleno de ${rellenoActual().nom.toLowerCase()}. Pásalo con el dedo por el bizcocho.`);
+    });
+    $("untar").addEventListener("click", () => { autoUntar = performance.now() + 600; });
+    $("ponTapa").addEventListener("click", () => {
+      if (tapaDesde) return;
+      tapaDesde = performance.now();
+      $("ponTapa").hidden = true;
+      tono(700, 0.3, "sine", 0.12, 300);
+    });
+
+    $("colores").addEventListener("click", (e) => {
+      const b = e.target.closest(".color"); if (!b) return;
+      estado.color = b.dataset.c;
+      if (!["cubrir", "manga", "chispitas"].includes(estado.herr)) estado.herr = "cubrir";
+      pintaHerramientas(); tono(660, 0.08, "sine", 0.1);
+      if (estado.herr === "chispitas") dice(`Chispitas ${colorActual().pl}. Pasa el dedo por el pastel.`);
+      else dice(`Glaseado ${colorActual().nom}. ${estado.herr === "cubrir" ? "Toca el pastel para cubrirlo." : "Pasa el dedo por el pastel."}`);
+    });
+    $("herrs").addEventListener("click", (e) => {
+      const b = e.target.closest(".herr"); if (!b) return;
+      estado.herr = b.dataset.h; pintaHerramientas(); tono(560, 0.08, "sine", 0.1);
+      dice(HERRS.find((h) => h.id === estado.herr).frase);
+    });
+    $("salsas").addEventListener("click", (e) => {
+      const b = e.target.closest(".color"); if (!b) return;
+      estado.salsa = b.dataset.s; estado.herrPlato = "salsa"; pintaHerrPlato(); tono(660, 0.08, "sine", 0.1);
+      dice(`Salsa ${salsaActual().nom}. Pasa el dedo por el plato.`);
+    });
+    $("herrPlato").addEventListener("click", (e) => {
+      const b = e.target.closest(".herr"); if (!b) return;
+      estado.herrPlato = b.dataset.h; pintaHerrPlato(); tono(560, 0.08, "sine", 0.1);
+      dice(HERR_PLATO.find((h) => h.id === estado.herrPlato).frase);
+    });
+    $("deshacer").addEventListener("click", () => {
+      if (!estado.ops.length) { dice("No hay nada que deshacer."); return; }
+      const g = estado.ops[estado.ops.length - 1].g;
+      estado.ops = estado.ops.filter((o) => o.g !== g);
+      redibuja(); suenaSaca();
+    });
+    $("borrar").addEventListener("click", () => {
+      if (!estado.ops.length) { dice("Todavía no hay decoración."); return; }
+      if (!borrarArmado) {
+        $("borrar").textContent = "¿Seguro? Toca otra vez";
+        borrarArmado = setTimeout(() => { borrarArmado = null; $("borrar").textContent = "Borrar todo"; }, 3000);
+        return;
+      }
+      clearTimeout(borrarArmado); borrarArmado = null; $("borrar").textContent = "Borrar todo";
+      estado.ops = []; redibuja(); suenaSaca();
+      dice("Todo limpio. ¡A decorar de nuevo!");
+    });
+    $("termine").addEventListener("click", () => {
+      if (!estado.ops.length) { dice("¡Primero decóralo! Elige algo y toca encima.", "uy"); return; }
+      estado.terminado = true;
+      const sirve = estado.fase === "servir";
+      $("avisoTitulo").textContent = sirve ? "¡Qué rico se ve!" : "¡Qué pastel tan lindo!";
+      $("avisoTexto").textContent = `${estado.jugador} cocinó: ${estado.nombre}.`;
+      $("pastelListo").hidden = false;
+      $("osito").classList.add("fiesta");
+      suenaFiesta(); confeti();
+      dice(sirve ? `¡Qué rico se ve, ${estado.jugador}! Eres un gran chef.` : `¡Qué pastel tan lindo, ${estado.jugador}! Eres una estrella de la pastelería.`);
+    });
+    $("seguir").addEventListener("click", () => {
+      estado.terminado = false; $("pastelListo").hidden = true; $("osito").classList.remove("fiesta");
+      dice("¡Sigamos decorando!");
+    });
+    $("alRecetario").addEventListener("click", () => {
+      estado.pantalla = "recetario"; estado.terminado = false;
+      pintaTodo(); subeArriba();
+      dice(`¿Qué cocinamos ahora, ${estado.jugador}? Puedes viajar a otro país.`);
+    });
+    $("guardarPDF").addEventListener("click", guardaPDF);
+
+    $("osito").addEventListener("click", () => habla($("globo").textContent));
+    $("voz").addEventListener("click", () => {
+      estado.voz = !estado.voz;
+      if (!estado.voz) { try { speechSynthesis.cancel(); } catch (e) {} }
+      pintaTodo();
+      if (estado.voz) habla("¡Hola! Ya puedo hablar.");
+    });
+  }
+
+  const hot = window.claude && window.claude.hot;
+  if (hot && hot.ready) hot.ready(empieza); else empieza(hot && hot.data ? hot.data : {});
+})();
+</script>
+
+</body>
+</html>

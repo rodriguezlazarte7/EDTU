@@ -302,6 +302,10 @@
   #tenFs{position:fixed;inset:0;z-index:135;background:#06120a;display:none}
   #tenFs.open{display:block}
   #tenFrame{width:100%;height:100%;border:none;display:block}
+  #canelaFs{position:fixed;inset:0;z-index:135;background:#CDEFE3;display:none}
+  #canelaFs.open{display:block}
+  #canelaFrame{width:100%;height:100%;border:none;display:block}
+  #canelaCloseBtn{position:absolute;bottom:14px;right:14px;z-index:6;background:#FFF8EE;border:3px solid #4B2C20;color:#4B2C20;border-radius:999px;padding:8px 16px;font:700 16px system-ui,sans-serif;cursor:pointer}
   #turboFs{position:fixed;inset:0;z-index:135;background:#05060a;display:none}
   #turboFs.open{display:block}
   #turboFrame{width:100%;height:100%;border:none;display:block}
@@ -1458,6 +1462,7 @@
     <h2 style="margin:0 0 4px;letter-spacing:.12em;color:#ffd12e;text-shadow:0 0 10px rgba(200,16,46,.6)">🎮 ELIGE UN JUEGO</h2>
     <button class="btn pickgame" id="pickRush">🚀 EDTU RUSH</button>
     <button class="btn pickgame" id="pickFoot">⚽ THE FOOTBALL RUSH</button>
+    <button class="btn pickgame" id="pickCanela" style="background:linear-gradient(90deg,#b8703a,#ff5e8e);border-color:#ffd3e1;color:#fff8ee">🧸🎂 LA COCINA DE CANELA</button>
     <button class="btn pickgame" id="pickTen" style="background:linear-gradient(90deg,#08240f,#1a4a2c);border-color:#d8ff7a;color:#d8ff7a">🎾 EDTU TENNIS</button>
     <button class="btn pickgame" id="pickTurbo" style="background:linear-gradient(90deg,#140a2a,#3a1a6a);border-color:#c8ff2e;color:#c8ff2e">🏎️ EDTU NITRO</button>
     <button class="btn pickgame" id="pickMon">➤ SWARM</button>
@@ -1673,6 +1678,7 @@
 
 <!-- ============ CUBO 3x3 (carrera vs IA en iframe) ============ -->
 <div id="rkFs"><iframe id="rkFrame" allow="fullscreen; autoplay" title="CUBO 3x3"></iframe><button id="rkCloseBtn">✕ Salir</button></div>
+<div id="canelaFs"><iframe id="canelaFrame" allow="fullscreen; autoplay" title="La cocina de Canela"></iframe><button id="canelaCloseBtn">✕ Salir</button></div>
 <div id="tenFs"><iframe id="tenFrame" allow="fullscreen; autoplay; gamepad" title="EDTU TENNIS"></iframe><button id="tenCloseBtn">✕ Salir</button></div>
 <div id="turboFs"><iframe id="turboFrame" allow="fullscreen; autoplay; gamepad" title="EDTU NITRO"></iframe><button id="turboCloseBtn">✕ Salir</button></div>
 <div id="swFs"><iframe id="swFrame" allow="fullscreen; autoplay; pointer-lock" title="STAR WARS"></iframe><button id="swCloseBtn">✕ Salir</button></div>
@@ -9173,6 +9179,8 @@ $("pickRk").onclick=()=>abreMundo("rkFrame","rkFs","rubik.html","CUBO 3×3",["ar
 $("rkCloseBtn").onclick=()=>cierraMundo("rkFrame","rkFs");
 $("pickTen").onclick=()=>abreMundo("tenFrame","tenFs","tennis.html","EDTU TENNIS",["regando el césped…","pintando las líneas…","tensando la red…","llenando las gradas…"]);
 $("tenCloseBtn").onclick=()=>cierraMundo("tenFrame","tenFs");
+$("pickCanela").onclick=()=>abreMundo("canelaFrame","canelaFs","canela.html","LA COCINA DE CANELA",["horneando el delantal…","llenando la despensa…","puliendo la bandeja…"]);
+$("canelaCloseBtn").onclick=()=>cierraMundo("canelaFrame","canelaFs");
 $("pickTurbo").onclick=()=>abreMundo("turboFrame","turboFs","turbo.html","EDTU NITRO",["levantando las montañas…","asfaltando las carreteras…","plantando 8.000 pinos…","levantando el barrio…","calentando el motor…"]);
 $("turboCloseBtn").onclick=()=>cierraMundo("turboFrame","turboFs");
 $("pickSw").onclick=()=>abreMundo("swFrame","swFs","starwars.html","STAR WARS",["calentando motores…","cargando los cañones…","abriendo el hangar…","calculando el salto…"]);
@@ -11569,7 +11577,7 @@ const Pad={
     if(document.querySelector(".gfull.open")) return false;   // dentro de un minijuego el mando no navega menús
     /* 🐛 faltaban TENIS y STAR WARS: con el mando, el cuartel seguía navegando sus menús por
           detrás mientras jugabas, y te sacaba del juego. Ahora también se calla con ellos */
-    return !(o("gameFs")||o("footFs")||o("robotFs")||o("monFs")||o("f1Fs")||o("gatoFs")||o("chessFs")||o("nagFs")||o("rkFs")||o("jpFs")||o("scrFs")||o("tenFs")||o("swFs")||o("turboFs")); },
+    return !(o("gameFs")||o("footFs")||o("robotFs")||o("monFs")||o("f1Fs")||o("gatoFs")||o("chessFs")||o("nagFs")||o("rkFs")||o("jpFs")||o("scrFs")||o("tenFs")||o("canelaFs")||o("swFs")||o("turboFs")); },
   isVis(el){ if(!el||el.disabled) return false; if(el.getAttribute&&el.getAttribute("aria-hidden")==="true") return false;
     const s=getComputedStyle(el); if(s.display==="none"||s.visibility==="hidden"||+s.opacity===0||s.pointerEvents==="none") return false;
     const r=el.getBoundingClientRect(); if(r.width<3||r.height<3) return false;
